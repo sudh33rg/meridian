@@ -7,6 +7,8 @@
     ".dockerignore": "c324bf566f235e1d08183f5ef7673b26cd76a4a7946cdbce94c37f794a7a1e0d",
     ".github/workflows/ci.yml": "c7fc0373db1edb988f990796306b0cc159d51b8ad5158203f6957ef158385000",
     ".gitignore": "9885b48227a6236a1ae668ba94bdf1c15acd0eb3b50cc6fa8215a45fcd158954",
+    "CLAUDE.md": "195e896eb7e41e7069d3719ffefe9e140613607c3941cd8487dbd9486885665a",
+    "CONSTITUTION.md": "068bcde2358a71d10cfb422c6187418db18f7abfa6098824c5366ddafa03fe6e",
     "Makefile": "52b2daaa022fcebcd62e5ca270fd64cc39be744ea332d2ae4935b47598007844",
     "README.md": "1ec23b6f927fba871100823a5da7385b209ef4a1b40f86890b300b436d280446",
     "apps/mobile/lib/app.dart": "4e7dff0ef07267de6ad47ae706c2e0ccd4e44ecc184846e97eb4b7de525c50c3",
@@ -98,7 +100,7 @@
     "tests/load.js": "1b7e13f242efc4f887daccd941e4ff40f4e5a8d78f71f14b720a82a8ffd8504b",
     "tests/smoke.py": "57d9bdab5e505e40128f04b4e0f6515b86062655ff71e65142ee692cb8d0336a"
   },
-  "file_count": 93,
+  "file_count": 95,
   "verification": "docs/VERIFICATION.md",
   "milestone_ledger": "docs/IMPLEMENTATION_STATUS.md"
 }
