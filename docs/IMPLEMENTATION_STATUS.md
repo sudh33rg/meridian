@@ -6,7 +6,7 @@ This document explicitly distinguishes source code that exists from planned pari
 
 | Milestone | Delivered in this package | Remaining before milestone can be called complete | Gate |
 |---|---|---|---|
-| M0 — Platform | Rust/Axum API split into domain modules, typed `ApiError`, `Identity` request extractor, SQLx migrations, Argon2id bearer sessions, tenants/memberships, explicit tenant-scoped queries, login-failure throttling by account, OpenAPI spec + generated web types, CI workflow (fmt, clippy, DB tests, web lint/test/build, smoke, Playwright e2e), Docker Compose, local verification script | DB-enforced RLS (needs transaction-per-request tenant context), robust permission model, wider negative tests, secret rotation, account recovery, trusted proxy rate limits, first CI run on GitHub | **Not passed** |
+| M0 — Platform | Rust/Axum API in domain modules, typed `ApiError`, **PostgreSQL RLS on every tenant table with one tenant-bound transaction per request (commit on success / rollback on error)**, per-tenant gap-free event log (`events`, `sync_id`) written atomically with audit rows, **session families with rotating refresh tokens, HttpOnly cookies + CSRF for browsers, session list/revoke**, email verification / password reset / invitation emails (Mailpit in dev), **durable Postgres job queue**, project visibility + user/team grants, per-client rate limits, security headers, request ids, Prometheus metrics, OpenAPI + generated web types, CI workflow, Docker Compose | Secret rotation, MFA, change-password, SSO, shared (ingress) rate limits, OTLP tracing export, wider negative tests, first CI run on GitHub | **Not passed** |
 | M1 — Project work | Project creation, issue CRUD/status and rich edit, searchable fields, assignees, priorities, labels, custom JSON, comments/replies, links, archive, board and list UI | Attachments/object storage, workflow configuration, custom field schemas, project ACLs, bulk operations, subscriptions, history diff and pagination | **Not passed** |
 | M2 — Knowledge | Hierarchical project pages, optimistic update checks, version snapshots, restore, page comments, search, page web editor/reader | True collaborative CRDT rich-text editor, independent spaces/ACLs, templates, macros/embeds, page tree moves, inline comments, whiteboards | **Not passed** |
 | M3 — Agile | Sprint planned→active→completed, one-active-sprint enforcement, releases, issue sprint assignment, story points, due dates, issue links, project analytics | Sprint backlog UI + burn charts, scope and capacity modeling, full roadmaps, version issue associations, forecasting | **Not passed** |
@@ -30,11 +30,11 @@ This document explicitly distinguishes source code that exists from planned pari
 
 ## Release risk inventory (must be addressed before customer data)
 
-1. **No RLS**: the application primarily enforces tenants in query predicates; database policy is required as a second barrier. Introduce a tenant-scoped connection/transaction context before enabling RLS or existing routes will break.
-2. **Web authentication**: bearer session in `sessionStorage` exposes sessions to JavaScript if XSS occurs. Implement hardened HttpOnly/SameSite cookie or scoped token/PKCE approach and a robust CSP, session rotation and revocation UI.
-3. **Permissions**: only four workspace roles, not fine-grained document, project, issue and guest ACLs.
-4. **Invite delivery**: tokens are returned to workspace admins once for manual sharing; no verified email delivery. No email verification or password reset.
-5. **Audit/outbox atomicity**: several handlers write audit or outbox after primary commits; upgrade to one transaction with retries/idempotency before GA.
+1. ~~No RLS~~ **Done (Phase 1)**: see `SECURITY.md`. Remaining: the system (owner) connection is still used for sign-in and cross-workspace flows, and RLS has been exercised only by the app role switch, not against an externally provisioned least-privilege role.
+2. ~~Web authentication in `sessionStorage`~~ **Done (Phase 1)** for the browser (HttpOnly cookies, CSRF, rotation, revoke UI). The mobile app still stores a bearer token and has not adopted refresh rotation.
+3. **Permissions**: project visibility and grants exist; page/issue/guest ACLs do not.
+4. ~~Invite delivery / verification / reset~~ **Implemented** with a mail abstraction; unverified accounts are not blocked. Real SMTP delivery has only been exercised against Mailpit.
+5. ~~Audit/outbox atomicity~~ **Done**: entity, audit, event and outbox writes share the request transaction. Automation rule runs also share it.
 6. **No concurrency-tested live editor**: optimistic versions protect against accidental overwrites but don't provide Google Docs-like simultaneous editing.
 7. **Webhook registration only**: URLs are not requested automatically, avoiding unreviewed SSRF risk, but delivery is not functional.
 8. **No payment or SSO vendor integration**: entitlement response is development metadata and must not be treated as billing enforcement.
@@ -44,9 +44,9 @@ This document explicitly distinguishes source code that exists from planned pari
 ## Next recommended engineering sequence
 
 1. Push and confirm the first CI run is green (Flutter job in particular).
-2. Make all writes transactional with outbox/audit (single event log, see `RESEARCH_AND_ROADMAP.md` Phase 1); add pagination and typed response schemas for the endpoints that still return `Value`.
-3. Implement DB RLS using `SET LOCAL app.tenant_id` on every tenant-bound transaction, prove negative cases from independent DB roles.
-4. Add organization/project/content ACLs, identity integration and safe admin settings; harden web token lifecycle.
-5. Add asset service, live collaborative editor, durable worker queue and webhook/notification dispatch.
+2. Phase 2 of `RESEARCH_AND_ROADMAP.md` (configurable workflows, custom fields, MQL, pagination, typed response schemas for endpoints that still return `Value`).
+3. Identity: MFA, SSO/SCIM, change-password; adopt refresh rotation in the mobile app.
+4. Phase 3–5: client sync over the event log, live collaborative editor, webhook/notification dispatch (webhooks stay off until Constitution III.7 is satisfied).
+5. Add asset service.
 6. Finish complete Agile/Confluence feature families, migration tools, real-time search and optional governed AI.
 7. Run multi-device E2E, destructive failure testing, DR restore, load soak and accessibility audit before any enterprise GA declaration.

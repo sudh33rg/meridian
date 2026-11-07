@@ -57,7 +57,7 @@ pub(crate) async fn ensure_access(tx: &mut Tx, project: Uuid) -> ApiResult<()> {
     } else {
         2
     };
-    match project_level(&mut **tx, &i, project).await? {
+    match project_level(tx, &i, project).await? {
         Some(l) if l >= need => Ok(()),
         Some(l) if l >= 1 => Err(forbidden()),
         _ => Err(err(StatusCode::NOT_FOUND, "Project not found")),
@@ -66,7 +66,7 @@ pub(crate) async fn ensure_access(tx: &mut Tx, project: Uuid) -> ApiResult<()> {
 /// Require project admin (grant management).
 pub(crate) async fn ensure_project_admin(tx: &mut Tx, project: Uuid) -> ApiResult<()> {
     let i = tx.identity.clone();
-    match project_level(&mut **tx, &i, project).await? {
+    match project_level(tx, &i, project).await? {
         Some(3) => Ok(()),
         Some(l) if l >= 1 => Err(forbidden()),
         _ => Err(err(StatusCode::NOT_FOUND, "Project not found")),

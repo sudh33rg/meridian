@@ -61,6 +61,16 @@ export function CreateModal() {
                     placeholder="What is this project for?"
                   />
                 </label>
+                <label>
+                  Who can see it
+                  <select
+                    value={draft.visibility}
+                    onChange={(e) => setDraft({ ...draft, visibility: e.target.value })}
+                  >
+                    <option value="workspace">Everyone in the workspace</option>
+                    <option value="private">Private (only people I add)</option>
+                  </select>
+                </label>
               </>
             ) : (
               <>

@@ -2,13 +2,14 @@ import React, { createContext, useContext, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { api, errorMessage, send } from "../../lib/api";
-import { clearSession, saveSession as persistSession } from "../../lib/session";
+import { clearSession, saveSession as persistSession, type Me } from "../../lib/session";
 import type { Issue, Page, Project, Session } from "../../lib/types";
 import type { ExtraTab } from "../advanced/AdvancedWorkspace";
 
 export type Tab = "overview" | "board" | "issues" | "knowledge" | ExtraTab;
 export type Modal = "project" | "issue" | "page" | null;
 const emptyDraft = {
+  visibility: "workspace",
   name: "",
   key: "",
   description: "",
@@ -36,6 +37,12 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
     queryKey: ["projects", session.tenant_id],
     queryFn: () => api<Project[]>("/projects", token),
   });
+  const meQ = useQuery({ queryKey: ["me", session.tenant_id], queryFn: () => api<Me>("/me", token) });
+  const [verificationSent, setVerificationSent] = useState(false);
+  const resendVerification = () =>
+    send<void>("/auth/resend-verification", token, "POST")
+      .then(() => setVerificationSent(true))
+      .catch((e) => setError(errorMessage(e)));
   const projects = useMemo(() => projectsQ.data ?? [], [projectsQ.data]);
   const selected = projects.some((p) => p.id === search.project)
     ? (search.project as string)
@@ -77,6 +84,7 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
         name: draft.name,
         key: draft.key.toUpperCase(),
         description: draft.description,
+        visibility: draft.visibility,
       }),
     onSuccess: async (p) => {
       await qc.invalidateQueries({ queryKey: ["projects"] });
@@ -173,6 +181,9 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
       qc.clear();
       setSession(s);
     },
+    me: meQ.data,
+    resendVerification,
+    verificationSent,
     projects,
     issues,
     pages,

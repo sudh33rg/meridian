@@ -15,6 +15,22 @@ All core routes are prefixed `/api`. Except authentication and health checks, a 
 | GET / POST | `/invitations`, `/teams` | Admin invitations and team management |
 | POST | `/teams/{id}/members` | Add an existing workspace member to a team |
 
+### Sessions, recovery and access (Phase 1)
+
+| Verb | Route | Description |
+|---|---|---|
+| POST | `/auth/refresh` | Rotate the session. API clients send `{"refresh_token"}`; browsers rely on the cookie. A reused refresh token revokes its session family |
+| POST | `/auth/forgot-password`, `/auth/reset-password` | Always 202 / reset by emailed one-time token (ends all sessions) |
+| POST | `/auth/verify-email`, `/auth/resend-verification` | Confirm email / resend the confirmation |
+| GET | `/sessions` | Your active sign-ins in this workspace |
+| DELETE | `/sessions/{id}` | Revoke one sign-in |
+| POST | `/sessions/revoke-others` | End every sign-in but this one |
+| GET / PUT | `/projects/{id}/access` | List / set grants (viewer, editor, admin) for a user or team. Project admins only |
+| DELETE | `/projects/{id}/access/{subject_type}/{subject_id}` | Remove a grant |
+| PATCH | `/projects/{id}` | Set `visibility` to `workspace` or `private` |
+
+Browser clients send `X-Auth-Mode: cookie` on sign-in (tokens go into HttpOnly cookies and are blanked in the body) and `X-CSRF-Token` on unsafe requests. The authoritative contract is [`openapi.json`](openapi.json).
+
 ## Delivery and knowledge
 
 | Verb | Route | Description |

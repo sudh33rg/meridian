@@ -170,7 +170,7 @@ pub(crate) async fn import_issues(
         created += 1;
         next += 1;
     }
-    log_event(&mut *tx, &i, "imported", "project", p).await?;
+    log_event(&mut tx, &i, "imported", "project", p).await?;
     Ok(Json(
         json!({"created":created,"skipped":skipped,"idempotent_by":"external_ref"}),
     ))

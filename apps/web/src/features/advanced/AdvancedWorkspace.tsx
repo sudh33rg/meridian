@@ -36,7 +36,9 @@ export type ExtraTab =
   | "search"
   | "audit"
   | "integrations"
-  | "approvals";
+  | "approvals"
+  | "security"
+  | "access";
 const configs: Partial<
   Record<
     ExtraTab,
@@ -644,7 +646,7 @@ export function AdvancedWorkspace({
                   >
                     Copy token
                   </button>
-                  <small>Manual invite delivery; email integration has not been configured.</small>
+                  <small>An invitation email has been queued. You can also share this token yourself.</small>
                 </div>
               )}
             </form>

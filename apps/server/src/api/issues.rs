@@ -97,9 +97,9 @@ pub(crate) async fn edit_issue(
         .bind(v.title).bind(v.description).bind(v.kind).bind(v.priority).bind(v.status.clone()).bind(v.assignee_id)
         .bind(v.sprint_id).bind(v.parent_id).bind(v.story_points).bind(v.due_at).bind(v.labels).bind(v.custom_fields)
         .bind(i.tenant_id).bind(id).fetch_one(&mut *tx).await.map_err(db_err)?;
-    log_event(&mut *tx, &i, "updated", "issue", id).await?;
+    log_event(&mut tx, &i, "updated", "issue", id).await?;
     log_outbox(
-        &mut *tx,
+        &mut tx,
         i.tenant_id,
         "issue.updated",
         id,
@@ -107,7 +107,7 @@ pub(crate) async fn edit_issue(
     )
     .await?;
     if v.status.is_some() {
-        run_automations(&mut *tx, &i, project, id, "issue_status_changed").await?;
+        run_automations(&mut tx, &i, project, id, "issue_status_changed").await?;
     }
     Ok(Json(row))
 }
@@ -126,7 +126,7 @@ pub(crate) async fn archive_issue(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult
     if r.rows_affected() == 0 {
         return Err(err(StatusCode::NOT_FOUND, "Issue not found"));
     }
-    log_event(&mut *tx, &i, "archived", "issue", id).await?;
+    log_event(&mut tx, &i, "archived", "issue", id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 #[derive(Deserialize, utoipa::ToSchema)]
@@ -163,7 +163,7 @@ pub(crate) async fn new_issue_comment(
     }
     let row:Value=sqlx::query_scalar("INSERT INTO issue_comments(tenant_id,issue_id,parent_id,author_id,body) VALUES($1,$2,$3,$4,$5) RETURNING to_jsonb(issue_comments)")
         .bind(i.tenant_id).bind(id).bind(v.parent_id).bind(i.user_id).bind(v.body).fetch_one(&mut *tx).await.map_err(db_err)?;
-    log_event(&mut *tx, &i, "commented", "issue", id).await?;
+    log_event(&mut tx, &i, "commented", "issue", id).await?;
     Ok((StatusCode::CREATED, Json(row)))
 }
 #[derive(Deserialize, utoipa::ToSchema)]

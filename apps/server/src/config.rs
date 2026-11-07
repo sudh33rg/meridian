@@ -9,6 +9,8 @@ pub(crate) struct Config {
     pub(crate) trust_proxy: bool,
     /// Base URL used in emailed links (the web app).
     pub(crate) public_url: String,
+    /// Browser origins allowed to make cookie-authenticated unsafe requests (PUBLIC_URL, CORS_ORIGIN).
+    pub(crate) allowed_origins: Vec<String>,
     pub(crate) mail_from: String,
     pub(crate) smtp_url: Option<String>,
     pub(crate) session_ttl_hours: i32,
@@ -46,15 +48,24 @@ impl Config {
                 hex::encode(b).into_bytes()
             }
         };
+        let public_url = std::env::var("PUBLIC_URL")
+            .unwrap_or_else(|_| "http://localhost:5173".into())
+            .trim_end_matches('/')
+            .to_string();
+        let mut allowed_origins = vec![public_url.clone()];
+        if let Ok(o) = std::env::var("CORS_ORIGIN") {
+            allowed_origins.extend(
+                o.split(',')
+                    .map(|x| x.trim().trim_end_matches('/').to_string()),
+            );
+        }
         Config {
             secret,
             production,
             cookie_secure: env_bool("COOKIE_SECURE") || production,
             trust_proxy: env_bool("TRUST_PROXY"),
-            public_url: std::env::var("PUBLIC_URL")
-                .unwrap_or_else(|_| "http://localhost:5173".into())
-                .trim_end_matches('/')
-                .to_string(),
+            public_url,
+            allowed_origins,
             mail_from: std::env::var("MAIL_FROM")
                 .unwrap_or_else(|_| "Meridian <no-reply@meridian.local>".into()),
             smtp_url: std::env::var("SMTP_URL").ok().filter(|s| !s.is_empty()),

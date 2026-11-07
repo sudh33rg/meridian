@@ -187,7 +187,9 @@ Goal: a green CI pipeline and a codebase that can grow.
 
 **Gate:** CI green on main; `docker compose -f infra/docker-compose.full.yml up` works from a clean clone; a signup → project → issue → page E2E passes in Playwright.
 
-### Phase 1 — Trust foundation + event log (≈6–8 ew)
+### Phase 1 — Trust foundation + event log (≈6–8 ew) — **implemented 7 Nov 2026; see `IMPLEMENTATION_STATUS.md`**
+
+> Deviations from the plan below: the job runner is a ~150-line in-house Postgres queue (no `graphile_worker`/`apalis` dependency; same semantics); OpenTelemetry/OTLP export is deferred (request ids, JSON logs and Prometheus metrics shipped); authorization is a project-level tuple model (`project_access()`), not the full workspace→project→page tuple graph; the planned cross-tenant negative test suite was replaced by visual verification under the repository's no-new-tests rule.
 Goal: safe to hold real data in a closed beta. This is the backbone every later phase depends on.
 
 1. **RLS:** migration `0003_rls.sql` enables + forces RLS on every tenant table with `tenant_id = current_setting('app.tenant_id', true)::uuid` in USING and WITH CHECK. The app connects as a non-owner role (`meridian_app`); migrations run as `meridian_owner`. `TenantTx` runs `set_config('app.tenant_id',$1,true)` first. Auth/session lookup uses a narrow `SECURITY DEFINER` function.

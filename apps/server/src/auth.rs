@@ -36,8 +36,9 @@ pub(crate) struct Login {
 pub(crate) struct AuthResponse {
     /// Empty in cookie mode (the session lives in an HttpOnly cookie).
     pub(crate) token: String,
-    /// Empty in cookie mode.
-    pub(crate) refresh_token: String,
+    /// Absent in cookie mode.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) refresh_token: Option<String>,
     pub(crate) tenant_id: Uuid,
     pub(crate) user_id: Uuid,
     pub(crate) organization: String,
@@ -98,7 +99,7 @@ fn constant_time_eq(a: &str, b: &str) -> bool {
     a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
 }
 /// Double-submit CSRF check for cookie-authenticated unsafe requests.
-fn check_csrf(headers: &HeaderMap) -> ApiResult<()> {
+fn check_csrf(headers: &HeaderMap, cfg: &Config) -> ApiResult<()> {
     let cookie = cookie_value(headers, CSRF_COOKIE).unwrap_or_default();
     let sent = headers
         .get("x-csrf-token")
@@ -113,8 +114,9 @@ fn check_csrf(headers: &HeaderMap) -> ApiResult<()> {
             .and_then(|v| v.to_str().ok())
             .unwrap_or("");
         let origin_host = origin.split_once("://").map(|(_, h)| h).unwrap_or(origin);
-        // Behind the Vite/nginx proxy the Host header is the public one, so these agree.
-        if origin_host != host {
+        // Same host as the request, or one of the configured public origins (a dev proxy may
+        // rewrite Host, so Host alone is not a reliable reference).
+        if origin_host != host && !cfg.allowed_origins.iter().any(|o| o == origin) {
             return Err(ApiError::Csrf);
         }
     }
@@ -251,7 +253,7 @@ pub(crate) fn auth_reply(
         }
     } else {
         body.token = issued.token;
-        body.refresh_token = issued.refresh_token;
+        body.refresh_token = Some(issued.refresh_token);
     }
     (status, headers, Json(body)).into_response()
 }
@@ -354,7 +356,7 @@ pub(crate) async fn signup(
         StatusCode::CREATED,
         AuthResponse {
             token: String::new(),
-            refresh_token: String::new(),
+            refresh_token: None,
             tenant_id: tenant,
             user_id: user,
             organization: v.organization,
@@ -420,7 +422,7 @@ pub(crate) async fn login(
         StatusCode::OK,
         AuthResponse {
             token: String::new(),
-            refresh_token: String::new(),
+            refresh_token: None,
             tenant_id: tenant,
             user_id: user,
             organization,
@@ -429,6 +431,9 @@ pub(crate) async fn login(
         issued,
     ))
 }
+
+/// (family, tenant, expired, family revoked, used_at) for a presented refresh token.
+type RefreshRow = (Uuid, Uuid, bool, bool, Option<chrono::DateTime<Utc>>);
 
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct RefreshInput {
@@ -445,7 +450,7 @@ pub(crate) async fn refresh(
     let presented = match v.refresh_token {
         Some(t) => t,
         None => {
-            check_csrf(&headers)?;
+            check_csrf(&headers, &app.cfg)?;
             cookie_value(&headers, REFRESH_COOKIE)
                 .ok_or_else(|| err(StatusCode::UNAUTHORIZED, "Refresh token required"))?
         }
@@ -455,7 +460,7 @@ pub(crate) async fn refresh(
         return Err(invalid());
     }
     let mut tx = app.db.begin().await.map_err(db_err)?;
-    let row: Option<(Uuid, Uuid, bool, bool, Option<chrono::DateTime<Utc>>)> = sqlx::query_as(
+    let row: Option<RefreshRow> = sqlx::query_as(
         "SELECT r.family_id, r.tenant_id, r.expires_at<now(), f.revoked_at IS NOT NULL, r.used_at \
          FROM refresh_tokens r JOIN session_families f ON f.id=r.family_id AND f.tenant_id=r.tenant_id \
          WHERE r.token_hash=$1 FOR UPDATE OF r",
@@ -524,7 +529,7 @@ pub(crate) async fn refresh(
         StatusCode::OK,
         AuthResponse {
             token: String::new(),
-            refresh_token: String::new(),
+            refresh_token: None,
             tenant_id: tenant,
             user_id: user,
             organization,
@@ -536,7 +541,8 @@ pub(crate) async fn refresh(
 
 /// Resolve the caller from the bearer header or session cookie. Returns the identity and the
 /// SHA-256 of the presented session token (to identify "this session" in the UI).
-pub(crate) async fn authenticate(parts: &Parts, db: &PgPool) -> ApiResult<(Identity, String)> {
+pub(crate) async fn authenticate(parts: &Parts, app: &App) -> ApiResult<(Identity, String)> {
+    let db = &app.db;
     let unauth = || err(StatusCode::UNAUTHORIZED, "Authentication required");
     let bearer = parts
         .headers
@@ -555,7 +561,7 @@ pub(crate) async fn authenticate(parts: &Parts, db: &PgPool) -> ApiResult<(Ident
         return Err(err(StatusCode::UNAUTHORIZED, "Invalid session"));
     }
     if via_cookie && !is_safe_method(&parts.method) {
-        check_csrf(&parts.headers)?;
+        check_csrf(&parts.headers, &app.cfg)?;
     }
     let hash = token_hash(&value);
     let identity = sqlx::query_as::<_,Identity>("SELECT s.tenant_id,s.user_id,m.role FROM sessions s JOIN memberships m ON m.tenant_id=s.tenant_id AND m.user_id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND m.disabled_at IS NULL AND NOT EXISTS (SELECT 1 FROM session_families f WHERE f.id=s.family_id AND f.revoked_at IS NOT NULL)")
@@ -566,8 +572,8 @@ pub(crate) async fn authenticate(parts: &Parts, db: &PgPool) -> ApiResult<(Ident
         .bind(&hash).execute(db).await;
     Ok((identity, hash))
 }
-pub(crate) async fn identity(parts: &Parts, db: &PgPool) -> ApiResult<Identity> {
-    authenticate(parts, db).await.map(|(i, _)| i)
+pub(crate) async fn identity(parts: &Parts, app: &App) -> ApiResult<Identity> {
+    authenticate(parts, app).await.map(|(i, _)| i)
 }
 
 /// Authenticated caller. Declaring `i: Identity` in a handler resolves the session (tenant +
@@ -576,7 +582,7 @@ pub(crate) async fn identity(parts: &Parts, db: &PgPool) -> ApiResult<Identity> 
 impl FromRequestParts<App> for Identity {
     type Rejection = ApiError;
     async fn from_request_parts(parts: &mut Parts, state: &App) -> Result<Self, Self::Rejection> {
-        identity(parts, &state.db).await
+        identity(parts, state).await
     }
 }
 pub(crate) fn can_edit(i: &Identity) -> bool {

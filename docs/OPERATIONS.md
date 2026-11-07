@@ -18,7 +18,7 @@ From repository root: `docker compose -f infra/docker-compose.full.yml up --buil
 
 Run `./scripts/verify.sh` for available local toolchains. With the backend serving locally, run `python3 tests/smoke.py`. To test tenant isolation in Rust, set `DATABASE_URL_TEST` to a disposable PostgreSQL database and run `cargo test`. This checkout does not currently include an automated CI workflow.
 
-API liveness: `GET /health`. Readiness (checks database): `GET /ready`. Neither requires a bearer token. The app emits tracing logs, but has no complete telemetry exporter/dashboard yet.
+API liveness: `GET /health`. Readiness (checks database): `GET /ready`. Neither requires a bearer token. The app sets and echoes `X-Request-ID` on every response and records it on the request's tracing span, so it appears on any log line emitted while a request is handled (including warnings such as refresh-token reuse) and Prometheus metrics (`meridian_http_requests_total`, `meridian_http_request_seconds{method,route}`, `meridian_http_in_flight`, `meridian_db_pool_size/idle`, job and rate-limit counters). There is no OTLP trace exporter or dashboard yet.
 
 ## Database and migrations
 
@@ -27,6 +27,29 @@ Migrations are applied on API startup through SQLx. Back up before applying migr
 ## Kubernetes references
 
 `infra/k8s` provides API and web deployment/service/HPA examples using placeholder images and externally supplied secrets. The cluster, ingress, certificates, PostgreSQL service, backup system, log pipeline and deployment controller are intentionally not provisioned. These examples are *not* production infrastructure by themselves.
+
+## Configuration (environment)
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `DATABASE_URL` | required | Owner/migration connection. Request transactions `SET ROLE meridian_app` (created by migration 0003; the connecting user must be allowed to become it; superusers and role owners are) |
+| `APP_ENV` | development | `production` forces Secure cookies and requires `APP_SECRET`; a missing `SMTP_URL` then fails email jobs instead of logging them |
+| `APP_SECRET` | random per process | 32+ chars; key for emailed one-time tokens. Changing it invalidates unsent/unused links |
+| `PUBLIC_URL` | `http://localhost:5173` | Base URL in emailed links |
+| `SMTP_URL`, `MAIL_FROM` | unset (log mailer) | `smtp://host:1025` (no TLS), `smtps://` (implicit TLS) or `smtp://host:587?tls=required` |
+| `COOKIE_SECURE`, `TRUST_PROXY` | false | Secure cookies + HSTS header; trust `X-Forwarded-For` for rate limiting |
+| `SESSION_TTL_HOURS`, `REFRESH_TTL_DAYS` | 8, 30 | Access session and refresh token lifetime |
+| `RATE_LIMIT_AUTH_PER_MIN`, `RATE_LIMIT_GLOBAL_PER_MIN` | 30, 1200 | Per-client, per-process limits (burst = quarter) |
+| `METRICS_ADDR` | `127.0.0.1:9090` | Prometheus scrape address (`off` disables). Keep off the public network |
+| `LOG_FORMAT` | text | `json` for structured logs |
+
+Local email: `docker compose -f infra/docker-compose.yml up -d mailpit`, set `SMTP_URL=smtp://localhost:1025`, read mail at http://localhost:8025. The full preview stack includes Mailpit on :8025.
+
+## Background jobs and the event log
+
+* `jobs` is a Postgres queue (enqueue is part of the request transaction; the worker claims with `SKIP LOCKED`, retries with exponential backoff up to `max_attempts`, then marks the row `dead` with `last_error`). Inspect with `SELECT id,kind,state,attempts,last_error FROM jobs ORDER BY id DESC;`. Metrics: `meridian_jobs_queued`, `meridian_jobs_total{kind,outcome}`.
+* `events` is the append-only per-tenant change log (`sync_id` is gap-free per tenant). Nothing consumes it yet; it is the basis for client sync, webhooks and indexing in later phases. `outbox_events` is still written for the future webhook dispatcher.
+* Row level security: if you add a table with a `tenant_id` column, enable RLS and add the `tenant_isolation` policy in the same migration or the API will refuse to start.
 
 ## Observability requirements
 

@@ -66,7 +66,7 @@ pub(crate) async fn grant_access(
     sqlx::query("INSERT INTO relation_tuples(tenant_id,object_type,object_id,relation,subject_type,subject_id,created_by) VALUES($1,'project',$2,$3,$4,$5,$6)")
         .bind(i.tenant_id).bind(project).bind(&v.level).bind(&v.subject_type).bind(v.subject_id).bind(i.user_id)
         .execute(&mut *tx).await.map_err(db_err)?;
-    log_event(&mut *tx, &i, "access_granted", "project", project).await?;
+    log_event(&mut tx, &i, "access_granted", "project", project).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -83,7 +83,7 @@ pub(crate) async fn revoke_access(
     if done.rows_affected() == 0 {
         return Err(err(StatusCode::NOT_FOUND, "No such grant"));
     }
-    log_event(&mut *tx, &i, "access_revoked", "project", project).await?;
+    log_event(&mut tx, &i, "access_revoked", "project", project).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -115,7 +115,7 @@ pub(crate) async fn set_visibility(
         .execute(&mut *tx)
         .await
         .map_err(db_err)?;
-    log_event(&mut *tx, &i, "visibility_changed", "project", project).await?;
+    log_event(&mut tx, &i, "visibility_changed", "project", project).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 

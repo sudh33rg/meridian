@@ -4,7 +4,13 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  server: { proxy: { "/api": "http://127.0.0.1:8080", "/health": "http://127.0.0.1:8080" } },
+  // changeOrigin stays false so the API sees the browser's Host (its CSRF Origin check compares it).
+  server: {
+    proxy: {
+      "/api": { target: "http://127.0.0.1:8080", changeOrigin: false },
+      "/health": { target: "http://127.0.0.1:8080", changeOrigin: false },
+    },
+  },
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],

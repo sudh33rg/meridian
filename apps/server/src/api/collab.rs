@@ -136,7 +136,7 @@ pub(crate) async fn new_approval(
     valid_project(&mut tx, &i, p).await?;
     validate_title(&v.title)?;
     if !["issue", "page", "decision"].contains(&v.subject_type.as_str())
-        || !relation_entity_exists(&mut *tx, i.tenant_id, &v.subject_type, v.subject_id).await?
+        || !relation_entity_exists(&mut tx, i.tenant_id, &v.subject_type, v.subject_id).await?
     {
         return Err(bad("Referenced work item not found"));
     }

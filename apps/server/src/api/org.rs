@@ -72,7 +72,7 @@ pub(crate) async fn create_workspace(
         StatusCode::CREATED,
         AuthResponse {
             token: String::new(),
-            refresh_token: String::new(),
+            refresh_token: None,
             tenant_id: tenant,
             user_id: i.user_id,
             organization: v.name,
@@ -118,7 +118,7 @@ pub(crate) async fn switch_workspace(
         StatusCode::OK,
         AuthResponse {
             token: String::new(),
-            refresh_token: String::new(),
+            refresh_token: None,
             tenant_id: v.tenant_id,
             user_id: i.user_id,
             organization,
@@ -153,7 +153,7 @@ pub(crate) async fn change_member_role(
      .bind(v.role).bind(i.tenant_id).bind(user).fetch_optional(&mut *tx).await.map_err(db_err)?;
     let changed =
         row.ok_or_else(|| err(StatusCode::NOT_FOUND, "Member absent or protected owner"))?;
-    log_event(&mut *tx, &i, "role_changed", "member", user).await?;
+    log_event(&mut tx, &i, "role_changed", "member", user).await?;
     Ok(Json(changed))
 }
 #[utoipa::path(delete, path = "/api/members/{id}", tag = "org", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 204, description = "Success"), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
@@ -174,7 +174,7 @@ pub(crate) async fn remove_member(mut tx: Tx, Path(user): Path<Uuid>) -> ApiResu
         .execute(&mut *tx)
         .await
         .map_err(db_err)?;
-    log_event(&mut *tx, &i, "disabled", "member", user).await?;
+    log_event(&mut tx, &i, "disabled", "member", user).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 #[derive(Deserialize, utoipa::ToSchema)]
@@ -208,11 +208,11 @@ pub(crate) async fn invite(
     let token = derive_token(&tx.cfg.secret, "invite", id);
     let id:Uuid=sqlx::query_scalar("INSERT INTO invitations(id,tenant_id,email,role,token_hash,invited_by,expires_at) VALUES($6,$1,$2,$3,$4,$5,now()+interval '3 days') RETURNING id")
         .bind(i.tenant_id).bind(email).bind(v.role).bind(token_hash(&token)).bind(i.user_id).bind(id).fetch_one(&mut *tx).await.map_err(db_err)?;
-    log_event(&mut *tx, &i, "created", "invitation", id).await?;
+    log_event(&mut tx, &i, "created", "invitation", id).await?;
     // The invitation email is enqueued in the same transaction (it exists iff the invitation does).
     // The token is also shown once to the inviter, so sharing by hand works without SMTP.
     crate::jobs::enqueue(
-        &mut *tx,
+        &mut tx,
         Some(i.tenant_id),
         "email.invite",
         crate::jobs::payload("invitation_id", id),
@@ -312,7 +312,7 @@ pub(crate) async fn accept_invite(
         StatusCode::OK,
         AuthResponse {
             token: String::new(),
-            refresh_token: String::new(),
+            refresh_token: None,
             tenant_id: tenant,
             user_id: user,
             organization: org,
@@ -428,7 +428,7 @@ pub(crate) async fn accept_invite_existing(
         StatusCode::OK,
         AuthResponse {
             token: String::new(),
-            refresh_token: String::new(),
+            refresh_token: None,
             tenant_id: tenant,
             user_id: i.user_id,
             organization: org,

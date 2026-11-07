@@ -58,7 +58,7 @@ pub(crate) async fn restore_page(
         .bind(i.tenant_id).bind(id).bind(ver).bind(title).bind(content).bind(i.user_id).execute(&mut *tx).await.map_err(db_err)?;
     let saved:Value=sqlx::query_scalar("UPDATE pages SET title=$1,content=$2,version=version+1,updated_at=now() WHERE tenant_id=$3 AND id=$4 RETURNING to_jsonb(pages)")
         .bind(old_title).bind(old_content).bind(i.tenant_id).bind(id).fetch_one(&mut *tx).await.map_err(db_err)?;
-    log_event(&mut *tx, &i, "restored", "page", id).await?;
+    log_event(&mut tx, &i, "restored", "page", id).await?;
     Ok(Json(saved))
 }
 #[utoipa::path(get, path = "/api/pages/{id}/comments", tag = "knowledge", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
@@ -145,7 +145,7 @@ pub(crate) async fn relations(
     axum::extract::Query(v): axum::extract::Query<RelationQuery>,
 ) -> ApiResult<Json<Vec<Value>>> {
     let i = tx.identity.clone();
-    if !relation_entity_exists(&mut *tx, i.tenant_id, &v.entity_type, v.entity_id).await? {
+    if !relation_entity_exists(&mut tx, i.tenant_id, &v.entity_type, v.entity_id).await? {
         return Err(err(StatusCode::NOT_FOUND, "Entity not found"));
     }
     let rows=sqlx::query_scalar("SELECT to_jsonb(r) FROM entity_relations r WHERE tenant_id=$1 AND ((source_type=$2 AND source_id=$3) OR (target_type=$2 AND target_id=$3)) ORDER BY created_at DESC LIMIT 250")
@@ -171,8 +171,8 @@ pub(crate) async fn new_relation(
     {
         return Err(bad("Unsupported relationship"));
     }
-    if !relation_entity_exists(&mut *tx, i.tenant_id, &v.source_type, v.source_id).await?
-        || !relation_entity_exists(&mut *tx, i.tenant_id, &v.target_type, v.target_id).await?
+    if !relation_entity_exists(&mut tx, i.tenant_id, &v.source_type, v.source_id).await?
+        || !relation_entity_exists(&mut tx, i.tenant_id, &v.target_type, v.target_id).await?
     {
         return Err(err(
             StatusCode::NOT_FOUND,

@@ -5977,7 +5977,6 @@
         "type": "object",
         "required": [
           "token",
-          "refresh_token",
           "tenant_id",
           "user_id",
           "organization",
@@ -5991,8 +5990,11 @@
             "type": "string"
           },
           "refresh_token": {
-            "type": "string",
-            "description": "Empty in cookie mode."
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Absent in cookie mode."
           },
           "tenant_id": {
             "type": "string",

@@ -38,7 +38,7 @@ pub(crate) async fn revoke_session(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResul
         .execute(&mut *tx)
         .await
         .map_err(db_err)?;
-    log_event(&mut *tx, &i, "revoked", "session", id).await?;
+    log_event(&mut tx, &i, "revoked", "session", id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -64,7 +64,7 @@ pub(crate) async fn revoke_other_sessions(mut tx: Tx) -> ApiResult<Json<Value>> 
         .execute(&mut *tx)
         .await
         .map_err(db_err)?;
-    log_event(&mut *tx, &i, "revoked_others", "session", i.user_id).await?;
+    log_event(&mut tx, &i, "revoked_others", "session", i.user_id).await?;
     Ok(Json(json!({ "revoked": revoked.len() })))
 }
 

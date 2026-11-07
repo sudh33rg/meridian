@@ -4,6 +4,8 @@ import { useWorkspace } from "../workspace/useWorkspace";
 import { api } from "../../lib/api";
 import type { Page } from "../../lib/types";
 import { AdvancedWorkspace, type ExtraTab } from "../advanced/AdvancedWorkspace";
+import { SecurityPanel } from "../advanced/SecurityPanel";
+import { AccessPanel } from "../advanced/AccessPanel";
 import { OverviewTab } from "./OverviewTab";
 import { BoardTab } from "./BoardTab";
 import { IssuesTab } from "./IssuesTab";
@@ -24,9 +26,20 @@ export function Content() {
     setActivePage,
     setSelectedIssue,
     setPages,
+    me,
+    resendVerification,
+    verificationSent,
   } = useWorkspace();
   return (
     <div className="content">
+      {me && !me.email_verified && (
+        <div className="banner">
+          <span>Please confirm your email address — we sent you a link.</span>
+          <button disabled={verificationSent} onClick={resendVerification}>
+            {verificationSent ? "Email sent" : "Resend email"}
+          </button>
+        </div>
+      )}
       {["overview", "board", "issues", "knowledge"].includes(tab) && (
         <div className="heading">
           <div>
@@ -84,6 +97,7 @@ export function Content() {
         "analytics",
         "automation",
         "approvals",
+        "access",
       ].includes(tab) ? (
         <div className="empty">
           <Layers3 size={32} />
@@ -101,7 +115,9 @@ export function Content() {
           <KnowledgeTab />
         </>
       )}
-      {!["overview", "board", "issues", "knowledge"].includes(tab) && (
+      {tab === "security" && <SecurityPanel />}
+      {tab === "access" && project && <AccessPanel />}
+      {!["overview", "board", "issues", "knowledge", "security", "access"].includes(tab) && (
         <AdvancedWorkspace
           key={`${tab}:${selected}`}
           tab={tab as ExtraTab}

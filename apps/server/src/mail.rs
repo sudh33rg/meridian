@@ -6,14 +6,14 @@ use lettre::{
     message::Mailbox, transport::smtp::AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
 
+pub(crate) struct SmtpMailer {
+    transport: AsyncSmtpTransport<Tokio1Executor>,
+    from: Mailbox,
+}
+
 pub(crate) enum Mailer {
-    Log {
-        production: bool,
-    },
-    Smtp {
-        transport: AsyncSmtpTransport<Tokio1Executor>,
-        from: Mailbox,
-    },
+    Log { production: bool },
+    Smtp(Box<SmtpMailer>),
 }
 
 impl Mailer {
@@ -24,10 +24,10 @@ impl Mailer {
                 cfg.mail_from.parse::<Mailbox>(),
             ) {
                 (Ok(b), Ok(from)) => {
-                    return Mailer::Smtp {
+                    return Mailer::Smtp(Box::new(SmtpMailer {
                         transport: b.build(),
                         from,
-                    };
+                    }));
                 }
                 (Err(e), _) => tracing::error!(error=%e, "invalid SMTP_URL; email disabled"),
                 (_, Err(e)) => tracing::error!(error=%e, "invalid MAIL_FROM; email disabled"),
@@ -47,7 +47,8 @@ impl Mailer {
                 tracing::info!(%to, %subject, "email (development log mode, not sent):\n{body}");
                 Ok(())
             }
-            Mailer::Smtp { transport, from } => {
+            Mailer::Smtp(m) => {
+                let SmtpMailer { transport, from } = &**m;
                 let msg = Message::builder()
                     .from(from.clone())
                     .to(to.parse().map_err(|e| format!("bad recipient: {e}"))?)

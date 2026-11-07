@@ -1,4 +1,9 @@
-/** The only place that talks HTTP to the Meridian API. */
+/** The only place that talks HTTP to the Meridian API.
+ *
+ * Browser mode: when no bearer token is given the client runs in cookie mode. The server keeps
+ * the session in HttpOnly cookies (invisible to this code); unsafe requests echo the readable
+ * `meridian_csrf` cookie in `X-CSRF-Token`. A 401 triggers one transparent refresh-token
+ * rotation and a single retry; if that fails the app is told to sign out. */
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -11,16 +16,60 @@ export class ApiError extends Error {
 }
 
 export const API_BASE = "/api";
+export const SIGNED_OUT_EVENT = "meridian:signed-out";
+
+const csrfToken = () => {
+  if (typeof document === "undefined") return undefined;
+  const hit = document.cookie.split("; ").find((c) => c.startsWith("meridian_csrf="));
+  return hit ? decodeURIComponent(hit.slice("meridian_csrf=".length)) : undefined;
+};
+const isSafe = (method?: string) => !method || ["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase());
+
+let refreshing: Promise<boolean> | null = null;
+function refreshSession(): Promise<boolean> {
+  refreshing ??= (async () => {
+    try {
+      const csrf = csrfToken();
+      const r = await fetch(API_BASE + "/auth/refresh", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Auth-Mode": "cookie",
+          ...(csrf ? { "X-CSRF-Token": csrf } : {}),
+        },
+        body: "{}",
+      });
+      return r.ok;
+    } catch {
+      return false;
+    } finally {
+      setTimeout(() => (refreshing = null), 0);
+    }
+  })();
+  return refreshing;
+}
 
 export async function api<T>(path: string, token?: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(API_BASE + path, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: "Bearer " + token } : {}),
-      ...init?.headers,
-    },
-  });
+  const cookieMode = !token;
+  const send = () => {
+    const csrf = cookieMode && !isSafe(init?.method) ? csrfToken() : undefined;
+    return fetch(API_BASE + path, {
+      ...init,
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: "Bearer " + token } : { "X-Auth-Mode": "cookie" }),
+        ...(csrf ? { "X-CSRF-Token": csrf } : {}),
+        ...init?.headers,
+      },
+    });
+  };
+  let response = await send();
+  if (response.status === 401 && cookieMode && !path.startsWith("/auth/")) {
+    if (await refreshSession()) response = await send();
+    else if (typeof window !== "undefined") window.dispatchEvent(new Event(SIGNED_OUT_EVENT));
+  }
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { error?: string; code?: string };
     throw new ApiError(
@@ -29,7 +78,10 @@ export async function api<T>(path: string, token?: string, init?: RequestInit): 
       body.code || "unknown",
     );
   }
-  return response.status === 204 ? (undefined as T) : ((await response.json()) as T);
+  if (response.status === 204) return undefined as T;
+  // 202 and friends may legitimately carry no body.
+  const text = await response.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 export const send = <T>(path: string, token: string, method: string, body?: unknown) =>

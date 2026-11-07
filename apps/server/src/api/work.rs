@@ -95,7 +95,7 @@ pub(crate) async fn create_project(
     .fetch_one(&mut *tx)
     .await
     .map_err(db_err)?;
-    log_event(&mut *tx, &i, "created", "project", id).await?;
+    log_event(&mut tx, &i, "created", "project", id).await?;
     Ok((StatusCode::CREATED, Json(p)))
 }
 
@@ -183,16 +183,16 @@ pub(crate) async fn create_issue(
     .map_err(db_err)?;
     let row:Issue=sqlx::query_as("INSERT INTO issues(tenant_id,project_id,number,title,description,kind,priority,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,project_id,number,title,description,kind,status,priority,created_at,updated_at")
  .bind(i.tenant_id).bind(project).bind(next).bind(v.title.trim()).bind(v.description.unwrap_or_default()).bind(kind).bind(priority).bind(i.user_id).fetch_one(&mut *tx).await.map_err(db_err)?;
-    log_event(&mut *tx, &i, "created", "issue", row.id).await?;
+    log_event(&mut tx, &i, "created", "issue", row.id).await?;
     log_outbox(
-        &mut *tx,
+        &mut tx,
         i.tenant_id,
         "issue.created",
         row.id,
         serde_json::json!({"project_id":project}),
     )
     .await?;
-    run_automations(&mut *tx, &i, project, row.id, "issue_created").await?;
+    run_automations(&mut tx, &i, project, row.id, "issue_created").await?;
     Ok((StatusCode::CREATED, Json(row)))
 }
 #[utoipa::path(patch, path = "/api/issues/{id}", tag = "work", params(("id" = Uuid, Path, description = "Resource id")), request_body = PatchIssue, responses((status = 200, description = "Success", body = Issue), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
@@ -211,16 +211,16 @@ pub(crate) async fn patch_issue(
     }
     let row:Issue=sqlx::query_as("UPDATE issues SET status=$1,updated_at=now() WHERE tenant_id=$2 AND id=$3 RETURNING id,project_id,number,title,description,kind,status,priority,created_at,updated_at")
  .bind(v.status).bind(i.tenant_id).bind(issue).fetch_optional(&mut *tx).await.map_err(db_err)?.ok_or_else(||err(StatusCode::NOT_FOUND,"Issue not found"))?;
-    log_event(&mut *tx, &i, "updated", "issue", issue).await?;
+    log_event(&mut tx, &i, "updated", "issue", issue).await?;
     log_outbox(
-        &mut *tx,
+        &mut tx,
         i.tenant_id,
         "issue.updated",
         issue,
         serde_json::json!({"project_id":row.project_id,"status":row.status.clone()}),
     )
     .await?;
-    run_automations(&mut *tx, &i, row.project_id, issue, "issue_status_changed").await?;
+    run_automations(&mut tx, &i, row.project_id, issue, "issue_status_changed").await?;
     Ok(Json(row))
 }
 
@@ -304,9 +304,9 @@ pub(crate) async fn create_page(
     }
     let page:Page=sqlx::query_as("INSERT INTO pages(tenant_id,project_id,parent_id,title,content,created_by) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,project_id,parent_id,title,content,version,updated_at")
  .bind(i.tenant_id).bind(project).bind(v.parent_id).bind(v.title.trim()).bind(v.content.unwrap_or_default()).bind(i.user_id).fetch_one(&mut *tx).await.map_err(db_err)?;
-    log_event(&mut *tx, &i, "created", "page", page.id).await?;
+    log_event(&mut tx, &i, "created", "page", page.id).await?;
     log_outbox(
-        &mut *tx,
+        &mut tx,
         i.tenant_id,
         "page.created",
         page.id,
@@ -341,9 +341,9 @@ pub(crate) async fn patch_page(
  .bind(i.tenant_id).bind(page_id).bind(c.version).bind(&c.title).bind(&c.content).bind(i.user_id).execute(&mut *tx).await.map_err(db_err)?;
     let updated:Page=sqlx::query_as("UPDATE pages SET title=$1,content=$2,version=version+1,updated_at=now() WHERE tenant_id=$3 AND id=$4 RETURNING id,project_id,parent_id,title,content,version,updated_at")
  .bind(v.title.trim()).bind(&v.content).bind(i.tenant_id).bind(page_id).fetch_one(&mut *tx).await.map_err(db_err)?;
-    log_event(&mut *tx, &i, "updated", "page", page_id).await?;
+    log_event(&mut tx, &i, "updated", "page", page_id).await?;
     log_outbox(
-        &mut *tx,
+        &mut tx,
         i.tenant_id,
         "page.updated",
         page_id,

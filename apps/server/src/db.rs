@@ -52,7 +52,7 @@ impl DerefMut for Tx {
 impl FromRequestParts<App> for Tx {
     type Rejection = ApiError;
     async fn from_request_parts(parts: &mut Parts, state: &App) -> Result<Self, ApiError> {
-        let (identity, token_hash) = authenticate(parts, &state.db).await?;
+        let (identity, token_hash) = authenticate(parts, state).await?;
         let slot = parts
             .extensions
             .get::<TxSlot>()

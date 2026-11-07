@@ -117,6 +117,11 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (s: Session) 
               onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
             />
           </label>
+          {mode === "login" && (
+            <a className="link" href="/auth/forgot">
+              Forgot password?
+            </a>
+          )}
           {error && <div className="error">{error}</div>}
           <button className="primary full" disabled={busy}>
             {busy ? "Please wait…" : mode === "signup" ? "Create workspace" : "Sign in"}{" "}

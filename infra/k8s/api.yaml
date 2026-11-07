@@ -20,6 +20,22 @@ spec:
               value: https://meridian.example.com
             - name: BIND_ADDRESS
               value: 0.0.0.0:8080
+            - name: APP_ENV
+              value: production
+            - name: APP_SECRET
+              valueFrom: {secretKeyRef: {name: meridian-secrets, key: app-secret}}
+            - name: SMTP_URL
+              valueFrom: {secretKeyRef: {name: meridian-secrets, key: smtp-url}}
+            - name: MAIL_FROM
+              value: Meridian <no-reply@meridian.example.com>
+            - name: PUBLIC_URL
+              value: https://meridian.example.com
+            - name: TRUST_PROXY
+              value: 'true'
+            - name: LOG_FORMAT
+              value: json
+            - name: METRICS_ADDR
+              value: 0.0.0.0:9090
           readinessProbe: {httpGet: {path: /ready, port: http}, initialDelaySeconds: 3, periodSeconds: 10}
           livenessProbe: {httpGet: {path: /health, port: http}, initialDelaySeconds: 5, periodSeconds: 15}
           resources: {requests: {cpu: 100m, memory: 160Mi}, limits: {cpu: '1', memory: 768Mi}}

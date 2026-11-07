@@ -82,10 +82,15 @@ apps/
   server/
     src/main.rs             Shared state, router assembly, startup (also `--openapi`)
     src/error.rs            ApiError: typed errors with stable `code`s
-    src/auth.rs             Signup/login/logout and the `Identity` request extractor
+    src/auth.rs             Signup/login/logout/refresh, cookies + CSRF, reset/verify, `Identity` extractor
+    src/db.rs               `Tx`: per-request tenant-bound transaction (RLS) + commit/rollback layer
+    src/jobs.rs, mail.rs    Durable Postgres job queue and the mailer
+    src/middleware.rs       Rate limits, security headers, request metrics
+    src/config.rs           Environment configuration
     src/openapi.rs          OpenAPI document (utoipa) served at /api/openapi.json
     src/api/                Domain route modules: work, org, planning, issues, knowledge,
-                            collab, admin (+ common guards and event writers)
+                            collab, admin, security (sessions), access (project grants)
+                            (+ common guards and event writers)
     src/tests.rs            HTTP-level integration tests (need DATABASE_URL_TEST)
     migrations/             Ordered PostgreSQL schema migrations
   web/
@@ -114,6 +119,6 @@ Keep all application source in `apps/`, documentation in `docs/`, and shared aut
 
 **Rust, web, PostgreSQL migrations, API smoke and browser e2e have now been executed (see `VERIFICATION.md`); Flutter has not.** See `VERIFICATION.md` for what has and has not been executed. Source and manifests need CI execution and fixes before being represented as production-ready.
 
-**Tenant isolation is enforced by explicit authenticated SQL predicates, not yet by PostgreSQL RLS.** The web uses JavaScript-accessible bearer tokens; the live document editor is plain-text with optimistic concurrency, not a CRDT. Webhooks do not deliver automatically, and no real payment, SSO, email delivery, push or semantic AI provider is configured.
+**Tenant isolation is enforced by explicit SQL predicates and by PostgreSQL row level security** (one tenant-bound transaction per request; see `SECURITY.md`). The browser keeps its session in HttpOnly cookies; API/mobile clients use bearer tokens. Email (verification, reset, invitations) is sent through SMTP when `SMTP_URL` is set and otherwise logged in development. The live document editor is plain-text with optimistic concurrency, not a CRDT. Webhooks do not deliver automatically, and no payment, SSO, push or semantic AI provider is configured.
 
 For these reasons, **do not place real enterprise/customer data into this preview** until the release gates documented in `IMPLEMENTATION_STATUS.md` have been completed.

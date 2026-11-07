@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Lock,
   LayoutDashboard,
   BookOpen,
   Plus,
@@ -96,6 +97,7 @@ export function Sidebar() {
             ["analytics", "Analytics"],
             ["portfolio", "Portfolio"],
             ["approvals", "Approvals"],
+            ["access", "Access"],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -120,6 +122,7 @@ export function Sidebar() {
             ["people", "People"],
             ["automation", "Automations"],
             ["integrations", "Integrations"],
+            ["security", "Security"],
             ["audit", "Audit log"],
           ] as const
         ).map(([id, label]) => (
@@ -155,6 +158,7 @@ export function Sidebar() {
           >
             <span className="project-icon">{p.key.slice(0, 2)}</span>
             <span>{p.name}</span>
+            {p.visibility === "private" && <Lock size={13} aria-label="Private project" />}
           </button>
         ))}
         {!projects.length && <div className="muted small pad">No projects yet</div>}
