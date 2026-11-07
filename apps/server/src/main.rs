@@ -26,7 +26,9 @@ mod db;
 mod error;
 mod jobs;
 mod mail;
+mod mfa;
 mod middleware;
+mod secrets;
 mod openapi;
 #[cfg(test)]
 mod tests;
@@ -90,6 +92,7 @@ pub(crate) fn build_router_with(
         .merge(api::admin::routes())
         .merge(api::security::routes())
         .merge(api::access::routes())
+        .merge(mfa::routes())
         .layer(axum::middleware::from_fn(db::tx_layer))
         .layer(DefaultBodyLimit::max(1_048_576))
         .layer(cors)

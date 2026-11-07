@@ -3,7 +3,15 @@ import { ArrowUpRight } from "lucide-react";
 import { api, errorMessage } from "../../lib/api";
 import type { Session } from "../../lib/types";
 
-function Shell({ title, lead, children }: { title: string; lead?: string; children: React.ReactNode }) {
+export function Shell({
+  title,
+  lead,
+  children,
+}: {
+  title: string;
+  lead?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="auth-layout single">
       <div className="auth-panel">
@@ -227,6 +235,68 @@ export function AcceptInvitePage({ onAuthenticated }: { onAuthenticated: (s: Ses
         <a className="link" href="/">
           Back to sign in
         </a>
+      </div>
+    </Shell>
+  );
+}
+
+/** Second step of sign-in for accounts with MFA: an authenticator code or a recovery code. */
+export function MfaChallenge({
+  challenge,
+  onAuthenticated,
+  onCancel,
+}: {
+  challenge: string;
+  onAuthenticated: (s: Session) => void;
+  onCancel: () => void;
+}) {
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      onAuthenticated(
+        await api<Session>("/auth/mfa/verify", undefined, {
+          method: "POST",
+          body: JSON.stringify({ challenge, code }),
+        }),
+      );
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Shell
+      title="Two-step verification"
+      lead="Enter the 6-digit code from your authenticator app, or one of your recovery codes."
+    >
+      <form onSubmit={submit} style={{ display: "contents" }}>
+        <label>
+          Verification code
+          <input
+            required
+            autoFocus
+            autoComplete="one-time-code"
+            inputMode="text"
+            placeholder="123456"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+          />
+        </label>
+        {error && <div className="error">{error}</div>}
+        <button className="primary full" disabled={busy}>
+          {busy ? "Please wait…" : "Verify"} <ArrowUpRight size={17} />
+        </button>
+      </form>
+      <div className="auth-switch">
+        <button type="button" onClick={onCancel}>
+          Use a different account
+        </button>
       </div>
     </Shell>
   );

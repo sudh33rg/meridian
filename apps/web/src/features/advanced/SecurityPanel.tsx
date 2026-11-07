@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MonitorSmartphone, ShieldCheck } from "lucide-react";
 import { api, errorMessage, send } from "../../lib/api";
 import { useWorkspace } from "../workspace/useWorkspace";
+import { MfaCard } from "./MfaCard";
 
 type SessionRow = {
   id: string;
@@ -146,6 +147,7 @@ export function SecurityPanel() {
           )}
         </p>
       </div>
+      <MfaCard />
       <ChangePassword onChanged={() => qc.invalidateQueries({ queryKey: ["sessions"] })} />
       <div className="panel-card">
         <div className="row-gap" style={{ justifyContent: "space-between" }}>

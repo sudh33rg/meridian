@@ -2,33 +2,43 @@ import React, { useState } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { api, errorMessage } from "../../lib/api";
 import type { Session } from "../../lib/types";
+import { MfaChallenge } from "./AuthPages";
 
 export function AuthScreen({ onAuthenticated }: { onAuthenticated: (s: Session) => void }) {
   const [mode, setMode] = useState<"login" | "signup">("signup");
   const [authForm, setAuthForm] = useState({ organization: "", slug: "", name: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [challenge, setChallenge] = useState("");
   const authenticate = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setError("");
     try {
-      onAuthenticated(
-        await api<Session>("/auth/" + mode, undefined, {
-          method: "POST",
-          body: JSON.stringify(
-            mode === "login"
-              ? { slug: authForm.slug, email: authForm.email, password: authForm.password }
-              : authForm,
-          ),
-        }),
-      );
+      const res = await api<Session>("/auth/" + mode, undefined, {
+        method: "POST",
+        body: JSON.stringify(
+          mode === "login"
+            ? { slug: authForm.slug, email: authForm.email, password: authForm.password }
+            : authForm,
+        ),
+      });
+      if (res.mfa_required && res.challenge) setChallenge(res.challenge);
+      else onAuthenticated(res);
     } catch (e) {
       setError(errorMessage(e));
     } finally {
       setBusy(false);
     }
   };
+  if (challenge)
+    return (
+      <MfaChallenge
+        challenge={challenge}
+        onAuthenticated={onAuthenticated}
+        onCancel={() => setChallenge("")}
+      />
+    );
   return (
     <div className="auth-layout">
       <div className="auth-hero">

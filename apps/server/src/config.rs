@@ -1,5 +1,4 @@
 //! Runtime configuration, read once from the environment.
-use rand::RngCore;
 
 pub(crate) struct Config {
     /// HMAC key used to derive one-time email tokens (never stored). Set `APP_SECRET` in production.
@@ -42,10 +41,8 @@ impl Config {
                     !production,
                     "APP_SECRET (at least 32 characters) is required when APP_ENV=production"
                 );
-                tracing::warn!("APP_SECRET not set: using a random per-process secret; emailed links issued before a restart will stop working");
-                let mut b = [0u8; 32];
-                rand::thread_rng().fill_bytes(&mut b);
-                hex::encode(b).into_bytes()
+                tracing::warn!("APP_SECRET not set: using the fixed DEVELOPMENT secret. Never run shared or production environments like this");
+                b"meridian-development-secret-not-for-production-0001".to_vec()
             }
         };
         let public_url = std::env::var("PUBLIC_URL")

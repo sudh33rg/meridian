@@ -717,6 +717,284 @@
         ]
       }
     },
+    "/api/auth/mfa": {
+      "get": {
+        "tags": [
+          "mfa"
+        ],
+        "operationId": "status",
+        "responses": {
+          "200": {
+            "description": "MFA status of the signed-in user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/mfa/confirm": {
+      "post": {
+        "tags": [
+          "mfa"
+        ],
+        "operationId": "confirm",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodeInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "MFA enabled; the recovery codes are shown once",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Wrong code or nothing to confirm",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/mfa/disable": {
+      "post": {
+        "tags": [
+          "mfa"
+        ],
+        "operationId": "disable",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisableInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "MFA disabled"
+          },
+          "400": {
+            "description": "Wrong password or code, or a workspace requires MFA",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/mfa/enroll": {
+      "post": {
+        "tags": [
+          "mfa"
+        ],
+        "operationId": "enroll",
+        "responses": {
+          "200": {
+            "description": "A fresh authenticator secret (not active until confirmed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "MFA is already enabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/mfa/recovery-codes": {
+      "post": {
+        "tags": [
+          "mfa"
+        ],
+        "operationId": "regenerate_recovery_codes",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodeInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "A new set of recovery codes (the old ones stop working)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Wrong code or MFA not enabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/mfa/verify": {
+      "post": {
+        "tags": [
+          "mfa"
+        ],
+        "operationId": "verify_challenge",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyChallengeInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Second factor accepted; session issued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Challenge expired/used up or code wrong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/refresh": {
       "post": {
         "tags": [
@@ -5731,6 +6009,107 @@
         ]
       }
     },
+    "/api/workspace/security": {
+      "get": {
+        "tags": [
+          "mfa"
+        ],
+        "operationId": "workspace_security",
+        "responses": {
+          "200": {
+            "description": "Workspace security policy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "mfa"
+        ],
+        "operationId": "set_workspace_security",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SecurityPolicyInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Policy updated"
+          },
+          "400": {
+            "description": "Enable MFA on your own account first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/workspaces": {
       "get": {
         "tags": [
@@ -6031,6 +6410,20 @@
           "name"
         ],
         "properties": {
+          "challenge": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Send this with the code to `/auth/mfa/verify`."
+          },
+          "mfa_required": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Present (true) when the password was right but a second factor is still needed."
+          },
           "name": {
             "type": "string"
           },
@@ -6092,6 +6485,17 @@
           }
         }
       },
+      "CodeInput": {
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        }
+      },
       "CommentInput": {
         "type": "object",
         "required": [
@@ -6129,6 +6533,21 @@
             ]
           },
           "title": {
+            "type": "string"
+          }
+        }
+      },
+      "DisableInput": {
+        "type": "object",
+        "required": [
+          "password",
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "password": {
             "type": "string"
           }
         }
@@ -6801,6 +7220,17 @@
           }
         }
       },
+      "SecurityPolicyInput": {
+        "type": "object",
+        "required": [
+          "require_mfa"
+        ],
+        "properties": {
+          "require_mfa": {
+            "type": "boolean"
+          }
+        }
+      },
       "Signup": {
         "type": "object",
         "required": [
@@ -6895,6 +7325,21 @@
             ]
           },
           "name": {
+            "type": "string"
+          }
+        }
+      },
+      "VerifyChallengeInput": {
+        "type": "object",
+        "required": [
+          "challenge",
+          "code"
+        ],
+        "properties": {
+          "challenge": {
+            "type": "string"
+          },
+          "code": {
             "type": "string"
           }
         }

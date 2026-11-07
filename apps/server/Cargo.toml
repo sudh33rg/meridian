@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = { version = "0.8", features = ["macros"] }
+axum = { version = "0.8", features = ["macros", "ws"] }
 tokio = { version = "1", features = ["full"] }
 sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres", "uuid", "chrono", "json", "migrate"] }
 serde = { version = "1", features = ["derive"] }
@@ -26,6 +26,19 @@ governor = "0.8"
 base64 = "0.22"
 metrics = "0.24"
 metrics-exporter-prometheus = { version = "0.18.3", default-features = false, features = ["http-listener"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
+openidconnect = "4"
+object_store = { version = "0.12", features = ["aws"] }
+yrs = "0.24"
+futures-util = "0.3.34"
+tokio-stream = "0.1.19"
+infer = "0.19"
+ammonia = "4"
+url = "2"
+tokio-util = { version = "0.7.20", features = ["io"] }
+bytes = "1.12.1"
+aes-gcm = "0.10"
+totp-rs = { version = "5", features = ["otpauth"] }
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }

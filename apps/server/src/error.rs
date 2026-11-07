@@ -18,6 +18,8 @@ pub enum ApiError {
     Forbidden,
     #[error("CSRF check failed")]
     Csrf,
+    #[error("This workspace requires multi-factor authentication. Set it up under Security to continue")]
+    MfaSetupRequired,
     #[error("{0}")]
     NotFound(String),
     #[error("{0}")]
@@ -37,7 +39,7 @@ impl ApiError {
         match self {
             Self::BadRequest(_) => StatusCode::BAD_REQUEST,
             Self::Unauthorized(_) => StatusCode::UNAUTHORIZED,
-            Self::Forbidden | Self::Csrf => StatusCode::FORBIDDEN,
+            Self::Forbidden | Self::Csrf | Self::MfaSetupRequired => StatusCode::FORBIDDEN,
             Self::NotFound(_) => StatusCode::NOT_FOUND,
             Self::Conflict(_) => StatusCode::CONFLICT,
             Self::Gone(_) => StatusCode::GONE,
@@ -51,6 +53,7 @@ impl ApiError {
             Self::Unauthorized(_) => "unauthorized",
             Self::Forbidden => "forbidden",
             Self::Csrf => "csrf",
+            Self::MfaSetupRequired => "mfa_setup_required",
             Self::NotFound(_) => "not_found",
             Self::Conflict(_) => "conflict",
             Self::Gone(_) => "gone",

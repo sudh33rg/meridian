@@ -39,6 +39,12 @@ pub(crate) struct AuthResponse {
     /// Absent in cookie mode.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) refresh_token: Option<String>,
+    /// Present (true) when the password was right but a second factor is still needed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) mfa_required: Option<bool>,
+    /// Send this with the code to `/auth/mfa/verify`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) challenge: Option<String>,
     pub(crate) tenant_id: Uuid,
     pub(crate) user_id: Uuid,
     pub(crate) organization: String,
@@ -94,7 +100,7 @@ fn is_safe_method(m: &axum::http::Method) -> bool {
         axum::http::Method::GET | axum::http::Method::HEAD | axum::http::Method::OPTIONS
     )
 }
-fn constant_time_eq(a: &str, b: &str) -> bool {
+pub(crate) fn constant_time_eq(a: &str, b: &str) -> bool {
     let (a, b) = (a.as_bytes(), b.as_bytes());
     a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
 }
@@ -168,6 +174,7 @@ pub(crate) fn clear_cookies(headers: &mut HeaderMap, cfg: &Config) {
 pub(crate) struct Issued {
     pub(crate) token: String,
     pub(crate) refresh_token: String,
+    pub(crate) family: Uuid,
 }
 
 /// Create (or continue, when `family` is given) a session family and issue an access token plus a
@@ -203,6 +210,7 @@ pub(crate) async fn start_session(
     Ok(Issued {
         token,
         refresh_token: refresh,
+        family,
     })
 }
 
@@ -282,6 +290,11 @@ fn validate_slug(s: &str) -> bool {
         && s.chars()
             .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
         && !s.starts_with('-')
+}
+pub(crate) fn verify_password(password: &str, stored_hash: &str) -> bool {
+    PasswordHash::new(stored_hash)
+        .map(|p| Argon2::default().verify_password(password.as_bytes(), &p).is_ok())
+        .unwrap_or(false)
 }
 pub(crate) fn hash_password(password: &str) -> ApiResult<String> {
     let salt = SaltString::generate(&mut OsRng);
@@ -367,6 +380,8 @@ pub(crate) async fn signup(
         AuthResponse {
             token: String::new(),
             refresh_token: None,
+            mfa_required: None,
+            challenge: None,
             tenant_id: tenant,
             user_id: user,
             organization: v.organization,
@@ -422,6 +437,25 @@ pub(crate) async fn login(
         .execute(&app.db)
         .await
         .map_err(db_err)?;
+    // Second step: with MFA enabled the password alone never yields a session.
+    if crate::mfa::has_mfa(&app.db, user).await? {
+        let challenge =
+            crate::mfa::open_challenge(&app.db, tenant, user, &user_agent(&headers)).await?;
+        return Ok((
+            StatusCode::OK,
+            Json(AuthResponse {
+                token: String::new(),
+                refresh_token: None,
+                mfa_required: Some(true),
+                challenge: Some(challenge),
+                tenant_id: tenant,
+                user_id: user,
+                organization,
+                name,
+            }),
+        )
+            .into_response());
+    }
     let mut tx = app.db.begin().await.map_err(db_err)?;
     let issued =
         start_session(&mut tx, &app.cfg, tenant, user, &user_agent(&headers), None).await?;
@@ -433,6 +467,8 @@ pub(crate) async fn login(
         AuthResponse {
             token: String::new(),
             refresh_token: None,
+            mfa_required: None,
+            challenge: None,
             tenant_id: tenant,
             user_id: user,
             organization,
@@ -540,6 +576,8 @@ pub(crate) async fn refresh(
         AuthResponse {
             token: String::new(),
             refresh_token: None,
+            mfa_required: None,
+            challenge: None,
             tenant_id: tenant,
             user_id: user,
             organization,
@@ -574,9 +612,25 @@ pub(crate) async fn authenticate(parts: &Parts, app: &App) -> ApiResult<(Identit
         check_csrf(&parts.headers, &app.cfg)?;
     }
     let hash = token_hash(&value);
-    let identity = sqlx::query_as::<_,Identity>("SELECT s.tenant_id,s.user_id,m.role FROM sessions s JOIN memberships m ON m.tenant_id=s.tenant_id AND m.user_id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now() AND m.disabled_at IS NULL AND NOT EXISTS (SELECT 1 FROM session_families f WHERE f.id=s.family_id AND f.revoked_at IS NOT NULL)")
+    let (tenant_id, user_id, role, mfa_missing): (Uuid, Uuid, String, bool) = sqlx::query_as("SELECT s.tenant_id,s.user_id,m.role, (t.require_mfa AND COALESCE(f.auth_method,'password')<>'sso' AND NOT EXISTS (SELECT 1 FROM user_mfa x WHERE x.user_id=s.user_id AND x.confirmed_at IS NOT NULL)) FROM sessions s JOIN memberships m ON m.tenant_id=s.tenant_id AND m.user_id=s.user_id JOIN tenants t ON t.id=s.tenant_id LEFT JOIN session_families f ON f.id=s.family_id WHERE s.token_hash=$1 AND s.expires_at>now() AND m.disabled_at IS NULL AND (f.id IS NULL OR f.revoked_at IS NULL)")
         .bind(&hash).fetch_optional(db).await.map_err(db_err)?
         .ok_or_else(|| err(StatusCode::UNAUTHORIZED, "Session expired"))?;
+    // A workspace that requires MFA locks everything but account/security endpoints until the
+    // member enrols (SSO sign-ins are exempt: the identity provider handles MFA).
+    if mfa_missing {
+        let path = parts.uri.path();
+        let allowed = ["/api/auth/", "/api/me", "/api/sessions", "/api/workspaces"]
+            .iter()
+            .any(|p| path.starts_with(p));
+        if !allowed {
+            return Err(ApiError::MfaSetupRequired);
+        }
+    }
+    let identity = Identity {
+        tenant_id,
+        user_id,
+        role,
+    };
     // Cheap "last active" marker, written at most every couple of minutes per session.
     let _ = sqlx::query("UPDATE session_families f SET last_seen_at=now() FROM sessions s WHERE s.token_hash=$1 AND f.id=s.family_id AND f.last_seen_at<now()-interval '2 minutes'")
         .bind(&hash).execute(db).await;

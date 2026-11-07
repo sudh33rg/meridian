@@ -73,6 +73,8 @@ pub(crate) async fn create_workspace(
         AuthResponse {
             token: String::new(),
             refresh_token: None,
+            mfa_required: None,
+            challenge: None,
             tenant_id: tenant,
             user_id: i.user_id,
             organization: v.name,
@@ -119,6 +121,8 @@ pub(crate) async fn switch_workspace(
         AuthResponse {
             token: String::new(),
             refresh_token: None,
+            mfa_required: None,
+            challenge: None,
             tenant_id: v.tenant_id,
             user_id: i.user_id,
             organization,
@@ -313,6 +317,8 @@ pub(crate) async fn accept_invite(
         AuthResponse {
             token: String::new(),
             refresh_token: None,
+            mfa_required: None,
+            challenge: None,
             tenant_id: tenant,
             user_id: user,
             organization: org,
@@ -429,6 +435,8 @@ pub(crate) async fn accept_invite_existing(
         AuthResponse {
             token: String::new(),
             refresh_token: None,
+            mfa_required: None,
+            challenge: None,
             tenant_id: tenant,
             user_id: i.user_id,
             organization: org,

@@ -17,6 +17,8 @@ export class ApiError extends Error {
 
 export const API_BASE = "/api";
 export const SIGNED_OUT_EVENT = "meridian:signed-out";
+/** Fired when the workspace requires MFA and the member has not set it up yet. */
+export const MFA_REQUIRED_EVENT = "meridian:mfa-required";
 
 const csrfToken = () => {
   if (typeof document === "undefined") return undefined;
@@ -72,6 +74,8 @@ export async function api<T>(path: string, token?: string, init?: RequestInit): 
   }
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { error?: string; code?: string };
+    if (body.code === "mfa_setup_required" && typeof window !== "undefined")
+      window.dispatchEvent(new Event(MFA_REQUIRED_EVENT));
     throw new ApiError(
       body.error || response.statusText || "Request failed",
       response.status,
