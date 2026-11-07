@@ -566,12 +566,16 @@ pub(crate) async fn add_domain(
 
 async fn proves_control(cfg: &Config, domain: &str, expected: &str) -> bool {
     // 1) DNS TXT record
-    if let Ok(resolver) = hickory_resolver::TokioResolver::builder_tokio().map(|b| b.build()) {
+    if let Ok(resolver) = hickory_resolver::TokioResolver::builder_tokio().and_then(|b| b.build()) {
         if let Ok(txt) = resolver
             .txt_lookup(format!("_meridian-challenge.{domain}."))
             .await
         {
-            if txt.iter().any(|r| r.to_string().trim() == expected) {
+            if txt
+                .answers()
+                .iter()
+                .any(|r| r.data.to_string().trim().trim_matches('"') == expected)
+            {
                 return true;
             }
         }

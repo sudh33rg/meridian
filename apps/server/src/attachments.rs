@@ -17,7 +17,7 @@ use axum::{
     response::{IntoResponse, Response},
     routing::{delete, get},
 };
-use object_store::{path::Path as ObjPath, ObjectStore, PutPayload};
+use object_store::{path::Path as ObjPath, ObjectStore, ObjectStoreExt, PutPayload};
 use serde_json::{json, Value};
 
 const ALLOWED: &[&str] = &[

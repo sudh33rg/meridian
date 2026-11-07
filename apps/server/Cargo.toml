@@ -28,7 +28,7 @@ metrics = "0.24"
 metrics-exporter-prometheus = { version = "0.18.3", default-features = false, features = ["http-listener"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
 openidconnect = "4"
-object_store = { version = "0.12", features = ["aws"] }
+object_store = { version = "0.13", features = ["aws"] }
 yrs = "0.24"
 futures-util = "0.3.34"
 tokio-stream = "0.1.19"
@@ -38,7 +38,7 @@ tokio-util = { version = "0.7.20", features = ["io"] }
 bytes = "1.12.1"
 aes-gcm = "0.10"
 totp-rs = { version = "5", features = ["otpauth"] }
-hickory-resolver = "0.25"
+hickory-resolver = "0.26"
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }
