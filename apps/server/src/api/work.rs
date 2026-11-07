@@ -343,8 +343,15 @@ pub(crate) async fn patch_page(
     }
     sqlx::query("INSERT INTO page_versions(tenant_id,page_id,version,title,content,editor_id) VALUES($1,$2,$3,$4,$5,$6)")
  .bind(i.tenant_id).bind(page_id).bind(c.version).bind(&c.title).bind(&c.content).bind(i.user_id).execute(&mut *tx).await.map_err(db_err)?;
-    let updated:Page=sqlx::query_as("UPDATE pages SET title=$1,content=$2,version=version+1,updated_at=now() WHERE tenant_id=$3 AND id=$4 RETURNING id,project_id,parent_id,title,content,version,updated_at")
+    let updated:Page=sqlx::query_as("UPDATE pages SET title=$1,content=$2,version=version+1,collab_epoch=collab_epoch+1,updated_at=now() WHERE tenant_id=$3 AND id=$4 RETURNING id,project_id,parent_id,title,content,version,updated_at")
  .bind(v.title.trim()).bind(&v.content).bind(i.tenant_id).bind(page_id).fetch_one(&mut *tx).await.map_err(db_err)?;
+    // The saved text now wins over any live-edit state; rooms reset on the new epoch.
+    sqlx::query("DELETE FROM page_ydoc_updates WHERE tenant_id=$1 AND page_id=$2")
+        .bind(i.tenant_id)
+        .bind(page_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
     log_event(&mut tx, &i, "updated", "page", page_id).await?;
     log_outbox(
         &mut tx,

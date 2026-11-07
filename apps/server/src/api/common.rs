@@ -185,8 +185,34 @@ pub(crate) async fn emit_event(
     .fetch_one(&mut *db)
     .await
     .map_err(db_err)?;
-    sqlx::query("INSERT INTO events(tenant_id,sync_id,entity_type,entity_id,op,actor_id,payload) VALUES($1,$2,$3,$4,$5,$6,$7)")
-        .bind(tenant).bind(sync_id).bind(entity_type).bind(entity_id).bind(op).bind(actor).bind(payload)
+    // The project lets the change feed filter events per subscriber.
+    let table = match entity_type {
+        "issue" => Some("issues"),
+        "page" => Some("pages"),
+        "sprint" => Some("sprints"),
+        "release" => Some("releases"),
+        "goal" => Some("goals"),
+        "decision" => Some("decisions"),
+        "risk" => Some("risks"),
+        "approval" => Some("approvals"),
+        "automation" => Some("automation_rules"),
+        _ => None,
+    };
+    let project: Option<Uuid> = match (entity_type, table) {
+        ("project", _) => Some(entity_id),
+        (_, Some(t)) => sqlx::query_scalar::<_, Option<Uuid>>(&format!(
+            "SELECT project_id FROM {t} WHERE tenant_id=$1 AND id=$2"
+        ))
+        .bind(tenant)
+        .bind(entity_id)
+        .fetch_optional(&mut *db)
+        .await
+        .map_err(db_err)?
+        .flatten(),
+        _ => None,
+    };
+    sqlx::query("INSERT INTO events(tenant_id,sync_id,entity_type,entity_id,op,actor_id,payload,project_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8)")
+        .bind(tenant).bind(sync_id).bind(entity_type).bind(entity_id).bind(op).bind(actor).bind(payload).bind(project)
         .execute(&mut *db).await.map_err(db_err)?;
     // Queue webhook deliveries for every enabled endpoint subscribed to this event, in the same
     // transaction, so a delivery exists if and only if the change committed.

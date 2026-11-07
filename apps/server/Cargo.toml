@@ -33,7 +33,6 @@ yrs = "0.24"
 futures-util = "0.3.34"
 tokio-stream = "0.1.19"
 infer = "0.19"
-ammonia = "4"
 url = "2"
 tokio-util = { version = "0.7.20", features = ["io"] }
 bytes = "1.12.1"

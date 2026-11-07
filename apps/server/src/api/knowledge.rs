@@ -56,8 +56,14 @@ pub(crate) async fn restore_page(
         chosen.ok_or_else(|| err(StatusCode::NOT_FOUND, "Version not found"))?;
     sqlx::query("INSERT INTO page_versions(tenant_id,page_id,version,title,content,editor_id) VALUES($1,$2,$3,$4,$5,$6)")
         .bind(i.tenant_id).bind(id).bind(ver).bind(title).bind(content).bind(i.user_id).execute(&mut *tx).await.map_err(db_err)?;
-    let saved:Value=sqlx::query_scalar("UPDATE pages SET title=$1,content=$2,version=version+1,updated_at=now() WHERE tenant_id=$3 AND id=$4 RETURNING to_jsonb(pages)")
+    let saved:Value=sqlx::query_scalar("UPDATE pages SET title=$1,content=$2,version=version+1,collab_epoch=collab_epoch+1,updated_at=now() WHERE tenant_id=$3 AND id=$4 RETURNING to_jsonb(pages)")
         .bind(old_title).bind(old_content).bind(i.tenant_id).bind(id).fetch_one(&mut *tx).await.map_err(db_err)?;
+    sqlx::query("DELETE FROM page_ydoc_updates WHERE tenant_id=$1 AND page_id=$2")
+        .bind(i.tenant_id)
+        .bind(id)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
     log_event(&mut tx, &i, "restored", "page", id).await?;
     Ok(Json(saved))
 }

@@ -139,3 +139,22 @@ pub(crate) async fn assert_isolation(db: &PgPool) -> Result<(), Box<dyn std::err
     }
     Ok(())
 }
+
+/// A short transaction bound to one tenant and the restricted role, for background readers that
+/// have an identity but no request (the change feed). The caller must roll it back or commit it.
+pub(crate) async fn tenant_tx(
+    db: &PgPool,
+    tenant: Uuid,
+) -> ApiResult<Transaction<'static, Postgres>> {
+    let mut t = db.begin().await.map_err(db_err)?;
+    sqlx::query("SET LOCAL ROLE meridian_app")
+        .execute(&mut *t)
+        .await
+        .map_err(db_err)?;
+    sqlx::query("SELECT set_config('app.tenant_id', $1, true)")
+        .bind(tenant.to_string())
+        .execute(&mut *t)
+        .await
+        .map_err(db_err)?;
+    Ok(t)
+}

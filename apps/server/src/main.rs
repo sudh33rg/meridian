@@ -23,6 +23,7 @@ mod api;
 mod attachments;
 mod auth;
 mod billing;
+mod collab;
 mod config;
 mod db;
 mod error;
@@ -31,6 +32,7 @@ mod mail;
 mod mfa;
 mod middleware;
 mod openapi;
+mod realtime;
 mod safe_http;
 mod scan;
 mod scim;
@@ -51,6 +53,8 @@ pub(crate) struct App {
     pub(crate) cfg: std::sync::Arc<config::Config>,
     pub(crate) limits: std::sync::Arc<middleware::Limits>,
     pub(crate) store: storage::Store,
+    pub(crate) live: std::sync::Arc<realtime::Live>,
+    pub(crate) rooms: std::sync::Arc<collab::Rooms>,
 }
 
 async fn health() -> &'static str {
@@ -89,11 +93,17 @@ pub(crate) fn build_router_with(
             }
         });
     }
+    let live = std::sync::Arc::new(realtime::Live::new());
+    if tokio::runtime::Handle::try_current().is_ok() {
+        realtime::spawn_listener(db.clone(), live.clone());
+    }
     let state = App {
         db,
         cfg,
         limits,
         store,
+        live,
+        rooms: std::sync::Arc::new(collab::Rooms::default()),
     };
     Router::new()
         .route("/health", get(health))
@@ -115,6 +125,8 @@ pub(crate) fn build_router_with(
         .merge(scim::routes())
         .merge(webhooks::routes())
         .merge(attachments::routes())
+        .merge(realtime::routes())
+        .merge(collab::routes())
         .layer(axum::middleware::from_fn(db::tx_layer))
         .layer(DefaultBodyLimit::max(1_048_576))
         .layer(cors)

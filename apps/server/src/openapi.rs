@@ -41,6 +41,39 @@ impl Modify for BearerAuth {
         crate::mfa::verify_challenge,
         crate::mfa::workspace_security,
         crate::mfa::set_workspace_security,
+        crate::sso::start,
+        crate::sso::callback,
+        crate::sso::get_config,
+        crate::sso::put_config,
+        crate::sso::delete_config,
+        crate::sso::add_domain,
+        crate::sso::verify_domain,
+        crate::sso::remove_domain,
+        crate::scim::create_token,
+        crate::scim::list_tokens,
+        crate::scim::revoke_token,
+        crate::billing::overview,
+        crate::billing::switch_plan,
+        crate::billing::checkout,
+        crate::billing::portal,
+        crate::billing::stripe_webhook,
+        crate::webhooks::list,
+        crate::webhooks::create,
+        crate::webhooks::update,
+        crate::webhooks::remove,
+        crate::webhooks::rotate_secret,
+        crate::webhooks::test_event,
+        crate::webhooks::deliveries,
+        crate::webhooks::redeliver,
+        crate::attachments::upload,
+        crate::attachments::list,
+        crate::attachments::download,
+        crate::attachments::remove,
+        crate::realtime::stream,
+        api::access::page_access_info,
+        api::access::set_restriction,
+        api::access::grant_page,
+        api::access::revoke_page_grant,
         auth::forgot_password,
         auth::reset_password,
         auth::verify_email,
@@ -120,7 +153,7 @@ impl Modify for BearerAuth {
         auth::logout,
         auth::signup
     ),
-    components(schemas(ErrorBody, crate::mfa::CodeInput, crate::mfa::DisableInput, crate::mfa::VerifyChallengeInput, crate::mfa::SecurityPolicyInput, ChangePasswordInput, RefreshInput, ForgotInput, ResetInput, VerifyInput, GrantInput, VisibilityInput, AcceptInvitation, ApprovalDecision, ApprovalInput, AuthResponse, AutomationInput, CommentInput, DecisionInput, ExistingInvite, GoalInput, ImportInput, ImportItem, InviteInput, Issue, IssueEdit, JoinTeamInput, LinkInput, Login, MemberRoleInput, NewIssue, NewPage, NewProject, Page, PatchIssue, PatchPage, Project, RelationInput, ReleaseInput, RestoreInput, RiskInput, Signup, SprintInput, SprintUpdate, SwitchTenant, TeamInput, WorkspaceInput)),
+    components(schemas(ErrorBody, crate::sso::SsoInput, crate::sso::DomainInput, crate::scim::TokenInput, crate::billing::PlanInput, crate::webhooks::WebhookInput, crate::webhooks::WebhookPatch, api::access::PageAccess, api::access::RestrictionInput, api::access::PageGrantInput, crate::mfa::CodeInput, crate::mfa::DisableInput, crate::mfa::VerifyChallengeInput, crate::mfa::SecurityPolicyInput, ChangePasswordInput, RefreshInput, ForgotInput, ResetInput, VerifyInput, GrantInput, VisibilityInput, AcceptInvitation, ApprovalDecision, ApprovalInput, AuthResponse, AutomationInput, CommentInput, DecisionInput, ExistingInvite, GoalInput, ImportInput, ImportItem, InviteInput, Issue, IssueEdit, JoinTeamInput, LinkInput, Login, MemberRoleInput, NewIssue, NewPage, NewProject, Page, PatchIssue, PatchPage, Project, RelationInput, ReleaseInput, RestoreInput, RiskInput, Signup, SprintInput, SprintUpdate, SwitchTenant, TeamInput, WorkspaceInput)),
     modifiers(&BearerAuth)
 )]
 pub struct ApiDoc;
@@ -139,7 +172,7 @@ mod tests {
         let paths = doc["paths"].as_object().unwrap();
         let ops: usize = paths.values().map(|p| p.as_object().unwrap().len()).sum();
         assert_eq!(
-            ops, 83,
+            ops, 121,
             "documented operation count changed; update routes and docs together"
         );
         // Only the public auth endpoints may omit the bearer requirement.
@@ -153,6 +186,10 @@ mod tests {
                     "/api/auth/forgot-password",
                     "/api/auth/reset-password",
                     "/api/auth/verify-email",
+                    "/api/auth/mfa/verify",
+                    "/api/auth/sso/{slug}/start",
+                    "/api/auth/sso/callback",
+                    "/api/billing/stripe-webhook",
                 ]
                 .contains(&path.as_str());
                 assert_eq!(op.get("security").is_none(), public, "{method} {path}");

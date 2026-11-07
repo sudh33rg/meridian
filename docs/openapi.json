@@ -9,15 +9,75 @@
     "version": "0.2.0"
   },
   "paths": {
+    "/api/admin/webhook-deliveries/{id}/redeliver": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "operationId": "redeliver",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Delivery id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "A copy was queued"
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such delivery",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/admin/webhooks": {
       "get": {
         "tags": [
-          "admin"
+          "webhooks"
         ],
-        "operationId": "webhooks",
+        "operationId": "list",
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "Registered endpoints (never the secret)",
             "content": {
               "application/json": {
                 "schema": {
@@ -25,16 +85,6 @@
                   "items": {
                     "type": "object"
                   }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Validation or domain error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
                 }
               }
             }
@@ -50,17 +100,7 @@
             }
           },
           "403": {
-            "description": "Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in this workspace",
+            "description": "Admin required",
             "content": {
               "application/json": {
                 "schema": {
@@ -78,9 +118,9 @@
       },
       "post": {
         "tags": [
-          "admin"
+          "webhooks"
         ],
-        "operationId": "new_webhook",
+        "operationId": "create",
         "requestBody": {
           "content": {
             "application/json": {
@@ -93,7 +133,7 @@
         },
         "responses": {
           "201": {
-            "description": "Success",
+            "description": "Created; the signing secret is shown once",
             "content": {
               "application/json": {
                 "schema": {
@@ -103,7 +143,7 @@
             }
           },
           "400": {
-            "description": "Validation or domain error",
+            "description": "Invalid URL (must be public https) or filters",
             "content": {
               "application/json": {
                 "schema": {
@@ -122,8 +162,8 @@
               }
             }
           },
-          "403": {
-            "description": "Insufficient permissions",
+          "402": {
+            "description": "Plan limit reached",
             "content": {
               "application/json": {
                 "schema": {
@@ -132,8 +172,8 @@
               }
             }
           },
-          "404": {
-            "description": "Not found in this workspace",
+          "403": {
+            "description": "Admin required",
             "content": {
               "application/json": {
                 "schema": {
@@ -153,14 +193,14 @@
     "/api/admin/webhooks/{id}": {
       "delete": {
         "tags": [
-          "admin"
+          "webhooks"
         ],
-        "operationId": "delete_webhook",
+        "operationId": "remove",
         "parameters": [
           {
             "name": "id",
             "in": "path",
-            "description": "Resource id",
+            "description": "Webhook id",
             "required": true,
             "schema": {
               "type": "string",
@@ -170,10 +210,78 @@
         ],
         "responses": {
           "204": {
-            "description": "Success"
+            "description": "Removed with its delivery history"
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such webhook",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "webhooks"
+        ],
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Webhook id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Updated (re-enabling resets the failure counter)"
           },
           "400": {
-            "description": "Validation or domain error",
+            "description": "Invalid URL or filters",
             "content": {
               "application/json": {
                 "schema": {
@@ -193,7 +301,7 @@
             }
           },
           "403": {
-            "description": "Insufficient permissions",
+            "description": "Admin required",
             "content": {
               "application/json": {
                 "schema": {
@@ -203,7 +311,194 @@
             }
           },
           "404": {
-            "description": "Not found in this workspace",
+            "description": "No such webhook",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/admin/webhooks/{id}/deliveries": {
+      "get": {
+        "tags": [
+          "webhooks"
+        ],
+        "operationId": "deliveries",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Webhook id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Most recent deliveries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/admin/webhooks/{id}/rotate-secret": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "operationId": "rotate_secret",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Webhook id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The new secret, shown once; the old one stops working",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such webhook",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/admin/webhooks/{id}/test": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "operationId": "test_event",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Webhook id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "A webhook.test event was queued"
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such webhook",
             "content": {
               "application/json": {
                 "schema": {
@@ -359,6 +654,276 @@
           },
           "404": {
             "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/attachments": {
+      "get": {
+        "tags": [
+          "attachments"
+        ],
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "entity_type",
+            "in": "query",
+            "description": "issue or page",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entity_id",
+            "in": "query",
+            "description": "Issue or page id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Files on the entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Entity not found or not visible",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "attachments"
+        ],
+        "operationId": "upload",
+        "requestBody": {
+          "description": "Fields: entity_type (issue|page), entity_id, file",
+          "content": {
+            "multipart/form-data": {}
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Stored; scanning continues in the background",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad field, file type not allowed, or empty file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Storage quota reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "File too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/attachments/{id}": {
+      "delete": {
+        "tags": [
+          "attachments"
+        ],
+        "operationId": "remove",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Attachment id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Only the uploader or a project admin can delete",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or not visible",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/attachments/{id}/download": {
+      "get": {
+        "tags": [
+          "attachments"
+        ],
+        "operationId": "download",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Attachment id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "inline",
+            "in": "query",
+            "description": "Show images inline (raster images only)",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file",
+            "content": {
+              "application/octet-stream": {}
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Blocked by the malware scan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or not visible",
             "content": {
               "application/json": {
                 "schema": {
@@ -1136,6 +1701,63 @@
         }
       }
     },
+    "/api/auth/sso/callback": {
+      "get": {
+        "tags": [
+          "sso"
+        ],
+        "operationId": "callback",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "description": "Authorization code",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "State from the start request",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "303": {
+            "description": "Session cookies set and redirect to the app (or ?sso_error=)"
+          }
+        }
+      }
+    },
+    "/api/auth/sso/{slug}/start": {
+      "get": {
+        "tags": [
+          "sso"
+        ],
+        "operationId": "start",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "description": "Workspace slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "303": {
+            "description": "Redirect to the identity provider (or back to the app with ?sso_error=)"
+          }
+        }
+      }
+    },
     "/api/auth/verify-email": {
       "post": {
         "tags": [
@@ -1158,6 +1780,252 @@
           },
           "400": {
             "description": "Invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/billing": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "operationId": "overview",
+        "responses": {
+          "200": {
+            "description": "Plan, usage against limits and available actions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/billing/checkout": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "operationId": "checkout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Stripe Checkout URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Billing not configured or unknown plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/billing/plan": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "operationId": "switch_plan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Plan switched (development builds without Stripe only)"
+          },
+          "400": {
+            "description": "Unknown plan or usage exceeds the target plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not available",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/billing/portal": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "operationId": "portal",
+        "responses": {
+          "200": {
+            "description": "Stripe customer portal URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No billing account yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/billing/stripe-webhook": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "operationId": "stripe_webhook",
+        "responses": {
+          "204": {
+            "description": "Event accepted (or already processed)"
+          },
+          "400": {
+            "description": "Bad signature or payload",
             "content": {
               "application/json": {
                 "schema": {
@@ -2532,6 +3400,63 @@
         ]
       }
     },
+    "/api/pages/{id}/access": {
+      "get": {
+        "tags": [
+          "access"
+        ],
+        "operationId": "page_access_info",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Page id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Restriction state and grants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageAccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Page not found or not visible",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/pages/{id}/comments": {
       "get": {
         "tags": [
@@ -2697,6 +3622,165 @@
         ]
       }
     },
+    "/api/pages/{id}/grants": {
+      "put": {
+        "tags": [
+          "access"
+        ],
+        "operationId": "grant_page",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Page id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageGrantInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Grant stored"
+          },
+          "400": {
+            "description": "Unknown subject or level, or the page is not restricted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Editor access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Page not found or not visible",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/pages/{id}/grants/{subject_type}/{subject_id}": {
+      "delete": {
+        "tags": [
+          "access"
+        ],
+        "operationId": "revoke_page_grant",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Page id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "subject_type",
+            "in": "path",
+            "description": "user or team",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subject_id",
+            "in": "path",
+            "description": "User or team id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Grant removed"
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Editor access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Page or grant not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/pages/{id}/restore": {
       "post": {
         "tags": [
@@ -2768,6 +3852,76 @@
           },
           "404": {
             "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/pages/{id}/restriction": {
+      "put": {
+        "tags": [
+          "access"
+        ],
+        "operationId": "set_restriction",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Page id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestrictionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Restriction updated"
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Editor access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Page not found or not visible",
             "content": {
               "application/json": {
                 "schema": {
@@ -5720,6 +6874,59 @@
         ]
       }
     },
+    "/api/sync/stream": {
+      "get": {
+        "tags": [
+          "realtime"
+        ],
+        "operationId": "stream",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Resume after this sync_id (Last-Event-ID header also works)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "text/event-stream of change notifications",
+            "content": {
+              "text/event-stream": {}
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many open streams for this user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/teams": {
       "get": {
         "tags": [
@@ -6009,6 +7216,350 @@
         ]
       }
     },
+    "/api/workspace/domains": {
+      "post": {
+        "tags": [
+          "sso"
+        ],
+        "operationId": "add_domain",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DomainInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Challenge to publish",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or already claimed domain",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/workspace/domains/{domain}": {
+      "delete": {
+        "tags": [
+          "sso"
+        ],
+        "operationId": "remove_domain",
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "path",
+            "description": "Domain to remove",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/workspace/domains/{domain}/verify": {
+      "post": {
+        "tags": [
+          "sso"
+        ],
+        "operationId": "verify_domain",
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "path",
+            "description": "Domain to verify",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Domain verified"
+          },
+          "400": {
+            "description": "Challenge not found yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/workspace/scim/tokens": {
+      "get": {
+        "tags": [
+          "scim"
+        ],
+        "operationId": "list_tokens",
+        "responses": {
+          "200": {
+            "description": "SCIM tokens (never the secret)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "scim"
+        ],
+        "operationId": "create_token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The token, shown once",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Business plan required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/workspace/scim/tokens/{id}": {
+      "delete": {
+        "tags": [
+          "scim"
+        ],
+        "operationId": "revoke_token",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Token id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revoked"
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/workspace/security": {
       "get": {
         "tags": [
@@ -6081,6 +7632,143 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/workspace/sso": {
+      "get": {
+        "tags": [
+          "sso"
+        ],
+        "operationId": "get_config",
+        "responses": {
+          "200": {
+            "description": "SSO configuration and verified domains (never the client secret)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "sso"
+        ],
+        "operationId": "put_config",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SsoInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Saved"
+          },
+          "400": {
+            "description": "Invalid settings or provider discovery failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "sso"
+        ],
+        "operationId": "delete_config",
+        "responses": {
+          "204": {
+            "description": "SSO removed"
           },
           "401": {
             "description": "Missing or invalid session",
@@ -6548,6 +8236,17 @@
             "type": "string"
           },
           "password": {
+            "type": "string"
+          }
+        }
+      },
+      "DomainInput": {
+        "type": "object",
+        "required": [
+          "domain"
+        ],
+        "properties": {
+          "domain": {
             "type": "string"
           }
         }
@@ -7022,6 +8721,59 @@
           }
         }
       },
+      "PageAccess": {
+        "type": "object",
+        "required": [
+          "restricted",
+          "your_level",
+          "grants"
+        ],
+        "properties": {
+          "governed_by": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The nearest restricted ancestor whose grants apply (or the page itself)."
+          },
+          "grants": {
+            "type": "array",
+            "items": {}
+          },
+          "restricted": {
+            "type": "boolean",
+            "description": "Is this page itself restricted?"
+          },
+          "your_level": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Your effective level on the page: 1 viewer, 2 editor, 3 admin."
+          }
+        }
+      },
+      "PageGrantInput": {
+        "type": "object",
+        "required": [
+          "subject_type",
+          "subject_id",
+          "level"
+        ],
+        "properties": {
+          "level": {
+            "type": "string",
+            "description": "`viewer` or `editor`."
+          },
+          "subject_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "subject_type": {
+            "type": "string",
+            "description": "`user` or `team`."
+          }
+        }
+      },
       "PatchIssue": {
         "type": "object",
         "required": [
@@ -7050,6 +8802,18 @@
           },
           "title": {
             "type": "string"
+          }
+        }
+      },
+      "PlanInput": {
+        "type": "object",
+        "required": [
+          "plan"
+        ],
+        "properties": {
+          "plan": {
+            "type": "string",
+            "description": "`free`, `team` or `business`."
           }
         }
       },
@@ -7189,6 +8953,17 @@
           }
         }
       },
+      "RestrictionInput": {
+        "type": "object",
+        "required": [
+          "restricted"
+        ],
+        "properties": {
+          "restricted": {
+            "type": "boolean"
+          }
+        }
+      },
       "RiskInput": {
         "type": "object",
         "required": [
@@ -7300,6 +9075,45 @@
           }
         }
       },
+      "SsoInput": {
+        "type": "object",
+        "required": [
+          "issuer",
+          "client_id",
+          "enabled",
+          "default_role",
+          "jit_provisioning",
+          "enforce_sso"
+        ],
+        "properties": {
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Required the first time; omit to keep the stored secret."
+          },
+          "default_role": {
+            "type": "string",
+            "description": "`member`, `viewer` or `guest`."
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "enforce_sso": {
+            "type": "boolean"
+          },
+          "issuer": {
+            "type": "string"
+          },
+          "jit_provisioning": {
+            "type": "boolean"
+          }
+        }
+      },
       "SwitchTenant": {
         "type": "object",
         "required": [
@@ -7324,6 +9138,17 @@
               "null"
             ]
           },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "TokenInput": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
           "name": {
             "type": "string"
           }
@@ -7374,11 +9199,53 @@
           "url"
         ],
         "properties": {
+          "events": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Event filters such as `issue.created`, `page.*` or `*`. Empty means every event."
+          },
           "name": {
             "type": "string"
           },
           "url": {
             "type": "string"
+          }
+        }
+      },
+      "WebhookPatch": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "events": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
