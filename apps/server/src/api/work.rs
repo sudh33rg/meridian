@@ -60,6 +60,10 @@ pub(crate) async fn create_project(
     {
         return Err(bad("Use a project name and uppercase 2-10 character key"));
     }
+    if i.role == "guest" {
+        return Err(forbidden());
+    }
+    crate::billing::enforce_limit(&mut tx, i.tenant_id, crate::billing::Limit::Projects).await?;
     let visibility = v.visibility.clone().unwrap_or_else(|| "workspace".into());
     if !["workspace", "private"].contains(&visibility.as_str()) {
         return Err(bad("Visibility must be workspace or private"));
@@ -260,8 +264,8 @@ pub(crate) async fn pages(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Js
     if !exists {
         return Err(err(StatusCode::NOT_FOUND, "Project not found"));
     }
-    let rows=sqlx::query_as("SELECT id,project_id,parent_id,title,content,version,updated_at FROM pages WHERE tenant_id=$1 AND project_id=$2 ORDER BY updated_at DESC LIMIT 500")
- .bind(i.tenant_id).bind(project).fetch_all(&mut *tx).await.map_err(db_err)?;
+    let rows=sqlx::query_as("SELECT id,project_id,parent_id,title,content,version,updated_at FROM pages WHERE tenant_id=$1 AND project_id=$2 AND page_access(id,$3,$4)>=1 ORDER BY updated_at DESC LIMIT 500")
+ .bind(i.tenant_id).bind(project).bind(i.user_id).bind(&i.role).fetch_all(&mut *tx).await.map_err(db_err)?;
     Ok(Json(rows))
 }
 #[utoipa::path(post, path = "/api/projects/{id}/pages", tag = "work", params(("id" = Uuid, Path, description = "Resource id")), request_body = NewPage, responses((status = 201, description = "Success", body = Page), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
@@ -322,7 +326,7 @@ pub(crate) async fn patch_page(
     Json(v): Json<PatchPage>,
 ) -> ApiResult<Json<Page>> {
     let i = tx.identity.clone();
-    ensure_entity_access(&mut tx, "pages", page_id).await?;
+    ensure_page_access(&mut tx, page_id).await?;
     if !can_edit(&i) {
         return Err(forbidden());
     }

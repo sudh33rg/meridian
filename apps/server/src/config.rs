@@ -14,6 +14,13 @@ pub(crate) struct Config {
     pub(crate) smtp_url: Option<String>,
     pub(crate) session_ttl_hours: i32,
     pub(crate) refresh_ttl_days: i32,
+    /// Development only: let outbound requests (webhooks, SSO discovery) reach private/loopback
+    /// addresses over plain http so they can be tested against local services.
+    pub(crate) allow_private_outbound: bool,
+    pub(crate) stripe_secret_key: Option<String>,
+    pub(crate) stripe_webhook_secret: Option<String>,
+    pub(crate) stripe_price_team: Option<String>,
+    pub(crate) stripe_price_business: Option<String>,
     pub(crate) auth_per_min: u32,
     pub(crate) global_per_min: u32,
 }
@@ -23,6 +30,9 @@ fn env_num<T: std::str::FromStr>(key: &str, default: T) -> T {
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(default)
+}
+fn opt_env(key: &str) -> Option<String> {
+    std::env::var(key).ok().filter(|s| !s.is_empty())
 }
 fn env_bool(key: &str) -> bool {
     matches!(
@@ -68,6 +78,11 @@ impl Config {
             smtp_url: std::env::var("SMTP_URL").ok().filter(|s| !s.is_empty()),
             session_ttl_hours: env_num("SESSION_TTL_HOURS", 8),
             refresh_ttl_days: env_num("REFRESH_TTL_DAYS", 30),
+            allow_private_outbound: env_bool("ALLOW_PRIVATE_OUTBOUND") && !production,
+            stripe_secret_key: opt_env("STRIPE_SECRET_KEY"),
+            stripe_webhook_secret: opt_env("STRIPE_WEBHOOK_SECRET"),
+            stripe_price_team: opt_env("STRIPE_PRICE_TEAM"),
+            stripe_price_business: opt_env("STRIPE_PRICE_BUSINESS"),
             auth_per_min: env_num("RATE_LIMIT_AUTH_PER_MIN", 30),
             global_per_min: env_num("RATE_LIMIT_GLOBAL_PER_MIN", 1200),
         }

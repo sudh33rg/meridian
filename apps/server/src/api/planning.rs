@@ -206,7 +206,7 @@ pub(crate) async fn portfolio(mut tx: Tx) -> ApiResult<Json<Value>> {
     let i = tx.identity.clone();
     let projects:Vec<Value>=sqlx::query_scalar("SELECT jsonb_build_object('id',p.id,'name',p.name,'key',p.key,'issues',(SELECT count(*) FROM issues WHERE tenant_id=$1 AND project_id=p.id AND archived_at IS NULL),'done',(SELECT count(*) FROM issues WHERE tenant_id=$1 AND project_id=p.id AND status='done' AND archived_at IS NULL),'open_risks',(SELECT count(*) FROM risks WHERE tenant_id=$1 AND project_id=p.id AND status='open')) FROM projects p WHERE p.tenant_id=$1 AND archived_at IS NULL AND project_access(p.id,$2,$3)>=1 ORDER BY name LIMIT 500")
         .bind(i.tenant_id).bind(i.user_id).bind(&i.role).fetch_all(&mut *tx).await.map_err(db_err)?;
-    let goals:Vec<Value>=sqlx::query_scalar("SELECT jsonb_build_object('id',id,'title',title,'status',status,'progress',progress,'project_id',project_id) FROM goals WHERE tenant_id=$1 AND (project_id IS NULL OR project_access(project_id,$2,$3)>=1) ORDER BY created_at DESC LIMIT 500")
+    let goals:Vec<Value>=sqlx::query_scalar("SELECT jsonb_build_object('id',id,'title',title,'status',status,'progress',progress,'project_id',project_id) FROM goals WHERE tenant_id=$1 AND ((project_id IS NULL AND $3<>'guest') OR project_access(project_id,$2,$3)>=1) ORDER BY created_at DESC LIMIT 500")
         .bind(i.tenant_id).bind(i.user_id).bind(&i.role).fetch_all(&mut *tx).await.map_err(db_err)?;
     Ok(Json(json!({"projects":projects,"goals":goals})))
 }

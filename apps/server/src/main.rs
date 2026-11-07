@@ -21,6 +21,7 @@ use uuid::Uuid;
 
 mod api;
 mod auth;
+mod billing;
 mod config;
 mod db;
 mod error;
@@ -28,8 +29,11 @@ mod jobs;
 mod mail;
 mod mfa;
 mod middleware;
-mod secrets;
 mod openapi;
+mod safe_http;
+mod scim;
+mod secrets;
+mod sso;
 #[cfg(test)]
 mod tests;
 
@@ -93,6 +97,9 @@ pub(crate) fn build_router_with(
         .merge(api::security::routes())
         .merge(api::access::routes())
         .merge(mfa::routes())
+        .merge(billing::routes())
+        .merge(sso::routes())
+        .merge(scim::routes())
         .layer(axum::middleware::from_fn(db::tx_layer))
         .layer(DefaultBodyLimit::max(1_048_576))
         .layer(cors)

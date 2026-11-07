@@ -18,7 +18,13 @@ pub enum ApiError {
     Forbidden,
     #[error("CSRF check failed")]
     Csrf,
-    #[error("This workspace requires multi-factor authentication. Set it up under Security to continue")]
+    #[error("{0}")]
+    PolicyDenied(String),
+    #[error("{0}")]
+    PlanLimit(String),
+    #[error(
+        "This workspace requires multi-factor authentication. Set it up under Security to continue"
+    )]
     MfaSetupRequired,
     #[error("{0}")]
     NotFound(String),
@@ -39,11 +45,14 @@ impl ApiError {
         match self {
             Self::BadRequest(_) => StatusCode::BAD_REQUEST,
             Self::Unauthorized(_) => StatusCode::UNAUTHORIZED,
-            Self::Forbidden | Self::Csrf | Self::MfaSetupRequired => StatusCode::FORBIDDEN,
+            Self::Forbidden | Self::Csrf | Self::MfaSetupRequired | Self::PolicyDenied(_) => {
+                StatusCode::FORBIDDEN
+            }
             Self::NotFound(_) => StatusCode::NOT_FOUND,
             Self::Conflict(_) => StatusCode::CONFLICT,
             Self::Gone(_) => StatusCode::GONE,
             Self::TooManyRequests(_) => StatusCode::TOO_MANY_REQUESTS,
+            Self::PlanLimit(_) => StatusCode::PAYMENT_REQUIRED,
             Self::Database(_) | Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -54,6 +63,8 @@ impl ApiError {
             Self::Forbidden => "forbidden",
             Self::Csrf => "csrf",
             Self::MfaSetupRequired => "mfa_setup_required",
+            Self::PolicyDenied(_) => "policy_denied",
+            Self::PlanLimit(_) => "plan_limit",
             Self::NotFound(_) => "not_found",
             Self::Conflict(_) => "conflict",
             Self::Gone(_) => "gone",
@@ -106,6 +117,10 @@ pub fn bad(msg: &str) -> ApiError {
 }
 pub fn forbidden() -> ApiError {
     ApiError::Forbidden
+}
+/// A 403 that explains itself (policy refusals the user can act on).
+pub fn forbidden_msg(msg: &str) -> ApiError {
+    ApiError::PolicyDenied(msg.to_string())
 }
 
 #[cfg(test)]

@@ -214,6 +214,44 @@ pub(crate) async fn start_session(
     })
 }
 
+/// Set the HttpOnly session + refresh cookies and the readable CSRF cookie.
+pub(crate) fn set_session_cookies(headers: &mut HeaderMap, cfg: &Config, issued: &Issued) {
+    let csrf = mint_token();
+    let ttl = (cfg.session_ttl_hours as i64) * 3600;
+    let rttl = (cfg.refresh_ttl_days as i64) * 86400;
+    for c in [
+        cookie(
+            SESSION_COOKIE,
+            &issued.token,
+            "/api",
+            ttl,
+            true,
+            "Lax",
+            cfg.cookie_secure,
+        ),
+        cookie(
+            REFRESH_COOKIE,
+            &issued.refresh_token,
+            "/api/auth",
+            rttl,
+            true,
+            "Strict",
+            cfg.cookie_secure,
+        ),
+        cookie(
+            CSRF_COOKIE,
+            &csrf,
+            "/",
+            rttl,
+            false,
+            "Lax",
+            cfg.cookie_secure,
+        ),
+    ] {
+        headers.append(header::SET_COOKIE, c.parse().expect("valid cookie"));
+    }
+}
+
 /// Build the HTTP reply for a freshly issued session: tokens in the body for API clients, or in
 /// cookies (and blanked in the body) for browsers.
 pub(crate) fn auth_reply(
@@ -225,40 +263,7 @@ pub(crate) fn auth_reply(
 ) -> Response {
     let mut headers = HeaderMap::new();
     if cookie_mode(req) {
-        let csrf = mint_token();
-        let ttl = (cfg.session_ttl_hours as i64) * 3600;
-        let rttl = (cfg.refresh_ttl_days as i64) * 86400;
-        for c in [
-            cookie(
-                SESSION_COOKIE,
-                &issued.token,
-                "/api",
-                ttl,
-                true,
-                "Lax",
-                cfg.cookie_secure,
-            ),
-            cookie(
-                REFRESH_COOKIE,
-                &issued.refresh_token,
-                "/api/auth",
-                rttl,
-                true,
-                "Strict",
-                cfg.cookie_secure,
-            ),
-            cookie(
-                CSRF_COOKIE,
-                &csrf,
-                "/",
-                rttl,
-                false,
-                "Lax",
-                cfg.cookie_secure,
-            ),
-        ] {
-            headers.append(header::SET_COOKIE, c.parse().expect("valid cookie"));
-        }
+        set_session_cookies(&mut headers, cfg, &issued);
     } else {
         body.token = issued.token;
         body.refresh_token = Some(issued.refresh_token);
@@ -293,7 +298,11 @@ fn validate_slug(s: &str) -> bool {
 }
 pub(crate) fn verify_password(password: &str, stored_hash: &str) -> bool {
     PasswordHash::new(stored_hash)
-        .map(|p| Argon2::default().verify_password(password.as_bytes(), &p).is_ok())
+        .map(|p| {
+            Argon2::default()
+                .verify_password(password.as_bytes(), &p)
+                .is_ok()
+        })
         .unwrap_or(false)
 }
 pub(crate) fn hash_password(password: &str) -> ApiResult<String> {
@@ -437,6 +446,20 @@ pub(crate) async fn login(
         .execute(&app.db)
         .await
         .map_err(db_err)?;
+    // A workspace that enforces SSO refuses passwords (the owner keeps a break-glass password).
+    let sso_only: bool = sqlx::query_scalar(
+        "SELECT COALESCE(c.enabled AND c.enforce_sso, false) AND m.role<>'owner' FROM memberships m LEFT JOIN sso_connections c ON c.tenant_id=m.tenant_id WHERE m.tenant_id=$1 AND m.user_id=$2",
+    )
+    .bind(tenant)
+    .bind(user)
+    .fetch_one(&app.db)
+    .await
+    .map_err(db_err)?;
+    if sso_only {
+        return Err(forbidden_msg(
+            "This workspace requires single sign-on. Use the SSO option on the sign-in page",
+        ));
+    }
     // Second step: with MFA enabled the password alone never yields a session.
     if crate::mfa::has_mfa(&app.db, user).await? {
         let challenge =

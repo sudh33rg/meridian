@@ -39,6 +39,7 @@ tokio-util = { version = "0.7.20", features = ["io"] }
 bytes = "1.12.1"
 aes-gcm = "0.10"
 totp-rs = { version = "5", features = ["otpauth"] }
+hickory-resolver = "0.25"
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }

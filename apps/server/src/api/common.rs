@@ -103,8 +103,42 @@ pub(crate) async fn valid_page(tx: &mut Tx, i: &Identity, id: Uuid) -> ApiResult
     .await
     .map_err(db_err)?
     .ok_or_else(|| err(StatusCode::NOT_FOUND, "Page not found"))?;
-    ensure_access(tx, project).await?;
+    ensure_page_access(tx, id).await?;
     Ok(project)
+}
+/// Page-level access (project access + page restrictions inherited down the tree): viewer for
+/// safe methods, editor for writes. Hidden pages report as not found.
+pub(crate) async fn ensure_page_access(tx: &mut Tx, page: Uuid) -> ApiResult<()> {
+    let i = tx.identity.clone();
+    let need = if matches!(tx.method, axum::http::Method::GET | axum::http::Method::HEAD | axum::http::Method::OPTIONS) { 1 } else { 2 };
+    let level: Option<i32> = sqlx::query_scalar("SELECT page_access($1,$2,$3)")
+        .bind(page)
+        .bind(i.user_id)
+        .bind(&i.role)
+        .fetch_one(&mut **tx)
+        .await
+        .map_err(db_err)?;
+    match level {
+        Some(l) if l >= need => Ok(()),
+        Some(l) if l >= 1 => Err(forbidden()),
+        _ => Err(err(StatusCode::NOT_FOUND, "Page not found")),
+    }
+}
+/// Page management (restrictions): editor or better on the page.
+pub(crate) async fn ensure_page_editor(tx: &mut Tx, page: Uuid) -> ApiResult<()> {
+    let i = tx.identity.clone();
+    let level: Option<i32> = sqlx::query_scalar("SELECT page_access($1,$2,$3)")
+        .bind(page)
+        .bind(i.user_id)
+        .bind(&i.role)
+        .fetch_one(&mut **tx)
+        .await
+        .map_err(db_err)?;
+    match level {
+        Some(l) if l >= 2 => Ok(()),
+        Some(l) if l >= 1 => Err(forbidden()),
+        _ => Err(err(StatusCode::NOT_FOUND, "Page not found")),
+    }
 }
 /// Access check for an entity addressed by id where archived rows are still addressable.
 pub(crate) async fn ensure_entity_access(
@@ -148,6 +182,21 @@ pub(crate) async fn emit_event(
         .bind(tenant).bind(sync_id).bind(entity_type).bind(entity_id).bind(op).bind(actor).bind(payload)
         .execute(&mut *db).await.map_err(db_err)?;
     Ok(sync_id)
+}
+/// Same as `log_event` for flows that run on the system connection (SSO, SCIM, billing): they have
+/// no request transaction, so the caller passes the tenant and actor explicitly.
+pub(crate) async fn log_event_system(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    actor: Uuid,
+    action: &str,
+    kind: &str,
+    id: Uuid,
+) -> ApiResult<()> {
+    sqlx::query("INSERT INTO audit_events(tenant_id,actor_id,action,entity_type,entity_id) VALUES($1,$2,$3,$4,$5)")
+        .bind(tenant).bind(actor).bind(action).bind(kind).bind(id).execute(&mut *db).await.map_err(db_err)?;
+    emit_event(db, tenant, Some(actor), kind, id, action, json!({})).await?;
+    Ok(())
 }
 /// Audit row + event-log row, written inside the caller's transaction (so atomic with the change).
 pub(crate) async fn log_event(

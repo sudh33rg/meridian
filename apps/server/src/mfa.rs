@@ -68,7 +68,10 @@ fn new_recovery_codes() -> Vec<String> {
     (0..10)
         .map(|_| {
             let raw: String = (0..12)
-                .map(|_| RECOVERY_ALPHABET[rand::Rng::gen_range(&mut rng, 0..RECOVERY_ALPHABET.len())] as char)
+                .map(|_| {
+                    RECOVERY_ALPHABET[rand::Rng::gen_range(&mut rng, 0..RECOVERY_ALPHABET.len())]
+                        as char
+                })
                 .collect();
             format!("{}-{}", &raw[..6], &raw[6..])
         })
@@ -158,11 +161,13 @@ pub(crate) async fn check_second_factor(
 }
 
 pub(crate) async fn has_mfa(db: &PgPool, user: Uuid) -> ApiResult<bool> {
-    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM user_mfa WHERE user_id=$1 AND confirmed_at IS NOT NULL)")
-        .bind(user)
-        .fetch_one(db)
-        .await
-        .map_err(db_err)
+    sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM user_mfa WHERE user_id=$1 AND confirmed_at IS NOT NULL)",
+    )
+    .bind(user)
+    .fetch_one(db)
+    .await
+    .map_err(db_err)
 }
 
 /// Park a sign-in that passed the password step and hand back the challenge token.
@@ -216,7 +221,9 @@ pub(crate) async fn status(State(app): State<App>, i: Identity) -> ApiResult<Jso
 #[utoipa::path(post, path = "/api/auth/mfa/enroll", tag = "mfa", responses((status = 200, description = "A fresh authenticator secret (not active until confirmed)", body = Object), (status = 400, description = "MFA is already enabled", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn enroll(State(app): State<App>, i: Identity) -> ApiResult<Json<Value>> {
     if has_mfa(&app.db, i.user_id).await? {
-        return Err(bad("MFA is already enabled; disable it first to enrol a new device"));
+        return Err(bad(
+            "MFA is already enabled; disable it first to enrol a new device",
+        ));
     }
     let email = sqlx::query_scalar::<_, String>("SELECT email FROM users WHERE id=$1")
         .bind(i.user_id)
@@ -254,8 +261,10 @@ pub(crate) async fn confirm(
         .filter(|f| !f.confirmed)
         .ok_or_else(|| bad("Start enrolment first"))?;
     let email = account_email(&mut tx, i.user_id).await?;
-    let step = accepted_step(&totp_for(f.secret, &email)?, &v.code, f.last_step)
-        .ok_or_else(|| bad("That code is not correct. Check the time on your device and try again"))?;
+    let step =
+        accepted_step(&totp_for(f.secret, &email)?, &v.code, f.last_step).ok_or_else(|| {
+            bad("That code is not correct. Check the time on your device and try again")
+        })?;
     sqlx::query("UPDATE user_mfa SET confirmed_at=now(), last_used_step=$2 WHERE user_id=$1")
         .bind(i.user_id)
         .bind(step)
@@ -286,7 +295,9 @@ pub(crate) async fn disable(
     .await
     .map_err(db_err)?;
     if required {
-        return Err(bad("A workspace you belong to requires MFA, so it cannot be turned off"));
+        return Err(bad(
+            "A workspace you belong to requires MFA, so it cannot be turned off",
+        ));
     }
     let stored: String = sqlx::query_scalar("SELECT password_hash FROM users WHERE id=$1")
         .bind(i.user_id)
@@ -300,8 +311,16 @@ pub(crate) async fn disable(
     if !check_second_factor(&mut tx, &app.cfg, i.user_id, &v.code).await? {
         return Err(bad("That code is not correct"));
     }
-    sqlx::query("DELETE FROM user_mfa WHERE user_id=$1").bind(i.user_id).execute(&mut *tx).await.map_err(db_err)?;
-    sqlx::query("DELETE FROM mfa_recovery_codes WHERE user_id=$1").bind(i.user_id).execute(&mut *tx).await.map_err(db_err)?;
+    sqlx::query("DELETE FROM user_mfa WHERE user_id=$1")
+        .bind(i.user_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    sqlx::query("DELETE FROM mfa_recovery_codes WHERE user_id=$1")
+        .bind(i.user_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
     tx.commit().await.map_err(db_err)?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -332,7 +351,12 @@ pub(crate) async fn verify_challenge(
     headers: HeaderMap,
     Json(v): Json<VerifyChallengeInput>,
 ) -> ApiResult<Response> {
-    let denied = || err(StatusCode::UNAUTHORIZED, "The code is not valid, or the sign-in expired");
+    let denied = || {
+        err(
+            StatusCode::UNAUTHORIZED,
+            "The code is not valid, or the sign-in expired",
+        )
+    };
     if v.challenge.len() != 64 {
         return Err(denied());
     }
@@ -348,24 +372,42 @@ pub(crate) async fn verify_challenge(
         return Err(denied());
     };
     if attempts >= 5 {
-        sqlx::query("DELETE FROM mfa_challenges WHERE token_hash=$1").bind(token_hash(&v.challenge)).execute(&mut *tx).await.map_err(db_err)?;
+        sqlx::query("DELETE FROM mfa_challenges WHERE token_hash=$1")
+            .bind(token_hash(&v.challenge))
+            .execute(&mut *tx)
+            .await
+            .map_err(db_err)?;
         tx.commit().await.map_err(db_err)?;
         return Err(denied());
     }
     if !check_second_factor(&mut tx, &app.cfg, user, &v.code).await? {
         // Persist the failed attempt even though this request ends in an error.
-        sqlx::query("UPDATE mfa_challenges SET attempts=attempts+1 WHERE token_hash=$1").bind(token_hash(&v.challenge)).execute(&mut *tx).await.map_err(db_err)?;
+        sqlx::query("UPDATE mfa_challenges SET attempts=attempts+1 WHERE token_hash=$1")
+            .bind(token_hash(&v.challenge))
+            .execute(&mut *tx)
+            .await
+            .map_err(db_err)?;
         tx.commit().await.map_err(db_err)?;
         return Err(denied());
     }
-    sqlx::query("DELETE FROM mfa_challenges WHERE token_hash=$1").bind(token_hash(&v.challenge)).execute(&mut *tx).await.map_err(db_err)?;
-    let (organization, name): (String, String) = sqlx::query_as("SELECT t.name,u.display_name FROM tenants t, users u WHERE t.id=$1 AND u.id=$2")
-        .bind(tenant)
-        .bind(user)
-        .fetch_one(&mut *tx)
+    sqlx::query("DELETE FROM mfa_challenges WHERE token_hash=$1")
+        .bind(token_hash(&v.challenge))
+        .execute(&mut *tx)
         .await
         .map_err(db_err)?;
-    let agent = if ua.is_empty() { user_agent(&headers) } else { ua };
+    let (organization, name): (String, String) = sqlx::query_as(
+        "SELECT t.name,u.display_name FROM tenants t, users u WHERE t.id=$1 AND u.id=$2",
+    )
+    .bind(tenant)
+    .bind(user)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    let agent = if ua.is_empty() {
+        user_agent(&headers)
+    } else {
+        ua
+    };
     let issued = start_session(&mut tx, &app.cfg, tenant, user, &agent, None).await?;
     tx.commit().await.map_err(db_err)?;
     Ok(auth_reply(
@@ -397,7 +439,10 @@ fn require_admin(i: &Identity) -> ApiResult<()> {
 }
 
 #[utoipa::path(get, path = "/api/workspace/security", tag = "mfa", responses((status = 200, description = "Workspace security policy", body = Object), (status = 403, description = "Admin required", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn workspace_security(State(app): State<App>, i: Identity) -> ApiResult<Json<Value>> {
+pub(crate) async fn workspace_security(
+    State(app): State<App>,
+    i: Identity,
+) -> ApiResult<Json<Value>> {
     require_admin(&i)?;
     let (require_mfa, members_without_mfa): (bool, i64) = sqlx::query_as(
         "SELECT t.require_mfa, (SELECT count(*) FROM memberships m WHERE m.tenant_id=t.id AND m.disabled_at IS NULL AND NOT EXISTS (SELECT 1 FROM user_mfa x WHERE x.user_id=m.user_id AND x.confirmed_at IS NOT NULL)) FROM tenants t WHERE t.id=$1",
@@ -406,7 +451,9 @@ pub(crate) async fn workspace_security(State(app): State<App>, i: Identity) -> A
     .fetch_one(&app.db)
     .await
     .map_err(db_err)?;
-    Ok(Json(json!({ "require_mfa": require_mfa, "members_without_mfa": members_without_mfa })))
+    Ok(Json(
+        json!({ "require_mfa": require_mfa, "members_without_mfa": members_without_mfa }),
+    ))
 }
 
 #[derive(Deserialize, utoipa::ToSchema)]
@@ -421,7 +468,9 @@ pub(crate) async fn set_workspace_security(
 ) -> ApiResult<StatusCode> {
     require_admin(&i)?;
     if v.require_mfa && !has_mfa(&app.db, i.user_id).await? {
-        return Err(bad("Turn on MFA for your own account before requiring it for everyone"));
+        return Err(bad(
+            "Turn on MFA for your own account before requiring it for everyone",
+        ));
     }
     sqlx::query("UPDATE tenants SET require_mfa=$2 WHERE id=$1")
         .bind(i.tenant_id)
@@ -445,7 +494,13 @@ pub(crate) fn routes() -> Router<App> {
         .route("/api/auth/mfa/enroll", post(enroll))
         .route("/api/auth/mfa/confirm", post(confirm))
         .route("/api/auth/mfa/disable", post(disable))
-        .route("/api/auth/mfa/recovery-codes", post(regenerate_recovery_codes))
+        .route(
+            "/api/auth/mfa/recovery-codes",
+            post(regenerate_recovery_codes),
+        )
         .route("/api/auth/mfa/verify", post(verify_challenge))
-        .route("/api/workspace/security", get(workspace_security).merge(patch(set_workspace_security)))
+        .route(
+            "/api/workspace/security",
+            get(workspace_security).merge(patch(set_workspace_security)),
+        )
 }

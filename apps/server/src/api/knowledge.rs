@@ -98,7 +98,7 @@ pub(crate) async fn search(
         return Err(bad("Search must have 2..160 characters"));
     }
     let limit = v.limit.unwrap_or(25).clamp(1, 100);
-    let found=sqlx::query_scalar("SELECT jsonb_build_object('id',x.id,'project_id',x.project_id,'title',x.title,'kind',x.kind,'preview',left(x.description,180)) FROM (SELECT id,project_id,title,'issue' AS kind,description,ts_rank(to_tsvector('simple',title || ' ' || description),plainto_tsquery('simple',$2)) AS rank FROM issues WHERE tenant_id=$1 AND archived_at IS NULL AND project_access(project_id,$4,$5)>=1 AND to_tsvector('simple',title || ' ' || description) @@ plainto_tsquery('simple',$2) UNION ALL SELECT id,project_id,title,'page' AS kind,content AS description,ts_rank(to_tsvector('simple',title || ' ' || content),plainto_tsquery('simple',$2)) AS rank FROM pages WHERE tenant_id=$1 AND archived_at IS NULL AND project_access(project_id,$4,$5)>=1 AND to_tsvector('simple',title || ' ' || content) @@ plainto_tsquery('simple',$2)) x ORDER BY rank DESC LIMIT $3")
+    let found=sqlx::query_scalar("SELECT jsonb_build_object('id',x.id,'project_id',x.project_id,'title',x.title,'kind',x.kind,'preview',left(x.description,180)) FROM (SELECT id,project_id,title,'issue' AS kind,description,ts_rank(to_tsvector('simple',title || ' ' || description),plainto_tsquery('simple',$2)) AS rank FROM issues WHERE tenant_id=$1 AND archived_at IS NULL AND project_access(project_id,$4,$5)>=1 AND to_tsvector('simple',title || ' ' || description) @@ plainto_tsquery('simple',$2) UNION ALL SELECT id,project_id,title,'page' AS kind,content AS description,ts_rank(to_tsvector('simple',title || ' ' || content),plainto_tsquery('simple',$2)) AS rank FROM pages WHERE tenant_id=$1 AND archived_at IS NULL AND page_access(id,$4,$5)>=1 AND to_tsvector('simple',title || ' ' || content) @@ plainto_tsquery('simple',$2)) x ORDER BY rank DESC LIMIT $3")
         .bind(i.tenant_id).bind(term).bind(limit).bind(i.user_id).bind(&i.role).fetch_all(&mut *tx).await.map_err(db_err)?;
     Ok(Json(found))
 }
@@ -136,6 +136,17 @@ pub(crate) async fn entity_project(
 /// Does the entity exist **and** can the caller at least see its project? Entities in projects
 /// the caller cannot open report as absent, so references never confirm their existence.
 pub(crate) async fn relation_entity_exists(tx: &mut Tx, kind: &str, id: Uuid) -> ApiResult<bool> {
+    if kind == "page" {
+        let i = tx.identity.clone();
+        let level: Option<i32> = sqlx::query_scalar("SELECT page_access($1,$2,$3)")
+            .bind(id)
+            .bind(i.user_id)
+            .bind(&i.role)
+            .fetch_one(&mut **tx)
+            .await
+            .map_err(db_err)?;
+        return Ok(level.unwrap_or(0) >= 1);
+    }
     match entity_project(tx, kind, id).await? {
         None => Ok(false),
         Some(None) => Ok(true),

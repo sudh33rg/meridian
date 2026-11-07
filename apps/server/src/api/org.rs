@@ -134,6 +134,9 @@ pub(crate) async fn switch_workspace(
 #[utoipa::path(get, path = "/api/members", tag = "org", responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn members(mut tx: Tx) -> ApiResult<Json<Vec<Value>>> {
     let i = tx.identity.clone();
+    if i.role == "guest" {
+        return Err(forbidden());
+    }
     let rows=sqlx::query_scalar("SELECT jsonb_build_object('id',u.id,'name',u.display_name,'email',u.email,'role',m.role) FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.tenant_id=$1 AND m.disabled_at IS NULL ORDER BY u.display_name LIMIT 2000")
         .bind(i.tenant_id).fetch_all(&mut *tx).await.map_err(db_err)?;
     Ok(Json(rows))
@@ -150,7 +153,7 @@ pub(crate) async fn change_member_role(
 ) -> ApiResult<Json<Value>> {
     let i = tx.identity.clone();
     require_admin(&i)?;
-    if !["admin", "member", "viewer"].contains(&v.role.as_str()) {
+    if !["admin", "member", "viewer", "guest"].contains(&v.role.as_str()) {
         return Err(bad("Only admin/member/viewer roles are assignable"));
     }
     let row:Option<Value>=sqlx::query_scalar("UPDATE memberships SET role=$1 WHERE tenant_id=$2 AND user_id=$3 AND role<>'owner' AND disabled_at IS NULL RETURNING jsonb_build_object('user_id',user_id,'role',role)")
@@ -204,9 +207,12 @@ pub(crate) async fn invite(
     let email = v.email.trim().to_ascii_lowercase();
     if !email.contains('@')
         || email.len() > 320
-        || !["admin", "member", "viewer"].contains(&v.role.as_str())
+        || !["admin", "member", "viewer", "guest"].contains(&v.role.as_str())
     {
         return Err(bad("Valid email and role required"));
+    }
+    if v.role != "guest" {
+        crate::billing::enforce_limit(&mut tx, i.tenant_id, crate::billing::Limit::Seats).await?;
     }
     let id = Uuid::new_v4();
     let token = derive_token(&tx.cfg.secret, "invite", id);
@@ -285,6 +291,9 @@ pub(crate) async fn accept_invite(
             "Existing account: sign in and accept using the authenticated invitation endpoint",
         ));
     }
+    if role != "guest" {
+        crate::billing::enforce_limit(&mut tx, tenant, crate::billing::Limit::Seats).await?;
+    }
     sqlx::query("INSERT INTO memberships(tenant_id,user_id,role) VALUES($1,$2,$3)")
         .bind(tenant)
         .bind(user)
@@ -335,6 +344,9 @@ pub(crate) struct TeamInput {
 #[utoipa::path(get, path = "/api/teams", tag = "org", responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn teams(mut tx: Tx) -> ApiResult<Json<Vec<Value>>> {
     let i = tx.identity.clone();
+    if i.role == "guest" {
+        return Err(forbidden());
+    }
     let rows=sqlx::query_scalar("SELECT jsonb_build_object('id',t.id,'name',t.name,'description',t.description,'members',(SELECT count(*) FROM team_members m WHERE m.tenant_id=t.tenant_id AND m.team_id=t.id)) FROM teams t WHERE tenant_id=$1 ORDER BY name LIMIT 250")
         .bind(i.tenant_id).fetch_all(&mut *tx).await.map_err(db_err)?;
     Ok(Json(rows))
@@ -400,6 +412,9 @@ pub(crate) async fn accept_invite_existing(
         .map_err(db_err)?;
     if email != identity_email {
         return Err(forbidden());
+    }
+    if role != "guest" {
+        crate::billing::enforce_limit(&mut tx, tenant, crate::billing::Limit::Seats).await?;
     }
     sqlx::query("INSERT INTO memberships(tenant_id,user_id,role) VALUES($1,$2,$3) ON CONFLICT(tenant_id,user_id) DO UPDATE SET disabled_at=NULL,role=EXCLUDED.role")
         .bind(tenant).bind(i.user_id).bind(role).execute(&mut *tx).await.map_err(db_err)?;
