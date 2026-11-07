@@ -133,23 +133,41 @@ pub(crate) struct PageAccess {
 }
 
 #[utoipa::path(get, path = "/api/pages/{id}/access", tag = "access", params(("id" = Uuid, Path, description = "Page id")), responses((status = 200, description = "Restriction state and grants", body = PageAccess), (status = 404, description = "Page not found or not visible", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn page_access_info(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<PageAccess>> {
+pub(crate) async fn page_access_info(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<PageAccess>> {
     let i = tx.identity.clone();
     ensure_page_access(&mut tx, id).await?;
-    let restricted: bool = sqlx::query_scalar("SELECT restricted FROM pages WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id).bind(id).fetch_one(&mut *tx).await.map_err(db_err)?;
+    let restricted: bool =
+        sqlx::query_scalar("SELECT restricted FROM pages WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
     let governed_by: Option<Uuid> = sqlx::query_scalar(
         "WITH RECURSIVE c(id,parent_id,restricted,d) AS (SELECT id,parent_id,restricted,0 FROM pages WHERE id=$1 UNION ALL SELECT p.id,p.parent_id,p.restricted,c.d+1 FROM pages p JOIN c ON p.id=c.parent_id WHERE c.d<50) SELECT id FROM c WHERE restricted ORDER BY d LIMIT 1",
     ).bind(id).fetch_optional(&mut *tx).await.map_err(db_err)?;
     let level: i32 = sqlx::query_scalar("SELECT COALESCE(page_access($1,$2,$3),0)")
-        .bind(id).bind(i.user_id).bind(&i.role).fetch_one(&mut *tx).await.map_err(db_err)?;
+        .bind(id)
+        .bind(i.user_id)
+        .bind(&i.role)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(db_err)?;
     let grants = match governed_by {
         Some(g) if level >= 2 => sqlx::query_scalar(
             "SELECT jsonb_build_object('subject_type',t.subject_type,'subject_id',t.subject_id,'name',COALESCE(u.display_name,tm.name),'email',u.email,'relation',t.relation) FROM page_grants t LEFT JOIN users u ON t.subject_type='user' AND u.id=t.subject_id LEFT JOIN teams tm ON t.subject_type='team' AND tm.tenant_id=t.tenant_id AND tm.id=t.subject_id WHERE t.tenant_id=$1 AND t.page_id=$2 ORDER BY t.created_at",
         ).bind(i.tenant_id).bind(g).fetch_all(&mut *tx).await.map_err(db_err)?,
         _ => vec![],
     };
-    Ok(Json(PageAccess { restricted, governed_by, your_level: level, grants }))
+    Ok(Json(PageAccess {
+        restricted,
+        governed_by,
+        your_level: level,
+        grants,
+    }))
 }
 
 #[derive(Deserialize, utoipa::ToSchema)]
@@ -157,7 +175,11 @@ pub(crate) struct RestrictionInput {
     pub(crate) restricted: bool,
 }
 #[utoipa::path(put, path = "/api/pages/{id}/restriction", tag = "access", params(("id" = Uuid, Path, description = "Page id")), request_body = RestrictionInput, responses((status = 204, description = "Restriction updated"), (status = 403, description = "Editor access required", body = ErrorBody), (status = 404, description = "Page not found or not visible", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn set_restriction(mut tx: Tx, Path(id): Path<Uuid>, Json(v): Json<RestrictionInput>) -> ApiResult<StatusCode> {
+pub(crate) async fn set_restriction(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+    Json(v): Json<RestrictionInput>,
+) -> ApiResult<StatusCode> {
     let i = tx.identity.clone();
     ensure_page_editor(&mut tx, id).await?;
     if v.restricted {
@@ -166,8 +188,24 @@ pub(crate) async fn set_restriction(mut tx: Tx, Path(id): Path<Uuid>, Json(v): J
             .bind(i.tenant_id).bind(id).bind(i.user_id).execute(&mut *tx).await.map_err(db_err)?;
     }
     sqlx::query("UPDATE pages SET restricted=$3 WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id).bind(id).bind(v.restricted).execute(&mut *tx).await.map_err(db_err)?;
-    log_event(&mut *tx, &i, if v.restricted { "restricted" } else { "unrestricted" }, "page", id).await?;
+        .bind(i.tenant_id)
+        .bind(id)
+        .bind(v.restricted)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    log_event(
+        &mut *tx,
+        &i,
+        if v.restricted {
+            "restricted"
+        } else {
+            "unrestricted"
+        },
+        "page",
+        id,
+    )
+    .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -180,16 +218,27 @@ pub(crate) struct PageGrantInput {
     pub(crate) level: String,
 }
 #[utoipa::path(put, path = "/api/pages/{id}/grants", tag = "access", params(("id" = Uuid, Path, description = "Page id")), request_body = PageGrantInput, responses((status = 204, description = "Grant stored"), (status = 400, description = "Unknown subject or level, or the page is not restricted", body = ErrorBody), (status = 403, description = "Editor access required", body = ErrorBody), (status = 404, description = "Page not found or not visible", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn grant_page(mut tx: Tx, Path(id): Path<Uuid>, Json(v): Json<PageGrantInput>) -> ApiResult<StatusCode> {
+pub(crate) async fn grant_page(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+    Json(v): Json<PageGrantInput>,
+) -> ApiResult<StatusCode> {
     let i = tx.identity.clone();
     ensure_page_editor(&mut tx, id).await?;
     if !["viewer", "editor"].contains(&v.level.as_str()) {
         return Err(bad("Level must be viewer or editor"));
     }
-    let restricted: bool = sqlx::query_scalar("SELECT restricted FROM pages WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id).bind(id).fetch_one(&mut *tx).await.map_err(db_err)?;
+    let restricted: bool =
+        sqlx::query_scalar("SELECT restricted FROM pages WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
     if !restricted {
-        return Err(bad("Restrict the page first; grants only apply to restricted pages"));
+        return Err(bad(
+            "Restrict the page first; grants only apply to restricted pages",
+        ));
     }
     let exists: bool = match v.subject_type.as_str() {
         "user" => sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM memberships WHERE tenant_id=$1 AND user_id=$2 AND disabled_at IS NULL)"),
@@ -208,7 +257,10 @@ pub(crate) async fn grant_page(mut tx: Tx, Path(id): Path<Uuid>, Json(v): Json<P
 }
 
 #[utoipa::path(delete, path = "/api/pages/{id}/grants/{subject_type}/{subject_id}", tag = "access", params(("id" = Uuid, Path, description = "Page id"), ("subject_type" = String, Path, description = "user or team"), ("subject_id" = Uuid, Path, description = "User or team id")), responses((status = 204, description = "Grant removed"), (status = 403, description = "Editor access required", body = ErrorBody), (status = 404, description = "Page or grant not found", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn revoke_page_grant(mut tx: Tx, Path((id, subject_type, subject_id)): Path<(Uuid, String, Uuid)>) -> ApiResult<StatusCode> {
+pub(crate) async fn revoke_page_grant(
+    mut tx: Tx,
+    Path((id, subject_type, subject_id)): Path<(Uuid, String, Uuid)>,
+) -> ApiResult<StatusCode> {
     let i = tx.identity.clone();
     ensure_page_editor(&mut tx, id).await?;
     let done = sqlx::query("DELETE FROM page_grants WHERE tenant_id=$1 AND page_id=$2 AND subject_type=$3 AND subject_id=$4")
@@ -234,5 +286,8 @@ pub(crate) fn routes() -> Router<App> {
         .route("/api/pages/{id}/access", get(page_access_info))
         .route("/api/pages/{id}/restriction", put(set_restriction))
         .route("/api/pages/{id}/grants", put(grant_page))
-        .route("/api/pages/{id}/grants/{subject_type}/{subject_id}", delete(revoke_page_grant))
+        .route(
+            "/api/pages/{id}/grants/{subject_type}/{subject_id}",
+            delete(revoke_page_grant),
+        )
 }

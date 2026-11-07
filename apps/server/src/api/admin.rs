@@ -20,54 +20,6 @@ pub(crate) async fn audit_log(mut tx: Tx) -> ApiResult<Json<Vec<Value>>> {
         .bind(i.tenant_id).fetch_all(&mut *tx).await.map_err(db_err)?;
     Ok(Json(rows))
 }
-#[derive(Deserialize, utoipa::ToSchema)]
-pub(crate) struct WebhookInput {
-    pub(crate) name: String,
-    pub(crate) url: String,
-}
-#[utoipa::path(get, path = "/api/admin/webhooks", tag = "admin", responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn webhooks(mut tx: Tx) -> ApiResult<Json<Vec<Value>>> {
-    let i = tx.identity.clone();
-    require_admin(&i)?;
-    Ok(Json(sqlx::query_scalar("SELECT jsonb_build_object('id',id,'name',name,'url',url,'enabled',enabled,'created_at',created_at) FROM webhooks WHERE tenant_id=$1 LIMIT 100")
-        .bind(i.tenant_id).fetch_all(&mut *tx).await.map_err(db_err)?))
-}
-#[utoipa::path(post, path = "/api/admin/webhooks", tag = "admin", request_body = WebhookInput, responses((status = 201, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn new_webhook(
-    mut tx: Tx,
-    Json(v): Json<WebhookInput>,
-) -> ApiResult<(StatusCode, Json<Value>)> {
-    let i = tx.identity.clone();
-    require_admin(&i)?;
-    validate_title(&v.name)?;
-    if !v.url.starts_with("https://") || v.url.len() > 500 || v.url.contains('@') {
-        return Err(bad("A public HTTPS URL is required"));
-    }
-    // Delivery disabled by default. Before dispatch, enforce DNS+IP allow/deny checks to prevent SSRF.
-    let secret = mint_token();
-    let row:Value=sqlx::query_scalar("INSERT INTO webhooks(tenant_id,name,url,secret_hash) VALUES($1,$2,$3,$4) RETURNING jsonb_build_object('id',id,'name',name,'url',url,'enabled',enabled)")
-        .bind(i.tenant_id).bind(v.name).bind(v.url).bind(token_hash(&secret)).fetch_one(&mut *tx).await.map_err(db_err)?;
-    Ok((
-        StatusCode::CREATED,
-        Json(json!({"webhook":row,"signing_secret_once":secret,"delivery_configured":false})),
-    ))
-}
-#[utoipa::path(delete, path = "/api/admin/webhooks/{id}", tag = "admin", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 204, description = "Success"), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn delete_webhook(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<StatusCode> {
-    let i = tx.identity.clone();
-    require_admin(&i)?;
-    let r = sqlx::query("DELETE FROM webhooks WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .execute(&mut *tx)
-        .await
-        .map_err(db_err)?;
-    if r.rows_affected() == 0 {
-        return Err(err(StatusCode::NOT_FOUND, "Webhook not found"));
-    }
-    Ok(StatusCode::NO_CONTENT)
-}
-
 #[utoipa::path(get, path = "/api/projects/{id}/export", tag = "admin", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn export_project(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json<Value>> {
     let i = tx.identity.clone();
@@ -182,6 +134,4 @@ pub(crate) fn routes() -> Router<App> {
         .route("/api/projects/{id}/import/issues", post(import_issues))
         .route("/api/entitlements", get(entitlements))
         .route("/api/audit", get(audit_log))
-        .route("/api/admin/webhooks", get(webhooks).post(new_webhook))
-        .route("/api/admin/webhooks/{id}", delete(delete_webhook))
 }

@@ -21,6 +21,19 @@ pub(crate) struct Config {
     pub(crate) stripe_webhook_secret: Option<String>,
     pub(crate) stripe_price_team: Option<String>,
     pub(crate) stripe_price_business: Option<String>,
+    /// Webhook deliveries per workspace per minute (excess is deferred, never dropped).
+    pub(crate) webhook_per_min: u32,
+    pub(crate) s3_bucket: Option<String>,
+    pub(crate) s3_endpoint: Option<String>,
+    pub(crate) s3_region: Option<String>,
+    pub(crate) s3_access_key: Option<String>,
+    pub(crate) s3_secret_key: Option<String>,
+    pub(crate) attachments_dir: String,
+    pub(crate) max_attachment_mb: usize,
+    /// host:port of a clamd daemon; uploads are scanned through its INSTREAM protocol.
+    pub(crate) clamav_addr: Option<String>,
+    /// Only files that scanned clean can be downloaded (default on in production).
+    pub(crate) scan_required: bool,
     pub(crate) auth_per_min: u32,
     pub(crate) global_per_min: u32,
 }
@@ -83,6 +96,19 @@ impl Config {
             stripe_webhook_secret: opt_env("STRIPE_WEBHOOK_SECRET"),
             stripe_price_team: opt_env("STRIPE_PRICE_TEAM"),
             stripe_price_business: opt_env("STRIPE_PRICE_BUSINESS"),
+            webhook_per_min: env_num("WEBHOOK_RATE_PER_MIN", 600),
+            s3_bucket: opt_env("S3_BUCKET"),
+            s3_endpoint: opt_env("S3_ENDPOINT"),
+            s3_region: opt_env("S3_REGION"),
+            s3_access_key: opt_env("S3_ACCESS_KEY_ID"),
+            s3_secret_key: opt_env("S3_SECRET_ACCESS_KEY"),
+            attachments_dir: std::env::var("ATTACHMENTS_DIR")
+                .unwrap_or_else(|_| "./data/attachments".into()),
+            max_attachment_mb: env_num("MAX_ATTACHMENT_MB", 25),
+            clamav_addr: opt_env("CLAMAV_ADDR"),
+            scan_required: std::env::var("ATTACHMENTS_REQUIRE_SCAN")
+                .map(|v| v == "true" || v == "1")
+                .unwrap_or(production),
             auth_per_min: env_num("RATE_LIMIT_AUTH_PER_MIN", 30),
             global_per_min: env_num("RATE_LIMIT_GLOBAL_PER_MIN", 1200),
         }

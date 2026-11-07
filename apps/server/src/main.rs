@@ -20,6 +20,7 @@ use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use uuid::Uuid;
 
 mod api;
+mod attachments;
 mod auth;
 mod billing;
 mod config;
@@ -31,11 +32,14 @@ mod mfa;
 mod middleware;
 mod openapi;
 mod safe_http;
+mod scan;
 mod scim;
 mod secrets;
 mod sso;
+mod storage;
 #[cfg(test)]
 mod tests;
+mod webhooks;
 
 pub(crate) use auth::*;
 pub(crate) use db::*;
@@ -46,6 +50,7 @@ pub(crate) struct App {
     pub(crate) db: PgPool,
     pub(crate) cfg: std::sync::Arc<config::Config>,
     pub(crate) limits: std::sync::Arc<middleware::Limits>,
+    pub(crate) store: storage::Store,
 }
 
 async fn health() -> &'static str {
@@ -62,13 +67,16 @@ async fn readiness(State(app): State<App>) -> ApiResult<Json<serde_json::Value>>
 /// Assemble every route with the shared middleware. Used by `main` and by tests.
 #[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn build_router(db: PgPool, cors: CorsLayer) -> Router {
-    build_router_with(db, cors, std::sync::Arc::new(config::Config::from_env()))
+    let cfg = std::sync::Arc::new(config::Config::from_env());
+    let store = storage::from_config(&cfg).expect("object storage configuration is valid");
+    build_router_with(db, cors, cfg, store)
 }
 
 pub(crate) fn build_router_with(
     db: PgPool,
     cors: CorsLayer,
     cfg: std::sync::Arc<config::Config>,
+    store: storage::Store,
 ) -> Router {
     let limits = std::sync::Arc::new(middleware::Limits::new(&cfg));
     if tokio::runtime::Handle::try_current().is_ok() {
@@ -81,7 +89,12 @@ pub(crate) fn build_router_with(
             }
         });
     }
-    let state = App { db, cfg, limits };
+    let state = App {
+        db,
+        cfg,
+        limits,
+        store,
+    };
     Router::new()
         .route("/health", get(health))
         .route("/ready", get(readiness))
@@ -100,6 +113,8 @@ pub(crate) fn build_router_with(
         .merge(billing::routes())
         .merge(sso::routes())
         .merge(scim::routes())
+        .merge(webhooks::routes())
+        .merge(attachments::routes())
         .layer(axum::middleware::from_fn(db::tx_layer))
         .layer(DefaultBodyLimit::max(1_048_576))
         .layer(cors)
@@ -181,7 +196,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .allow_credentials(true);
     let cfg = std::sync::Arc::new(config::Config::from_env());
     let mailer = std::sync::Arc::new(mail::Mailer::from_config(&cfg));
-    jobs::spawn_worker(db.clone(), cfg.clone(), mailer);
+    let store = storage::from_config(&cfg)?;
+    jobs::spawn_worker(db.clone(), cfg.clone(), mailer, store.clone());
+    webhooks::spawn_dispatcher(db.clone(), cfg.clone());
     let sampler = db.clone();
     tokio::spawn(async move {
         loop {
@@ -190,7 +207,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             tokio::time::sleep(std::time::Duration::from_secs(10)).await;
         }
     });
-    let app = build_router_with(db, cors, cfg);
+    let app = build_router_with(db, cors, cfg, store);
     let bind = env::var("BIND_ADDRESS")
         .unwrap_or_else(|_| "127.0.0.1:8080".into())
         .parse::<SocketAddr>()?;

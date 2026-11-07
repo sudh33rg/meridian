@@ -53,12 +53,9 @@ impl Modify for BearerAuth {
         api::access::revoke_access,
         api::access::set_visibility,
         api::admin::audit_log,
-        api::admin::delete_webhook,
         api::admin::entitlements,
         api::admin::export_project,
         api::admin::import_issues,
-        api::admin::new_webhook,
-        api::admin::webhooks,
         api::collab::activity,
         api::collab::analytics,
         api::collab::approvals,
@@ -123,7 +120,7 @@ impl Modify for BearerAuth {
         auth::logout,
         auth::signup
     ),
-    components(schemas(ErrorBody, crate::mfa::CodeInput, crate::mfa::DisableInput, crate::mfa::VerifyChallengeInput, crate::mfa::SecurityPolicyInput, ChangePasswordInput, RefreshInput, ForgotInput, ResetInput, VerifyInput, GrantInput, VisibilityInput, AcceptInvitation, ApprovalDecision, ApprovalInput, AuthResponse, AutomationInput, CommentInput, DecisionInput, ExistingInvite, GoalInput, ImportInput, ImportItem, InviteInput, Issue, IssueEdit, JoinTeamInput, LinkInput, Login, MemberRoleInput, NewIssue, NewPage, NewProject, Page, PatchIssue, PatchPage, Project, RelationInput, ReleaseInput, RestoreInput, RiskInput, Signup, SprintInput, SprintUpdate, SwitchTenant, TeamInput, WebhookInput, WorkspaceInput)),
+    components(schemas(ErrorBody, crate::mfa::CodeInput, crate::mfa::DisableInput, crate::mfa::VerifyChallengeInput, crate::mfa::SecurityPolicyInput, ChangePasswordInput, RefreshInput, ForgotInput, ResetInput, VerifyInput, GrantInput, VisibilityInput, AcceptInvitation, ApprovalDecision, ApprovalInput, AuthResponse, AutomationInput, CommentInput, DecisionInput, ExistingInvite, GoalInput, ImportInput, ImportItem, InviteInput, Issue, IssueEdit, JoinTeamInput, LinkInput, Login, MemberRoleInput, NewIssue, NewPage, NewProject, Page, PatchIssue, PatchPage, Project, RelationInput, ReleaseInput, RestoreInput, RiskInput, Signup, SprintInput, SprintUpdate, SwitchTenant, TeamInput, WorkspaceInput)),
     modifiers(&BearerAuth)
 )]
 pub struct ApiDoc;

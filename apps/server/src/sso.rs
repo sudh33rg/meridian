@@ -81,9 +81,12 @@ pub(crate) async fn start(State(app): State<App>, Path(slug): Path<String>) -> A
     let Some(conn) = load_enabled(&app.db, tenant).await? else {
         return Ok(web_redirect(&app.cfg, Some("not_configured")));
     };
-    let Some(secret) = open(&app.cfg, &format!("sso:{tenant}"), &conn.client_secret_sealed)
-        .and_then(|b| String::from_utf8(b).ok())
-    else {
+    let Some(secret) = open(
+        &app.cfg,
+        &format!("sso:{tenant}"),
+        &conn.client_secret_sealed,
+    )
+    .and_then(|b| String::from_utf8(b).ok()) else {
         tracing::error!(%tenant, "SSO client secret cannot be opened (APP_SECRET changed?)");
         return Ok(web_redirect(&app.cfg, Some("provider")));
     };
@@ -212,8 +215,12 @@ async fn complete(
     let Some(conn) = conn else {
         return fail(Denied::Provider, "SSO disabled");
     };
-    let secret = open(&app.cfg, &format!("sso:{tenant}"), &conn.client_secret_sealed)
-        .and_then(|b| String::from_utf8(b).ok());
+    let secret = open(
+        &app.cfg,
+        &format!("sso:{tenant}"),
+        &conn.client_secret_sealed,
+    )
+    .and_then(|b| String::from_utf8(b).ok());
     let verifier = open(&app.cfg, "sso-pkce", &pkce_sealed).and_then(|b| String::from_utf8(b).ok());
     let (Some(secret), Some(verifier)) = (secret, verifier) else {
         return fail(Denied::Provider, "sealed values unreadable");
@@ -233,7 +240,11 @@ async fn complete(
     );
     let http = safe_http::client(&app.cfg);
     let token = match client.exchange_code(AuthorizationCode::new(code)) {
-        Ok(req) => match req.set_pkce_verifier(PkceCodeVerifier::new(verifier)).request_async(&http).await {
+        Ok(req) => match req
+            .set_pkce_verifier(PkceCodeVerifier::new(verifier))
+            .request_async(&http)
+            .await
+        {
             Ok(t) => t,
             Err(e) => return fail(Denied::Provider, &format!("token exchange failed: {e}")),
         },
@@ -244,7 +255,12 @@ async fn complete(
     };
     let claims = match id_token.claims(&client.id_token_verifier(), &Nonce::new(nonce)) {
         Ok(c) => c,
-        Err(e) => return fail(Denied::Provider, &format!("id_token verification failed: {e}")),
+        Err(e) => {
+            return fail(
+                Denied::Provider,
+                &format!("id_token verification failed: {e}"),
+            )
+        }
     };
     let subject = claims.subject().as_str().to_string();
     let Some(email) = claims.email().map(|e| e.as_str().trim().to_lowercase()) else {
@@ -262,20 +278,34 @@ async fn complete(
 
     let mut tx = app.db.begin().await.map_err(|e| Err(db_err(e)))?;
     // 1) already linked identity?
-    let linked: Option<Uuid> = sqlx::query_scalar("SELECT user_id FROM sso_identities WHERE tenant_id=$1 AND issuer=$2 AND subject=$3")
-        .bind(tenant).bind(&conn.issuer).bind(&subject)
-        .fetch_optional(&mut *tx).await.map_err(|e| Err(db_err(e)))?;
+    let linked: Option<Uuid> = sqlx::query_scalar(
+        "SELECT user_id FROM sso_identities WHERE tenant_id=$1 AND issuer=$2 AND subject=$3",
+    )
+    .bind(tenant)
+    .bind(&conn.issuer)
+    .bind(&subject)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(|e| Err(db_err(e)))?;
     let user = if let Some(u) = linked {
         u
     } else {
         // Creating or linking an account requires a domain this workspace has verified.
         let domain = email_domain(&email).unwrap_or_default().to_string();
-        if !domain_verified(&app.db, tenant, &domain).await.map_err(Err)? {
-            return fail(Denied::Domain, "email domain is not verified for this workspace");
+        if !domain_verified(&app.db, tenant, &domain)
+            .await
+            .map_err(Err)?
+        {
+            return fail(
+                Denied::Domain,
+                "email domain is not verified for this workspace",
+            );
         }
         let existing: Option<Uuid> = sqlx::query_scalar("SELECT id FROM users WHERE email=$1")
             .bind(&email)
-            .fetch_optional(&mut *tx).await.map_err(|e| Err(db_err(e)))?;
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(|e| Err(db_err(e)))?;
         let user = match existing {
             Some(u) => u,
             None => {
@@ -296,9 +326,14 @@ async fn complete(
         user
     };
     // 2) membership: create (JIT) or require it to be active.
-    let membership: Option<bool> = sqlx::query_scalar("SELECT disabled_at IS NULL FROM memberships WHERE tenant_id=$1 AND user_id=$2")
-        .bind(tenant).bind(user)
-        .fetch_optional(&mut *tx).await.map_err(|e| Err(db_err(e)))?;
+    let membership: Option<bool> = sqlx::query_scalar(
+        "SELECT disabled_at IS NULL FROM memberships WHERE tenant_id=$1 AND user_id=$2",
+    )
+    .bind(tenant)
+    .bind(user)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(|e| Err(db_err(e)))?;
     match membership {
         Some(true) => {}
         Some(false) => return fail(Denied::Disabled, "member is deactivated"),
@@ -306,7 +341,10 @@ async fn complete(
             if !conn.jit_provisioning {
                 return fail(Denied::Disabled, "not a member and provisioning is off");
             }
-            if crate::billing::enforce_limit(&mut tx, tenant, crate::billing::Limit::Seats).await.is_err() {
+            if crate::billing::enforce_limit(&mut tx, tenant, crate::billing::Limit::Seats)
+                .await
+                .is_err()
+            {
                 return fail(Denied::Disabled, "the workspace is out of seats");
             }
             sqlx::query("INSERT INTO memberships(tenant_id,user_id,role,provisioned_by) VALUES($1,$2,$3,'sso')")
@@ -319,7 +357,9 @@ async fn complete(
         .map_err(Err)?;
     sqlx::query("UPDATE session_families SET auth_method='sso' WHERE id=$1")
         .bind(issued.family)
-        .execute(&mut *tx).await.map_err(|e| Err(db_err(e)))?;
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| Err(db_err(e)))?;
     log_event_system(&mut tx, tenant, user, "sso_login", "session", issued.family)
         .await
         .map_err(Err)?;
@@ -349,7 +389,8 @@ fn valid_domain(d: &str) -> bool {
                 && l.len() <= 63
                 && !l.starts_with('-')
                 && !l.ends_with('-')
-                && l.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+                && l.chars()
+                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
         })
 }
 
@@ -415,19 +456,27 @@ pub(crate) async fn put_config(
 ) -> ApiResult<StatusCode> {
     require_admin(&i)?;
     crate::billing::require_feature(&app, i.tenant_id, crate::billing::Feature::Sso).await?;
-    if !["member", "viewer", "guest"].contains(&v.default_role.as_str()) || v.client_id.trim().is_empty() {
-        return Err(bad("Choose member, viewer or guest as the default role and provide a client id"));
+    if !["member", "viewer", "guest"].contains(&v.default_role.as_str())
+        || v.client_id.trim().is_empty()
+    {
+        return Err(bad(
+            "Choose member, viewer or guest as the default role and provide a client id",
+        ));
     }
     let issuer = v.issuer.trim().trim_end_matches('/').to_string();
-    discover(&app.cfg, &issuer).await.map_err(|e| bad(&format!("Cannot use this issuer: {e}")))?;
+    discover(&app.cfg, &issuer)
+        .await
+        .map_err(|e| bad(&format!("Cannot use this issuer: {e}")))?;
     let sealed = match v.client_secret.as_deref().filter(|s| !s.is_empty()) {
         Some(s) => seal(&app.cfg, &format!("sso:{}", i.tenant_id), s.as_bytes()),
-        None => sqlx::query_scalar("SELECT client_secret_sealed FROM sso_connections WHERE tenant_id=$1")
-            .bind(i.tenant_id)
-            .fetch_optional(&app.db)
-            .await
-            .map_err(db_err)?
-            .ok_or_else(|| bad("A client secret is required the first time"))?,
+        None => sqlx::query_scalar(
+            "SELECT client_secret_sealed FROM sso_connections WHERE tenant_id=$1",
+        )
+        .bind(i.tenant_id)
+        .fetch_optional(&app.db)
+        .await
+        .map_err(db_err)?
+        .ok_or_else(|| bad("A client secret is required the first time"))?,
     };
     if v.enabled {
         let verified: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM verified_domains WHERE tenant_id=$1 AND verified_at IS NOT NULL)")
@@ -518,7 +567,10 @@ pub(crate) async fn add_domain(
 async fn proves_control(cfg: &Config, domain: &str, expected: &str) -> bool {
     // 1) DNS TXT record
     if let Ok(resolver) = hickory_resolver::TokioResolver::builder_tokio().map(|b| b.build()) {
-        if let Ok(txt) = resolver.txt_lookup(format!("_meridian-challenge.{domain}.")).await {
+        if let Ok(txt) = resolver
+            .txt_lookup(format!("_meridian-challenge.{domain}."))
+            .await
+        {
             if txt.iter().any(|r| r.to_string().trim() == expected) {
                 return true;
             }
@@ -526,14 +578,20 @@ async fn proves_control(cfg: &Config, domain: &str, expected: &str) -> bool {
     }
     // 2) well-known file over https (SSRF-safe client)
     let url = format!("https://{domain}/.well-known/meridian-domain-verification.txt");
-    let url = if cfg.allow_private_outbound { format!("http://{domain}/.well-known/meridian-domain-verification.txt") } else { url };
+    let url = if cfg.allow_private_outbound {
+        format!("http://{domain}/.well-known/meridian-domain-verification.txt")
+    } else {
+        url
+    };
     if safe_http::check_url(cfg, &url).is_err() {
         return false;
     }
     match safe_http::client(cfg).get(&url).send().await {
-        Ok(r) if r.status().is_success() => {
-            r.text().await.map(|t| t.trim() == expected).unwrap_or(false)
-        }
+        Ok(r) if r.status().is_success() => r
+            .text()
+            .await
+            .map(|t| t.trim() == expected)
+            .unwrap_or(false),
         _ => false,
     }
 }
@@ -546,22 +604,25 @@ pub(crate) async fn verify_domain(
 ) -> ApiResult<StatusCode> {
     require_admin(&i)?;
     let domain = domain.to_ascii_lowercase();
-    let token: Option<String> = sqlx::query_scalar("SELECT token FROM verified_domains WHERE tenant_id=$1 AND domain=$2")
-        .bind(i.tenant_id)
-        .bind(&domain)
-        .fetch_optional(&app.db)
-        .await
-        .map_err(db_err)?;
+    let token: Option<String> =
+        sqlx::query_scalar("SELECT token FROM verified_domains WHERE tenant_id=$1 AND domain=$2")
+            .bind(i.tenant_id)
+            .bind(&domain)
+            .fetch_optional(&app.db)
+            .await
+            .map_err(db_err)?;
     let token = token.ok_or_else(|| err(StatusCode::NOT_FOUND, "Add the domain first"))?;
     if !proves_control(&app.cfg, &domain, &format!("meridian-verification={token}")).await {
         return Err(bad("We could not find the verification record yet. DNS changes can take a while; try again shortly"));
     }
-    let done = sqlx::query("UPDATE verified_domains SET verified_at=now() WHERE tenant_id=$1 AND domain=$2")
-        .bind(i.tenant_id)
-        .bind(&domain)
-        .execute(&app.db)
-        .await
-        .map_err(|_| bad("That domain is already verified by another workspace"))?;
+    let done = sqlx::query(
+        "UPDATE verified_domains SET verified_at=now() WHERE tenant_id=$1 AND domain=$2",
+    )
+    .bind(i.tenant_id)
+    .bind(&domain)
+    .execute(&app.db)
+    .await
+    .map_err(|_| bad("That domain is already verified by another workspace"))?;
     let _ = done;
     audit(&app.db, &i, "domain_verified").await?;
     Ok(StatusCode::NO_CONTENT)
@@ -587,8 +648,16 @@ pub(crate) fn routes() -> Router<App> {
     Router::new()
         .route("/api/auth/sso/{slug}/start", get(start))
         .route("/api/auth/sso/callback", get(callback))
-        .route("/api/workspace/sso", get(get_config).merge(put(put_config)).merge(delete(delete_config)))
+        .route(
+            "/api/workspace/sso",
+            get(get_config)
+                .merge(put(put_config))
+                .merge(delete(delete_config)),
+        )
         .route("/api/workspace/domains", post(add_domain))
-        .route("/api/workspace/domains/{domain}/verify", post(verify_domain))
+        .route(
+            "/api/workspace/domains/{domain}/verify",
+            post(verify_domain),
+        )
         .route("/api/workspace/domains/{domain}", delete(remove_domain))
 }

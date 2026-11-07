@@ -38,9 +38,39 @@ pub(crate) struct Plan {
 }
 
 pub(crate) const PLANS: [Plan; 3] = [
-    Plan { key: "free", name: "Free", seats: Some(5), projects: Some(3), webhooks: Some(1), storage_mb: Some(1024), sso: false, scim: false, seat_price_cents: 0 },
-    Plan { key: "team", name: "Team", seats: Some(100), projects: None, webhooks: Some(10), storage_mb: Some(51_200), sso: false, scim: false, seat_price_cents: 800 },
-    Plan { key: "business", name: "Business", seats: None, projects: None, webhooks: Some(50), storage_mb: Some(512_000), sso: true, scim: true, seat_price_cents: 1500 },
+    Plan {
+        key: "free",
+        name: "Free",
+        seats: Some(5),
+        projects: Some(3),
+        webhooks: Some(1),
+        storage_mb: Some(1024),
+        sso: false,
+        scim: false,
+        seat_price_cents: 0,
+    },
+    Plan {
+        key: "team",
+        name: "Team",
+        seats: Some(100),
+        projects: None,
+        webhooks: Some(10),
+        storage_mb: Some(51_200),
+        sso: false,
+        scim: false,
+        seat_price_cents: 800,
+    },
+    Plan {
+        key: "business",
+        name: "Business",
+        seats: None,
+        projects: None,
+        webhooks: Some(50),
+        storage_mb: Some(512_000),
+        sso: true,
+        scim: true,
+        seat_price_cents: 1500,
+    },
 ];
 
 pub(crate) fn plan_by_key(key: &str) -> &'static Plan {
@@ -49,11 +79,12 @@ pub(crate) fn plan_by_key(key: &str) -> &'static Plan {
 
 /// The plan whose limits apply right now (a canceled subscription falls back to Free).
 pub(crate) async fn current_plan(db: &mut PgConnection, tenant: Uuid) -> ApiResult<&'static Plan> {
-    let row: Option<(String, String)> = sqlx::query_as("SELECT plan,status FROM subscriptions WHERE tenant_id=$1")
-        .bind(tenant)
-        .fetch_optional(&mut *db)
-        .await
-        .map_err(db_err)?;
+    let row: Option<(String, String)> =
+        sqlx::query_as("SELECT plan,status FROM subscriptions WHERE tenant_id=$1")
+            .bind(tenant)
+            .fetch_optional(&mut *db)
+            .await
+            .map_err(db_err)?;
     Ok(match row {
         Some((plan, status)) if status != "canceled" => plan_by_key(&plan),
         _ => &PLANS[0],
@@ -63,17 +94,29 @@ pub(crate) async fn current_plan(db: &mut PgConnection, tenant: Uuid) -> ApiResu
 pub(crate) async fn usage(db: &mut PgConnection, tenant: Uuid) -> ApiResult<(i64, i64, i64, i64)> {
     let seats: i64 = sqlx::query_scalar("SELECT count(*) FROM memberships WHERE tenant_id=$1 AND disabled_at IS NULL AND role<>'guest'")
         .bind(tenant).fetch_one(&mut *db).await.map_err(db_err)?;
-    let projects: i64 = sqlx::query_scalar("SELECT count(*) FROM projects WHERE tenant_id=$1 AND archived_at IS NULL")
-        .bind(tenant).fetch_one(&mut *db).await.map_err(db_err)?;
+    let projects: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM projects WHERE tenant_id=$1 AND archived_at IS NULL",
+    )
+    .bind(tenant)
+    .fetch_one(&mut *db)
+    .await
+    .map_err(db_err)?;
     let webhooks: i64 = sqlx::query_scalar("SELECT count(*) FROM webhooks WHERE tenant_id=$1")
-        .bind(tenant).fetch_one(&mut *db).await.map_err(db_err)?;
+        .bind(tenant)
+        .fetch_one(&mut *db)
+        .await
+        .map_err(db_err)?;
     let storage_bytes: i64 = sqlx::query_scalar("SELECT COALESCE(sum(size_bytes),0)::bigint FROM attachments WHERE tenant_id=$1 AND deleted_at IS NULL")
         .bind(tenant).fetch_one(&mut *db).await.map_err(db_err)?;
     Ok((seats, projects, webhooks, storage_bytes))
 }
 
 /// Refuse the action if it would exceed the plan's limit (HTTP 402 `plan_limit`).
-pub(crate) async fn enforce_limit(db: &mut PgConnection, tenant: Uuid, limit: Limit) -> ApiResult<()> {
+pub(crate) async fn enforce_limit(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    limit: Limit,
+) -> ApiResult<()> {
     let plan = current_plan(db, tenant).await?;
     let (seats, projects, webhooks, _) = usage(db, tenant).await?;
     let (used, max, what) = match limit {
@@ -90,7 +133,11 @@ pub(crate) async fn enforce_limit(db: &mut PgConnection, tenant: Uuid, limit: Li
     }
 }
 
-pub(crate) async fn enforce_storage(db: &mut PgConnection, tenant: Uuid, adding: i64) -> ApiResult<()> {
+pub(crate) async fn enforce_storage(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    adding: i64,
+) -> ApiResult<()> {
     let plan = current_plan(db, tenant).await?;
     let (_, _, _, used) = usage(db, tenant).await?;
     match plan.storage_mb {
@@ -141,8 +188,13 @@ pub(crate) async fn overview(State(app): State<App>, i: Identity) -> ApiResult<J
     let mut db = app.db.acquire().await.map_err(db_err)?;
     let plan = current_plan(&mut db, i.tenant_id).await?;
     let (seats, projects, webhooks, storage) = usage(&mut db, i.tenant_id).await?;
-    let sub: Option<(String, Option<chrono::DateTime<Utc>>, Option<String>)> = sqlx::query_as("SELECT status,current_period_end,stripe_customer_id FROM subscriptions WHERE tenant_id=$1")
-        .bind(i.tenant_id).fetch_optional(&mut *db).await.map_err(db_err)?;
+    let sub: Option<(String, Option<chrono::DateTime<Utc>>, Option<String>)> = sqlx::query_as(
+        "SELECT status,current_period_end,stripe_customer_id FROM subscriptions WHERE tenant_id=$1",
+    )
+    .bind(i.tenant_id)
+    .fetch_optional(&mut *db)
+    .await
+    .map_err(db_err)?;
     let lim = |v: Option<i64>| v.map(Value::from).unwrap_or(Value::Null);
     Ok(Json(json!({
         "plan": plan.key,
@@ -174,27 +226,52 @@ pub(crate) struct PlanInput {
 }
 
 #[utoipa::path(post, path = "/api/billing/plan", tag = "billing", request_body = PlanInput, responses((status = 204, description = "Plan switched (development builds without Stripe only)"), (status = 403, description = "Not available", body = ErrorBody), (status = 400, description = "Unknown plan or usage exceeds the target plan", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn switch_plan(State(app): State<App>, i: Identity, Json(v): Json<PlanInput>) -> ApiResult<StatusCode> {
+pub(crate) async fn switch_plan(
+    State(app): State<App>,
+    i: Identity,
+    Json(v): Json<PlanInput>,
+) -> ApiResult<StatusCode> {
     require_admin(&i)?;
     if stripe_enabled(&app.cfg) || app.cfg.production {
         return Err(forbidden_msg("Plans change through billing only"));
     }
-    let target = PLANS.iter().find(|p| p.key == v.plan).ok_or_else(|| bad("Unknown plan"))?;
+    let target = PLANS
+        .iter()
+        .find(|p| p.key == v.plan)
+        .ok_or_else(|| bad("Unknown plan"))?;
     let mut db = app.db.acquire().await.map_err(db_err)?;
     let (seats, projects, webhooks, _) = usage(&mut db, i.tenant_id).await?;
-    for (used, max, what) in [(seats, target.seats, "members"), (projects, target.projects, "projects"), (webhooks, target.webhooks, "webhooks")] {
+    for (used, max, what) in [
+        (seats, target.seats, "members"),
+        (projects, target.projects, "projects"),
+        (webhooks, target.webhooks, "webhooks"),
+    ] {
         if max.is_some_and(|m| used > m) {
-            return Err(bad(&format!("Reduce {what} below the {} limit first", target.name)));
+            return Err(bad(&format!(
+                "Reduce {what} below the {} limit first",
+                target.name
+            )));
         }
     }
     sqlx::query("INSERT INTO subscriptions(tenant_id,plan,status) VALUES($1,$2,'active') ON CONFLICT (tenant_id) DO UPDATE SET plan=EXCLUDED.plan,status='active',updated_at=now()")
         .bind(i.tenant_id).bind(target.key).execute(&mut *db).await.map_err(db_err)?;
-    crate::api::common::log_event_system(&mut db, i.tenant_id, i.user_id, "plan_changed", "workspace", i.tenant_id).await?;
+    crate::api::common::log_event_system(
+        &mut db,
+        i.tenant_id,
+        i.user_id,
+        "plan_changed",
+        "workspace",
+        i.tenant_id,
+    )
+    .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
 async fn stripe_post(cfg: &Config, path: &str, form: &[(String, String)]) -> ApiResult<Value> {
-    let key = cfg.stripe_secret_key.as_ref().ok_or_else(|| bad("Billing is not configured"))?;
+    let key = cfg
+        .stripe_secret_key
+        .as_ref()
+        .ok_or_else(|| bad("Billing is not configured"))?;
     let res = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
         .build()
@@ -206,7 +283,10 @@ async fn stripe_post(cfg: &Config, path: &str, form: &[(String, String)]) -> Api
         .await
         .map_err(|e| ApiError::Internal(format!("Stripe unreachable: {e}")))?;
     let ok = res.status().is_success();
-    let body: Value = res.json().await.map_err(|e| ApiError::Internal(e.to_string()))?;
+    let body: Value = res
+        .json()
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?;
     if !ok {
         tracing::warn!(error=%body["error"]["message"], "Stripe rejected a request");
         return Err(bad("The payment provider rejected the request"));
@@ -215,7 +295,11 @@ async fn stripe_post(cfg: &Config, path: &str, form: &[(String, String)]) -> Api
 }
 
 #[utoipa::path(post, path = "/api/billing/checkout", tag = "billing", request_body = PlanInput, responses((status = 200, description = "Stripe Checkout URL", body = Object), (status = 400, description = "Billing not configured or unknown plan", body = ErrorBody), (status = 403, description = "Admin required", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn checkout(State(app): State<App>, i: Identity, Json(v): Json<PlanInput>) -> ApiResult<Json<Value>> {
+pub(crate) async fn checkout(
+    State(app): State<App>,
+    i: Identity,
+    Json(v): Json<PlanInput>,
+) -> ApiResult<Json<Value>> {
     require_admin(&i)?;
     let price = match v.plan.as_str() {
         "team" => app.cfg.stripe_price_team.clone(),
@@ -225,13 +309,24 @@ pub(crate) async fn checkout(State(app): State<App>, i: Identity, Json(v): Json<
     .ok_or_else(|| bad("That plan is not available for purchase"))?;
     let mut db = app.db.acquire().await.map_err(db_err)?;
     let (seats, ..) = usage(&mut db, i.tenant_id).await?;
-    let customer: Option<String> = sqlx::query_scalar("SELECT stripe_customer_id FROM subscriptions WHERE tenant_id=$1")
-        .bind(i.tenant_id).fetch_optional(&mut *db).await.map_err(db_err)?.flatten();
+    let customer: Option<String> =
+        sqlx::query_scalar("SELECT stripe_customer_id FROM subscriptions WHERE tenant_id=$1")
+            .bind(i.tenant_id)
+            .fetch_optional(&mut *db)
+            .await
+            .map_err(db_err)?
+            .flatten();
     let tenant = i.tenant_id.to_string();
     let mut form: Vec<(String, String)> = vec![
         ("mode".into(), "subscription".into()),
-        ("success_url".into(), format!("{}/billing?checkout=success", app.cfg.public_url)),
-        ("cancel_url".into(), format!("{}/billing?checkout=cancelled", app.cfg.public_url)),
+        (
+            "success_url".into(),
+            format!("{}/billing?checkout=success", app.cfg.public_url),
+        ),
+        (
+            "cancel_url".into(),
+            format!("{}/billing?checkout=cancelled", app.cfg.public_url),
+        ),
         ("client_reference_id".into(), tenant.clone()),
         ("line_items[0][price]".into(), price),
         ("line_items[0][quantity]".into(), seats.max(1).to_string()),
@@ -250,13 +345,27 @@ pub(crate) async fn checkout(State(app): State<App>, i: Identity, Json(v): Json<
 #[utoipa::path(post, path = "/api/billing/portal", tag = "billing", responses((status = 200, description = "Stripe customer portal URL", body = Object), (status = 400, description = "No billing account yet", body = ErrorBody), (status = 403, description = "Admin required", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn portal(State(app): State<App>, i: Identity) -> ApiResult<Json<Value>> {
     require_admin(&i)?;
-    let customer: Option<String> = sqlx::query_scalar("SELECT stripe_customer_id FROM subscriptions WHERE tenant_id=$1")
-        .bind(i.tenant_id).fetch_optional(&app.db).await.map_err(db_err)?.flatten();
-    let customer = customer.ok_or_else(|| bad("There is no billing account yet. Subscribe first"))?;
-    let session = stripe_post(&app.cfg, "billing_portal/sessions", &[
-        ("customer".into(), customer),
-        ("return_url".into(), format!("{}/billing", app.cfg.public_url)),
-    ]).await?;
+    let customer: Option<String> =
+        sqlx::query_scalar("SELECT stripe_customer_id FROM subscriptions WHERE tenant_id=$1")
+            .bind(i.tenant_id)
+            .fetch_optional(&app.db)
+            .await
+            .map_err(db_err)?
+            .flatten();
+    let customer =
+        customer.ok_or_else(|| bad("There is no billing account yet. Subscribe first"))?;
+    let session = stripe_post(
+        &app.cfg,
+        "billing_portal/sessions",
+        &[
+            ("customer".into(), customer),
+            (
+                "return_url".into(),
+                format!("{}/billing", app.cfg.public_url),
+            ),
+        ],
+    )
+    .await?;
     Ok(Json(json!({ "url": session["url"] })))
 }
 
@@ -275,11 +384,14 @@ fn verify_stripe_signature(secret: &str, header_value: &str, body: &[u8], now: i
     if (now - ts).abs() > 300 {
         return false;
     }
-    let Ok(mut mac) = <Hmac<Sha256> as Mac>::new_from_slice(secret.as_bytes()) else { return false };
+    let Ok(mut mac) = <Hmac<Sha256> as Mac>::new_from_slice(secret.as_bytes()) else {
+        return false;
+    };
     mac.update(format!("{ts}.").as_bytes());
     mac.update(body);
     let expected = hex::encode(mac.finalize().into_bytes());
-    sigs.iter().any(|s| crate::auth::constant_time_eq(s, &expected))
+    sigs.iter()
+        .any(|s| crate::auth::constant_time_eq(s, &expected))
 }
 
 fn plan_for_price(cfg: &Config, price: &str) -> Option<&'static str> {
@@ -293,15 +405,31 @@ fn plan_for_price(cfg: &Config, price: &str) -> Option<&'static str> {
 }
 
 #[utoipa::path(post, path = "/api/billing/stripe-webhook", tag = "billing", responses((status = 204, description = "Event accepted (or already processed)"), (status = 400, description = "Bad signature or payload", body = ErrorBody)))]
-pub(crate) async fn stripe_webhook(State(app): State<App>, headers: HeaderMap, body: Bytes) -> ApiResult<StatusCode> {
-    let secret = app.cfg.stripe_webhook_secret.as_deref().ok_or_else(|| bad("Billing webhooks are not configured"))?;
-    let sig = headers.get("stripe-signature").and_then(|v| v.to_str().ok()).unwrap_or("");
-    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
+pub(crate) async fn stripe_webhook(
+    State(app): State<App>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> ApiResult<StatusCode> {
+    let secret = app
+        .cfg
+        .stripe_webhook_secret
+        .as_deref()
+        .ok_or_else(|| bad("Billing webhooks are not configured"))?;
+    let sig = headers
+        .get("stripe-signature")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0);
     if !verify_stripe_signature(secret, sig, &body, now) {
         return Err(bad("Invalid signature"));
     }
     let event: Value = serde_json::from_slice(&body).map_err(|_| bad("Invalid payload"))?;
-    let id = event["id"].as_str().ok_or_else(|| bad("Missing event id"))?;
+    let id = event["id"]
+        .as_str()
+        .ok_or_else(|| bad("Missing event id"))?;
     let kind = event["type"].as_str().unwrap_or("");
     let obj = &event["data"]["object"];
     let mut tx = app.db.begin().await.map_err(db_err)?;
@@ -311,11 +439,19 @@ pub(crate) async fn stripe_webhook(State(app): State<App>, headers: HeaderMap, b
         return Ok(StatusCode::NO_CONTENT); // replay: already handled
     }
     let tenant = |o: &Value| -> Option<Uuid> {
-        o["client_reference_id"].as_str().or_else(|| o["metadata"]["tenant_id"].as_str()).and_then(|s| Uuid::parse_str(s).ok())
+        o["client_reference_id"]
+            .as_str()
+            .or_else(|| o["metadata"]["tenant_id"].as_str())
+            .and_then(|s| Uuid::parse_str(s).ok())
     };
     match kind {
         "checkout.session.completed" => {
-            if let (Some(t), Some(plan)) = (tenant(obj), obj["metadata"]["plan"].as_str().filter(|p| PLANS.iter().any(|x| x.key == *p))) {
+            if let (Some(t), Some(plan)) = (
+                tenant(obj),
+                obj["metadata"]["plan"]
+                    .as_str()
+                    .filter(|p| PLANS.iter().any(|x| x.key == *p)),
+            ) {
                 sqlx::query("INSERT INTO subscriptions(tenant_id,plan,status,stripe_customer_id,stripe_subscription_id) VALUES($1,$2,'active',$3,$4) ON CONFLICT (tenant_id) DO UPDATE SET plan=EXCLUDED.plan,status='active',stripe_customer_id=EXCLUDED.stripe_customer_id,stripe_subscription_id=EXCLUDED.stripe_subscription_id,updated_at=now()")
                     .bind(t).bind(plan).bind(obj["customer"].as_str()).bind(obj["subscription"].as_str())
                     .execute(&mut *tx).await.map_err(db_err)?;
@@ -328,9 +464,17 @@ pub(crate) async fn stripe_webhook(State(app): State<App>, headers: HeaderMap, b
                 (_, "past_due") | (_, "unpaid") => "past_due",
                 _ => "active",
             };
-            let price = obj["items"]["data"][0]["price"]["id"].as_str().and_then(|p| plan_for_price(&app.cfg, p));
-            let plan = price.or_else(|| obj["metadata"]["plan"].as_str().and_then(|p| PLANS.iter().find(|x| x.key == p).map(|x| x.key)));
-            let period_end = obj["current_period_end"].as_i64().and_then(|t| chrono::DateTime::from_timestamp(t, 0));
+            let price = obj["items"]["data"][0]["price"]["id"]
+                .as_str()
+                .and_then(|p| plan_for_price(&app.cfg, p));
+            let plan = price.or_else(|| {
+                obj["metadata"]["plan"]
+                    .as_str()
+                    .and_then(|p| PLANS.iter().find(|x| x.key == p).map(|x| x.key))
+            });
+            let period_end = obj["current_period_end"]
+                .as_i64()
+                .and_then(|t| chrono::DateTime::from_timestamp(t, 0));
             sqlx::query("UPDATE subscriptions SET status=$2, plan=COALESCE($3,plan), current_period_end=COALESCE($4,current_period_end), updated_at=now() WHERE stripe_subscription_id=$1")
                 .bind(sub_id).bind(status).bind(plan).bind(period_end)
                 .execute(&mut *tx).await.map_err(db_err)?;

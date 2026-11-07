@@ -35,6 +35,7 @@ pub(crate) struct Tx {
     /// SHA-256 of the session token that authenticated this request.
     pub(crate) token_hash: String,
     pub(crate) cfg: Arc<crate::config::Config>,
+    pub(crate) store: crate::storage::Store,
 }
 
 impl Deref for Tx {
@@ -78,6 +79,7 @@ impl FromRequestParts<App> for Tx {
             method: parts.method.clone(),
             token_hash,
             cfg: state.cfg.clone(),
+            store: state.store.clone(),
         })
     }
 }

@@ -59,3 +59,6 @@ Thumbs.db
 # Playwright
 /apps/web/playwright-report/
 /apps/web/test-results/
+
+# Local attachment storage (development)
+/apps/server/data/

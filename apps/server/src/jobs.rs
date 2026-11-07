@@ -25,6 +25,7 @@ struct Ctx {
     db: PgPool,
     cfg: Arc<Config>,
     mailer: Arc<Mailer>,
+    store: crate::storage::Store,
 }
 
 #[derive(FromRow)]
@@ -36,11 +37,17 @@ struct Job {
     max_attempts: i32,
 }
 
-pub(crate) fn spawn_worker(db: PgPool, cfg: Arc<Config>, mailer: Arc<Mailer>) {
+pub(crate) fn spawn_worker(
+    db: PgPool,
+    cfg: Arc<Config>,
+    mailer: Arc<Mailer>,
+    store: crate::storage::Store,
+) {
     let ctx = Arc::new(Ctx {
         db: db.clone(),
         cfg,
         mailer,
+        store,
     });
     tokio::spawn(async move {
         let mut listener = sqlx::postgres::PgListener::connect_with(&ctx.db).await.ok();
@@ -120,6 +127,10 @@ async fn handle(ctx: &Ctx, job: &Job) -> Result<(), String> {
     match job.kind.as_str() {
         "email.auth_token" => email_auth_token(ctx, &job.payload).await,
         "email.invite" => email_invite(ctx, &job.payload).await,
+        "attachment.scan" => {
+            let id = payload_id(&job.payload, "attachment_id")?;
+            crate::attachments::scan_job(&ctx.db, &ctx.cfg, &ctx.store, id).await
+        }
         other => Err(format!("unknown job kind {other}")),
     }
 }

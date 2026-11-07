@@ -110,7 +110,14 @@ pub(crate) async fn valid_page(tx: &mut Tx, i: &Identity, id: Uuid) -> ApiResult
 /// safe methods, editor for writes. Hidden pages report as not found.
 pub(crate) async fn ensure_page_access(tx: &mut Tx, page: Uuid) -> ApiResult<()> {
     let i = tx.identity.clone();
-    let need = if matches!(tx.method, axum::http::Method::GET | axum::http::Method::HEAD | axum::http::Method::OPTIONS) { 1 } else { 2 };
+    let need = if matches!(
+        tx.method,
+        axum::http::Method::GET | axum::http::Method::HEAD | axum::http::Method::OPTIONS
+    ) {
+        1
+    } else {
+        2
+    };
     let level: Option<i32> = sqlx::query_scalar("SELECT page_access($1,$2,$3)")
         .bind(page)
         .bind(i.user_id)
@@ -180,6 +187,16 @@ pub(crate) async fn emit_event(
     .map_err(db_err)?;
     sqlx::query("INSERT INTO events(tenant_id,sync_id,entity_type,entity_id,op,actor_id,payload) VALUES($1,$2,$3,$4,$5,$6,$7)")
         .bind(tenant).bind(sync_id).bind(entity_type).bind(entity_id).bind(op).bind(actor).bind(payload)
+        .execute(&mut *db).await.map_err(db_err)?;
+    // Queue webhook deliveries for every enabled endpoint subscribed to this event, in the same
+    // transaction, so a delivery exists if and only if the change committed.
+    let event_type = format!("{entity_type}.{op}");
+    let body = json!({
+        "type": event_type, "sync_id": sync_id, "tenant_id": tenant, "occurred_at": Utc::now(),
+        "data": {"entity_type": entity_type, "entity_id": entity_id, "op": op, "actor_id": actor},
+    });
+    sqlx::query("INSERT INTO webhook_deliveries(tenant_id,webhook_id,event_sync_id,event_type,payload) SELECT $1,w.id,$2,$3,$4 FROM webhooks w WHERE w.tenant_id=$1 AND w.enabled AND (cardinality(w.events)=0 OR $3=ANY(w.events) OR (split_part($3,'.',1)||'.*')=ANY(w.events) OR '*'=ANY(w.events))")
+        .bind(tenant).bind(sync_id).bind(&event_type).bind(body)
         .execute(&mut *db).await.map_err(db_err)?;
     Ok(sync_id)
 }
