@@ -32,6 +32,7 @@ impl Modify for BearerAuth {
     info(title = "Meridian API", version = "0.2.0", description = "Multi-tenant work and knowledge API. The tenant is always resolved from the session, never from the request."),
     paths(
         auth::refresh,
+        auth::change_password,
         auth::forgot_password,
         auth::reset_password,
         auth::verify_email,
@@ -114,7 +115,7 @@ impl Modify for BearerAuth {
         auth::logout,
         auth::signup
     ),
-    components(schemas(ErrorBody, RefreshInput, ForgotInput, ResetInput, VerifyInput, GrantInput, VisibilityInput, AcceptInvitation, ApprovalDecision, ApprovalInput, AuthResponse, AutomationInput, CommentInput, DecisionInput, ExistingInvite, GoalInput, ImportInput, ImportItem, InviteInput, Issue, IssueEdit, JoinTeamInput, LinkInput, Login, MemberRoleInput, NewIssue, NewPage, NewProject, Page, PatchIssue, PatchPage, Project, RelationInput, ReleaseInput, RestoreInput, RiskInput, Signup, SprintInput, SprintUpdate, SwitchTenant, TeamInput, WebhookInput, WorkspaceInput)),
+    components(schemas(ErrorBody, ChangePasswordInput, RefreshInput, ForgotInput, ResetInput, VerifyInput, GrantInput, VisibilityInput, AcceptInvitation, ApprovalDecision, ApprovalInput, AuthResponse, AutomationInput, CommentInput, DecisionInput, ExistingInvite, GoalInput, ImportInput, ImportItem, InviteInput, Issue, IssueEdit, JoinTeamInput, LinkInput, Login, MemberRoleInput, NewIssue, NewPage, NewProject, Page, PatchIssue, PatchPage, Project, RelationInput, ReleaseInput, RestoreInput, RiskInput, Signup, SprintInput, SprintUpdate, SwitchTenant, TeamInput, WebhookInput, WorkspaceInput)),
     modifiers(&BearerAuth)
 )]
 pub struct ApiDoc;
@@ -133,7 +134,7 @@ mod tests {
         let paths = doc["paths"].as_object().unwrap();
         let ops: usize = paths.values().map(|p| p.as_object().unwrap().len()).sum();
         assert_eq!(
-            ops, 82,
+            ops, 83,
             "documented operation count changed; update routes and docs together"
         );
         // Only the public auth endpoints may omit the bearer requirement.

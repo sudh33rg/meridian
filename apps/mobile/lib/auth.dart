@@ -5,12 +5,13 @@ import 'home.dart';
 class EntryPage extends StatefulWidget { const EntryPage({super.key}); @override State<EntryPage> createState()=>_EntryPageState(); }
 class _EntryPageState extends State<EntryPage> {
   String? token; bool loading=true;
-  @override void initState(){super.initState();_restore();}
+  @override void initState(){super.initState();Api.onSignedOut=(){if(mounted)setState(()=>token=null);};_restore();}
+  @override void dispose(){Api.onSignedOut=null;super.dispose();}
   Future<void> _restore() async {final t=await secureStore.read(key:'session_token');if(mounted)setState((){token=t;loading=false;});}
   @override Widget build(BuildContext context)=>loading
     ? const Scaffold(body:Center(child:CircularProgressIndicator()))
     : token==null ? LoginPage(onLogin:(t)=>setState(()=>token=t))
-    : HomePage(token:token!,onLogout:()async{await secureStore.delete(key:'session_token');if(mounted)setState(()=>token=null);});
+    : HomePage(token:token!,onLogout:()async{try{await Api.request('/auth/logout',token:token,method:'POST');}catch(_){/* best effort: the local tokens are cleared regardless */}await Api.clear();if(mounted)setState(()=>token=null);});
 }
 class LoginPage extends StatefulWidget { final ValueChanged<String> onLogin; const LoginPage({super.key,required this.onLogin});@override State<LoginPage> createState()=>_LoginPageState(); }
 class _LoginPageState extends State<LoginPage> {
@@ -21,7 +22,7 @@ class _LoginPageState extends State<LoginPage> {
     setState((){busy=true;error=null;});
     try {
       final r=await Api.request('/auth/login',method:'POST',data:{'slug':slug.text,'email':email.text,'password':password.text});
-      final t=r['token'] as String;await secureStore.write(key:'session_token',value:t);widget.onLogin(t);
+      await Api.adopt(r as Map<String,dynamic>);widget.onLogin(r['token'] as String);
     }catch(e){if(mounted)setState(()=>error=e.toString());}
     finally{if(mounted)setState(()=>busy=false);}
   }

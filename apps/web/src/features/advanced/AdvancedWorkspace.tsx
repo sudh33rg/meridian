@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Activity,
   Bell,
@@ -158,7 +158,7 @@ export function AdvancedWorkspace({
     [workspaces, setWorkspaces] = useState<Item[]>([]),
     [membersList, setMembersList] = useState<Item[]>([]),
     [subjects, setSubjects] = useState<Item[]>([]);
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!path) return;
     setLoading(true);
     try {
@@ -168,18 +168,19 @@ export function AdvancedWorkspace({
     } finally {
       setLoading(false);
     }
-  };
+  }, [path, session.token, onError]);
   useEffect(() => {
     setData([]);
     setForm({});
     setEditing(false);
     if (path) void load();
-  }, [path, session.token]);
+  }, [path, load]);
+  const projectId = project?.id;
   useEffect(() => {
-    if (tab === "approvals" && project) {
+    if (tab === "approvals" && projectId) {
       Promise.all([
         request<Item[]>(session.token, "/members"),
-        request<Item[]>(session.token, `/projects/${project.id}/issues`),
+        request<Item[]>(session.token, `/projects/${projectId}/issues`),
       ])
         .then(([m, items]) => {
           setMembersList(m);
@@ -187,13 +188,13 @@ export function AdvancedWorkspace({
         })
         .catch((e) => onError(e.message));
     }
-  }, [tab, session.token, project?.id]);
+  }, [tab, session.token, projectId, onError]);
   useEffect(() => {
     if (tab === "people")
       void request<Item[]>(session.token, "/workspaces")
         .then(setWorkspaces)
         .catch((e) => onError(e.message));
-  }, [tab, session.token]);
+  }, [tab, session.token, onError]);
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!path) return;

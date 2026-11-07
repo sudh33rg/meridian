@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { EntityRelations } from "./EntityRelations";
 import { X } from "lucide-react";
 import { request } from "../../lib/api";
@@ -23,7 +23,7 @@ export function IssueDrawer({
     [priority, setPriority] = useState("medium"),
     [status, setStatus] = useState("todo"),
     [error, setError] = useState("");
-  const reload = async () => {
+  const reload = useCallback(async () => {
     try {
       const [i, c] = await Promise.all([
         request<Item>(token, `/issues/${id}/details`),
@@ -37,10 +37,10 @@ export function IssueDrawer({
     } catch (e) {
       setError((e as Error).message);
     }
-  };
+  }, [id, token]);
   useEffect(() => {
     void reload();
-  }, [id, token]);
+  }, [reload]);
   const save = async () => {
     try {
       await request(token, `/issues/${id}/edit`, {

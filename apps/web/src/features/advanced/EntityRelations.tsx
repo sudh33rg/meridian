@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link2 } from "lucide-react";
 import { request } from "../../lib/api";
 import type { Item } from "../../lib/types";
@@ -21,7 +21,7 @@ export function EntityRelations({
     [targets, setTargets] = useState<Item[]>([]),
     [chosen, setChosen] = useState(""),
     [error, setError] = useState("");
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     if (!sourceId || !projectId) return;
     try {
       const [a, b] = await Promise.all([
@@ -33,10 +33,10 @@ export function EntityRelations({
     } catch (e) {
       setError((e as Error).message);
     }
-  };
+  }, [sourceId, projectId, token, sourceType, targetType]);
   useEffect(() => {
     void refresh();
-  }, [sourceId, projectId, token]);
+  }, [refresh]);
   const link = async () => {
     if (!chosen) return;
     try {

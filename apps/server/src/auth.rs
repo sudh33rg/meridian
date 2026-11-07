@@ -258,6 +258,16 @@ pub(crate) fn auth_reply(
     (status, headers, Json(body)).into_response()
 }
 
+/// The session token a request presented: bearer header first, then the session cookie.
+fn presented_token(headers: &HeaderMap) -> Option<String> {
+    headers
+        .get(header::AUTHORIZATION)
+        .and_then(|x| x.to_str().ok())
+        .and_then(|s| s.strip_prefix("Bearer "))
+        .map(str::to_string)
+        .or_else(|| cookie_value(headers, SESSION_COOKIE))
+}
+
 pub(crate) fn user_agent(headers: &HeaderMap) -> String {
     headers
         .get(header::USER_AGENT)
@@ -595,12 +605,7 @@ pub(crate) async fn logout(
     _i: Identity,
     headers: HeaderMap,
 ) -> ApiResult<(StatusCode, HeaderMap)> {
-    let token = headers
-        .get(header::AUTHORIZATION)
-        .and_then(|x| x.to_str().ok())
-        .and_then(|s| s.strip_prefix("Bearer "))
-        .map(str::to_string)
-        .or_else(|| cookie_value(&headers, SESSION_COOKIE))
+    let token = presented_token(&headers)
         .ok_or_else(|| err(StatusCode::UNAUTHORIZED, "Authentication required"))?;
     sqlx::query("UPDATE session_families SET revoked_at=now() WHERE id=(SELECT family_id FROM sessions WHERE token_hash=$1)")
         .bind(token_hash(&token)).execute(&app.db).await.map_err(db_err)?;
@@ -612,6 +617,75 @@ pub(crate) async fn logout(
     let mut out = HeaderMap::new();
     clear_cookies(&mut out, &app.cfg);
     Ok((StatusCode::NO_CONTENT, out))
+}
+
+// ---------------------------------------------------------------- password change
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct ChangePasswordInput {
+    pub(crate) current_password: String,
+    pub(crate) new_password: String,
+}
+#[utoipa::path(post, path = "/api/auth/change-password", tag = "auth", request_body = ChangePasswordInput, responses((status = 204, description = "Password changed; every other sign-in ended"), (status = 400, description = "Current password wrong, or new password too weak/unchanged", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn change_password(
+    State(app): State<App>,
+    headers: HeaderMap,
+    i: Identity,
+    Json(v): Json<ChangePasswordInput>,
+) -> ApiResult<StatusCode> {
+    if v.new_password.len() < 12 {
+        return Err(bad("New password must be at least 12 characters"));
+    }
+    if v.new_password == v.current_password {
+        return Err(bad("New password must differ from the current one"));
+    }
+    let stored: String = sqlx::query_scalar("SELECT password_hash FROM users WHERE id=$1")
+        .bind(i.user_id)
+        .fetch_one(&app.db)
+        .await
+        .map_err(db_err)?;
+    let parsed = PasswordHash::new(&stored)
+        .map_err(|_| err(StatusCode::INTERNAL_SERVER_ERROR, "Authentication failure"))?;
+    if Argon2::default()
+        .verify_password(v.current_password.as_bytes(), &parsed)
+        .is_err()
+    {
+        return Err(bad("The current password is incorrect"));
+    }
+    let hash = hash_password(&v.new_password)?;
+    let current = presented_token(&headers)
+        .map(|t| token_hash(&t))
+        .unwrap_or_default();
+    let mut tx = app.db.begin().await.map_err(db_err)?;
+    sqlx::query("UPDATE users SET password_hash=$1 WHERE id=$2")
+        .bind(hash)
+        .bind(i.user_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    // Keep this sign-in; end every other one (all workspaces) and forget failed-attempt counters.
+    let keep: Option<Uuid> =
+        sqlx::query_scalar("SELECT family_id FROM sessions WHERE token_hash=$1")
+            .bind(&current)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(db_err)?
+            .flatten();
+    sqlx::query("UPDATE session_families SET revoked_at=now() WHERE user_id=$1 AND revoked_at IS NULL AND id IS DISTINCT FROM $2")
+        .bind(i.user_id).bind(keep).execute(&mut *tx).await.map_err(db_err)?;
+    sqlx::query("DELETE FROM sessions WHERE user_id=$1 AND family_id IS DISTINCT FROM $2")
+        .bind(i.user_id)
+        .bind(keep)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    sqlx::query("DELETE FROM login_attempts WHERE email=(SELECT email FROM users WHERE id=$1)")
+        .bind(i.user_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    tx.commit().await.map_err(db_err)?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 // ---------------------------------------------------------------- password reset / verification
@@ -754,6 +828,7 @@ pub(crate) fn routes() -> Router<App> {
         .route("/api/auth/login", post(login))
         .route("/api/auth/logout", post(logout))
         .route("/api/auth/refresh", post(refresh))
+        .route("/api/auth/change-password", post(change_password))
         .route("/api/auth/forgot-password", post(forgot_password))
         .route("/api/auth/reset-password", post(reset_password))
         .route("/api/auth/verify-email", post(verify_email))

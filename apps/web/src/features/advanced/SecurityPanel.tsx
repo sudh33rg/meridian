@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MonitorSmartphone, ShieldCheck } from "lucide-react";
 import { api, errorMessage, send } from "../../lib/api";
@@ -38,6 +38,71 @@ const device = (ua: string) => {
   return os ? `${browser} on ${os}` : browser;
 };
 const when = (s: string) => new Date(s).toLocaleString();
+
+function ChangePassword({ onChanged }: { onChanged: () => void }) {
+  const [form, setForm] = useState({ current_password: "", new_password: "" });
+  const [state, setState] = useState<{ kind: "idle" | "ok" | "error"; text?: string }>({ kind: "idle" });
+  const change = useMutation({
+    mutationFn: () => send<void>("/auth/change-password", "", "POST", form),
+    onSuccess: () => {
+      setForm({ current_password: "", new_password: "" });
+      setState({ kind: "ok", text: "Password changed. Every other device was signed out." });
+      onChanged();
+    },
+    onError: (e) => setState({ kind: "error", text: errorMessage(e) }),
+  });
+  return (
+    <div className="panel-card">
+      <h3>Change password</h3>
+      <p className="muted">Changing it signs out every other browser and device.</p>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          setState({ kind: "idle" });
+          change.mutate();
+        }}
+      >
+        <label>
+          Current password
+          <input
+            type="password"
+            required
+            autoComplete="current-password"
+            value={form.current_password}
+            onChange={(e) => setForm({ ...form, current_password: e.target.value })}
+          />
+        </label>
+        <label>
+          New password
+          <input
+            type="password"
+            required
+            minLength={12}
+            autoComplete="new-password"
+            placeholder="At least 12 characters"
+            value={form.new_password}
+            onChange={(e) => setForm({ ...form, new_password: e.target.value })}
+          />
+        </label>
+        {state.kind === "error" && (
+          <div className="error" style={{ marginTop: 12 }}>
+            {state.text}
+          </div>
+        )}
+        {state.kind === "ok" && (
+          <div className="ok" style={{ marginTop: 12 }}>
+            {state.text}
+          </div>
+        )}
+        <div style={{ marginTop: 14 }}>
+          <button className="primary" disabled={change.isPending}>
+            {change.isPending ? "Please wait…" : "Change password"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
 
 export function SecurityPanel() {
   const { session, me, resendVerification, verificationSent, setError } = useWorkspace();
@@ -81,6 +146,7 @@ export function SecurityPanel() {
           )}
         </p>
       </div>
+      <ChangePassword onChanged={() => qc.invalidateQueries({ queryKey: ["sessions"] })} />
       <div className="panel-card">
         <div className="row-gap" style={{ justifyContent: "space-between" }}>
           <div>

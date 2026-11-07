@@ -102,14 +102,9 @@ pub(crate) async fn search(
         .bind(i.tenant_id).bind(term).bind(limit).bind(i.user_id).bind(&i.role).fetch_all(&mut *tx).await.map_err(db_err)?;
     Ok(Json(found))
 }
-pub(crate) async fn relation_entity_exists(
-    db: &mut PgConnection,
-    tenant: Uuid,
-    kind: &str,
-    id: Uuid,
-) -> ApiResult<bool> {
+fn entity_table(kind: &str) -> ApiResult<&'static str> {
     // Table names are hardcoded; never interpolate user-supplied SQL identifiers.
-    let table = match kind {
+    Ok(match kind {
         "issue" => "issues",
         "page" => "pages",
         "goal" => "goals",
@@ -117,14 +112,38 @@ pub(crate) async fn relation_entity_exists(
         "risk" => "risks",
         "release" => "releases",
         _ => return Err(bad("Unsupported entity type")),
-    };
-    let sql = format!("SELECT EXISTS(SELECT 1 FROM {table} WHERE tenant_id=$1 AND id=$2)");
-    sqlx::query_scalar(&sql)
+    })
+}
+/// The project an entity belongs to: `None` = no such entity in this workspace,
+/// `Some(None)` = a workspace-level entity without a project (e.g. a company goal).
+pub(crate) async fn entity_project(
+    tx: &mut Tx,
+    kind: &str,
+    id: Uuid,
+) -> ApiResult<Option<Option<Uuid>>> {
+    let sql = format!(
+        "SELECT project_id FROM {} WHERE tenant_id=$1 AND id=$2",
+        entity_table(kind)?
+    );
+    let tenant = tx.identity.tenant_id;
+    sqlx::query_scalar::<_, Option<Uuid>>(&sql)
         .bind(tenant)
         .bind(id)
-        .fetch_one(&mut *db)
+        .fetch_optional(&mut **tx)
         .await
         .map_err(db_err)
+}
+/// Does the entity exist **and** can the caller at least see its project? Entities in projects
+/// the caller cannot open report as absent, so references never confirm their existence.
+pub(crate) async fn relation_entity_exists(tx: &mut Tx, kind: &str, id: Uuid) -> ApiResult<bool> {
+    match entity_project(tx, kind, id).await? {
+        None => Ok(false),
+        Some(None) => Ok(true),
+        Some(Some(project)) => {
+            let i = tx.identity.clone();
+            Ok(project_level(tx, &i, project).await?.unwrap_or(0) >= 1)
+        }
+    }
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct RelationInput {
@@ -145,12 +164,41 @@ pub(crate) async fn relations(
     axum::extract::Query(v): axum::extract::Query<RelationQuery>,
 ) -> ApiResult<Json<Vec<Value>>> {
     let i = tx.identity.clone();
-    if !relation_entity_exists(&mut tx, i.tenant_id, &v.entity_type, v.entity_id).await? {
+    if !relation_entity_exists(&mut tx, &v.entity_type, v.entity_id).await? {
         return Err(err(StatusCode::NOT_FOUND, "Entity not found"));
     }
     let rows=sqlx::query_scalar("SELECT to_jsonb(r) FROM entity_relations r WHERE tenant_id=$1 AND ((source_type=$2 AND source_id=$3) OR (target_type=$2 AND target_id=$3)) ORDER BY created_at DESC LIMIT 250")
         .bind(i.tenant_id).bind(v.entity_type).bind(v.entity_id).fetch_all(&mut *tx).await.map_err(db_err)?;
-    Ok(Json(rows))
+    // Drop relations whose other end lives in a project the caller cannot see.
+    let mut seen: std::collections::HashMap<(String, Uuid), bool> =
+        std::collections::HashMap::new();
+    let mut visible: Vec<Value> = Vec::with_capacity(rows.len());
+    'rows: for r in rows {
+        let r: Value = r;
+        for side in ["source", "target"] {
+            let (Some(kind), Some(id)) = (
+                r[format!("{side}_type")].as_str().map(str::to_owned),
+                r[format!("{side}_id")]
+                    .as_str()
+                    .and_then(|x| Uuid::parse_str(x).ok()),
+            ) else {
+                continue 'rows;
+            };
+            let ok = match seen.get(&(kind.clone(), id)) {
+                Some(ok) => *ok,
+                None => {
+                    let ok = relation_entity_exists(&mut tx, &kind, id).await?;
+                    seen.insert((kind, id), ok);
+                    ok
+                }
+            };
+            if !ok {
+                continue 'rows;
+            }
+        }
+        visible.push(r);
+    }
+    Ok(Json(visible))
 }
 #[utoipa::path(post, path = "/api/relations", tag = "knowledge", request_body = RelationInput, responses((status = 201, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn new_relation(
@@ -171,8 +219,8 @@ pub(crate) async fn new_relation(
     {
         return Err(bad("Unsupported relationship"));
     }
-    if !relation_entity_exists(&mut tx, i.tenant_id, &v.source_type, v.source_id).await?
-        || !relation_entity_exists(&mut tx, i.tenant_id, &v.target_type, v.target_id).await?
+    if !relation_entity_exists(&mut tx, &v.source_type, v.source_id).await?
+        || !relation_entity_exists(&mut tx, &v.target_type, v.target_id).await?
     {
         return Err(err(
             StatusCode::NOT_FOUND,

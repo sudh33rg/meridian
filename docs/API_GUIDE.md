@@ -22,6 +22,7 @@ All core routes are prefixed `/api`. Except authentication and health checks, a 
 | POST | `/auth/refresh` | Rotate the session. API clients send `{"refresh_token"}`; browsers rely on the cookie. A reused refresh token revokes its session family |
 | POST | `/auth/forgot-password`, `/auth/reset-password` | Always 202 / reset by emailed one-time token (ends all sessions) |
 | POST | `/auth/verify-email`, `/auth/resend-verification` | Confirm email / resend the confirmation |
+| POST | `/auth/change-password` | Needs the current password; ends every other sign-in |
 | GET | `/sessions` | Your active sign-ins in this workspace |
 | DELETE | `/sessions/{id}` | Revoke one sign-in |
 | POST | `/sessions/revoke-others` | End every sign-in but this one |

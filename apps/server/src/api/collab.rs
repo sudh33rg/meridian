@@ -1,6 +1,6 @@
 //! Activity, analytics, automations, inbox and approvals.
 use crate::api::common::*;
-use crate::api::knowledge::relation_entity_exists;
+use crate::api::knowledge::{entity_project, relation_entity_exists};
 use crate::*;
 use axum::routing::{delete, patch};
 use serde_json::{json, Value};
@@ -136,9 +136,13 @@ pub(crate) async fn new_approval(
     valid_project(&mut tx, &i, p).await?;
     validate_title(&v.title)?;
     if !["issue", "page", "decision"].contains(&v.subject_type.as_str())
-        || !relation_entity_exists(&mut tx, i.tenant_id, &v.subject_type, v.subject_id).await?
+        || !relation_entity_exists(&mut tx, &v.subject_type, v.subject_id).await?
     {
         return Err(bad("Referenced work item not found"));
+    }
+    // The item must belong to this project, and the reviewer must be able to open that project.
+    if entity_project(&mut tx, &v.subject_type, v.subject_id).await? != Some(Some(p)) {
+        return Err(bad("The item does not belong to this project"));
     }
     let reviewer: bool = sqlx::query_scalar(
         "SELECT EXISTS(SELECT 1 FROM memberships WHERE tenant_id=$1 AND user_id=$2)",
@@ -150,6 +154,19 @@ pub(crate) async fn new_approval(
     .map_err(db_err)?;
     if !reviewer {
         return Err(bad("Reviewer must be a workspace member"));
+    }
+    let reviewer_level: Option<i32> = sqlx::query_scalar(
+        "SELECT project_access($1,$2,m.role) FROM memberships m WHERE m.tenant_id=$3 AND m.user_id=$2 AND m.disabled_at IS NULL",
+    )
+    .bind(p)
+    .bind(v.reviewer_id)
+    .bind(i.tenant_id)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(db_err)?
+    .flatten();
+    if reviewer_level.unwrap_or(0) < 1 {
+        return Err(bad("The reviewer cannot access this project"));
     }
     let row:Value=sqlx::query_scalar("INSERT INTO approvals(tenant_id,project_id,title,subject_type,subject_id,requester_id,reviewer_id,note) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING to_jsonb(approvals)")
         .bind(i.tenant_id).bind(p).bind(v.title).bind(v.subject_type).bind(v.subject_id).bind(i.user_id).bind(v.reviewer_id).bind(v.note.unwrap_or_default())

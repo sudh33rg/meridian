@@ -9,17 +9,80 @@ const secureStore = FlutterSecureStorage();
 const primary = Color(0xFF3468E5);
 
 class Api {
-  static Future<dynamic> request(String path, {String? token, String method = 'GET', Object? data}) async {
+  /// Latest access token after a refresh rotation. Screens keep passing the token they were built
+  /// with; once a rotation happened this newer one is used instead, so callers need no changes.
+  static String? _access;
+  static Future<bool>? _refreshing;
+
+  /// Called when the server rejects the refresh token (session ended): go back to sign-in.
+  static VoidCallback? onSignedOut;
+
+  /// Store the tokens of a fresh sign-in (`/auth/login` response).
+  static Future<void> adopt(Map<String, dynamic> login) async {
+    _access = null;
+    await secureStore.write(key: 'session_token', value: login['token'] as String);
+    final refresh = login['refresh_token'];
+    if (refresh is String) await secureStore.write(key: 'refresh_token', value: refresh);
+  }
+
+  static Future<void> clear() async {
+    _access = null;
+    await secureStore.delete(key: 'session_token');
+    await secureStore.delete(key: 'refresh_token');
+  }
+
+  static Future<http.Response> _send(String path, String? bearer, String method, Object? data) {
     final url = Uri.parse('$apiBase/api$path');
-    final headers = <String,String>{'Content-Type':'application/json', if(token != null) 'Authorization':'Bearer $token'};
-    final response = switch(method) {
-      'POST' => await http.post(url,headers:headers,body:jsonEncode(data)).timeout(const Duration(seconds: 15)),
-      'PATCH' => await http.patch(url,headers:headers,body:jsonEncode(data)).timeout(const Duration(seconds: 15)),
-      _ => await http.get(url,headers:headers).timeout(const Duration(seconds: 15)),
-    };
+    final headers = <String, String>{'Content-Type': 'application/json', if (bearer != null) 'Authorization': 'Bearer $bearer'};
+    const limit = Duration(seconds: 15);
+    switch (method) {
+      case 'POST':
+        return http.post(url, headers: headers, body: jsonEncode(data)).timeout(limit);
+      case 'PATCH':
+        return http.patch(url, headers: headers, body: jsonEncode(data)).timeout(limit);
+      default:
+        return http.get(url, headers: headers).timeout(limit);
+    }
+  }
+
+  /// Rotate the session with the stored refresh token. Concurrent callers share one attempt
+  /// (refresh tokens are single-use, so two parallel refreshes would trip reuse detection).
+  static Future<bool> _refresh() {
+    return _refreshing ??= _doRefresh().whenComplete(() => _refreshing = null);
+  }
+
+  static Future<bool> _doRefresh() async {
+    final stored = await secureStore.read(key: 'refresh_token');
+    if (stored == null) return false;
+    try {
+      final res = await http
+          .post(Uri.parse('$apiBase/api/auth/refresh'),
+              headers: {'Content-Type': 'application/json'}, body: jsonEncode({'refresh_token': stored}))
+          .timeout(const Duration(seconds: 15));
+      if (res.statusCode == 200) {
+        final m = jsonDecode(res.body) as Map<String, dynamic>;
+        _access = m['token'] as String;
+        await secureStore.write(key: 'session_token', value: _access);
+        await secureStore.write(key: 'refresh_token', value: m['refresh_token'] as String);
+        return true;
+      }
+      if (res.statusCode == 401) {
+        await clear();
+        onSignedOut?.call();
+      }
+    } catch (_) {
+      // Offline or timed out: keep the stored tokens and let the caller retry later.
+    }
+    return false;
+  }
+
+  static Future<dynamic> request(String path, {String? token, String method = 'GET', Object? data}) async {
+    var response = await _send(path, token == null ? null : (_access ?? token), method, data);
+    if (response.statusCode == 401 && token != null && !path.startsWith('/auth/') && await _refresh()) {
+      response = await _send(path, _access, method, data);
+    }
     final parsed = response.body.isEmpty ? null : jsonDecode(response.body);
-    if(response.statusCode >= 400) throw Exception(parsed is Map ? (parsed['error'] ?? 'Request failed') : 'Request failed');
+    if (response.statusCode >= 400) throw Exception(parsed is Map ? (parsed['error'] ?? 'Request failed') : 'Request failed');
     return parsed;
   }
 }
-

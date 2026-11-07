@@ -90,6 +90,24 @@ Per the repository rules (`CONSTITUTION.md` Article V) no new automated tests we
 
 Defects found and fixed during this pass: the CSRF Origin check failed behind Vite's proxy (Vite rewrote `Host`; the check now also accepts the configured public origins and the proxy keeps `Host`); the web client choked on empty `202` bodies; iOS user agents were labelled macOS; stale "email not configured" invitation copy; unstyled selects; empty-state flash in the grants table.
 
-Not verified: SMTP with TLS/auth against a real provider; Flutter (still never built, and the mobile app has not adopted refresh rotation); the Playwright e2e suite was not re-run against the new auth flow; multi-instance behaviour (per-process rate limits); load behaviour of the per-tenant `sync_id` counter row under concurrent writers.
+Not verified: SMTP with TLS/auth against a real provider; Flutter (never built); multi-instance behaviour (per-process rate limits). (The e2e re-run, the mobile refresh code and the `sync_id` concurrency check are covered in the follow-up section below.)
 
 Maintenance note: `openapi.rs` contains an existing test that asserts the operation count (now 82) and the list of public endpoints; both literals were updated because the API gained 12 endpoints. No other test file was modified.
+
+
+## Update — 7 November 2026 (Phase 1 follow-ups)
+
+Same method as above (run the stack, use it in a browser, probe the API and database; no new tests per `CONSTITUTION.md`).
+
+| Change | What was exercised | Result |
+|---|---|---|
+| Relations/approvals no longer reveal private items | Owner links a public issue to a private one: owner sees the relation, a member without access sees none and cannot create it (404) or list the private item's relations (404); an approval must use an item from its own project and a reviewer who can open the project (400 otherwise); after a viewer grant both work | **Passed** |
+| Change password (`POST /auth/change-password`, Security panel) | Wrong current password shows a clear error; correct change shows success and the sign-in list drops to this device; another device's token then returns 401; old password 401, new password 200 | **Passed** |
+| Fonts self-hosted, CSP self-only | In the dev server and in the Compose stack through nginx: DM Sans and Manrope load from the app origin, zero failures, one origin in the resource list | **Passed** |
+| `exhaustive-deps` warnings (5) | Fixed with `useCallback`/stable ids; `eslint` now reports 0 warnings; the board, drawer, relations and approvals screens still load | **Passed** |
+| Concurrent writers vs the per-tenant `sync_id` counter | 80 parallel issue creations (20 at a time) in one tenant: all 201, 80 new events, `count(events) = max(sync_id)` (gap-free), 81 distinct issue numbers, 0.23 s total on a laptop. A single run, not a benchmark | **Passed** |
+| Existing Playwright suite against the cookie flow | 2 of 2 passed, including "reload keeps session" | **Passed** |
+| Existing Rust/web suites, clippy, rustfmt, prettier, eslint, builds, OpenAPI freshness (83 operations) | 10 + 9 tests passed; all gates clean | **Passed** |
+| Mobile refresh-token rotation | Dart written (`Api` rotates on 401, shares one refresh attempt, clears and signs out when the server rejects it; sign-in stores the refresh token; logout calls the server) | **Not compiled or run** (no Flutter SDK) |
+
+Maintenance note: the operation-count literal in `openapi.rs`'s existing guard test went from 82 to 83 for the new endpoint.

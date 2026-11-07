@@ -6,7 +6,7 @@ This document explicitly distinguishes source code that exists from planned pari
 
 | Milestone | Delivered in this package | Remaining before milestone can be called complete | Gate |
 |---|---|---|---|
-| M0 — Platform | Rust/Axum API in domain modules, typed `ApiError`, **PostgreSQL RLS on every tenant table with one tenant-bound transaction per request (commit on success / rollback on error)**, per-tenant gap-free event log (`events`, `sync_id`) written atomically with audit rows, **session families with rotating refresh tokens, HttpOnly cookies + CSRF for browsers, session list/revoke**, email verification / password reset / invitation emails (Mailpit in dev), **durable Postgres job queue**, project visibility + user/team grants, per-client rate limits, security headers, request ids, Prometheus metrics, OpenAPI + generated web types, CI workflow, Docker Compose | Secret rotation, MFA, change-password, SSO, shared (ingress) rate limits, OTLP tracing export, wider negative tests, first CI run on GitHub | **Not passed** |
+| M0 — Platform | Rust/Axum API in domain modules, typed `ApiError`, **PostgreSQL RLS on every tenant table with one tenant-bound transaction per request (commit on success / rollback on error)**, per-tenant gap-free event log (`events`, `sync_id`) written atomically with audit rows, **session families with rotating refresh tokens, HttpOnly cookies + CSRF for browsers, session list/revoke**, email verification / password reset / invitation emails (Mailpit in dev), **durable Postgres job queue**, project visibility + user/team grants, per-client rate limits, security headers, request ids, Prometheus metrics, OpenAPI + generated web types, CI workflow, Docker Compose | Secret rotation, MFA, SSO, shared (ingress) rate limits, OTLP tracing export, wider negative tests, first CI run on GitHub | **Not passed** |
 | M1 — Project work | Project creation, issue CRUD/status and rich edit, searchable fields, assignees, priorities, labels, custom JSON, comments/replies, links, archive, board and list UI | Attachments/object storage, workflow configuration, custom field schemas, project ACLs, bulk operations, subscriptions, history diff and pagination | **Not passed** |
 | M2 — Knowledge | Hierarchical project pages, optimistic update checks, version snapshots, restore, page comments, search, page web editor/reader | True collaborative CRDT rich-text editor, independent spaces/ACLs, templates, macros/embeds, page tree moves, inline comments, whiteboards | **Not passed** |
 | M3 — Agile | Sprint planned→active→completed, one-active-sprint enforcement, releases, issue sprint assignment, story points, due dates, issue links, project analytics | Sprint backlog UI + burn charts, scope and capacity modeling, full roadmaps, version issue associations, forecasting | **Not passed** |
@@ -31,7 +31,7 @@ This document explicitly distinguishes source code that exists from planned pari
 ## Release risk inventory (must be addressed before customer data)
 
 1. ~~No RLS~~ **Done (Phase 1)**: see `SECURITY.md`. Remaining: the system (owner) connection is still used for sign-in and cross-workspace flows, and RLS has been exercised only by the app role switch, not against an externally provisioned least-privilege role.
-2. ~~Web authentication in `sessionStorage`~~ **Done (Phase 1)** for the browser (HttpOnly cookies, CSRF, rotation, revoke UI). The mobile app still stores a bearer token and has not adopted refresh rotation.
+2. ~~Web authentication in `sessionStorage`~~ **Done (Phase 1)** for the browser (HttpOnly cookies, CSRF, rotation, revoke UI). The mobile app now stores the refresh token and rotates it transparently on a 401 (code written, **not compiled** — no Flutter SDK).
 3. **Permissions**: project visibility and grants exist; page/issue/guest ACLs do not.
 4. ~~Invite delivery / verification / reset~~ **Implemented** with a mail abstraction; unverified accounts are not blocked. Real SMTP delivery has only been exercised against Mailpit.
 5. ~~Audit/outbox atomicity~~ **Done**: entity, audit, event and outbox writes share the request transaction. Automation rule runs also share it.
@@ -45,7 +45,7 @@ This document explicitly distinguishes source code that exists from planned pari
 
 1. Push and confirm the first CI run is green (Flutter job in particular).
 2. Phase 2 of `RESEARCH_AND_ROADMAP.md` (configurable workflows, custom fields, MQL, pagination, typed response schemas for endpoints that still return `Value`).
-3. Identity: MFA, SSO/SCIM, change-password; adopt refresh rotation in the mobile app.
+3. Identity: MFA, SSO/SCIM; compile and exercise the mobile refresh rotation.
 4. Phase 3–5: client sync over the event log, live collaborative editor, webhook/notification dispatch (webhooks stay off until Constitution III.7 is satisfied).
 5. Add asset service.
 6. Finish complete Agile/Confluence feature families, migration tools, real-time search and optional governed AI.
