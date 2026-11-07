@@ -1,0 +1,35 @@
+# Development-only all-in-one preview. Do not deploy with these credentials.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: meridian
+      POSTGRES_PASSWORD: ${MERIDIAN_DB_PASSWORD:-local_dev_only}
+      POSTGRES_DB: meridian
+    volumes: [meridian_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL','pg_isready -U meridian -d meridian']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    environment:
+      DATABASE_URL: postgres://meridian:${MERIDIAN_DB_PASSWORD:-local_dev_only}@postgres:5432/meridian
+      CORS_ORIGIN: http://localhost:8088
+      BIND_ADDRESS: 0.0.0.0:8080
+      RUST_LOG: info
+    depends_on:
+      postgres: {condition: service_healthy}
+    restart: unless-stopped
+  web:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.web
+    ports: ['8088:80']
+    depends_on: [api]
+    restart: unless-stopped
+volumes:
+  meridian_data:

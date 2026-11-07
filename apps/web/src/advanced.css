@@ -1,0 +1,457 @@
+.extended {
+  display: flex;
+  flex-direction: column;
+  gap: 23px;
+}
+.ext-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.ext-title h2 {
+  font-size: 27px;
+  margin: 8px 0;
+  letter-spacing: -1px;
+}
+.ext-title p {
+  font-size: 13px;
+  color: #8694aa;
+  margin: 0;
+}
+.ext-actions {
+  display: flex;
+  gap: 8px;
+}
+.ext-loading {
+  font-size: 12px;
+  color: #6d85a9;
+}
+.ext-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+}
+.ext-card {
+  background: #fff;
+  border: 1px solid #e6ecf4;
+  border-radius: 14px;
+  display: flex;
+  gap: 15px;
+  padding: 21px;
+  align-items: flex-start;
+  min-height: 154px;
+}
+.ext-card-icon {
+  width: 37px;
+  height: 37px;
+  min-width: 37px;
+  display: grid;
+  place-items: center;
+  color: #4f79d0;
+  background: #eef3ff;
+  border-radius: 10px;
+}
+.ext-card-content {
+  flex: 1;
+  min-width: 0;
+}
+.ext-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: start;
+}
+.ext-card h3 {
+  font-size: 13px;
+  margin: 2px 0 10px;
+}
+.ext-card p {
+  font-size: 12px;
+  color: #728197;
+  line-height: 1.6;
+  margin: 0 0 15px;
+  white-space: pre-wrap;
+}
+.ext-card small {
+  font-size: 10px;
+  color: #96a3b5;
+}
+.chip {
+  font-size: 10px;
+  font-weight: 750;
+  color: #5475a8;
+  background: #eff4fe;
+  padding: 6px 9px;
+  border-radius: 6px;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+.chip.success {
+  background: #ecf9f2;
+  color: #238458;
+}
+.ext-form {
+  margin-bottom: 5px;
+}
+.ext-form-body {
+  padding: 21px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 9px;
+}
+.ext-form-body label {
+  margin: 4px 0;
+}
+.ext-form-body .primary {
+  align-self: flex-start;
+}
+.ext-form-body p {
+  font-size: 12px;
+  color: #79899c;
+  line-height: 1.7;
+}
+.ext-two-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.ext-line {
+  padding: 16px 22px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid #f1f4f8;
+  color: #72859e;
+  font-size: 12px;
+}
+.ext-line:last-child {
+  border-bottom: 0;
+}
+.ext-line > div:not(.ext-card-icon) {
+  flex: 1;
+  min-width: 0;
+}
+.ext-line b {
+  font-size: 12px;
+  color: #34435c;
+  display: block;
+}
+.ext-line small {
+  font-size: 10px;
+  display: block;
+  color: #98a5b7;
+  margin-top: 5px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.ext-avatar {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background: #e7eeff;
+  color: #3567ce;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+.ext-secret {
+  background: #fff9e7;
+  border: 1px solid #f3e2ab;
+  border-radius: 10px;
+  padding: 14px;
+  min-width: 0;
+}
+.ext-secret p {
+  word-break: break-all;
+  font: 12px monospace;
+}
+.ext-secret small {
+  display: block;
+  margin-top: 10px;
+}
+.ext-empty {
+  text-align: center;
+  padding: 65px 20px;
+  color: #9db0cf;
+  grid-column: 1/-1;
+}
+.ext-empty h3 {
+  color: #354968;
+  margin: 16px 0 9px;
+}
+.ext-empty p {
+  color: #94a3b7;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.progress-track {
+  background: #e8edf5;
+  border-radius: 20px;
+  height: 7px;
+  overflow: hidden;
+  flex: 1;
+  min-width: 25px;
+}
+.progress-track > div {
+  background: #5480e9;
+  height: 100%;
+  border-radius: 20px;
+  transition: width 0.2s;
+}
+.stat-row {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  padding: 12px 0;
+  color: #75879f;
+  font-size: 12px;
+}
+.stat-row span {
+  min-width: 114px;
+  text-transform: capitalize;
+}
+.stat-row b {
+  color: #34516f;
+}
+.stat-row.total {
+  border-top: 1px solid #eef1f5;
+  margin-top: 8px;
+}
+.ext-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  border: 1px solid #e6ecf4;
+  border-radius: 13px;
+  padding: 10px 12px 10px 20px;
+  color: #8fa3c1;
+}
+.ext-search input {
+  border: 0;
+  outline: none;
+  flex: 1;
+  min-width: 80px;
+  font-size: 14px;
+}
+.subtle-note {
+  font-size: 11px !important;
+}
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: #0c193659;
+  display: flex;
+  justify-content: flex-end;
+}
+.issue-drawer {
+  background: #fff;
+  width: min(530px, 100%);
+  height: 100vh;
+  overflow: auto;
+  box-shadow: -8px 0 45px #14233a22;
+  padding: 28px 35px;
+}
+.drawer-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  color: #7890ad;
+  font-size: 12px;
+}
+.drawer-description {
+  font-size: 13px;
+  color: #8190a3;
+  line-height: 1.7;
+  margin: 16px 0 25px;
+}
+.drawer-section {
+  margin-top: 33px;
+  border-top: 1px solid #edf1f6;
+  padding-top: 23px;
+}
+.drawer-section h3 {
+  font-size: 14px;
+}
+.comment {
+  border-bottom: 1px solid #f0f2f7;
+  padding: 14px 0;
+}
+.comment b {
+  font-size: 12px;
+}
+.comment small {
+  margin-left: 10px;
+  color: #a2afbd;
+}
+.comment p {
+  font-size: 13px;
+  color: #596b80;
+  white-space: pre-wrap;
+  margin: 9px 0;
+}
+.issue-number-button {
+  display: block;
+  font-weight: 750;
+  font-size: 10px;
+  color: #3f72cd;
+  text-align: left;
+  padding: 0;
+}
+.issue-number-button:hover {
+  text-decoration: underline;
+}
+.page-history {
+  position: relative;
+  display: inline-flex;
+}
+.history-popover {
+  position: absolute;
+  right: 0;
+  top: 40px;
+  z-index: 5;
+  width: min(340px, 80vw);
+  max-height: 350px;
+  overflow: auto;
+  background: #fff;
+  box-shadow: 0 12px 40px #1d355525;
+  border: 1px solid #e0e7f1;
+  border-radius: 12px;
+}
+.history-popover p {
+  padding: 15px;
+  font-size: 12px;
+  color: #8190a3;
+}
+@media (max-width: 900px) {
+  .ext-two-cols {
+    grid-template-columns: 1fr;
+  }
+  .ext-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .ext-cards {
+    grid-template-columns: 1fr;
+  }
+  .issue-drawer {
+    padding: 20px;
+  }
+}
+@media (max-width: 760px) {
+  .ext-title h2 {
+    font-size: 23px;
+  }
+  .ext-card {
+    padding: 14px;
+  }
+  .ext-line {
+    padding: 14px;
+  }
+  .ext-actions {
+    width: 100%;
+  }
+  .ext-actions button {
+    flex: 1;
+  }
+}
+
+/* Sidebar scroll for additional modules, without hiding the account panel */
+.sidebar {
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.sidebar-bottom {
+  padding-top: 20px;
+}
+.nav-subgroup {
+  margin-top: 17px;
+}
+.nav-subgroup .nav {
+  padding: 8px 13px;
+  font-size: 12px;
+  gap: 13px;
+}
+.nav-bullet {
+  width: 7px;
+  height: 7px;
+  background: #b8c6d9;
+  border-radius: 3px;
+  margin: 0 5px;
+}
+.nav.active .nav-bullet {
+  background: #3265e9;
+}
+.issue-title-button {
+  display: block;
+  text-align: left;
+  color: #344058;
+  font-weight: 700;
+  font-size: 12px;
+  margin-top: 5px;
+}
+.issue-title-button:hover {
+  color: #3265e9;
+}
+.page-editor .editor-head .heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ext-result {
+  width: 100%;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.ext-result:hover {
+  background: #f9fbff;
+}
+.relations-widget {
+  padding: 12px 0;
+}
+.relation-fields {
+  display: flex;
+  gap: 8px;
+  margin: 7px 0 12px;
+}
+.relation-fields select {
+  background: white;
+  min-width: 0;
+  flex: 1;
+  border: 1px solid #dae4f1;
+  border-radius: 8px;
+  padding: 9px;
+  color: #60748c;
+  font-size: 12px;
+}
+.relation-row {
+  display: flex;
+  gap: 8px;
+  padding: 9px 2px;
+  border-top: 1px solid #eef1f5;
+  color: #73849c;
+  font-size: 11px;
+  align-items: center;
+}
+.relation-row span {
+  flex: 1;
+}
+.relation-row small {
+  color: #a1b0c1;
+}
+.editor-relations {
+  margin-top: 22px;
+  border-top: 1px solid #eff2f5;
+  padding-top: 22px;
+}
+.editor-relations h3 {
+  font-size: 14px;
+  color: #435875;
+}

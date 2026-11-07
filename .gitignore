@@ -1,0 +1,61 @@
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+!**/.env.example
+*.pem
+*.key
+
+# Rust
+/apps/server/target/
+
+# Web
+/apps/web/node_modules/
+/apps/web/dist/
+/apps/web/.vite/
+/apps/web/coverage/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Flutter / Dart
+/apps/mobile/.dart_tool/
+/apps/mobile/build/
+/apps/mobile/.flutter-plugins
+/apps/mobile/.flutter-plugins-dependencies
+/apps/mobile/.packages
+/apps/mobile/.pub-cache/
+/apps/mobile/android/local.properties
+/apps/mobile/android/.gradle/
+/apps/mobile/android/app/build/
+/apps/mobile/ios/Flutter/Generated.xcconfig
+/apps/mobile/ios/Flutter/flutter_export_environment.sh
+/apps/mobile/ios/Flutter/.last_build_id
+/apps/mobile/ios/Runner/GeneratedPluginRegistrant.*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local editor and operating system files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Logs and temporary files
+*.log
+*.tmp
+*.swp
+*.tsbuildinfo
+
+# Playwright
+/apps/web/playwright-report/
+/apps/web/test-results/
