@@ -5,17 +5,19 @@ use axum::routing::{delete, patch};
 use serde_json::{json, Value};
 
 #[utoipa::path(get, path = "/api/entitlements", tag = "admin", responses((status = 200, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn entitlements(i: Identity) -> ApiResult<Json<Value>> {
+pub(crate) async fn entitlements(tx: Tx) -> ApiResult<Json<Value>> {
+    let i = tx.identity.clone();
     // No payment gateway is connected; this is a baseline configuration, not enforced billing.
     Ok(Json(
         json!({"tenant_id":i.tenant_id,"plan":"development","billing_connected":false,"features":["projects","issues","knowledge","sprints","goals","search","basic_automation"]}),
     ))
 }
 #[utoipa::path(get, path = "/api/audit", tag = "admin", responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn audit_log(State(app): State<App>, i: Identity) -> ApiResult<Json<Vec<Value>>> {
+pub(crate) async fn audit_log(mut tx: Tx) -> ApiResult<Json<Vec<Value>>> {
+    let i = tx.identity.clone();
     require_admin(&i)?;
     let rows=sqlx::query_scalar("SELECT jsonb_build_object('action',a.action,'entity_type',a.entity_type,'entity_id',a.entity_id,'actor',u.display_name,'occurred_at',a.occurred_at) FROM audit_events a JOIN users u ON u.id=a.actor_id WHERE a.tenant_id=$1 ORDER BY a.occurred_at DESC LIMIT 500")
-        .bind(i.tenant_id).fetch_all(&app.db).await.map_err(db_err)?;
+        .bind(i.tenant_id).fetch_all(&mut *tx).await.map_err(db_err)?;
     Ok(Json(rows))
 }
 #[derive(Deserialize, utoipa::ToSchema)]
@@ -24,17 +26,18 @@ pub(crate) struct WebhookInput {
     pub(crate) url: String,
 }
 #[utoipa::path(get, path = "/api/admin/webhooks", tag = "admin", responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn webhooks(State(app): State<App>, i: Identity) -> ApiResult<Json<Vec<Value>>> {
+pub(crate) async fn webhooks(mut tx: Tx) -> ApiResult<Json<Vec<Value>>> {
+    let i = tx.identity.clone();
     require_admin(&i)?;
     Ok(Json(sqlx::query_scalar("SELECT jsonb_build_object('id',id,'name',name,'url',url,'enabled',enabled,'created_at',created_at) FROM webhooks WHERE tenant_id=$1 LIMIT 100")
-        .bind(i.tenant_id).fetch_all(&app.db).await.map_err(db_err)?))
+        .bind(i.tenant_id).fetch_all(&mut *tx).await.map_err(db_err)?))
 }
 #[utoipa::path(post, path = "/api/admin/webhooks", tag = "admin", request_body = WebhookInput, responses((status = 201, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn new_webhook(
-    State(app): State<App>,
-    i: Identity,
+    mut tx: Tx,
     Json(v): Json<WebhookInput>,
 ) -> ApiResult<(StatusCode, Json<Value>)> {
+    let i = tx.identity.clone();
     require_admin(&i)?;
     validate_title(&v.name)?;
     if !v.url.starts_with("https://") || v.url.len() > 500 || v.url.contains('@') {
@@ -43,23 +46,20 @@ pub(crate) async fn new_webhook(
     // Delivery disabled by default. Before dispatch, enforce DNS+IP allow/deny checks to prevent SSRF.
     let secret = mint_token();
     let row:Value=sqlx::query_scalar("INSERT INTO webhooks(tenant_id,name,url,secret_hash) VALUES($1,$2,$3,$4) RETURNING jsonb_build_object('id',id,'name',name,'url',url,'enabled',enabled)")
-        .bind(i.tenant_id).bind(v.name).bind(v.url).bind(token_hash(&secret)).fetch_one(&app.db).await.map_err(db_err)?;
+        .bind(i.tenant_id).bind(v.name).bind(v.url).bind(token_hash(&secret)).fetch_one(&mut *tx).await.map_err(db_err)?;
     Ok((
         StatusCode::CREATED,
         Json(json!({"webhook":row,"signing_secret_once":secret,"delivery_configured":false})),
     ))
 }
 #[utoipa::path(delete, path = "/api/admin/webhooks/{id}", tag = "admin", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 204, description = "Success"), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn delete_webhook(
-    State(app): State<App>,
-    i: Identity,
-    Path(id): Path<Uuid>,
-) -> ApiResult<StatusCode> {
+pub(crate) async fn delete_webhook(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<StatusCode> {
+    let i = tx.identity.clone();
     require_admin(&i)?;
     let r = sqlx::query("DELETE FROM webhooks WHERE tenant_id=$1 AND id=$2")
         .bind(i.tenant_id)
         .bind(id)
-        .execute(&app.db)
+        .execute(&mut *tx)
         .await
         .map_err(db_err)?;
     if r.rows_affected() == 0 {
@@ -69,30 +69,27 @@ pub(crate) async fn delete_webhook(
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/export", tag = "admin", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn export_project(
-    State(app): State<App>,
-    i: Identity,
-    Path(p): Path<Uuid>,
-) -> ApiResult<Json<Value>> {
-    valid_project(&app.db, &i, p).await?;
+pub(crate) async fn export_project(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json<Value>> {
+    let i = tx.identity.clone();
+    valid_project(&mut *tx, &i, p).await?;
     let project: Value = sqlx::query_scalar(
         "SELECT to_jsonb(t) - 'tenant_id' FROM projects t WHERE tenant_id=$1 AND id=$2",
     )
     .bind(i.tenant_id)
     .bind(p)
-    .fetch_one(&app.db)
+    .fetch_one(&mut *tx)
     .await
     .map_err(db_err)?;
     let issues:Vec<Value>=sqlx::query_scalar("SELECT to_jsonb(t) - 'tenant_id' FROM issues t WHERE tenant_id=$1 AND project_id=$2 ORDER BY number LIMIT 10000")
-        .bind(i.tenant_id).bind(p).fetch_all(&app.db).await.map_err(db_err)?;
+        .bind(i.tenant_id).bind(p).fetch_all(&mut *tx).await.map_err(db_err)?;
     let pages:Vec<Value>=sqlx::query_scalar("SELECT to_jsonb(t) - 'tenant_id' FROM pages t WHERE tenant_id=$1 AND project_id=$2 ORDER BY updated_at DESC LIMIT 10000")
-        .bind(i.tenant_id).bind(p).fetch_all(&app.db).await.map_err(db_err)?;
+        .bind(i.tenant_id).bind(p).fetch_all(&mut *tx).await.map_err(db_err)?;
     let sprints: Vec<Value> = sqlx::query_scalar(
         "SELECT to_jsonb(t) - 'tenant_id' FROM sprints t WHERE tenant_id=$1 AND project_id=$2",
     )
     .bind(i.tenant_id)
     .bind(p)
-    .fetch_all(&app.db)
+    .fetch_all(&mut *tx)
     .await
     .map_err(db_err)?;
     Ok(Json(
@@ -113,11 +110,11 @@ pub(crate) struct ImportInput {
 }
 #[utoipa::path(post, path = "/api/projects/{id}/import/issues", tag = "admin", params(("id" = Uuid, Path, description = "Resource id")), request_body = ImportInput, responses((status = 200, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn import_issues(
-    State(app): State<App>,
-    i: Identity,
+    mut tx: Tx,
     Path(p): Path<Uuid>,
     Json(v): Json<ImportInput>,
 ) -> ApiResult<Json<Value>> {
+    let i = tx.identity.clone();
     require_admin(&i)?;
     if v.items.is_empty() || v.items.len() > 100 {
         return Err(bad("Import accepts 1..100 issues per batch"));
@@ -136,7 +133,6 @@ pub(crate) async fn import_issues(
             return Err(bad("Invalid kind or priority"));
         }
     }
-    let mut tx = app.db.begin().await.map_err(db_err)?;
     let present: Option<Uuid> = sqlx::query_scalar(
         "SELECT id FROM projects WHERE tenant_id=$1 AND id=$2 AND archived_at IS NULL FOR UPDATE",
     )
@@ -174,8 +170,7 @@ pub(crate) async fn import_issues(
         created += 1;
         next += 1;
     }
-    tx.commit().await.map_err(db_err)?;
-    log_event(&app.db, &i, "imported", "project", p).await?;
+    log_event(&mut *tx, &i, "imported", "project", p).await?;
     Ok(Json(
         json!({"created":created,"skipped":skipped,"idempotent_by":"external_ref"}),
     ))

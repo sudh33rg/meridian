@@ -23,7 +23,7 @@ pub(crate) struct AuthResponse {
     pub(crate) organization: String,
     pub(crate) name: String,
 }
-#[derive(FromRow)]
+#[derive(FromRow, Clone)]
 pub(crate) struct Identity {
     pub(crate) tenant_id: Uuid,
     pub(crate) user_id: Uuid,
@@ -170,8 +170,9 @@ pub(crate) async fn login(
         name,
     }))
 }
-pub(crate) async fn identity(h: &HeaderMap, db: &PgPool) -> ApiResult<Identity> {
-    let value = h
+pub(crate) async fn identity(parts: &Parts, db: &PgPool) -> ApiResult<Identity> {
+    let value = parts
+        .headers
         .get(header::AUTHORIZATION)
         .and_then(|x| x.to_str().ok())
         .and_then(|s| s.strip_prefix("Bearer "))
@@ -188,7 +189,7 @@ pub(crate) async fn identity(h: &HeaderMap, db: &PgPool) -> ApiResult<Identity> 
 impl FromRequestParts<App> for Identity {
     type Rejection = ApiError;
     async fn from_request_parts(parts: &mut Parts, state: &App) -> Result<Self, Self::Rejection> {
-        identity(&parts.headers, &state.db).await
+        identity(parts, &state.db).await
     }
 }
 pub(crate) fn can_edit(i: &Identity) -> bool {

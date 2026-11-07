@@ -14,19 +14,21 @@ use chrono::{DateTime, Utc};
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use sqlx::{FromRow, PgPool, Postgres, Transaction};
+use sqlx::{FromRow, PgConnection, PgPool, Postgres, Transaction};
 use std::{env, net::SocketAddr};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use uuid::Uuid;
 
 mod api;
 mod auth;
+mod db;
 mod error;
 mod openapi;
 #[cfg(test)]
 mod tests;
 
 pub(crate) use auth::*;
+pub(crate) use db::*;
 pub(crate) use error::*;
 
 #[derive(Clone)]
@@ -59,6 +61,7 @@ pub(crate) fn build_router(db: PgPool, cors: CorsLayer) -> Router {
         .merge(api::knowledge::routes())
         .merge(api::collab::routes())
         .merge(api::admin::routes())
+        .layer(axum::middleware::from_fn(db::tx_layer))
         .layer(DefaultBodyLimit::max(1_048_576))
         .layer(cors)
         .layer(TraceLayer::new_for_http())
@@ -79,6 +82,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
     let db = PgPool::connect(&env::var("DATABASE_URL")?).await?;
     sqlx::migrate!().run(&db).await?;
+    db::assert_isolation(&db).await?;
     let origin = env::var("CORS_ORIGIN").unwrap_or_else(|_| "http://localhost:5173".into());
     let cors = CorsLayer::new()
         .allow_origin(origin.parse::<axum::http::HeaderValue>()?)

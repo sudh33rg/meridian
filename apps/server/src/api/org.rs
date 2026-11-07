@@ -5,9 +5,10 @@ use axum::routing::{delete, patch};
 use serde_json::{json, Value};
 
 #[utoipa::path(get, path = "/api/me", tag = "org", responses((status = 200, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn me(State(app): State<App>, i: Identity) -> ApiResult<Json<Value>> {
+pub(crate) async fn me(mut tx: Tx) -> ApiResult<Json<Value>> {
+    let i = tx.identity.clone();
     let u:Value=sqlx::query_scalar("SELECT jsonb_build_object('user_id',u.id,'email',u.email,'name',u.display_name,'tenant_id',t.id,'tenant',t.name,'slug',t.slug,'role',m.role) FROM users u JOIN memberships m ON m.user_id=u.id JOIN tenants t ON t.id=m.tenant_id WHERE m.tenant_id=$1 AND m.user_id=$2 AND m.disabled_at IS NULL")
-        .bind(i.tenant_id).bind(i.user_id).fetch_one(&app.db).await.map_err(db_err)?;
+        .bind(i.tenant_id).bind(i.user_id).fetch_one(&mut *tx).await.map_err(db_err)?;
     Ok(Json(u))
 }
 #[derive(Deserialize, utoipa::ToSchema)]
@@ -99,9 +100,10 @@ pub(crate) async fn switch_workspace(
     }))
 }
 #[utoipa::path(get, path = "/api/members", tag = "org", responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn members(State(app): State<App>, i: Identity) -> ApiResult<Json<Vec<Value>>> {
+pub(crate) async fn members(mut tx: Tx) -> ApiResult<Json<Vec<Value>>> {
+    let i = tx.identity.clone();
     let rows=sqlx::query_scalar("SELECT jsonb_build_object('id',u.id,'name',u.display_name,'email',u.email,'role',m.role) FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.tenant_id=$1 AND m.disabled_at IS NULL ORDER BY u.display_name LIMIT 2000")
-        .bind(i.tenant_id).fetch_all(&app.db).await.map_err(db_err)?;
+        .bind(i.tenant_id).fetch_all(&mut *tx).await.map_err(db_err)?;
     Ok(Json(rows))
 }
 #[derive(Deserialize, utoipa::ToSchema)]
@@ -110,30 +112,26 @@ pub(crate) struct MemberRoleInput {
 }
 #[utoipa::path(patch, path = "/api/members/{id}", tag = "org", params(("id" = Uuid, Path, description = "Resource id")), request_body = MemberRoleInput, responses((status = 200, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn change_member_role(
-    State(app): State<App>,
-    i: Identity,
+    mut tx: Tx,
     Path(user): Path<Uuid>,
     Json(v): Json<MemberRoleInput>,
 ) -> ApiResult<Json<Value>> {
+    let i = tx.identity.clone();
     require_admin(&i)?;
     if !["admin", "member", "viewer"].contains(&v.role.as_str()) {
         return Err(bad("Only admin/member/viewer roles are assignable"));
     }
     let row:Option<Value>=sqlx::query_scalar("UPDATE memberships SET role=$1 WHERE tenant_id=$2 AND user_id=$3 AND role<>'owner' AND disabled_at IS NULL RETURNING jsonb_build_object('user_id',user_id,'role',role)")
-     .bind(v.role).bind(i.tenant_id).bind(user).fetch_optional(&app.db).await.map_err(db_err)?;
+     .bind(v.role).bind(i.tenant_id).bind(user).fetch_optional(&mut *tx).await.map_err(db_err)?;
     let changed =
         row.ok_or_else(|| err(StatusCode::NOT_FOUND, "Member absent or protected owner"))?;
-    log_event(&app.db, &i, "role_changed", "member", user).await?;
+    log_event(&mut *tx, &i, "role_changed", "member", user).await?;
     Ok(Json(changed))
 }
 #[utoipa::path(delete, path = "/api/members/{id}", tag = "org", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 204, description = "Success"), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn remove_member(
-    State(app): State<App>,
-    i: Identity,
-    Path(user): Path<Uuid>,
-) -> ApiResult<StatusCode> {
+pub(crate) async fn remove_member(mut tx: Tx, Path(user): Path<Uuid>) -> ApiResult<StatusCode> {
+    let i = tx.identity.clone();
     require_admin(&i)?;
-    let mut tx = app.db.begin().await.map_err(db_err)?;
     let result=sqlx::query("UPDATE memberships SET disabled_at=now() WHERE tenant_id=$1 AND user_id=$2 AND role<>'owner' AND disabled_at IS NULL")
      .bind(i.tenant_id).bind(user).execute(&mut *tx).await.map_err(db_err)?;
     if result.rows_affected() == 0 {
@@ -148,8 +146,7 @@ pub(crate) async fn remove_member(
         .execute(&mut *tx)
         .await
         .map_err(db_err)?;
-    tx.commit().await.map_err(db_err)?;
-    log_event(&app.db, &i, "disabled", "member", user).await?;
+    log_event(&mut *tx, &i, "disabled", "member", user).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 #[derive(Deserialize, utoipa::ToSchema)]
@@ -158,21 +155,19 @@ pub(crate) struct InviteInput {
     pub(crate) role: String,
 }
 #[utoipa::path(get, path = "/api/invitations", tag = "org", responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn invitations(
-    State(app): State<App>,
-    i: Identity,
-) -> ApiResult<Json<Vec<Value>>> {
+pub(crate) async fn invitations(mut tx: Tx) -> ApiResult<Json<Vec<Value>>> {
+    let i = tx.identity.clone();
     require_admin(&i)?;
     let rows=sqlx::query_scalar("SELECT jsonb_build_object('id',id,'email',email,'role',role,'expires_at',expires_at,'accepted_at',accepted_at) FROM invitations WHERE tenant_id=$1 ORDER BY created_at DESC LIMIT 100")
-        .bind(i.tenant_id).fetch_all(&app.db).await.map_err(db_err)?;
+        .bind(i.tenant_id).fetch_all(&mut *tx).await.map_err(db_err)?;
     Ok(Json(rows))
 }
 #[utoipa::path(post, path = "/api/invitations", tag = "org", request_body = InviteInput, responses((status = 201, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn invite(
-    State(app): State<App>,
-    i: Identity,
+    mut tx: Tx,
     Json(v): Json<InviteInput>,
 ) -> ApiResult<(StatusCode, Json<Value>)> {
+    let i = tx.identity.clone();
     require_admin(&i)?;
     let email = v.email.trim().to_ascii_lowercase();
     if !email.contains('@')
@@ -183,8 +178,8 @@ pub(crate) async fn invite(
     }
     let token = mint_token();
     let id:Uuid=sqlx::query_scalar("INSERT INTO invitations(tenant_id,email,role,token_hash,invited_by,expires_at) VALUES($1,$2,$3,$4,$5,now()+interval '3 days') RETURNING id")
-        .bind(i.tenant_id).bind(email).bind(v.role).bind(token_hash(&token)).bind(i.user_id).fetch_one(&app.db).await.map_err(db_err)?;
-    log_event(&app.db, &i, "created", "invitation", id).await?;
+        .bind(i.tenant_id).bind(email).bind(v.role).bind(token_hash(&token)).bind(i.user_id).fetch_one(&mut *tx).await.map_err(db_err)?;
+    log_event(&mut *tx, &i, "created", "invitation", id).await?;
     // Until email delivery is configured, this token is shown once to the inviter for manual sharing.
     Ok((
         StatusCode::CREATED,
@@ -287,21 +282,22 @@ pub(crate) struct TeamInput {
     pub(crate) description: Option<String>,
 }
 #[utoipa::path(get, path = "/api/teams", tag = "org", responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn teams(State(app): State<App>, i: Identity) -> ApiResult<Json<Vec<Value>>> {
+pub(crate) async fn teams(mut tx: Tx) -> ApiResult<Json<Vec<Value>>> {
+    let i = tx.identity.clone();
     let rows=sqlx::query_scalar("SELECT jsonb_build_object('id',t.id,'name',t.name,'description',t.description,'members',(SELECT count(*) FROM team_members m WHERE m.tenant_id=t.tenant_id AND m.team_id=t.id)) FROM teams t WHERE tenant_id=$1 ORDER BY name LIMIT 250")
-        .bind(i.tenant_id).fetch_all(&app.db).await.map_err(db_err)?;
+        .bind(i.tenant_id).fetch_all(&mut *tx).await.map_err(db_err)?;
     Ok(Json(rows))
 }
 #[utoipa::path(post, path = "/api/teams", tag = "org", request_body = TeamInput, responses((status = 201, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn new_team(
-    State(app): State<App>,
-    i: Identity,
+    mut tx: Tx,
     Json(v): Json<TeamInput>,
 ) -> ApiResult<(StatusCode, Json<Value>)> {
+    let i = tx.identity.clone();
     require_admin(&i)?;
     validate_title(&v.name)?;
     let row:Value=sqlx::query_scalar("INSERT INTO teams(tenant_id,name,description) VALUES($1,$2,$3) RETURNING jsonb_build_object('id',id,'name',name,'description',description)")
-        .bind(i.tenant_id).bind(v.name.trim()).bind(v.description.unwrap_or_default()).fetch_one(&app.db).await.map_err(db_err)?;
+        .bind(i.tenant_id).bind(v.name.trim()).bind(v.description.unwrap_or_default()).fetch_one(&mut *tx).await.map_err(db_err)?;
     Ok((StatusCode::CREATED, Json(row)))
 }
 #[derive(Deserialize, utoipa::ToSchema)]
@@ -310,14 +306,14 @@ pub(crate) struct JoinTeamInput {
 }
 #[utoipa::path(post, path = "/api/teams/{id}/members", tag = "org", params(("id" = Uuid, Path, description = "Resource id")), request_body = JoinTeamInput, responses((status = 204, description = "Success"), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn join_team(
-    State(app): State<App>,
-    i: Identity,
+    mut tx: Tx,
     Path(team): Path<Uuid>,
     Json(v): Json<JoinTeamInput>,
 ) -> ApiResult<StatusCode> {
+    let i = tx.identity.clone();
     require_admin(&i)?;
     let result=sqlx::query("INSERT INTO team_members(tenant_id,team_id,user_id) SELECT $1,$2,$3 FROM teams t JOIN memberships m ON m.tenant_id=t.tenant_id AND m.user_id=$3 WHERE t.tenant_id=$1 AND t.id=$2 ON CONFLICT DO NOTHING")
-        .bind(i.tenant_id).bind(team).bind(v.user_id).execute(&app.db).await.map_err(db_err)?;
+        .bind(i.tenant_id).bind(team).bind(v.user_id).execute(&mut *tx).await.map_err(db_err)?;
     if result.rows_affected() == 0 {
         return Err(err(
             StatusCode::NOT_FOUND,

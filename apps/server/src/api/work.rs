@@ -19,17 +19,18 @@ pub(crate) struct NewProject {
     pub(crate) description: Option<String>,
 }
 #[utoipa::path(get, path = "/api/projects", tag = "work", responses((status = 200, description = "Success", body = Vec<Project>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn projects(State(app): State<App>, i: Identity) -> ApiResult<Json<Vec<Project>>> {
+pub(crate) async fn projects(mut tx: Tx) -> ApiResult<Json<Vec<Project>>> {
+    let i = tx.identity.clone();
     let items=sqlx::query_as("SELECT id,name,key,description,created_at FROM projects WHERE tenant_id=$1 ORDER BY created_at DESC LIMIT 200")
- .bind(i.tenant_id).fetch_all(&app.db).await.map_err(db_err)?;
+ .bind(i.tenant_id).fetch_all(&mut *tx).await.map_err(db_err)?;
     Ok(Json(items))
 }
 #[utoipa::path(post, path = "/api/projects", tag = "work", request_body = NewProject, responses((status = 201, description = "Success", body = Project), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn create_project(
-    State(app): State<App>,
-    i: Identity,
+    mut tx: Tx,
     Json(v): Json<NewProject>,
 ) -> ApiResult<(StatusCode, Json<Project>)> {
+    let i = tx.identity.clone();
     if !can_edit(&i) {
         return Err(forbidden());
     }
@@ -45,8 +46,8 @@ pub(crate) async fn create_project(
         return Err(bad("Use a project name and uppercase 2-10 character key"));
     }
     let p:Project=sqlx::query_as("INSERT INTO projects(tenant_id,name,key,description) VALUES($1,$2,$3,$4) RETURNING id,name,key,description,created_at")
- .bind(i.tenant_id).bind(v.name.trim()).bind(v.key).bind(v.description.unwrap_or_default()).fetch_one(&app.db).await.map_err(|_|bad("Project key may already exist"))?;
-    log_event(&app.db, &i, "created", "project", p.id).await?;
+ .bind(i.tenant_id).bind(v.name.trim()).bind(v.key).bind(v.description.unwrap_or_default()).fetch_one(&mut *tx).await.map_err(|_|bad("Project key may already exist"))?;
+    log_event(&mut *tx, &i, "created", "project", p.id).await?;
     Ok((StatusCode::CREATED, Json(p)))
 }
 
@@ -75,32 +76,29 @@ pub(crate) struct PatchIssue {
     pub(crate) status: String,
 }
 #[utoipa::path(get, path = "/api/projects/{id}/issues", tag = "work", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Issue>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn issues(
-    State(app): State<App>,
-    i: Identity,
-    Path(project): Path<Uuid>,
-) -> ApiResult<Json<Vec<Issue>>> {
+pub(crate) async fn issues(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<Issue>>> {
+    let i = tx.identity.clone();
     let exists: bool =
         sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM projects WHERE tenant_id=$1 AND id=$2)")
             .bind(i.tenant_id)
             .bind(project)
-            .fetch_one(&app.db)
+            .fetch_one(&mut *tx)
             .await
             .map_err(db_err)?;
     if !exists {
         return Err(err(StatusCode::NOT_FOUND, "Project not found"));
     }
     let rows=sqlx::query_as("SELECT id,project_id,number,title,description,kind,status,priority,created_at,updated_at FROM issues WHERE tenant_id=$1 AND project_id=$2 ORDER BY number DESC LIMIT 500")
- .bind(i.tenant_id).bind(project).fetch_all(&app.db).await.map_err(db_err)?;
+ .bind(i.tenant_id).bind(project).fetch_all(&mut *tx).await.map_err(db_err)?;
     Ok(Json(rows))
 }
 #[utoipa::path(post, path = "/api/projects/{id}/issues", tag = "work", params(("id" = Uuid, Path, description = "Resource id")), request_body = NewIssue, responses((status = 201, description = "Success", body = Issue), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn create_issue(
-    State(app): State<App>,
-    i: Identity,
+    mut tx: Tx,
     Path(project): Path<Uuid>,
     Json(v): Json<NewIssue>,
 ) -> ApiResult<(StatusCode, Json<Issue>)> {
+    let i = tx.identity.clone();
     if !can_edit(&i) {
         return Err(forbidden());
     }
@@ -114,7 +112,6 @@ pub(crate) async fn create_issue(
     {
         return Err(bad("Unsupported issue kind or priority"));
     }
-    let mut tx = app.db.begin().await.map_err(db_err)?;
     let present = sqlx::query_scalar::<_, Uuid>(
         "SELECT id FROM projects WHERE tenant_id=$1 AND id=$2 FOR UPDATE",
     )
@@ -136,26 +133,25 @@ pub(crate) async fn create_issue(
     .map_err(db_err)?;
     let row:Issue=sqlx::query_as("INSERT INTO issues(tenant_id,project_id,number,title,description,kind,priority,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,project_id,number,title,description,kind,status,priority,created_at,updated_at")
  .bind(i.tenant_id).bind(project).bind(next).bind(v.title.trim()).bind(v.description.unwrap_or_default()).bind(kind).bind(priority).bind(i.user_id).fetch_one(&mut *tx).await.map_err(db_err)?;
-    tx.commit().await.map_err(db_err)?;
-    log_event(&app.db, &i, "created", "issue", row.id).await?;
+    log_event(&mut *tx, &i, "created", "issue", row.id).await?;
     log_outbox(
-        &app.db,
+        &mut *tx,
         i.tenant_id,
         "issue.created",
         row.id,
         serde_json::json!({"project_id":project}),
     )
     .await?;
-    run_automations(&app.db, &i, project, row.id, "issue_created").await?;
+    run_automations(&mut *tx, &i, project, row.id, "issue_created").await?;
     Ok((StatusCode::CREATED, Json(row)))
 }
 #[utoipa::path(patch, path = "/api/issues/{id}", tag = "work", params(("id" = Uuid, Path, description = "Resource id")), request_body = PatchIssue, responses((status = 200, description = "Success", body = Issue), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn patch_issue(
-    State(app): State<App>,
-    i: Identity,
+    mut tx: Tx,
     Path(issue): Path<Uuid>,
     Json(v): Json<PatchIssue>,
 ) -> ApiResult<Json<Issue>> {
+    let i = tx.identity.clone();
     if !can_edit(&i) {
         return Err(forbidden());
     }
@@ -163,17 +159,17 @@ pub(crate) async fn patch_issue(
         return Err(bad("Unknown status"));
     }
     let row:Issue=sqlx::query_as("UPDATE issues SET status=$1,updated_at=now() WHERE tenant_id=$2 AND id=$3 RETURNING id,project_id,number,title,description,kind,status,priority,created_at,updated_at")
- .bind(v.status).bind(i.tenant_id).bind(issue).fetch_optional(&app.db).await.map_err(db_err)?.ok_or_else(||err(StatusCode::NOT_FOUND,"Issue not found"))?;
-    log_event(&app.db, &i, "updated", "issue", issue).await?;
+ .bind(v.status).bind(i.tenant_id).bind(issue).fetch_optional(&mut *tx).await.map_err(db_err)?.ok_or_else(||err(StatusCode::NOT_FOUND,"Issue not found"))?;
+    log_event(&mut *tx, &i, "updated", "issue", issue).await?;
     log_outbox(
-        &app.db,
+        &mut *tx,
         i.tenant_id,
         "issue.updated",
         issue,
         serde_json::json!({"project_id":row.project_id,"status":row.status.clone()}),
     )
     .await?;
-    run_automations(&app.db, &i, row.project_id, issue, "issue_status_changed").await?;
+    run_automations(&mut *tx, &i, row.project_id, issue, "issue_status_changed").await?;
     Ok(Json(row))
 }
 
@@ -200,32 +196,29 @@ pub(crate) struct PatchPage {
     pub(crate) expected_version: i32,
 }
 #[utoipa::path(get, path = "/api/projects/{id}/pages", tag = "work", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Page>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn pages(
-    State(app): State<App>,
-    i: Identity,
-    Path(project): Path<Uuid>,
-) -> ApiResult<Json<Vec<Page>>> {
+pub(crate) async fn pages(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<Page>>> {
+    let i = tx.identity.clone();
     let exists: bool =
         sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM projects WHERE tenant_id=$1 AND id=$2)")
             .bind(i.tenant_id)
             .bind(project)
-            .fetch_one(&app.db)
+            .fetch_one(&mut *tx)
             .await
             .map_err(db_err)?;
     if !exists {
         return Err(err(StatusCode::NOT_FOUND, "Project not found"));
     }
     let rows=sqlx::query_as("SELECT id,project_id,parent_id,title,content,version,updated_at FROM pages WHERE tenant_id=$1 AND project_id=$2 ORDER BY updated_at DESC LIMIT 500")
- .bind(i.tenant_id).bind(project).fetch_all(&app.db).await.map_err(db_err)?;
+ .bind(i.tenant_id).bind(project).fetch_all(&mut *tx).await.map_err(db_err)?;
     Ok(Json(rows))
 }
 #[utoipa::path(post, path = "/api/projects/{id}/pages", tag = "work", params(("id" = Uuid, Path, description = "Resource id")), request_body = NewPage, responses((status = 201, description = "Success", body = Page), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn create_page(
-    State(app): State<App>,
-    i: Identity,
+    mut tx: Tx,
     Path(project): Path<Uuid>,
     Json(v): Json<NewPage>,
 ) -> ApiResult<(StatusCode, Json<Page>)> {
+    let i = tx.identity.clone();
     if !can_edit(&i) {
         return Err(forbidden());
     }
@@ -236,7 +229,7 @@ pub(crate) async fn create_page(
         sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM projects WHERE tenant_id=$1 AND id=$2)")
             .bind(i.tenant_id)
             .bind(project)
-            .fetch_one(&app.db)
+            .fetch_one(&mut *tx)
             .await
             .map_err(db_err)?;
     if !exists {
@@ -249,7 +242,7 @@ pub(crate) async fn create_page(
         .bind(i.tenant_id)
         .bind(project)
         .bind(parent)
-        .fetch_one(&app.db)
+        .fetch_one(&mut *tx)
         .await
         .map_err(db_err)?;
         if !valid {
@@ -257,10 +250,10 @@ pub(crate) async fn create_page(
         }
     }
     let page:Page=sqlx::query_as("INSERT INTO pages(tenant_id,project_id,parent_id,title,content,created_by) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,project_id,parent_id,title,content,version,updated_at")
- .bind(i.tenant_id).bind(project).bind(v.parent_id).bind(v.title.trim()).bind(v.content.unwrap_or_default()).bind(i.user_id).fetch_one(&app.db).await.map_err(db_err)?;
-    log_event(&app.db, &i, "created", "page", page.id).await?;
+ .bind(i.tenant_id).bind(project).bind(v.parent_id).bind(v.title.trim()).bind(v.content.unwrap_or_default()).bind(i.user_id).fetch_one(&mut *tx).await.map_err(db_err)?;
+    log_event(&mut *tx, &i, "created", "page", page.id).await?;
     log_outbox(
-        &app.db,
+        &mut *tx,
         i.tenant_id,
         "page.created",
         page.id,
@@ -271,18 +264,17 @@ pub(crate) async fn create_page(
 }
 #[utoipa::path(patch, path = "/api/pages/{id}", tag = "work", params(("id" = Uuid, Path, description = "Resource id")), request_body = PatchPage, responses((status = 200, description = "Success", body = Page), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn patch_page(
-    State(app): State<App>,
-    i: Identity,
+    mut tx: Tx,
     Path(page_id): Path<Uuid>,
     Json(v): Json<PatchPage>,
 ) -> ApiResult<Json<Page>> {
+    let i = tx.identity.clone();
     if !can_edit(&i) {
         return Err(forbidden());
     }
     if v.title.trim().is_empty() {
         return Err(bad("Title is required"));
     }
-    let mut tx = app.db.begin().await.map_err(db_err)?;
     let current:Option<Page>=sqlx::query_as("SELECT id,project_id,parent_id,title,content,version,updated_at FROM pages WHERE tenant_id=$1 AND id=$2 FOR UPDATE").bind(i.tenant_id).bind(page_id).fetch_optional(&mut *tx).await.map_err(db_err)?;
     let c = current.ok_or_else(|| err(StatusCode::NOT_FOUND, "Page not found"))?;
     if c.version != v.expected_version {
@@ -295,10 +287,9 @@ pub(crate) async fn patch_page(
  .bind(i.tenant_id).bind(page_id).bind(c.version).bind(&c.title).bind(&c.content).bind(i.user_id).execute(&mut *tx).await.map_err(db_err)?;
     let updated:Page=sqlx::query_as("UPDATE pages SET title=$1,content=$2,version=version+1,updated_at=now() WHERE tenant_id=$3 AND id=$4 RETURNING id,project_id,parent_id,title,content,version,updated_at")
  .bind(v.title.trim()).bind(&v.content).bind(i.tenant_id).bind(page_id).fetch_one(&mut *tx).await.map_err(db_err)?;
-    tx.commit().await.map_err(db_err)?;
-    log_event(&app.db, &i, "updated", "page", page_id).await?;
+    log_event(&mut *tx, &i, "updated", "page", page_id).await?;
     log_outbox(
-        &app.db,
+        &mut *tx,
         i.tenant_id,
         "page.updated",
         page_id,
