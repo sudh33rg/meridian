@@ -8,6 +8,7 @@ RUN cargo build --release
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY --from=build /source/apps/server/target/release/meridian-api /usr/local/bin/meridian-api
+RUN mkdir -p /data/attachments && chown -R 65532:65532 /data
 ENV BIND_ADDRESS=0.0.0.0:8080
 EXPOSE 8080
 USER 65532:65532

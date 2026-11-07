@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
-import { api, errorMessage, send } from "../../lib/api";
+import { API_BASE, api, errorMessage, send } from "../../lib/api";
 import { clearSession, saveSession as persistSession, type Me } from "../../lib/session";
 import type { Issue, Page, Project, Session } from "../../lib/types";
 import type { ExtraTab } from "../advanced/AdvancedWorkspace";
@@ -33,6 +33,65 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
 
   const token = session.token;
+  // Live updates: the server pushes "something changed" notifications for what this user may
+  // see; we just refetch the affected queries through the normal, authorized API.
+  useEffect(() => {
+    if (typeof EventSource === "undefined") return;
+    let es: EventSource | null = null;
+    let stopped = false;
+    let retry: number | undefined;
+    let flush: number | undefined;
+    const pending = new Set<string>();
+    const queue = (...keys: (readonly unknown[])[]) => {
+      keys.forEach((k) => pending.add(JSON.stringify(k)));
+      window.clearTimeout(flush);
+      flush = window.setTimeout(() => {
+        pending.forEach((k) => qc.invalidateQueries({ queryKey: JSON.parse(k) }));
+        pending.clear();
+      }, 150);
+    };
+    const open = (resync: boolean) => {
+      es = new EventSource(`${API_BASE}/sync/stream`);
+      // After a reconnect we may have missed events: refresh everything once.
+      if (resync) es.onopen = () => qc.invalidateQueries();
+      es.addEventListener("change", (e) => {
+        const ev = JSON.parse((e as MessageEvent).data) as {
+          entity_type: string;
+          entity_id: string;
+          project_id: string | null;
+        };
+        const p = ev.project_id;
+        switch (ev.entity_type) {
+          case "issue":
+            queue(["issues", p], ["attachments", ev.entity_id]);
+            break;
+          case "page":
+            queue(["pages", p], ["page-access", ev.entity_id], ["attachments", ev.entity_id]);
+            break;
+          case "project":
+            queue(["projects"], ["access", p]);
+            break;
+          case "member":
+          case "team":
+            queue(["members"], ["teams"]);
+            break;
+          default:
+            queue(["issues", p], ["pages", p]);
+        }
+      });
+      es.onerror = () => {
+        es?.close();
+        if (!stopped) retry = window.setTimeout(() => open(true), 3000 + Math.random() * 2000);
+      };
+    };
+    open(false);
+    return () => {
+      stopped = true;
+      es?.close();
+      window.clearTimeout(retry);
+      window.clearTimeout(flush);
+    };
+  }, [qc, session.tenant_id]);
   const projectsQ = useQuery({
     queryKey: ["projects", session.tenant_id],
     queryFn: () => api<Project[]>("/projects", token),

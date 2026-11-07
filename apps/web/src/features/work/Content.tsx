@@ -4,6 +4,9 @@ import { useWorkspace } from "../workspace/useWorkspace";
 import { api } from "../../lib/api";
 import type { Page } from "../../lib/types";
 import { AdvancedWorkspace, type ExtraTab } from "../advanced/AdvancedWorkspace";
+import { IdentityPanel } from "../admin/IdentityPanel";
+import { BillingPanel } from "../admin/BillingPanel";
+import { WebhooksPanel } from "../admin/WebhooksPanel";
 import { SecurityPanel } from "../advanced/SecurityPanel";
 import { AccessPanel } from "../advanced/AccessPanel";
 import { OverviewTab } from "./OverviewTab";
@@ -116,8 +119,21 @@ export function Content() {
         </>
       )}
       {tab === "security" && <SecurityPanel />}
+      {tab === "identity" && <IdentityPanel />}
+      {tab === "billing" && <BillingPanel />}
+      {tab === "integrations" && <WebhooksPanel />}
       {tab === "access" && project && <AccessPanel />}
-      {!["overview", "board", "issues", "knowledge", "security", "access"].includes(tab) && (
+      {![
+        "overview",
+        "board",
+        "issues",
+        "knowledge",
+        "security",
+        "access",
+        "identity",
+        "billing",
+        "integrations",
+      ].includes(tab) && (
         <AdvancedWorkspace
           key={`${tab}:${selected}`}
           tab={tab as ExtraTab}

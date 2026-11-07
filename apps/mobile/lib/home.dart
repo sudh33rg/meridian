@@ -68,7 +68,7 @@ class _HomePageState extends State<HomePage>{
         physics:const AlwaysScrollableScrollPhysics(),padding:const EdgeInsets.all(18),children:[
           if(error!=null)Card(color:Colors.red.shade50,child:Padding(padding:const EdgeInsets.all(13),child:Row(children:[Expanded(child:Text(error!)),IconButton(onPressed:()=>setState(()=>error=null),icon:const Icon(Icons.close))]))),
           if(projects.isEmpty)const Padding(padding:EdgeInsets.all(30),child:Text('Create your first project using Meridian web to get started.')),
-          if(projects.isNotEmpty)DropdownButtonFormField<String>(value:projectId,
+          if(projects.isNotEmpty)DropdownButtonFormField<String>(initialValue:projectId,
             decoration:const InputDecoration(labelText:'Project',border:OutlineInputBorder()),
             items:projects.map<DropdownMenuItem<String>>((p)=>DropdownMenuItem(value:p['id'] as String,child:Text(p['name'] as String))).toList(),
             onChanged:(v){setState(()=>projectId=v);loadDetails();}),
@@ -77,9 +77,9 @@ class _HomePageState extends State<HomePage>{
           const SizedBox(height:20),
           if(section==0)...[
             if(drafts.isNotEmpty)Card(child:ExpansionTile(leading:const Icon(Icons.save_outlined),title:Text('${drafts.length} unsent drafts'),subtitle:const Text('Review before resubmitting'),children: drafts.asMap().entries.map((entry)=>ListTile(title:Text(entry.value['title']??''),subtitle:const Text('Stored locally; not synced'),trailing:IconButton(icon:const Icon(Icons.delete_outline),onPressed:()async{setState(()=>drafts.removeAt(entry.key));await _saveDrafts();}))).toList())),
-            ...issues.map((i)=>Card(child:ListTile(leading:const Icon(Icons.task_alt,color:primary),title:Text(i['title']??''),subtitle:Text('${i['kind']} · ${i['status'].toString().replaceAll('_',' ')}'),trailing:const Icon(Icons.chevron_right),onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>MobileIssuePage(token:widget.token,issueId:i['id'] as String))).then((_)=>loadDetails()))),
+            ...issues.map((i)=>Card(child:ListTile(leading:const Icon(Icons.task_alt,color:primary),title:Text(i['title']??''),subtitle:Text('${i['kind']} · ${i['status'].toString().replaceAll('_',' ')}'),trailing:const Icon(Icons.chevron_right),onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>MobileIssuePage(token:widget.token,issueId:i['id'] as String))).then((_)=>loadDetails())))),
           ],
-          if(section==1)...pages.map((p)=>Card(child:ListTile(leading:const Icon(Icons.description_outlined,color:primary),title:Text(p['title']??''),subtitle:Text('Version ${p['version']}'),onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>MobilePageReader(page:p))))),
+          if(section==1)...pages.map((p)=>Card(child:ListTile(leading:const Icon(Icons.description_outlined,color:primary),title:Text(p['title']??''),subtitle:Text('Version ${p['version']}'),onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>MobilePageReader(page:p)))))),
           if(section==2)...[
             Text('Sprints',style:Theme.of(context).textTheme.titleMedium),const SizedBox(height:10),
             ...sprints.map((s)=>Card(child:ListTile(leading:const Icon(Icons.event_repeat,color:primary),title:Text(s['name']??''),subtitle:Text(s['goal']??''),trailing:Chip(label:Text(s['state']??''))))),

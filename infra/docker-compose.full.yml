@@ -26,11 +26,13 @@ services:
       MAIL_FROM: Meridian <no-reply@meridian.local>
       TRUST_PROXY: 'true'
       METRICS_ADDR: 0.0.0.0:9090
+      ATTACHMENTS_DIR: /data/attachments
       # Dev-only; set a real 32+ character APP_SECRET in any shared environment.
       APP_SECRET: ${MERIDIAN_APP_SECRET:-dev-only-secret-change-me-0123456789abcdef}
     depends_on:
       postgres: {condition: service_healthy}
       mailpit: {condition: service_started}
+    volumes: ['attachments_data:/data/attachments']
     restart: unless-stopped
   mailpit:
     image: axllent/mailpit:latest
@@ -45,3 +47,4 @@ services:
     restart: unless-stopped
 volumes:
   meridian_data:
+  attachments_data:

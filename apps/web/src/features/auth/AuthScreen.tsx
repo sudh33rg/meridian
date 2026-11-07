@@ -10,6 +10,19 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (s: Session) 
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [challenge, setChallenge] = useState("");
+  const ssoError = new URLSearchParams(window.location.search).get("sso_error");
+  const ssoMessages: Record<string, string> = {
+    not_configured: "Single sign-on is not set up for that workspace.",
+    state: "The sign-in expired or was already used. Please try again.",
+    provider: "The identity provider could not be reached or rejected the sign-in.",
+    email_unverified: "Your identity provider did not confirm your email address.",
+    domain: "Your email domain is not verified for this workspace.",
+    denied: "You do not have access to this workspace.",
+  };
+  const startSso = () => {
+    if (!authForm.slug.trim()) return setError("Enter your workspace URL / slug first.");
+    window.location.assign(`/api/auth/sso/${encodeURIComponent(authForm.slug.trim())}/start`);
+  };
   const authenticate = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
@@ -131,6 +144,12 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (s: Session) 
             <a className="link" href="/auth/forgot">
               Forgot password?
             </a>
+          )}
+          {ssoError && <div className="error">{ssoMessages[ssoError] ?? "Single sign-on failed."}</div>}
+          {mode === "login" && (
+            <button type="button" className="secondary full" onClick={startSso}>
+              Sign in with SSO
+            </button>
           )}
           {error && <div className="error">{error}</div>}
           <button className="primary full" disabled={busy}>

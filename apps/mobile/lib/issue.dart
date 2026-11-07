@@ -21,7 +21,7 @@ class _MobileIssuePageState extends State<MobileIssuePage> {
       if(error!=null)Text(error!,style:const TextStyle(color:Colors.red)),
       Text(issue['title']??'',style:Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight:FontWeight.w800)),
       const SizedBox(height:9),Text(issue['description']??'No description',style:TextStyle(color:Colors.blueGrey.shade500,height:1.5)),
-      const SizedBox(height:22),DropdownButtonFormField<String>(value:status,decoration:const InputDecoration(labelText:'Status',border:OutlineInputBorder()),items:const [
+      const SizedBox(height:22),DropdownButtonFormField<String>(initialValue:status,decoration:const InputDecoration(labelText:'Status',border:OutlineInputBorder()),items:const [
         DropdownMenuItem(value:'todo',child:Text('To do')),
         DropdownMenuItem(value:'in_progress',child:Text('In progress')),
         DropdownMenuItem(value:'in_review',child:Text('In review')),

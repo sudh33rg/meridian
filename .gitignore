@@ -62,3 +62,11 @@ Thumbs.db
 
 # Local attachment storage (development)
 /apps/server/data/
+
+# Mobile: generated native projects (run apps/mobile/tool/setup_platforms.sh)
+/apps/mobile/ios/
+/apps/mobile/android/
+/apps/mobile/.metadata
+/apps/mobile/README.md
+/apps/mobile/.gitignore
+/apps/mobile/test/

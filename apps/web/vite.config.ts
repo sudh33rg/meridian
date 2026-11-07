@@ -7,7 +7,7 @@ export default defineConfig({
   // changeOrigin stays false so the API sees the browser's Host (its CSRF Origin check compares it).
   server: {
     proxy: {
-      "/api": { target: "http://127.0.0.1:8080", changeOrigin: false },
+      "/api": { target: "http://127.0.0.1:8080", changeOrigin: false, ws: true },
       "/health": { target: "http://127.0.0.1:8080", changeOrigin: false },
     },
   },

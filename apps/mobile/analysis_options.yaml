@@ -1,0 +1,21 @@
+# Lints for the Meridian mobile app (flutter_lints is in dev_dependencies).
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    # `flutter create` (re)generates a template widget test in CI/dev setup; this project keeps no
+    # tests of its own, so analysis ignores that folder.
+    - test/**
+    - build/**
+    - android/**
+    - ios/**
+
+linter:
+  rules:
+    # The code base is intentionally compact; these style lints add noise without catching bugs.
+    curly_braces_in_flow_control_structures: false
+    prefer_const_constructors: false
+    prefer_const_literals_to_create_immutables: false
+    use_key_in_widget_constructors: false
+    prefer_final_fields: false
+    avoid_print: true

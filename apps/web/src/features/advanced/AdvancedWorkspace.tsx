@@ -38,7 +38,9 @@ export type ExtraTab =
   | "integrations"
   | "approvals"
   | "security"
-  | "access";
+  | "access"
+  | "identity"
+  | "billing";
 const configs: Partial<
   Record<
     ExtraTab,
@@ -632,6 +634,7 @@ export function AdvancedWorkspace({
                 >
                   <option>member</option>
                   <option>viewer</option>
+                  <option>guest</option>
                   <option>admin</option>
                 </select>
               </label>

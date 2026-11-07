@@ -15,5 +15,25 @@ services:
   mailpit:
     image: axllent/mailpit:latest
     ports: ['1025:1025', '8025:8025']
+  # Optional services (enable with --profile <name>):
+  #   sso   - a local OpenID Connect provider (Dex) to try single sign-on
+  #   s3    - MinIO, an S3-compatible store for attachments (S3_ENDPOINT=http://localhost:9000, bucket "meridian")
+  #   scan  - ClamAV for upload scanning (CLAMAV_ADDR=localhost:3310; the first start downloads signatures)
+  dex:
+    image: ghcr.io/dexidp/dex:v2.42.0
+    profiles: ['sso']
+    command: ['dex', 'serve', '/etc/dex/config.yaml']
+    volumes: ['./dex/config.yaml:/etc/dex/config.yaml:ro']
+    ports: ['5556:5556']
+  minio:
+    image: minio/minio:latest
+    profiles: ['s3']
+    command: ['server', '/data', '--console-address', ':9001']
+    environment: {MINIO_ROOT_USER: meridian, MINIO_ROOT_PASSWORD: meridian_local_only}
+    ports: ['9000:9000', '9001:9001']
+  clamav:
+    image: clamav/clamav:stable
+    profiles: ['scan']
+    ports: ['3310:3310']
 volumes:
   meridian_pg:

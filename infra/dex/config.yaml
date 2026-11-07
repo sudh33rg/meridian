@@ -1,0 +1,29 @@
+# Development-only OpenID Connect provider for trying out single sign-on locally.
+# Start it with:  docker compose -f infra/docker-compose.yml --profile sso up -d dex
+# Issuer http://localhost:5556/dex ; the redirect URIs below match the dev server and the Compose preview.
+issuer: http://localhost:5556/dex
+storage:
+  type: memory
+web:
+  http: 0.0.0.0:5556
+oauth2:
+  skipApprovalScreen: true
+enablePasswordDB: true
+staticClients:
+  - id: meridian-dev
+    name: Meridian (development)
+    secret: meridian-dev-client-secret
+    redirectURIs:
+      - http://localhost:5173/api/auth/sso/callback
+      - http://127.0.0.1:5173/api/auth/sso/callback
+      - http://localhost:8088/api/auth/sso/callback
+staticPasswords:
+  # Passwords are all "password" (bcrypt hash below). Emails are marked verified by Dex.
+  - email: ada@example.test
+    hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+    username: ada
+    userID: "08a8684b-db88-4b73-90a9-3cd1661f5466"
+  - email: grace@example.test
+    hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+    username: grace
+    userID: "41331323-6f44-45e6-b3b9-2c4b60c02be5"

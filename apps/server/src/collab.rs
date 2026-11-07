@@ -441,7 +441,12 @@ async fn serve(app: App, socket: WebSocket, i: Identity, hash: String, page: Uui
             }
             fanned = rx.recv() => match fanned {
                 Ok((origin, bytes)) => {
-                    if bytes.is_empty() { break; } // room reset
+                    if bytes.is_empty() {
+                        // Room reset (the page was replaced by a REST save/restore): code 4001 tells
+                        // the client to discard its local copy and reload instead of merging.
+                        let _ = sink.send(WsMessage::Close(Some(axum::extract::ws::CloseFrame { code: 4001, reason: "reset".into() }))).await;
+                        break;
+                    }
                     if origin != conn && sink.send(WsMessage::Binary(bytes.into())).await.is_err() { break; }
                 }
                 Err(broadcast::error::RecvError::Lagged(_)) => {

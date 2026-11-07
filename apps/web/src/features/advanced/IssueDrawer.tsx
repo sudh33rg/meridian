@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { EntityRelations } from "./EntityRelations";
+import { Attachments } from "../shared/Attachments";
 import { X } from "lucide-react";
 import { request } from "../../lib/api";
 import type { Item } from "../../lib/types";
@@ -118,6 +119,9 @@ export function IssueDrawer({
                 projectId={str(issue.project_id)}
                 targetType="page"
               />
+            </div>
+            <div className="drawer-section">
+              <Attachments entityType="issue" entityId={id} canEdit />
             </div>
             <div className="drawer-section">
               <h3>Discussion · {comments.length}</h3>

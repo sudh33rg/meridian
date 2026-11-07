@@ -123,6 +123,8 @@ export function Sidebar() {
             ["automation", "Automations"],
             ["integrations", "Integrations"],
             ["security", "Security"],
+            ["identity", "Identity & SSO"],
+            ["billing", "Billing"],
             ["audit", "Audit log"],
           ] as const
         ).map(([id, label]) => (

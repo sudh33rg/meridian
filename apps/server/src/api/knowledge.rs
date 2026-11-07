@@ -251,6 +251,7 @@ pub(crate) async fn new_relation(
 
 pub(crate) fn routes() -> Router<App> {
     Router::new()
+        .route("/api/pages/{id}/title", axum::routing::put(rename_page))
         .route("/api/pages/{id}/versions", get(page_versions))
         .route("/api/pages/{id}/restore", post(restore_page))
         .route(
@@ -259,4 +260,29 @@ pub(crate) fn routes() -> Router<App> {
         )
         .route("/api/search", get(search))
         .route("/api/relations", get(relations).post(new_relation))
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct TitleInput {
+    pub(crate) title: String,
+}
+#[utoipa::path(put, path = "/api/pages/{id}/title", tag = "knowledge", params(("id" = Uuid, Path, description = "Page id")), request_body = TitleInput, responses((status = 204, description = "Renamed (live editors are not disturbed)"), (status = 400, description = "Invalid title", body = ErrorBody), (status = 403, description = "Editor access required", body = ErrorBody), (status = 404, description = "Page not found or not visible", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn rename_page(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+    Json(v): Json<TitleInput>,
+) -> ApiResult<StatusCode> {
+    let i = tx.identity.clone();
+    require_editor(&i)?;
+    validate_title(&v.title)?;
+    valid_page(&mut tx, &i, id).await?;
+    sqlx::query("UPDATE pages SET title=$3,updated_at=now() WHERE tenant_id=$1 AND id=$2")
+        .bind(i.tenant_id)
+        .bind(id)
+        .bind(v.title.trim())
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    log_event(&mut tx, &i, "renamed", "page", id).await?;
+    Ok(StatusCode::NO_CONTENT)
 }

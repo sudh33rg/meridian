@@ -70,6 +70,7 @@ impl Modify for BearerAuth {
         crate::attachments::download,
         crate::attachments::remove,
         crate::realtime::stream,
+        api::knowledge::rename_page,
         api::access::page_access_info,
         api::access::set_restriction,
         api::access::grant_page,
@@ -153,7 +154,7 @@ impl Modify for BearerAuth {
         auth::logout,
         auth::signup
     ),
-    components(schemas(ErrorBody, crate::sso::SsoInput, crate::sso::DomainInput, crate::scim::TokenInput, crate::billing::PlanInput, crate::webhooks::WebhookInput, crate::webhooks::WebhookPatch, api::access::PageAccess, api::access::RestrictionInput, api::access::PageGrantInput, crate::mfa::CodeInput, crate::mfa::DisableInput, crate::mfa::VerifyChallengeInput, crate::mfa::SecurityPolicyInput, ChangePasswordInput, RefreshInput, ForgotInput, ResetInput, VerifyInput, GrantInput, VisibilityInput, AcceptInvitation, ApprovalDecision, ApprovalInput, AuthResponse, AutomationInput, CommentInput, DecisionInput, ExistingInvite, GoalInput, ImportInput, ImportItem, InviteInput, Issue, IssueEdit, JoinTeamInput, LinkInput, Login, MemberRoleInput, NewIssue, NewPage, NewProject, Page, PatchIssue, PatchPage, Project, RelationInput, ReleaseInput, RestoreInput, RiskInput, Signup, SprintInput, SprintUpdate, SwitchTenant, TeamInput, WorkspaceInput)),
+    components(schemas(ErrorBody, api::knowledge::TitleInput, crate::sso::SsoInput, crate::sso::DomainInput, crate::scim::TokenInput, crate::billing::PlanInput, crate::webhooks::WebhookInput, crate::webhooks::WebhookPatch, api::access::PageAccess, api::access::RestrictionInput, api::access::PageGrantInput, crate::mfa::CodeInput, crate::mfa::DisableInput, crate::mfa::VerifyChallengeInput, crate::mfa::SecurityPolicyInput, ChangePasswordInput, RefreshInput, ForgotInput, ResetInput, VerifyInput, GrantInput, VisibilityInput, AcceptInvitation, ApprovalDecision, ApprovalInput, AuthResponse, AutomationInput, CommentInput, DecisionInput, ExistingInvite, GoalInput, ImportInput, ImportItem, InviteInput, Issue, IssueEdit, JoinTeamInput, LinkInput, Login, MemberRoleInput, NewIssue, NewPage, NewProject, Page, PatchIssue, PatchPage, Project, RelationInput, ReleaseInput, RestoreInput, RiskInput, Signup, SprintInput, SprintUpdate, SwitchTenant, TeamInput, WorkspaceInput)),
     modifiers(&BearerAuth)
 )]
 pub struct ApiDoc;
@@ -172,7 +173,7 @@ mod tests {
         let paths = doc["paths"].as_object().unwrap();
         let ops: usize = paths.values().map(|p| p.as_object().unwrap().len()).sum();
         assert_eq!(
-            ops, 121,
+            ops, 122,
             "documented operation count changed; update routes and docs together"
         );
         // Only the public auth endpoints may omit the bearer requirement.

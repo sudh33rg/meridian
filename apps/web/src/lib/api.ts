@@ -60,7 +60,8 @@ export async function api<T>(path: string, token?: string, init?: RequestInit): 
       ...init,
       credentials: "same-origin",
       headers: {
-        "Content-Type": "application/json",
+        // FormData sets its own multipart boundary header.
+        ...(init?.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
         ...(token ? { Authorization: "Bearer " + token } : { "X-Auth-Mode": "cookie" }),
         ...(csrf ? { "X-CSRF-Token": csrf } : {}),
         ...init?.headers,
