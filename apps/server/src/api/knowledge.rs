@@ -8,7 +8,7 @@ use serde_json::{json, Value};
 #[utoipa::path(get, path = "/api/pages/{id}/versions", tag = "knowledge", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn page_versions(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Vec<Value>>> {
     let i = tx.identity.clone();
-    valid_page(&mut *tx, &i, id).await?;
+    valid_page(&mut tx, &i, id).await?;
     let rows=sqlx::query_scalar("SELECT jsonb_build_object('version',version,'title',title,'content',content,'editor_id',editor_id,'saved_at',saved_at) FROM page_versions WHERE tenant_id=$1 AND page_id=$2 ORDER BY version DESC LIMIT 200")
         .bind(i.tenant_id).bind(id).fetch_all(&mut *tx).await.map_err(db_err)?;
     Ok(Json(rows))
@@ -26,7 +26,7 @@ pub(crate) async fn restore_page(
 ) -> ApiResult<Json<Value>> {
     let i = tx.identity.clone();
     require_editor(&i)?;
-    valid_page(&mut *tx, &i, id).await?;
+    valid_page(&mut tx, &i, id).await?;
     let current: Option<(i32, String, String)> = sqlx::query_as(
         "SELECT version,title,content FROM pages WHERE tenant_id=$1 AND id=$2 FOR UPDATE",
     )
@@ -64,7 +64,7 @@ pub(crate) async fn restore_page(
 #[utoipa::path(get, path = "/api/pages/{id}/comments", tag = "knowledge", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn page_comments(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Vec<Value>>> {
     let i = tx.identity.clone();
-    valid_page(&mut *tx, &i, id).await?;
+    valid_page(&mut tx, &i, id).await?;
     Ok(Json(sqlx::query_scalar("SELECT jsonb_build_object('id',c.id,'body',c.body,'author',u.display_name,'created_at',c.created_at) FROM page_comments c JOIN users u ON u.id=c.author_id WHERE c.tenant_id=$1 AND c.page_id=$2 ORDER BY c.created_at LIMIT 1000")
         .bind(i.tenant_id).bind(id).fetch_all(&mut *tx).await.map_err(db_err)?))
 }
@@ -76,7 +76,7 @@ pub(crate) async fn new_page_comment(
 ) -> ApiResult<(StatusCode, Json<Value>)> {
     let i = tx.identity.clone();
     require_editor(&i)?;
-    valid_page(&mut *tx, &i, id).await?;
+    valid_page(&mut tx, &i, id).await?;
     validate_body(&v.body)?;
     let row:Value=sqlx::query_scalar("INSERT INTO page_comments(tenant_id,page_id,author_id,body) VALUES($1,$2,$3,$4) RETURNING to_jsonb(page_comments)")
         .bind(i.tenant_id).bind(id).bind(i.user_id).bind(v.body).fetch_one(&mut *tx).await.map_err(db_err)?;
@@ -98,8 +98,8 @@ pub(crate) async fn search(
         return Err(bad("Search must have 2..160 characters"));
     }
     let limit = v.limit.unwrap_or(25).clamp(1, 100);
-    let found=sqlx::query_scalar("SELECT jsonb_build_object('id',x.id,'project_id',x.project_id,'title',x.title,'kind',x.kind,'preview',left(x.description,180)) FROM (SELECT id,project_id,title,'issue' AS kind,description,ts_rank(to_tsvector('simple',title || ' ' || description),plainto_tsquery('simple',$2)) AS rank FROM issues WHERE tenant_id=$1 AND archived_at IS NULL AND to_tsvector('simple',title || ' ' || description) @@ plainto_tsquery('simple',$2) UNION ALL SELECT id,project_id,title,'page' AS kind,content AS description,ts_rank(to_tsvector('simple',title || ' ' || content),plainto_tsquery('simple',$2)) AS rank FROM pages WHERE tenant_id=$1 AND archived_at IS NULL AND to_tsvector('simple',title || ' ' || content) @@ plainto_tsquery('simple',$2)) x ORDER BY rank DESC LIMIT $3")
-        .bind(i.tenant_id).bind(term).bind(limit).fetch_all(&mut *tx).await.map_err(db_err)?;
+    let found=sqlx::query_scalar("SELECT jsonb_build_object('id',x.id,'project_id',x.project_id,'title',x.title,'kind',x.kind,'preview',left(x.description,180)) FROM (SELECT id,project_id,title,'issue' AS kind,description,ts_rank(to_tsvector('simple',title || ' ' || description),plainto_tsquery('simple',$2)) AS rank FROM issues WHERE tenant_id=$1 AND archived_at IS NULL AND project_access(project_id,$4,$5)>=1 AND to_tsvector('simple',title || ' ' || description) @@ plainto_tsquery('simple',$2) UNION ALL SELECT id,project_id,title,'page' AS kind,content AS description,ts_rank(to_tsvector('simple',title || ' ' || content),plainto_tsquery('simple',$2)) AS rank FROM pages WHERE tenant_id=$1 AND archived_at IS NULL AND project_access(project_id,$4,$5)>=1 AND to_tsvector('simple',title || ' ' || content) @@ plainto_tsquery('simple',$2)) x ORDER BY rank DESC LIMIT $3")
+        .bind(i.tenant_id).bind(term).bind(limit).bind(i.user_id).bind(&i.role).fetch_all(&mut *tx).await.map_err(db_err)?;
     Ok(Json(found))
 }
 pub(crate) async fn relation_entity_exists(

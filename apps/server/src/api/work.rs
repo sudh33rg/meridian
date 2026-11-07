@@ -11,18 +11,33 @@ pub(crate) struct Project {
     pub(crate) key: String,
     pub(crate) description: String,
     pub(crate) created_at: DateTime<Utc>,
+    /// `workspace` (everyone in the workspace) or `private` (explicit grants only).
+    pub(crate) visibility: String,
+    /// The caller's effective access: `viewer`, `editor` or `admin`.
+    pub(crate) access: String,
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct NewProject {
     pub(crate) name: String,
     pub(crate) key: String,
     pub(crate) description: Option<String>,
+    pub(crate) visibility: Option<String>,
 }
+pub(crate) const PROJECT_COLS: &str = "p.id,p.name,p.key,p.description,p.created_at,p.visibility,\
+ CASE project_access(p.id,$2,$3) WHEN 3 THEN 'admin' WHEN 2 THEN 'editor' ELSE 'viewer' END AS access";
+
 #[utoipa::path(get, path = "/api/projects", tag = "work", responses((status = 200, description = "Success", body = Vec<Project>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn projects(mut tx: Tx) -> ApiResult<Json<Vec<Project>>> {
     let i = tx.identity.clone();
-    let items=sqlx::query_as("SELECT id,name,key,description,created_at FROM projects WHERE tenant_id=$1 ORDER BY created_at DESC LIMIT 200")
- .bind(i.tenant_id).fetch_all(&mut *tx).await.map_err(db_err)?;
+    let items = sqlx::query_as(&format!(
+        "SELECT {PROJECT_COLS} FROM projects p WHERE p.tenant_id=$1 AND project_access(p.id,$2,$3)>=1 ORDER BY p.created_at DESC LIMIT 200"
+    ))
+    .bind(i.tenant_id)
+    .bind(i.user_id)
+    .bind(&i.role)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
     Ok(Json(items))
 }
 #[utoipa::path(post, path = "/api/projects", tag = "work", request_body = NewProject, responses((status = 201, description = "Success", body = Project), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
@@ -45,9 +60,42 @@ pub(crate) async fn create_project(
     {
         return Err(bad("Use a project name and uppercase 2-10 character key"));
     }
-    let p:Project=sqlx::query_as("INSERT INTO projects(tenant_id,name,key,description) VALUES($1,$2,$3,$4) RETURNING id,name,key,description,created_at")
- .bind(i.tenant_id).bind(v.name.trim()).bind(v.key).bind(v.description.unwrap_or_default()).fetch_one(&mut *tx).await.map_err(|_|bad("Project key may already exist"))?;
-    log_event(&mut *tx, &i, "created", "project", p.id).await?;
+    let visibility = v.visibility.clone().unwrap_or_else(|| "workspace".into());
+    if !["workspace", "private"].contains(&visibility.as_str()) {
+        return Err(bad("Visibility must be workspace or private"));
+    }
+    let id: Uuid = sqlx::query_scalar(
+        "INSERT INTO projects(tenant_id,name,key,description) VALUES($1,$2,$3,$4) RETURNING id",
+    )
+    .bind(i.tenant_id)
+    .bind(v.name.trim())
+    .bind(v.key)
+    .bind(v.description.unwrap_or_default())
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(|_| bad("Project key may already exist"))?;
+    if visibility == "private" {
+        // The creator must not lock themselves out of their own private project.
+        sqlx::query("INSERT INTO relation_tuples(tenant_id,object_type,object_id,relation,subject_type,subject_id,created_by) VALUES($1,'project',$2,'admin','user',$3,$3)")
+            .bind(i.tenant_id).bind(id).bind(i.user_id).execute(&mut *tx).await.map_err(db_err)?;
+        sqlx::query("UPDATE projects SET visibility='private' WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .execute(&mut *tx)
+            .await
+            .map_err(db_err)?;
+    }
+    let p: Project = sqlx::query_as(&format!(
+        "SELECT {PROJECT_COLS} FROM projects p WHERE p.tenant_id=$1 AND p.id=$4"
+    ))
+    .bind(i.tenant_id)
+    .bind(i.user_id)
+    .bind(&i.role)
+    .bind(id)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    log_event(&mut *tx, &i, "created", "project", id).await?;
     Ok((StatusCode::CREATED, Json(p)))
 }
 
@@ -78,6 +126,7 @@ pub(crate) struct PatchIssue {
 #[utoipa::path(get, path = "/api/projects/{id}/issues", tag = "work", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Issue>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn issues(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<Issue>>> {
     let i = tx.identity.clone();
+    ensure_access(&mut tx, project).await?;
     let exists: bool =
         sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM projects WHERE tenant_id=$1 AND id=$2)")
             .bind(i.tenant_id)
@@ -99,6 +148,7 @@ pub(crate) async fn create_issue(
     Json(v): Json<NewIssue>,
 ) -> ApiResult<(StatusCode, Json<Issue>)> {
     let i = tx.identity.clone();
+    ensure_access(&mut tx, project).await?;
     if !can_edit(&i) {
         return Err(forbidden());
     }
@@ -152,6 +202,7 @@ pub(crate) async fn patch_issue(
     Json(v): Json<PatchIssue>,
 ) -> ApiResult<Json<Issue>> {
     let i = tx.identity.clone();
+    ensure_entity_access(&mut tx, "issues", issue).await?;
     if !can_edit(&i) {
         return Err(forbidden());
     }
@@ -198,6 +249,7 @@ pub(crate) struct PatchPage {
 #[utoipa::path(get, path = "/api/projects/{id}/pages", tag = "work", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Page>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn pages(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<Page>>> {
     let i = tx.identity.clone();
+    ensure_access(&mut tx, project).await?;
     let exists: bool =
         sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM projects WHERE tenant_id=$1 AND id=$2)")
             .bind(i.tenant_id)
@@ -219,6 +271,7 @@ pub(crate) async fn create_page(
     Json(v): Json<NewPage>,
 ) -> ApiResult<(StatusCode, Json<Page>)> {
     let i = tx.identity.clone();
+    ensure_access(&mut tx, project).await?;
     if !can_edit(&i) {
         return Err(forbidden());
     }
@@ -269,6 +322,7 @@ pub(crate) async fn patch_page(
     Json(v): Json<PatchPage>,
 ) -> ApiResult<Json<Page>> {
     let i = tx.identity.clone();
+    ensure_entity_access(&mut tx, "pages", page_id).await?;
     if !can_edit(&i) {
         return Err(forbidden());
     }

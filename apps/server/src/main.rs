@@ -21,8 +21,12 @@ use uuid::Uuid;
 
 mod api;
 mod auth;
+mod config;
 mod db;
 mod error;
+mod jobs;
+mod mail;
+mod middleware;
 mod openapi;
 #[cfg(test)]
 mod tests;
@@ -34,6 +38,8 @@ pub(crate) use error::*;
 #[derive(Clone)]
 pub(crate) struct App {
     pub(crate) db: PgPool,
+    pub(crate) cfg: std::sync::Arc<config::Config>,
+    pub(crate) limits: std::sync::Arc<middleware::Limits>,
 }
 
 async fn health() -> &'static str {
@@ -48,7 +54,28 @@ async fn readiness(State(app): State<App>) -> ApiResult<Json<serde_json::Value>>
 }
 
 /// Assemble every route with the shared middleware. Used by `main` and by tests.
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn build_router(db: PgPool, cors: CorsLayer) -> Router {
+    build_router_with(db, cors, std::sync::Arc::new(config::Config::from_env()))
+}
+
+pub(crate) fn build_router_with(
+    db: PgPool,
+    cors: CorsLayer,
+    cfg: std::sync::Arc<config::Config>,
+) -> Router {
+    let limits = std::sync::Arc::new(middleware::Limits::new(&cfg));
+    if tokio::runtime::Handle::try_current().is_ok() {
+        let weak = std::sync::Arc::downgrade(&limits);
+        tokio::spawn(async move {
+            while let Some(l) = weak.upgrade() {
+                l.gc();
+                drop(l);
+                tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+            }
+        });
+    }
+    let state = App { db, cfg, limits };
     Router::new()
         .route("/health", get(health))
         .route("/ready", get(readiness))
@@ -61,11 +88,36 @@ pub(crate) fn build_router(db: PgPool, cors: CorsLayer) -> Router {
         .merge(api::knowledge::routes())
         .merge(api::collab::routes())
         .merge(api::admin::routes())
+        .merge(api::security::routes())
+        .merge(api::access::routes())
         .layer(axum::middleware::from_fn(db::tx_layer))
         .layer(DefaultBodyLimit::max(1_048_576))
         .layer(cors)
-        .layer(TraceLayer::new_for_http())
-        .with_state(App { db })
+        .layer(axum::middleware::from_fn(middleware::track))
+        .layer(axum::middleware::from_fn_with_state(state.clone(), middleware::rate_limit))
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            middleware::security_headers,
+        ))
+        .layer(tower_http::timeout::TimeoutLayer::with_status_code(
+            StatusCode::REQUEST_TIMEOUT,
+            std::time::Duration::from_secs(30),
+        ))
+        .layer(
+            TraceLayer::new_for_http().make_span_with(|req: &axum::http::Request<_>| {
+                let id = req
+                    .headers()
+                    .get("x-request-id")
+                    .and_then(|v| v.to_str().ok())
+                    .unwrap_or("-");
+                tracing::info_span!("http", method=%req.method(), path=%req.uri().path(), request_id=%id)
+            }),
+        )
+        .layer(tower_http::request_id::PropagateRequestIdLayer::x_request_id())
+        .layer(tower_http::request_id::SetRequestIdLayer::x_request_id(
+            tower_http::request_id::MakeRequestUuid,
+        ))
+        .with_state(state)
 }
 
 #[tokio::main]
@@ -75,11 +127,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("{}", openapi::ApiDoc::openapi().to_pretty_json()?);
         return Ok(());
     }
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
-        )
-        .init();
+    let filter =
+        tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into());
+    if env::var("LOG_FORMAT").as_deref() == Ok("json") {
+        tracing_subscriber::fmt()
+            .json()
+            .with_env_filter(filter)
+            .init();
+    } else {
+        tracing_subscriber::fmt().with_env_filter(filter).init();
+    }
+    // Prometheus scrape endpoint on a separate, loopback-by-default port (not part of the public API).
+    match env::var("METRICS_ADDR").as_deref() {
+        Ok("off") => {}
+        other => {
+            let addr: SocketAddr = other.unwrap_or("127.0.0.1:9090").parse()?;
+            if let Err(e) = metrics_exporter_prometheus::PrometheusBuilder::new()
+                .with_http_listener(addr)
+                .install()
+            {
+                tracing::warn!(error=%e, "metrics endpoint disabled");
+            }
+        }
+    }
     let db = PgPool::connect(&env::var("DATABASE_URL")?).await?;
     sqlx::migrate!().run(&db).await?;
     db::assert_isolation(&db).await?;
@@ -92,12 +162,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             axum::http::Method::PATCH,
             axum::http::Method::DELETE,
         ])
-        .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE]);
-    let app = build_router(db, cors);
+        .allow_headers([
+            header::AUTHORIZATION,
+            header::CONTENT_TYPE,
+            axum::http::HeaderName::from_static("x-csrf-token"),
+            axum::http::HeaderName::from_static("x-auth-mode"),
+        ])
+        .allow_credentials(true);
+    let cfg = std::sync::Arc::new(config::Config::from_env());
+    let mailer = std::sync::Arc::new(mail::Mailer::from_config(&cfg));
+    jobs::spawn_worker(db.clone(), cfg.clone(), mailer);
+    let sampler = db.clone();
+    tokio::spawn(async move {
+        loop {
+            metrics::gauge!("meridian_db_pool_size").set(sampler.size() as f64);
+            metrics::gauge!("meridian_db_pool_idle").set(sampler.num_idle() as f64);
+            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+        }
+    });
+    let app = build_router_with(db, cors, cfg);
     let bind = env::var("BIND_ADDRESS")
         .unwrap_or_else(|_| "127.0.0.1:8080".into())
         .parse::<SocketAddr>()?;
     tracing::info!(address=%bind,"Meridian API ready");
-    axum::serve(tokio::net::TcpListener::bind(bind).await?, app).await?;
+    axum::serve(
+        tokio::net::TcpListener::bind(bind).await?,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await?;
     Ok(())
 }

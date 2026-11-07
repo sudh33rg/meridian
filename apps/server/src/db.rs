@@ -32,6 +32,9 @@ pub(crate) struct Tx {
     guard: OwnedMutexGuard<Inner>,
     pub(crate) identity: Identity,
     pub(crate) method: axum::http::Method,
+    /// SHA-256 of the session token that authenticated this request.
+    pub(crate) token_hash: String,
+    pub(crate) cfg: Arc<crate::config::Config>,
 }
 
 impl Deref for Tx {
@@ -49,7 +52,7 @@ impl DerefMut for Tx {
 impl FromRequestParts<App> for Tx {
     type Rejection = ApiError;
     async fn from_request_parts(parts: &mut Parts, state: &App) -> Result<Self, ApiError> {
-        let identity = identity(parts, &state.db).await?;
+        let (identity, token_hash) = authenticate(parts, &state.db).await?;
         let slot = parts
             .extensions
             .get::<TxSlot>()
@@ -73,6 +76,8 @@ impl FromRequestParts<App> for Tx {
             guard,
             identity,
             method: parts.method.clone(),
+            token_hash,
+            cfg: state.cfg.clone(),
         })
     }
 }

@@ -16,6 +16,8 @@ pub enum ApiError {
     Unauthorized(String),
     #[error("Insufficient permissions")]
     Forbidden,
+    #[error("CSRF check failed")]
+    Csrf,
     #[error("{0}")]
     NotFound(String),
     #[error("{0}")]
@@ -35,7 +37,7 @@ impl ApiError {
         match self {
             Self::BadRequest(_) => StatusCode::BAD_REQUEST,
             Self::Unauthorized(_) => StatusCode::UNAUTHORIZED,
-            Self::Forbidden => StatusCode::FORBIDDEN,
+            Self::Forbidden | Self::Csrf => StatusCode::FORBIDDEN,
             Self::NotFound(_) => StatusCode::NOT_FOUND,
             Self::Conflict(_) => StatusCode::CONFLICT,
             Self::Gone(_) => StatusCode::GONE,
@@ -48,6 +50,7 @@ impl ApiError {
             Self::BadRequest(_) => "bad_request",
             Self::Unauthorized(_) => "unauthorized",
             Self::Forbidden => "forbidden",
+            Self::Csrf => "csrf",
             Self::NotFound(_) => "not_found",
             Self::Conflict(_) => "conflict",
             Self::Gone(_) => "gone",

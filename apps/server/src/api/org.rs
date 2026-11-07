@@ -1,13 +1,14 @@
 //! Workspaces, members, invitations and teams.
 use crate::api::common::*;
 use crate::*;
+use axum::response::Response;
 use axum::routing::{delete, patch};
 use serde_json::{json, Value};
 
 #[utoipa::path(get, path = "/api/me", tag = "org", responses((status = 200, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn me(mut tx: Tx) -> ApiResult<Json<Value>> {
     let i = tx.identity.clone();
-    let u:Value=sqlx::query_scalar("SELECT jsonb_build_object('user_id',u.id,'email',u.email,'name',u.display_name,'tenant_id',t.id,'tenant',t.name,'slug',t.slug,'role',m.role) FROM users u JOIN memberships m ON m.user_id=u.id JOIN tenants t ON t.id=m.tenant_id WHERE m.tenant_id=$1 AND m.user_id=$2 AND m.disabled_at IS NULL")
+    let u:Value=sqlx::query_scalar("SELECT jsonb_build_object('user_id',u.id,'email',u.email,'name',u.display_name,'tenant_id',t.id,'tenant',t.name,'slug',t.slug,'role',m.role,'email_verified',u.email_verified_at IS NOT NULL) FROM users u JOIN memberships m ON m.user_id=u.id JOIN tenants t ON t.id=m.tenant_id WHERE m.tenant_id=$1 AND m.user_id=$2 AND m.disabled_at IS NULL")
         .bind(i.tenant_id).bind(i.user_id).fetch_one(&mut *tx).await.map_err(db_err)?;
     Ok(Json(u))
 }
@@ -19,9 +20,10 @@ pub(crate) struct WorkspaceInput {
 #[utoipa::path(post, path = "/api/workspaces", tag = "org", request_body = WorkspaceInput, responses((status = 201, description = "Success", body = AuthResponse), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn create_workspace(
     State(app): State<App>,
+    headers: HeaderMap,
     i: Identity,
     Json(v): Json<WorkspaceInput>,
-) -> ApiResult<(StatusCode, Json<AuthResponse>)> {
+) -> ApiResult<Response> {
     if v.name.trim().is_empty()
         || v.name.len() > 160
         || v.slug.len() < 3
@@ -49,23 +51,34 @@ pub(crate) async fn create_workspace(
         .execute(&mut *tx)
         .await
         .map_err(db_err)?;
-    let token = mint_token();
-    store_session(&mut tx, tenant, i.user_id, &token).await?;
+    let issued = start_session(
+        &mut tx,
+        &app.cfg,
+        tenant,
+        i.user_id,
+        &user_agent(&headers),
+        None,
+    )
+    .await?;
     let name: String = sqlx::query_scalar("SELECT display_name FROM users WHERE id=$1")
         .bind(i.user_id)
         .fetch_one(&mut *tx)
         .await
         .map_err(db_err)?;
     tx.commit().await.map_err(db_err)?;
-    Ok((
+    Ok(auth_reply(
+        &headers,
+        &app.cfg,
         StatusCode::CREATED,
-        Json(AuthResponse {
-            token,
+        AuthResponse {
+            token: String::new(),
+            refresh_token: String::new(),
             tenant_id: tenant,
             user_id: i.user_id,
             organization: v.name,
             name,
-        }),
+        },
+        issued,
     ))
 }
 #[utoipa::path(get, path = "/api/workspaces", tag = "org", responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
@@ -81,23 +94,38 @@ pub(crate) struct SwitchTenant {
 #[utoipa::path(post, path = "/api/workspaces/switch", tag = "org", request_body = SwitchTenant, responses((status = 200, description = "Success", body = AuthResponse), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn switch_workspace(
     State(app): State<App>,
+    headers: HeaderMap,
     i: Identity,
     Json(v): Json<SwitchTenant>,
-) -> ApiResult<Json<AuthResponse>> {
+) -> ApiResult<Response> {
     let org:Option<(String,String)>=sqlx::query_as("SELECT t.name,u.display_name FROM memberships m JOIN tenants t ON t.id=m.tenant_id JOIN users u ON u.id=m.user_id WHERE m.tenant_id=$1 AND m.user_id=$2 AND m.disabled_at IS NULL")
         .bind(v.tenant_id).bind(i.user_id).fetch_optional(&app.db).await.map_err(db_err)?;
     let (organization, name) = org.ok_or_else(forbidden)?;
-    let token = mint_token();
     let mut tx = app.db.begin().await.map_err(db_err)?;
-    store_session(&mut tx, v.tenant_id, i.user_id, &token).await?;
+    let issued = start_session(
+        &mut tx,
+        &app.cfg,
+        v.tenant_id,
+        i.user_id,
+        &user_agent(&headers),
+        None,
+    )
+    .await?;
     tx.commit().await.map_err(db_err)?;
-    Ok(Json(AuthResponse {
-        token,
-        tenant_id: v.tenant_id,
-        user_id: i.user_id,
-        organization,
-        name,
-    }))
+    Ok(auth_reply(
+        &headers,
+        &app.cfg,
+        StatusCode::OK,
+        AuthResponse {
+            token: String::new(),
+            refresh_token: String::new(),
+            tenant_id: v.tenant_id,
+            user_id: i.user_id,
+            organization,
+            name,
+        },
+        issued,
+    ))
 }
 #[utoipa::path(get, path = "/api/members", tag = "org", responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn members(mut tx: Tx) -> ApiResult<Json<Vec<Value>>> {
@@ -176,11 +204,20 @@ pub(crate) async fn invite(
     {
         return Err(bad("Valid email and role required"));
     }
-    let token = mint_token();
-    let id:Uuid=sqlx::query_scalar("INSERT INTO invitations(tenant_id,email,role,token_hash,invited_by,expires_at) VALUES($1,$2,$3,$4,$5,now()+interval '3 days') RETURNING id")
-        .bind(i.tenant_id).bind(email).bind(v.role).bind(token_hash(&token)).bind(i.user_id).fetch_one(&mut *tx).await.map_err(db_err)?;
+    let id = Uuid::new_v4();
+    let token = derive_token(&tx.cfg.secret, "invite", id);
+    let id:Uuid=sqlx::query_scalar("INSERT INTO invitations(id,tenant_id,email,role,token_hash,invited_by,expires_at) VALUES($6,$1,$2,$3,$4,$5,now()+interval '3 days') RETURNING id")
+        .bind(i.tenant_id).bind(email).bind(v.role).bind(token_hash(&token)).bind(i.user_id).bind(id).fetch_one(&mut *tx).await.map_err(db_err)?;
     log_event(&mut *tx, &i, "created", "invitation", id).await?;
-    // Until email delivery is configured, this token is shown once to the inviter for manual sharing.
+    // The invitation email is enqueued in the same transaction (it exists iff the invitation does).
+    // The token is also shown once to the inviter, so sharing by hand works without SMTP.
+    crate::jobs::enqueue(
+        &mut *tx,
+        Some(i.tenant_id),
+        "email.invite",
+        crate::jobs::payload("invitation_id", id),
+    )
+    .await?;
     Ok((
         StatusCode::CREATED,
         Json(json!({"id":id,"invite_token":token,"expires_in_hours":72})),
@@ -195,8 +232,9 @@ pub(crate) struct AcceptInvitation {
 #[utoipa::path(post, path = "/api/auth/accept-invite", tag = "org", request_body = AcceptInvitation, responses((status = 200, description = "Success", body = AuthResponse), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)))]
 pub(crate) async fn accept_invite(
     State(app): State<App>,
+    headers: HeaderMap,
     Json(v): Json<AcceptInvitation>,
-) -> ApiResult<Json<AuthResponse>> {
+) -> ApiResult<Response> {
     if v.token.len() != 64 {
         return Err(bad("Invalid invitation token"));
     }
@@ -255,8 +293,8 @@ pub(crate) async fn accept_invite(
         .execute(&mut *tx)
         .await
         .map_err(db_err)?;
-    let token = mint_token();
-    store_session(&mut tx, tenant, user, &token).await?;
+    let issued =
+        start_session(&mut tx, &app.cfg, tenant, user, &user_agent(&headers), None).await?;
     let org: String = sqlx::query_scalar("SELECT name FROM tenants WHERE id=$1")
         .bind(tenant)
         .fetch_one(&mut *tx)
@@ -268,13 +306,20 @@ pub(crate) async fn accept_invite(
         .await
         .map_err(db_err)?;
     tx.commit().await.map_err(db_err)?;
-    Ok(Json(AuthResponse {
-        token,
-        tenant_id: tenant,
-        user_id: user,
-        organization: org,
-        name,
-    }))
+    Ok(auth_reply(
+        &headers,
+        &app.cfg,
+        StatusCode::OK,
+        AuthResponse {
+            token: String::new(),
+            refresh_token: String::new(),
+            tenant_id: tenant,
+            user_id: user,
+            organization: org,
+            name,
+        },
+        issued,
+    ))
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct TeamInput {
@@ -330,9 +375,10 @@ pub(crate) struct ExistingInvite {
 #[utoipa::path(post, path = "/api/auth/accept-invite-existing", tag = "org", request_body = ExistingInvite, responses((status = 200, description = "Success", body = AuthResponse), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn accept_invite_existing(
     State(app): State<App>,
+    headers: HeaderMap,
     i: Identity,
     Json(v): Json<ExistingInvite>,
-) -> ApiResult<Json<AuthResponse>> {
+) -> ApiResult<Response> {
     if v.token.len() != 64 {
         return Err(bad("Invalid invitation"));
     }
@@ -356,8 +402,15 @@ pub(crate) async fn accept_invite_existing(
         .execute(&mut *tx)
         .await
         .map_err(db_err)?;
-    let token = mint_token();
-    store_session(&mut tx, tenant, i.user_id, &token).await?;
+    let issued = start_session(
+        &mut tx,
+        &app.cfg,
+        tenant,
+        i.user_id,
+        &user_agent(&headers),
+        None,
+    )
+    .await?;
     let org: String = sqlx::query_scalar("SELECT name FROM tenants WHERE id=$1")
         .bind(tenant)
         .fetch_one(&mut *tx)
@@ -369,13 +422,20 @@ pub(crate) async fn accept_invite_existing(
         .await
         .map_err(db_err)?;
     tx.commit().await.map_err(db_err)?;
-    Ok(Json(AuthResponse {
-        token,
-        tenant_id: tenant,
-        user_id: i.user_id,
-        organization: org,
-        name,
-    }))
+    Ok(auth_reply(
+        &headers,
+        &app.cfg,
+        StatusCode::OK,
+        AuthResponse {
+            token: String::new(),
+            refresh_token: String::new(),
+            tenant_id: tenant,
+            user_id: i.user_id,
+            organization: org,
+            name,
+        },
+        issued,
+    ))
 }
 
 pub(crate) fn routes() -> Router<App> {

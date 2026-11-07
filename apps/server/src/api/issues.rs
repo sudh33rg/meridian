@@ -8,7 +8,7 @@ use serde_json::{json, Value};
 #[utoipa::path(get, path = "/api/issues/{id}/details", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn issue_details(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Value>> {
     let i = tx.identity.clone();
-    valid_issue(&mut *tx, &i, id).await?;
+    valid_issue(&mut tx, &i, id).await?;
     let row: Value =
         sqlx::query_scalar("SELECT to_jsonb(t) FROM issues t WHERE tenant_id=$1 AND id=$2")
             .bind(i.tenant_id)
@@ -41,7 +41,7 @@ pub(crate) async fn edit_issue(
 ) -> ApiResult<Json<Value>> {
     let i = tx.identity.clone();
     require_editor(&i)?;
-    let project = valid_issue(&mut *tx, &i, id).await?;
+    let project = valid_issue(&mut tx, &i, id).await?;
     if let Some(ref s) = v.title {
         validate_title(s)?;
     }
@@ -140,7 +140,7 @@ pub(crate) async fn issue_comments(
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<Vec<Value>>> {
     let i = tx.identity.clone();
-    valid_issue(&mut *tx, &i, id).await?;
+    valid_issue(&mut tx, &i, id).await?;
     Ok(Json(sqlx::query_scalar("SELECT jsonb_build_object('id',c.id,'body',c.body,'author_id',c.author_id,'author',u.display_name,'parent_id',c.parent_id,'created_at',c.created_at) FROM issue_comments c JOIN users u ON u.id=c.author_id WHERE c.tenant_id=$1 AND c.issue_id=$2 ORDER BY c.created_at ASC LIMIT 1000")
         .bind(i.tenant_id).bind(id).fetch_all(&mut *tx).await.map_err(db_err)?))
 }
@@ -152,7 +152,7 @@ pub(crate) async fn new_issue_comment(
 ) -> ApiResult<(StatusCode, Json<Value>)> {
     let i = tx.identity.clone();
     require_editor(&i)?;
-    valid_issue(&mut *tx, &i, id).await?;
+    valid_issue(&mut tx, &i, id).await?;
     validate_body(&v.body)?;
     if let Some(parent) = v.parent_id {
         let ok:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM issue_comments WHERE tenant_id=$1 AND issue_id=$2 AND id=$3)")
@@ -174,7 +174,7 @@ pub(crate) struct LinkInput {
 #[utoipa::path(get, path = "/api/issues/{id}/links", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn issue_links(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Vec<Value>>> {
     let i = tx.identity.clone();
-    valid_issue(&mut *tx, &i, id).await?;
+    valid_issue(&mut tx, &i, id).await?;
     Ok(Json(sqlx::query_scalar("SELECT jsonb_build_object('source_id',source_id,'target_id',target_id,'relation',relation) FROM issue_links WHERE tenant_id=$1 AND (source_id=$2 OR target_id=$2) LIMIT 250")
         .bind(i.tenant_id).bind(id).fetch_all(&mut *tx).await.map_err(db_err)?))
 }
@@ -186,8 +186,8 @@ pub(crate) async fn new_issue_link(
 ) -> ApiResult<StatusCode> {
     let i = tx.identity.clone();
     require_editor(&i)?;
-    valid_issue(&mut *tx, &i, id).await?;
-    valid_issue(&mut *tx, &i, v.target_id).await?;
+    valid_issue(&mut tx, &i, id).await?;
+    valid_issue(&mut tx, &i, v.target_id).await?;
     if id == v.target_id
         || !["blocks", "relates", "duplicates", "depends_on"].contains(&v.relation.as_str())
     {

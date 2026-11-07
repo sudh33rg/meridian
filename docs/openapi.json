@@ -568,6 +568,29 @@
         ]
       }
     },
+    "/api/auth/forgot-password": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "forgot_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "If the address belongs to an account, a reset email is on its way"
+          }
+        }
+      }
+    },
     "/api/auth/login": {
       "post": {
         "tags": [
@@ -586,7 +609,7 @@
         },
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "Session issued",
             "content": {
               "application/json": {
                 "schema": {
@@ -595,8 +618,8 @@
               }
             }
           },
-          "400": {
-            "description": "Validation or domain error",
+          "401": {
+            "description": "Invalid credentials",
             "content": {
               "application/json": {
                 "schema": {
@@ -605,8 +628,8 @@
               }
             }
           },
-          "404": {
-            "description": "Not found in this workspace",
+          "429": {
+            "description": "Too many failed attempts",
             "content": {
               "application/json": {
                 "schema": {
@@ -626,40 +649,10 @@
         "operationId": "logout",
         "responses": {
           "204": {
-            "description": "Success"
-          },
-          "400": {
-            "description": "Validation or domain error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
-                }
-              }
-            }
+            "description": "Session revoked and cookies cleared"
           },
           "401": {
             "description": "Missing or invalid session",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorBody"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found in this workspace",
             "content": {
               "application/json": {
                 "schema": {
@@ -674,6 +667,107 @@
             "bearer": []
           }
         ]
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "refresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tokens rotated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refresh token invalid, expired or reused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/resend-verification": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "resend_verification",
+        "responses": {
+          "202": {
+            "description": "Confirmation email queued"
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/reset-password": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "reset_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Password changed; every session revoked"
+          },
+          "400": {
+            "description": "Invalid or expired token, or weak password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/auth/signup": {
@@ -694,7 +788,7 @@
         },
         "responses": {
           "201": {
-            "description": "Success",
+            "description": "Workspace created; session issued",
             "content": {
               "application/json": {
                 "schema": {
@@ -712,9 +806,32 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/auth/verify-email": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "verify_email",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyInput"
+              }
+            }
           },
-          "404": {
-            "description": "Not found in this workspace",
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Email address confirmed"
+          },
+          "400": {
+            "description": "Invalid or expired token",
             "content": {
               "application/json": {
                 "schema": {
@@ -2611,6 +2728,313 @@
           },
           "404": {
             "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/projects/{id}": {
+      "patch": {
+        "tags": [
+          "access"
+        ],
+        "operationId": "set_visibility",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Project id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VisibilityInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Visibility updated"
+          },
+          "400": {
+            "description": "Unknown visibility",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Project admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found or not visible",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/projects/{id}/access": {
+      "get": {
+        "tags": [
+          "access"
+        ],
+        "operationId": "list_access",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Project id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Explicit grants on the project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Project admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found or not visible",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "access"
+        ],
+        "operationId": "grant_access",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Project id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrantInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Grant stored (replaces any earlier grant for the same subject)"
+          },
+          "400": {
+            "description": "Unknown subject or level",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Project admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found or not visible",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/projects/{id}/access/{subject_type}/{subject_id}": {
+      "delete": {
+        "tags": [
+          "access"
+        ],
+        "operationId": "revoke_access",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Project id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "subject_type",
+            "in": "path",
+            "description": "user or team",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subject_id",
+            "in": "path",
+            "description": "User or team id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Grant removed"
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Project admin required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project or grant not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -4760,6 +5184,129 @@
         ]
       }
     },
+    "/api/sessions": {
+      "get": {
+        "tags": [
+          "security"
+        ],
+        "operationId": "list_sessions",
+        "responses": {
+          "200": {
+            "description": "Your active sign-ins in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/sessions/revoke-others": {
+      "post": {
+        "tags": [
+          "security"
+        ],
+        "operationId": "revoke_other_sessions",
+        "responses": {
+          "200": {
+            "description": "Number of other sign-ins ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/sessions/{id}": {
+      "delete": {
+        "tags": [
+          "security"
+        ],
+        "operationId": "revoke_session",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Session id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Session revoked"
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such active session of yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/sprints/{id}": {
       "patch": {
         "tags": [
@@ -5430,6 +5977,7 @@
         "type": "object",
         "required": [
           "token",
+          "refresh_token",
           "tenant_id",
           "user_id",
           "organization",
@@ -5442,12 +5990,17 @@
           "organization": {
             "type": "string"
           },
+          "refresh_token": {
+            "type": "string",
+            "description": "Empty in cookie mode."
+          },
           "tenant_id": {
             "type": "string",
             "format": "uuid"
           },
           "token": {
-            "type": "string"
+            "type": "string",
+            "description": "Empty in cookie mode (the session lives in an HttpOnly cookie)."
           },
           "user_id": {
             "type": "string",
@@ -5541,6 +6094,17 @@
           }
         }
       },
+      "ForgotInput": {
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        }
+      },
       "GoalInput": {
         "type": "object",
         "required": [
@@ -5575,6 +6139,28 @@
           },
           "title": {
             "type": "string"
+          }
+        }
+      },
+      "GrantInput": {
+        "type": "object",
+        "required": [
+          "subject_type",
+          "subject_id",
+          "level"
+        ],
+        "properties": {
+          "level": {
+            "type": "string",
+            "description": "`viewer`, `editor` or `admin`."
+          },
+          "subject_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "subject_type": {
+            "type": "string",
+            "description": "`user` or `team`."
           }
         }
       },
@@ -5901,6 +6487,12 @@
           },
           "name": {
             "type": "string"
+          },
+          "visibility": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
@@ -5984,9 +6576,15 @@
           "name",
           "key",
           "description",
-          "created_at"
+          "created_at",
+          "visibility",
+          "access"
         ],
         "properties": {
+          "access": {
+            "type": "string",
+            "description": "The caller's effective access: `viewer`, `editor` or `admin`."
+          },
           "created_at": {
             "type": "string",
             "format": "date-time"
@@ -6003,6 +6601,22 @@
           },
           "name": {
             "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "description": "`workspace` (everyone in the workspace) or `private` (explicit grants only)."
+          }
+        }
+      },
+      "RefreshInput": {
+        "type": "object",
+        "properties": {
+          "refresh_token": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "API clients send the refresh token here; browsers rely on the HttpOnly cookie."
           }
         }
       },
@@ -6056,6 +6670,21 @@
               "null"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "ResetInput": {
+        "type": "object",
+        "required": [
+          "token",
+          "password"
+        ],
+        "properties": {
+          "password": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
           }
         }
       },
@@ -6202,6 +6831,29 @@
           },
           "name": {
             "type": "string"
+          }
+        }
+      },
+      "VerifyInput": {
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        }
+      },
+      "VisibilityInput": {
+        "type": "object",
+        "required": [
+          "visibility"
+        ],
+        "properties": {
+          "visibility": {
+            "type": "string",
+            "description": "`workspace` or `private`."
           }
         }
       },

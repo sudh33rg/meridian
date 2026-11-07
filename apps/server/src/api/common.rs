@@ -30,36 +30,98 @@ pub(crate) fn validate_body(s: &str) -> ApiResult<()> {
         Ok(())
     }
 }
-pub(crate) async fn valid_project(db: &mut PgConnection, i: &Identity, p: Uuid) -> ApiResult<()> {
-    let found:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM projects WHERE tenant_id=$1 AND id=$2 AND archived_at IS NULL)")
-        .bind(i.tenant_id).bind(p).fetch_one(&mut *db).await.map_err(db_err)?;
-    if found {
-        Ok(())
+/// Caller's effective level on a project: 0 none, 1 viewer, 2 editor, 3 admin (`None`: no such
+/// project in this workspace). Delegates to the SQL function so lists and checks agree.
+pub(crate) async fn project_level(
+    db: &mut PgConnection,
+    i: &Identity,
+    project: Uuid,
+) -> ApiResult<Option<i32>> {
+    sqlx::query_scalar("SELECT project_access($1,$2,$3)")
+        .bind(project)
+        .bind(i.user_id)
+        .bind(&i.role)
+        .fetch_one(&mut *db)
+        .await
+        .map_err(db_err)
+}
+/// Require at least viewer access for safe methods and editor access for anything that changes
+/// data. A project the caller cannot see is reported as not found, not as forbidden.
+pub(crate) async fn ensure_access(tx: &mut Tx, project: Uuid) -> ApiResult<()> {
+    let i = tx.identity.clone();
+    let need = if matches!(
+        tx.method,
+        axum::http::Method::GET | axum::http::Method::HEAD | axum::http::Method::OPTIONS
+    ) {
+        1
     } else {
-        Err(err(StatusCode::NOT_FOUND, "Project not found"))
+        2
+    };
+    match project_level(&mut **tx, &i, project).await? {
+        Some(l) if l >= need => Ok(()),
+        Some(l) if l >= 1 => Err(forbidden()),
+        _ => Err(err(StatusCode::NOT_FOUND, "Project not found")),
     }
 }
-pub(crate) async fn valid_issue(db: &mut PgConnection, i: &Identity, id: Uuid) -> ApiResult<Uuid> {
-    sqlx::query_scalar(
+/// Require project admin (grant management).
+pub(crate) async fn ensure_project_admin(tx: &mut Tx, project: Uuid) -> ApiResult<()> {
+    let i = tx.identity.clone();
+    match project_level(&mut **tx, &i, project).await? {
+        Some(3) => Ok(()),
+        Some(l) if l >= 1 => Err(forbidden()),
+        _ => Err(err(StatusCode::NOT_FOUND, "Project not found")),
+    }
+}
+pub(crate) async fn valid_project(tx: &mut Tx, i: &Identity, p: Uuid) -> ApiResult<()> {
+    let found:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM projects WHERE tenant_id=$1 AND id=$2 AND archived_at IS NULL)")
+        .bind(i.tenant_id).bind(p).fetch_one(&mut **tx).await.map_err(db_err)?;
+    if !found {
+        return Err(err(StatusCode::NOT_FOUND, "Project not found"));
+    }
+    ensure_access(tx, p).await
+}
+pub(crate) async fn valid_issue(tx: &mut Tx, i: &Identity, id: Uuid) -> ApiResult<Uuid> {
+    let project: Uuid = sqlx::query_scalar(
         "SELECT project_id FROM issues WHERE tenant_id=$1 AND id=$2 AND archived_at IS NULL",
     )
     .bind(i.tenant_id)
     .bind(id)
-    .fetch_optional(&mut *db)
+    .fetch_optional(&mut **tx)
     .await
     .map_err(db_err)?
-    .ok_or_else(|| err(StatusCode::NOT_FOUND, "Issue not found"))
+    .ok_or_else(|| err(StatusCode::NOT_FOUND, "Issue not found"))?;
+    ensure_access(tx, project).await?;
+    Ok(project)
 }
-pub(crate) async fn valid_page(db: &mut PgConnection, i: &Identity, id: Uuid) -> ApiResult<Uuid> {
-    sqlx::query_scalar(
+pub(crate) async fn valid_page(tx: &mut Tx, i: &Identity, id: Uuid) -> ApiResult<Uuid> {
+    let project: Uuid = sqlx::query_scalar(
         "SELECT project_id FROM pages WHERE tenant_id=$1 AND id=$2 AND archived_at IS NULL",
     )
     .bind(i.tenant_id)
     .bind(id)
-    .fetch_optional(&mut *db)
+    .fetch_optional(&mut **tx)
     .await
     .map_err(db_err)?
-    .ok_or_else(|| err(StatusCode::NOT_FOUND, "Page not found"))
+    .ok_or_else(|| err(StatusCode::NOT_FOUND, "Page not found"))?;
+    ensure_access(tx, project).await?;
+    Ok(project)
+}
+/// Access check for an entity addressed by id where archived rows are still addressable.
+pub(crate) async fn ensure_entity_access(
+    tx: &mut Tx,
+    table: &'static str,
+    id: Uuid,
+) -> ApiResult<()> {
+    let i = tx.identity.clone();
+    let sql = format!("SELECT project_id FROM {table} WHERE tenant_id=$1 AND id=$2");
+    let project: Uuid = sqlx::query_scalar(&sql)
+        .bind(i.tenant_id)
+        .bind(id)
+        .fetch_optional(&mut **tx)
+        .await
+        .map_err(db_err)?
+        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Not found"))?;
+    ensure_access(tx, project).await
 }
 /// Append a change to the tenant's event log and return its `sync_id`. The id comes from a
 /// per-tenant counter row, so ids are gap-free and ordered by commit within a tenant (the row

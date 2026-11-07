@@ -1,7 +1,10 @@
 //! OpenAPI 3.1 description of the REST API, generated from the handler annotations.
 //! `meridian-api --openapi` prints it and `GET /api/openapi.json` serves it.
 //! `docs/openapi.json` is the checked-in copy the web client types are generated from; CI checks it is current.
-use crate::api::{admin::*, collab::*, issues::*, knowledge::*, org::*, planning::*, work::*};
+use crate::api::{
+    access::*, admin::*, collab::*, issues::*, knowledge::*, org::*, planning::*, security::*,
+    work::*,
+};
 use crate::*;
 use utoipa::{
     openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
@@ -28,6 +31,18 @@ impl Modify for BearerAuth {
 #[openapi(
     info(title = "Meridian API", version = "0.2.0", description = "Multi-tenant work and knowledge API. The tenant is always resolved from the session, never from the request."),
     paths(
+        auth::refresh,
+        auth::forgot_password,
+        auth::reset_password,
+        auth::verify_email,
+        auth::resend_verification,
+        api::security::list_sessions,
+        api::security::revoke_session,
+        api::security::revoke_other_sessions,
+        api::access::list_access,
+        api::access::grant_access,
+        api::access::revoke_access,
+        api::access::set_visibility,
         api::admin::audit_log,
         api::admin::delete_webhook,
         api::admin::entitlements,
@@ -99,7 +114,7 @@ impl Modify for BearerAuth {
         auth::logout,
         auth::signup
     ),
-    components(schemas(ErrorBody, AcceptInvitation, ApprovalDecision, ApprovalInput, AuthResponse, AutomationInput, CommentInput, DecisionInput, ExistingInvite, GoalInput, ImportInput, ImportItem, InviteInput, Issue, IssueEdit, JoinTeamInput, LinkInput, Login, MemberRoleInput, NewIssue, NewPage, NewProject, Page, PatchIssue, PatchPage, Project, RelationInput, ReleaseInput, RestoreInput, RiskInput, Signup, SprintInput, SprintUpdate, SwitchTenant, TeamInput, WebhookInput, WorkspaceInput)),
+    components(schemas(ErrorBody, RefreshInput, ForgotInput, ResetInput, VerifyInput, GrantInput, VisibilityInput, AcceptInvitation, ApprovalDecision, ApprovalInput, AuthResponse, AutomationInput, CommentInput, DecisionInput, ExistingInvite, GoalInput, ImportInput, ImportItem, InviteInput, Issue, IssueEdit, JoinTeamInput, LinkInput, Login, MemberRoleInput, NewIssue, NewPage, NewProject, Page, PatchIssue, PatchPage, Project, RelationInput, ReleaseInput, RestoreInput, RiskInput, Signup, SprintInput, SprintUpdate, SwitchTenant, TeamInput, WebhookInput, WorkspaceInput)),
     modifiers(&BearerAuth)
 )]
 pub struct ApiDoc;
@@ -118,7 +133,7 @@ mod tests {
         let paths = doc["paths"].as_object().unwrap();
         let ops: usize = paths.values().map(|p| p.as_object().unwrap().len()).sum();
         assert_eq!(
-            ops, 70,
+            ops, 82,
             "documented operation count changed; update routes and docs together"
         );
         // Only the public auth endpoints may omit the bearer requirement.
@@ -128,6 +143,10 @@ mod tests {
                     "/api/auth/signup",
                     "/api/auth/login",
                     "/api/auth/accept-invite",
+                    "/api/auth/refresh",
+                    "/api/auth/forgot-password",
+                    "/api/auth/reset-password",
+                    "/api/auth/verify-email",
                 ]
                 .contains(&path.as_str());
                 assert_eq!(op.get("security").is_none(), public, "{method} {path}");

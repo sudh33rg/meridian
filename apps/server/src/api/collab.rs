@@ -8,7 +8,7 @@ use serde_json::{json, Value};
 #[utoipa::path(get, path = "/api/projects/{id}/activity", tag = "collab", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn activity(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json<Vec<Value>>> {
     let i = tx.identity.clone();
-    valid_project(&mut *tx, &i, p).await?;
+    valid_project(&mut tx, &i, p).await?;
     let rows=sqlx::query_scalar("SELECT jsonb_build_object('id',a.id,'action',a.action,'entity_type',a.entity_type,'entity_id',a.entity_id,'actor',u.display_name,'occurred_at',a.occurred_at) FROM audit_events a JOIN users u ON u.id=a.actor_id WHERE a.tenant_id=$1 AND (EXISTS(SELECT 1 FROM issues t WHERE t.tenant_id=$1 AND t.project_id=$2 AND t.id=a.entity_id) OR EXISTS(SELECT 1 FROM pages t WHERE t.tenant_id=$1 AND t.project_id=$2 AND t.id=a.entity_id)) ORDER BY a.occurred_at DESC LIMIT 200")
         .bind(i.tenant_id).bind(p).fetch_all(&mut *tx).await.map_err(db_err)?;
     Ok(Json(rows))
@@ -16,7 +16,7 @@ pub(crate) async fn activity(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json<
 #[utoipa::path(get, path = "/api/projects/{id}/analytics", tag = "collab", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn analytics(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json<Value>> {
     let i = tx.identity.clone();
-    valid_project(&mut *tx, &i, p).await?;
+    valid_project(&mut tx, &i, p).await?;
     let counts:Vec<Value>=sqlx::query_scalar("SELECT jsonb_build_object('status',status,'count',count(*)) FROM issues WHERE tenant_id=$1 AND project_id=$2 AND archived_at IS NULL GROUP BY status")
         .bind(i.tenant_id).bind(p).fetch_all(&mut *tx).await.map_err(db_err)?;
     let kinds:Vec<Value>=sqlx::query_scalar("SELECT jsonb_build_object('kind',kind,'count',count(*)) FROM issues WHERE tenant_id=$1 AND project_id=$2 AND archived_at IS NULL GROUP BY kind")
@@ -37,7 +37,7 @@ pub(crate) struct AutomationInput {
 #[utoipa::path(get, path = "/api/projects/{id}/automations", tag = "collab", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn automations(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json<Vec<Value>>> {
     let i = tx.identity.clone();
-    valid_project(&mut *tx, &i, p).await?;
+    valid_project(&mut tx, &i, p).await?;
     Ok(Json(sqlx::query_scalar("SELECT to_jsonb(a) FROM automation_rules a WHERE tenant_id=$1 AND project_id=$2 ORDER BY created_at DESC LIMIT 100")
         .bind(i.tenant_id).bind(p).fetch_all(&mut *tx).await.map_err(db_err)?))
 }
@@ -49,7 +49,7 @@ pub(crate) async fn new_automation(
 ) -> ApiResult<(StatusCode, Json<Value>)> {
     let i = tx.identity.clone();
     require_admin(&i)?;
-    valid_project(&mut *tx, &i, p).await?;
+    valid_project(&mut tx, &i, p).await?;
     validate_title(&v.name)?;
     if !["issue_created", "issue_status_changed"].contains(&v.trigger_event.as_str())
         || !["notify_project_admins", "set_priority_high"].contains(&v.action_type.as_str())
@@ -121,7 +121,7 @@ pub(crate) struct ApprovalInput {
 #[utoipa::path(get, path = "/api/projects/{id}/approvals", tag = "collab", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn approvals(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json<Vec<Value>>> {
     let i = tx.identity.clone();
-    valid_project(&mut *tx, &i, p).await?;
+    valid_project(&mut tx, &i, p).await?;
     Ok(Json(sqlx::query_scalar("SELECT to_jsonb(a) FROM approvals a WHERE tenant_id=$1 AND project_id=$2 ORDER BY created_at DESC LIMIT 250")
         .bind(i.tenant_id).bind(p).fetch_all(&mut *tx).await.map_err(db_err)?))
 }
@@ -133,7 +133,7 @@ pub(crate) async fn new_approval(
 ) -> ApiResult<(StatusCode, Json<Value>)> {
     let i = tx.identity.clone();
     require_editor(&i)?;
-    valid_project(&mut *tx, &i, p).await?;
+    valid_project(&mut tx, &i, p).await?;
     validate_title(&v.title)?;
     if !["issue", "page", "decision"].contains(&v.subject_type.as_str())
         || !relation_entity_exists(&mut *tx, i.tenant_id, &v.subject_type, v.subject_id).await?

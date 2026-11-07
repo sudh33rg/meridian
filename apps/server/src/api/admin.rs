@@ -71,7 +71,7 @@ pub(crate) async fn delete_webhook(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResul
 #[utoipa::path(get, path = "/api/projects/{id}/export", tag = "admin", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn export_project(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json<Value>> {
     let i = tx.identity.clone();
-    valid_project(&mut *tx, &i, p).await?;
+    valid_project(&mut tx, &i, p).await?;
     let project: Value = sqlx::query_scalar(
         "SELECT to_jsonb(t) - 'tenant_id' FROM projects t WHERE tenant_id=$1 AND id=$2",
     )
