@@ -120,6 +120,8 @@ Source: `PARITY_GAP_REGISTER.md`. The owner asked for every feature a Jira-class
 
 Recorded per phase as each one lands. Phase E results are in `IMPLEMENTATION_STATUS.md`.
 
+**Progress, second build (8 November 2026).** Built: F3 issue types, F5 comment edit, delete and history, F6 trash, F7 validators and post-functions, F8 query OR groups, functions and order, F9 WIP limits. Partly built: F5 (no rich text, reminders or reactions), F6 (no automatic purge), F7 (no screens or post-function editor), F8 (no nesting, shared saved filters or favourites), F9 (no swimlanes or quick filters). Not started in this build: J2 (needs a design pass), J5 (time zone rendering), K2 to K5, L1 to L2, P1, I2, I3, I6, J1, J3 and J4 (J4 needs an owner decision). Owner-blocked: I7, J4, L3, M1, N1, and the I2 sender domain. Verification for this build is not done: no PostgreSQL could be started from the build sandbox, so the API and browser checks in each step remain open (`IMPLEMENTATION_STATUS.md` lists the owner steps).
+
 ### Verification status after the E to K build (8 November 2026)
 
 - **Migrations:** `0001` to `0025` apply in order to an in-process PostgreSQL-compatible database (PGlite with pgcrypto), with the sqlx bookkeeping table stubbed. This shows the SQL in the migrations is valid in order. It does not show the production database behaves the same.

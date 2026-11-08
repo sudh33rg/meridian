@@ -139,11 +139,13 @@ Projects define typed fields that issues carry in `custom_fields`. Types are `te
 
 A query is space-separated `field:value` terms, with quotes around a value that contains spaces:
 
-- `status:` (a status the project defines), `priority:`, `assignee:` (a user id or `me`), `label:`, `kind:` (or `type:`), `title:`, `number:` (the issue number, such as `number:12`), and `cf.<key>:` for a custom field.
+- `status:` (a status the project defines), `priority:`, `assignee:` (a user id, `me` or `currentUser()`), `label:`, `kind:` (or `type:`, an issue type the project defines), `title:`, `number:` (the issue number, such as `number:12`), `sprint:` (`openSprints()`, `none` or a sprint id), and `cf.<key>:` for a custom field.
 - A leading `-` negates a term. A negated term keeps issues where the value is missing.
+- `OR` between two filters puts them in one group, so `status:todo OR status:done priority:high` means (todo or done) and high. Groups cannot nest and there are no parentheses.
+- One `order:` term sorts the results: `rank` (backlog order), `priority` (urgent first), `updated` (most recent first) or `number` (the default, newest first).
 - An unknown field, an unknown value or a malformed query returns 400. Project access is applied before any filter, and the SQL is parameterised.
 
-Example: `status:in_progress priority:high -label:legacy cf.region:"EU"`.
+Example: `status:in_progress priority:high -label:legacy cf.region:"EU" order:priority`.
 
 ### Workflow transition rules
 
@@ -152,8 +154,37 @@ Example: `status:in_progress priority:high -label:legacy cf.region:"EU"`.
 | GET | `/projects/{id}/transitions` | The rules. Any member who can see the project |
 | POST | `/projects/{id}/transitions` | Add a rule: `{"from","to","requires_field"?}`. Project admins only |
 | DELETE | `/projects/{id}/transitions/{from}/{to}` | Remove a rule. Project admins only |
+| GET / POST | `/projects/{id}/transitions/{from}/{to}/actions` | The rule's post-functions, or add one: `{"action":"set_field","field","value"}` or `{"action":"notify_admins"}`. Up to five per rule. Project admins only |
+| DELETE | `/projects/{id}/transitions/{from}/{to}/actions/{action_id}` | Remove a post-function. Project admins only |
 
-A project with no rules allows every status change. A status that is the starting point of at least one rule allows only the moves its rules list, and other statuses stay unrestricted. `requires_field` names a custom field that must hold a value after the change. Every status change is checked against the rules: PATCH, edit, bulk and the board.
+A project with no rules allows every status change. A status that is the starting point of at least one rule allows only the moves its rules list, and other statuses stay unrestricted. `requires_field` names a custom field that must hold a value after the change. `requires_admin` (`true` on create) lets only a workspace admin or owner make the change; automations never pass it. Every status change is checked against the rules, and against the target column's WIP limit: PATCH, edit, bulk, the board and automations.
+
+Post-functions run in the same transaction as the change. `set_field` writes the value into the custom field; `notify_admins` notifies the workspace admins and owners. A field a post-function writes cannot be deleted while the rule exists.
+
+### Issue types
+
+Each project defines its issue types. A type has a key (fixed once created; issues store it), a name, an icon (`task`, `bug`, `story`, `epic`, `feature`, `improvement`, `incident` or `request`) and a hierarchy level (0 for standard work, 1 for epic level). New projects start with task, bug, story and epic, as before.
+
+| Verb | Route | Description |
+|---|---|---|
+| GET | `/projects/{id}/issue-types` | The types in menu order. Any member who can see the project |
+| POST | `/projects/{id}/issue-types` | Add a type: `{"name","icon"?,"hierarchy_level"?,"key"?}`. Project admins only; up to 12 per project |
+| PATCH | `/projects/{id}/issue-types/{key}` | Rename or change the icon. Project admins only |
+| DELETE | `/projects/{id}/issue-types/{key}` | Delete a type. Refused (409) while any issue uses it, or when it is the last standard type |
+
+Creating, editing, moving, importing and subtasks check the type against the project. A subtask must use a standard (level 0) type. Not built: a default workflow per type and field contexts per type.
+
+### Comments: edit, delete and history
+
+The author can edit a comment (`PATCH /issues/{id}/comments/{comment}` with `{"body"}`). The author or a workspace admin can delete it (`DELETE`). A deleted comment leaves the thread. Every earlier text is kept: `GET /issues/{id}/comments/{comment}/history` returns the current text and the earlier versions, and is readable only by the author and admins. Editing does not notify mentions again.
+
+### Trash
+
+`POST /issues/{id}/trash` archives the issue and records a restore date 30 days ahead. `POST /issues/{id}/restore` brings back an archived or trashed issue. `GET /projects/{id}/trash` lists the trashed issues (editors only). `unarchive` refuses a trashed issue. Nothing is purged automatically yet: the restore date is shown, but trashed issues stay until a purge job is built.
+
+### WIP limits
+
+`PUT /projects/{id}/statuses/{key}/wip-limit` with `{"limit": 3}` (1 to 1000) or `{"limit": null}` sets or removes a column's limit. Project admins only. A move into a full column is refused (400) with the count. Creating an issue in a full column is not refused.
 
 ### CSV import
 
