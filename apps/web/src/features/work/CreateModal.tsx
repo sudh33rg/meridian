@@ -1,4 +1,6 @@
 import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { request } from "../../lib/api";
 import { Plus, X } from "lucide-react";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { useTeams } from "../agile/agile-shared";
@@ -6,6 +8,18 @@ import { useTeams } from "../agile/agile-shared";
 export function CreateModal() {
   const { error, busy, modal, setModal, draft, setDraft, create, session } = useWorkspace();
   const teams = useTeams(session.token, modal === "issue");
+  const { selected, project, setSelectedIssue } = useWorkspace();
+  const titleText = draft.title.trim();
+  const similar = useQuery({
+    queryKey: ["similar", selected, titleText],
+    queryFn: () =>
+      request<{ id: string; number: number; title: string; status: string }[]>(
+        session.token,
+        `/projects/${selected}/similar?title=${encodeURIComponent(titleText)}`,
+      ),
+    enabled: modal === "issue" && !!selected && titleText.length >= 4,
+    staleTime: 10_000,
+  });
   return (
     <>
       {modal && (
@@ -85,6 +99,21 @@ export function CreateModal() {
                     placeholder={modal === "issue" ? "What needs to be done?" : "Page title"}
                   />
                 </label>
+                {modal === "issue" && (similar.data ?? []).length > 0 && (
+                  <div className="similar-hint small" role="status">
+                    <b>Possibly the same work:</b>
+                    <ul>
+                      {(similar.data ?? []).map((s) => (
+                        <li key={s.id}>
+                          <button type="button" className="issue-number-button" onClick={() => { setModal(null); setSelectedIssue(s.id); }}>
+                            {project?.key}-{s.number}
+                          </button>{" "}
+                          {s.title} <span className="muted">· {s.status}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 {modal === "issue" && (
                   <div className="form-row">
                     <label>

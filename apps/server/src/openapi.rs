@@ -3,7 +3,7 @@
 //! `docs/openapi.json` is the checked-in copy the web client types are generated from; CI checks it is current.
 use crate::api::{
     access::*, admin::*, collab::*, issues::*, knowledge::*, org::*, personal::*, planning::*,
-    csv_import::*, fields::*, security::*, transitions::*, statuses::*, work::*, agile::*, releases::*,
+    csv_import::*, fields::*, security::*, transitions::*, statuses::*, work::*, agile::*, releases::*, issue_depth::*,
 };
 use crate::*;
 use utoipa::{
@@ -141,7 +141,33 @@ impl Modify for BearerAuth {
         api::planning::risks,
         api::planning::sprints,
         api::agile::update_sprint,
-        api::agile::backlog,
+        api::issue_depth::list_components,
+        api::issue_depth::create_component,
+        api::issue_depth::update_component,
+        api::issue_depth::delete_component,
+        api::issue_depth::issue_components,
+        api::issue_depth::set_issue_components,
+        api::issue_depth::get_estimates,
+        api::issue_depth::set_estimates,
+        api::issue_depth::list_worklogs,
+        api::issue_depth::add_worklog,
+        api::issue_depth::delete_worklog,
+        api::issue_depth::list_watchers,
+        api::issue_depth::add_watcher,
+        api::issue_depth::remove_watcher,
+        api::issue_depth::get_votes,
+        api::issue_depth::cast_vote,
+        api::issue_depth::withdraw_vote,
+        api::issue_depth::list_checklist,
+        api::issue_depth::add_checklist_item,
+        api::issue_depth::update_checklist_item,
+        api::issue_depth::delete_checklist_item,
+        api::issue_depth::list_children,
+        api::issue_depth::rollup,
+        api::issue_depth::create_subtask,
+        api::issue_depth::clone_issue,
+        api::issue_depth::move_issue,
+        api::issue_depth::similar_issues,
         api::agile::rank_issue,
         api::agile::set_issue_team,
         api::agile::sprint_detail,
@@ -189,7 +215,7 @@ impl Modify for BearerAuth {
         auth::logout,
         auth::signup
     ),
-    components(schemas(ErrorBody, BulkIssueInput, BulkItemResult, BulkResult, ProjectStatus, NewStatus, StatusPatch, FieldDefinition, NewField, FieldPatch, TransitionRule, NewTransition, IssueComment, IssueLink, SearchHit, CsvImportReport, CsvRowReport, IssueDetail, Notification, Approval,SavedView, NewSavedView, NotificationPreference, NotificationPreferenceInput, api::knowledge::TitleInput, crate::sso::SsoInput, crate::sso::DomainInput, crate::scim::TokenInput, crate::billing::PlanInput, crate::webhooks::WebhookInput, crate::webhooks::WebhookPatch, api::access::PageAccess, api::access::RestrictionInput, api::access::PageGrantInput, crate::mfa::CodeInput, crate::mfa::DisableInput, crate::mfa::VerifyChallengeInput, crate::mfa::SecurityPolicyInput, ChangePasswordInput, RefreshInput, ForgotInput, ResetInput, VerifyInput, GrantInput, VisibilityInput, AcceptInvitation, ApprovalDecision, ApprovalInput, AuthResponse, AutomationInput, CommentInput, DecisionInput, ExistingInvite, GoalInput, ImportInput, ImportItem, InviteInput, Issue, IssueEdit, JoinTeamInput, LinkInput, Login, MemberRoleInput, NewIssue, NewPage, NewProject, Page, PatchIssue, PatchPage, Project, RelationInput, ReleaseInput, RestoreInput, RiskInput, Signup, SprintInput, SwitchTenant, TeamInput, WorkspaceInput, BacklogItem, RankInput, IssueTeamInput, SprintTotals, Sprint, SprintDetail, SprintIssuesInput, MembershipResult, VelocitySprint, Velocity, SprintSnapshot, Burndown, SprintUpdate, Release, ReleaseTotals, ReleaseDetail, ReleaseScopeItem, ScopeEvent, ReleaseNotes, ReleaseIssuesInput, ReleaseUpdate)),
+    components(schemas(ErrorBody, BulkIssueInput, BulkItemResult, BulkResult, ProjectStatus, NewStatus, StatusPatch, FieldDefinition, NewField, FieldPatch, TransitionRule, NewTransition, IssueComment, IssueLink, SearchHit, CsvImportReport, CsvRowReport, IssueDetail, Notification, Approval,SavedView, NewSavedView, NotificationPreference, NotificationPreferenceInput, api::knowledge::TitleInput, crate::sso::SsoInput, crate::sso::DomainInput, crate::scim::TokenInput, crate::billing::PlanInput, crate::webhooks::WebhookInput, crate::webhooks::WebhookPatch, api::access::PageAccess, api::access::RestrictionInput, api::access::PageGrantInput, crate::mfa::CodeInput, crate::mfa::DisableInput, crate::mfa::VerifyChallengeInput, crate::mfa::SecurityPolicyInput, ChangePasswordInput, RefreshInput, ForgotInput, ResetInput, VerifyInput, GrantInput, VisibilityInput, AcceptInvitation, ApprovalDecision, ApprovalInput, AuthResponse, AutomationInput, CommentInput, DecisionInput, ExistingInvite, GoalInput, ImportInput, ImportItem, InviteInput, Issue, IssueEdit, JoinTeamInput, LinkInput, Login, MemberRoleInput, NewIssue, NewPage, NewProject, Page, PatchIssue, PatchPage, Project, RelationInput, ReleaseInput, RestoreInput, RiskInput, Signup, SprintInput, SwitchTenant, TeamInput, WorkspaceInput, BacklogItem, RankInput, IssueTeamInput, SprintTotals, Sprint, SprintDetail, SprintIssuesInput, MembershipResult, VelocitySprint, Velocity, SprintSnapshot, Burndown, SprintUpdate, Release, ReleaseTotals, ReleaseDetail, ReleaseScopeItem, ScopeEvent, ReleaseNotes, ReleaseIssuesInput, ReleaseUpdate, Component, ComponentInput, ComponentPatch, IssueComponentsInput, Estimates, EstimatesInput, Worklog, WorklogInput, Person, WatchInput, Votes, ChecklistItem, ChecklistInput, ChecklistPatch, ChildIssue, Rollup, SubtaskInput, CloneInput, MoveInput, MoveResult, SimilarIssue)),
     modifiers(&BearerAuth)
 )]
 pub struct ApiDoc;

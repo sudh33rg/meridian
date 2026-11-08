@@ -454,6 +454,7 @@ pub(crate) async fn new_issue_comment(
     require_editor(&i)?;
     valid_issue(&mut tx, &i, id).await?;
     validate_body(&v.body)?;
+    let body_text = v.body.clone();
     if let Some(parent) = v.parent_id {
         let ok:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM issue_comments WHERE tenant_id=$1 AND issue_id=$2 AND id=$3)")
             .bind(i.tenant_id).bind(id).bind(parent).fetch_one(&mut *tx).await.map_err(db_err)?;
@@ -463,6 +464,7 @@ pub(crate) async fn new_issue_comment(
     }
     let row:Value=sqlx::query_scalar("INSERT INTO issue_comments(tenant_id,issue_id,parent_id,author_id,body) VALUES($1,$2,$3,$4,$5) RETURNING to_jsonb(issue_comments)")
         .bind(i.tenant_id).bind(id).bind(v.parent_id).bind(i.user_id).bind(v.body).fetch_one(&mut *tx).await.map_err(db_err)?;
+    crate::api::issue_depth::notify_mentions(&mut tx, i.tenant_id, i.user_id, id, &body_text).await?;
     log_event(&mut tx, &i, "commented", "issue", id).await?;
     Ok((StatusCode::CREATED, Json(row)))
 }

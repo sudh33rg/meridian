@@ -66,3 +66,21 @@ Source of the requirement: `PARITY_GAP_REGISTER.md` sections 1 and 2. Built as m
 | E7 contract | `make openapi` (157 operations), `make manifest`, `npm run build` (type-check and Vite build) and eslint on the changed files: all pass. | The API has not been run against PostgreSQL in this phase; migration 0019 and the new queries are checked at the visual-verification step. |
 
 No automated tests were added or changed (Constitution Article V.2). Verification is recorded at the end of the parity plan (see `REMAINING_PLAN.md`).
+
+## Phase F — issue model depth (8 November 2026, partial)
+
+Migration `0020_issue_depth.sql`; API in `apps/server/src/api/issue_depth.rs`; web in `apps/web/src/features/agile/IssueDepth.tsx` and `SprintCard`/`CreateModal` changes.
+
+| Step | What exists in source | Still open |
+|---|---|---|
+| F1 components | Project components with name, description, default assignee and issue count. `PUT /issues/{id}/components` (at most 20, same project). An unassigned issue takes the default assignee of its first component. | Default assignee is not applied on create (only when components are set). |
+| F2 epics and subtasks | `GET /issues/{id}/children`, `GET /issues/{id}/rollup` (children done, points, estimates, remaining, logged), `POST /issues/{id}/subtasks` (one level deep). Drawer lists subtasks and creates them. | Epic-specific reports and a child board are in G and K. |
+| F3 issue type schemes | Not started. `kind` is still the fixed set task, bug, story, epic. | Configurable types, per-type workflows and field contexts. |
+| F4 time and people | Original and remaining estimates (minutes), worklogs with author and day, delete by author or admin, watchers (add and remove), votes (count and voted). Drawer shows all of it. | Time reports by person and project (G2). Estimates do not reduce automatically when time is logged. |
+| F5 content | Checklists (add, tick, rename, delete). `@handle` mentions in comments notify the member (handle is the part of the email before `@`). | Rich text descriptions, comment edit and delete, reminders, reactions. |
+| F6 lifecycle | Clone (copies content, classification, estimates, components; not assignee, sprint, parent or subtasks). Move to another project (keeps the status if the target has it, keeps custom fields the target defines and names the rest, releases sprint, release scope and components, leaves a comment with the old key). Similar issues while creating (full-text on titles). | Trash with recovery window (archive covers most needs). Duplicate links. |
+| F7 transitions | Not started beyond D3 rules. | Validators, post-functions and per-transition screens. |
+| F8 query and filters | Not started. | Functions such as `currentUser()`, OR and grouping, shared saved filters, favourites. |
+| F9 boards | Not started. | Swimlanes, WIP limits, quick filters. |
+
+Checks: `cargo check` and `npm run build` (type-check and Vite build) pass. `make openapi` regenerated; `make manifest` regenerated. No tests added. Not yet run against PostgreSQL or in a browser (see the verification step at the end of the plan).

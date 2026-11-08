@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTeams } from "../agile/agile-shared";
+import { IssueDepth } from "../agile/IssueDepth";
 import { EntityRelations } from "./EntityRelations";
 import { Attachments } from "../shared/Attachments";
 import { X } from "lucide-react";
@@ -254,6 +255,11 @@ export function IssueDrawer({
             <div className="drawer-section">
               <Attachments entityType="issue" entityId={id} canEdit />
             </div>
+            <IssueDepth
+              issue={{ id, number: Number(issue.number), title: str(issue.title), project_id: str(issue.project_id) }}
+              archived={!!issue.archived_at}
+              onChanged={() => onChanged()}
+            />
             <div className="drawer-section">
               <h3>Discussion · {comments.length}</h3>
               {comments.map((c) => (
