@@ -11574,6 +11574,119 @@
         ]
       }
     },
+    "/api/projects/{id}/import/jira": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Jira issue export as JSON: `{\"issues\": [...]}` or a bare array of issues. It reads the key, the\nsummary, the description, and the issue type, priority and status names. Changelog, sprints and\nversions are not read. The file is converted to the CSV importer's columns and then imported by\nthe same code, so the dry run, idempotency and row checks are the same. Report line numbers count\nthe converted rows, with the header on line 1.",
+        "operationId": "import_jira",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "dry_run",
+            "in": "path",
+            "description": "Default true: report only. Send false to create the issues.",
+            "required": true,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "create_statuses",
+            "in": "path",
+            "description": "Create statuses that the file names but the project lacks. Default false.",
+            "required": true,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Jira issues as JSON: {\"issues\": [...]} or an array. Reads key, fields.summary, fields.description, fields.issuetype.name, fields.priority.name and fields.status.name",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Report. Check committed and errors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CsvImportReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The file cannot be read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admins only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/projects/{id}/issue-types": {
       "get": {
         "tags": [
@@ -20916,7 +21029,7 @@
         "properties": {
           "action": {
             "type": "string",
-            "description": "`set_field` or `notify_admins`."
+            "description": "`set_field`, `notify_admins`, `notify_assignee` or `create_subtask`."
           },
           "field": {
             "type": [
@@ -20926,7 +21039,7 @@
             "description": "Required for `set_field`: a custom field of this project."
           },
           "value": {
-            "description": "Required for `set_field`: a value the field accepts."
+            "description": "Required for `set_field`: a value the field accepts. For `create_subtask`, the subtask title\nas a string (1 to 255 characters)."
           }
         }
       },
@@ -22619,7 +22732,7 @@
       },
       "TransitionAction": {
         "type": "object",
-        "description": "One post-function of a rule. `set_field` writes `value` into `field`; `notify_admins` tells the\nworkspace admins and owners that the issue changed.",
+        "description": "One post-function of a rule. `set_field` writes `value` into `field`; `notify_admins` tells the\nworkspace admins and owners that the issue changed; `notify_assignee` tells the assignee;\n`create_subtask` creates a subtask titled `title`.",
         "required": [
           "id",
           "action"
@@ -22637,6 +22750,12 @@
           "id": {
             "type": "string",
             "format": "uuid"
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "value": {}
         }

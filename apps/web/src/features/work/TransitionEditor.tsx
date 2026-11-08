@@ -5,6 +5,7 @@ import { errorMessage, request, send } from "../../lib/api";
 import type { FieldDefinition } from "../../lib/fields";
 import type { ProjectStatus } from "../../lib/statuses";
 import { useToast } from "../shared/Toast";
+import { PostFunctionEditor } from "./PostFunctionEditor";
 
 export type TransitionRule = {
   from: string;
@@ -140,6 +141,7 @@ export function TransitionEditor({
           <Plus size={14} /> Add move
         </button>
       </form>
+      <PostFunctionEditor token={token} projectId={projectId} statuses={statuses} />
     </section>
   );
 }

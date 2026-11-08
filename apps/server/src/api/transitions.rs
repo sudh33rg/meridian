@@ -29,21 +29,24 @@ pub(crate) struct NewTransition {
 }
 
 /// One post-function of a rule. `set_field` writes `value` into `field`; `notify_admins` tells the
-/// workspace admins and owners that the issue changed.
+/// workspace admins and owners that the issue changed; `notify_assignee` tells the assignee;
+/// `create_subtask` creates a subtask titled `title`.
 #[derive(Serialize, FromRow, utoipa::ToSchema)]
 pub(crate) struct TransitionAction {
     pub(crate) id: Uuid,
     pub(crate) action: String,
     pub(crate) field: Option<String>,
     pub(crate) value: Option<Value>,
+    pub(crate) title: Option<String>,
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct NewTransitionAction {
-    /// `set_field` or `notify_admins`.
+    /// `set_field`, `notify_admins`, `notify_assignee` or `create_subtask`.
     pub(crate) action: String,
     /// Required for `set_field`: a custom field of this project.
     pub(crate) field: Option<String>,
-    /// Required for `set_field`: a value the field accepts.
+    /// Required for `set_field`: a value the field accepts. For `create_subtask`, the subtask title
+    /// as a string (1 to 255 characters).
     pub(crate) value: Option<Value>,
 }
 
@@ -147,8 +150,8 @@ pub(crate) async fn run_post_functions(
     from: &str,
     to: &str,
 ) -> ApiResult<()> {
-    let actions: Vec<(String, Option<String>, Option<Value>, Uuid)> = sqlx::query_as(
-        "SELECT a.action, a.field_key, a.field_value, i.project_id FROM transition_actions a \
+    let actions: Vec<(String, Option<String>, Option<Value>, Option<String>, Uuid)> = sqlx::query_as(
+        "SELECT a.action, a.field_key, a.field_value, a.title, i.project_id FROM transition_actions a \
          JOIN issues i ON i.tenant_id=a.tenant_id AND i.project_id=a.project_id \
          WHERE a.tenant_id=$1 AND i.id=$2 AND a.from_key=$3 AND a.to_key=$4 ORDER BY a.created_at, a.id",
     )
@@ -159,7 +162,7 @@ pub(crate) async fn run_post_functions(
     .fetch_all(&mut *db)
     .await
     .map_err(db_err)?;
-    for (action, field, value, _project) in actions {
+    for (action, field, value, title, _project) in actions {
         match action.as_str() {
             "set_field" => {
                 let field = field
@@ -190,9 +193,97 @@ pub(crate) async fn run_post_functions(
                 .await
                 .map_err(db_err)?;
             }
+            "notify_assignee" => {
+                sqlx::query(
+                    "INSERT INTO notifications(tenant_id,recipient_id,actor_id,kind,title,body,entity_type,entity_id) \
+                     SELECT $1,i.assignee_id,$2,'automation','Issue moved by a workflow rule',$3,'issue',i.id \
+                     FROM issues i WHERE i.tenant_id=$1 AND i.id=$4 AND i.assignee_id IS NOT NULL AND i.assignee_id<>$2",
+                )
+                .bind(tenant)
+                .bind(actor)
+                .bind(format!("Moved from “{from}” to “{to}”."))
+                .bind(issue)
+                .execute(&mut *db)
+                .await
+                .map_err(db_err)?;
+            }
+            "create_subtask" => {
+                let title = title
+                    .ok_or_else(|| ApiError::Internal("A create_subtask action has no title".into()))?;
+                create_subtask_in(db, tenant, actor, issue, &title).await?;
+            }
             _ => {}
         }
     }
+    Ok(())
+}
+
+/// A subtask a post-function creates. It follows the rules for a subtask made by hand: it sits one
+/// level below its parent, takes a standard (non-epic) type and the project's default status. A
+/// transition that would nest a subtask under a subtask is refused, so the whole change is refused.
+async fn create_subtask_in(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    actor: Uuid,
+    parent: Uuid,
+    title: &str,
+) -> ApiResult<()> {
+    crate::api::common::validate_title(title)?;
+    let (project, parent_parent): (Uuid, Option<Uuid>) =
+        sqlx::query_as("SELECT project_id, parent_id FROM issues WHERE tenant_id=$1 AND id=$2")
+            .bind(tenant)
+            .bind(parent)
+            .fetch_one(&mut *db)
+            .await
+            .map_err(db_err)?;
+    if parent_parent.is_some() {
+        return Err(bad("This transition creates a subtask, but the issue is already a subtask"));
+    }
+    let kind = crate::api::issue_types::default_type(db, tenant, project).await?;
+    if crate::api::issue_types::type_level(db, tenant, project, &kind).await? != Some(0) {
+        return Err(bad("The project's default type is an epic level type, so no subtask can be created"));
+    }
+    // Same lock and numbering as a subtask made by hand, so two creates cannot take one number.
+    sqlx::query("SELECT id FROM projects WHERE tenant_id=$1 AND id=$2 FOR UPDATE")
+        .bind(tenant)
+        .bind(project)
+        .fetch_optional(&mut *db)
+        .await
+        .map_err(db_err)?;
+    let number: i64 = sqlx::query_scalar(
+        "SELECT COALESCE(MAX(number),0)+1 FROM issues WHERE tenant_id=$1 AND project_id=$2",
+    )
+    .bind(tenant)
+    .bind(project)
+    .fetch_one(&mut *db)
+    .await
+    .map_err(db_err)?;
+    let status = crate::api::statuses::default_status(db, tenant, project).await?;
+    let child: Uuid = sqlx::query_scalar(
+        "INSERT INTO issues(tenant_id,project_id,number,title,kind,priority,created_by,status,parent_id) \
+         VALUES($1,$2,$3,$4,$5,'medium',$6,$7,$8) RETURNING id",
+    )
+    .bind(tenant)
+    .bind(project)
+    .bind(number)
+    .bind(title.trim())
+    .bind(&kind)
+    .bind(actor)
+    .bind(&status)
+    .bind(parent)
+    .fetch_one(&mut *db)
+    .await
+    .map_err(db_err)?;
+    log_event_system(db, tenant, actor, "created", "issue", child).await?;
+    crate::api::history::record_status(db, tenant, child, None, &status, actor).await?;
+    log_outbox(
+        db,
+        tenant,
+        "issue.created",
+        child,
+        json!({"project_id": project, "parent_id": parent}),
+    )
+    .await?;
     Ok(())
 }
 
@@ -366,7 +457,7 @@ pub(crate) async fn list_actions(
     let tenant = tx.identity.tenant_id;
     rule_exists(&mut tx, tenant, project, &from, &to).await?;
     let rows: Vec<TransitionAction> = sqlx::query_as(
-        "SELECT id, action, field_key AS field, field_value AS value FROM transition_actions WHERE tenant_id=$1 AND project_id=$2 AND from_key=$3 AND to_key=$4 ORDER BY created_at, id",
+        "SELECT id, action, field_key AS field, field_value AS value, title FROM transition_actions WHERE tenant_id=$1 AND project_id=$2 AND from_key=$3 AND to_key=$4 ORDER BY created_at, id",
     )
     .bind(tx.identity.tenant_id)
     .bind(project)
@@ -400,6 +491,7 @@ pub(crate) async fn create_action(
     if count >= MAX_ACTIONS_PER_RULE {
         return Err(bad("A rule can have up to 5 post-functions"));
     }
+    let mut title: Option<String> = None;
     let (field, value) = match v.action.as_str() {
         "set_field" => {
             let field = v
@@ -421,16 +513,37 @@ pub(crate) async fn create_action(
             let checked = crate::api::fields::check_value(&def, &value)?;
             (Some(field), Some(checked))
         }
-        "notify_admins" => {
+        "notify_admins" | "notify_assignee" => {
             if v.field.is_some() || v.value.is_some() {
-                return Err(bad("notify_admins takes no field or value"));
+                return Err(bad(&format!("{} takes no field or value", v.action)));
             }
             (None, None)
         }
-        _ => return Err(bad("Action must be set_field or notify_admins")),
+        "create_subtask" => {
+            if v.field.is_some() {
+                return Err(bad("create_subtask takes a title, not a field"));
+            }
+            let text = v
+                .value
+                .as_ref()
+                .and_then(Value::as_str)
+                .ok_or_else(|| bad("create_subtask needs the subtask title as a string"))?
+                .trim()
+                .to_string();
+            if text.is_empty() || text.chars().count() > 255 {
+                return Err(bad("A subtask title is 1 to 255 characters"));
+            }
+            title = Some(text);
+            (None, None)
+        }
+        _ => {
+            return Err(bad(
+                "Action must be set_field, notify_admins, notify_assignee or create_subtask",
+            ))
+        }
     };
     let row: TransitionAction = sqlx::query_as(
-        "INSERT INTO transition_actions(tenant_id,project_id,from_key,to_key,action,field_key,field_value) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id, action, field_key AS field, field_value AS value",
+        "INSERT INTO transition_actions(tenant_id,project_id,from_key,to_key,action,field_key,field_value,title) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id, action, field_key AS field, field_value AS value, title",
     )
     .bind(i.tenant_id)
     .bind(project)
@@ -439,6 +552,7 @@ pub(crate) async fn create_action(
     .bind(&v.action)
     .bind(&field)
     .bind(&value)
+    .bind(&title)
     .fetch_one(&mut *tx)
     .await
     .map_err(db_err)?;

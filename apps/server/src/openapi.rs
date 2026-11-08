@@ -160,6 +160,7 @@ impl Modify for BearerAuth {
         api::personal::record_view,
         api::personal::list_favourites,
         api::personal::list_recent,
+        api::csv_import::import_jira,
         api::issue_depth::list_components,
         api::issue_depth::create_component,
         api::issue_depth::update_component,

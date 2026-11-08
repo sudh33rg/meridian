@@ -2040,6 +2040,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/import/jira": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Jira issue export as JSON: `{"issues": [...]}` or a bare array of issues. It reads the key, the
+         *     summary, the description, and the issue type, priority and status names. Changelog, sprints and
+         *     versions are not read. The file is converted to the CSV importer's columns and then imported by
+         *     the same code, so the dry run, idempotency and row checks are the same. Report line numbers count
+         *     the converted rows, with the header on line 1.
+         */
+        post: operations["import_jira"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}/issue-types": {
         parameters: {
             query?: never;
@@ -3937,11 +3960,14 @@ export interface components {
             to: string;
         };
         NewTransitionAction: {
-            /** @description `set_field` or `notify_admins`. */
+            /** @description `set_field`, `notify_admins`, `notify_assignee` or `create_subtask`. */
             action: string;
             /** @description Required for `set_field`: a custom field of this project. */
             field?: string | null;
-            /** @description Required for `set_field`: a value the field accepts. */
+            /**
+             * @description Required for `set_field`: a value the field accepts. For `create_subtask`, the subtask title
+             *     as a string (1 to 255 characters).
+             */
             value?: unknown;
         };
         /** @description One inbox entry. Columns match the `notifications` table. */
@@ -4519,13 +4545,15 @@ export interface components {
         };
         /**
          * @description One post-function of a rule. `set_field` writes `value` into `field`; `notify_admins` tells the
-         *     workspace admins and owners that the issue changed.
+         *     workspace admins and owners that the issue changed; `notify_assignee` tells the assignee;
+         *     `create_subtask` creates a subtask titled `title`.
          */
         TransitionAction: {
             action: string;
             field?: string | null;
             /** Format: uuid */
             id: string;
+            title?: string | null;
             value?: unknown;
         };
         TransitionRule: {
@@ -13346,6 +13374,74 @@ export interface operations {
                 };
             };
             /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    import_jira: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Default true: report only. Send false to create the issues. */
+                dry_run: boolean | null;
+                /** @description Create statuses that the file names but the project lacks. Default false. */
+                create_statuses: boolean | null;
+            };
+            cookie?: never;
+        };
+        /** @description Jira issues as JSON: {"issues": [...]} or an array. Reads key, fields.summary, fields.description, fields.issuetype.name, fields.priority.name and fields.status.name */
+        requestBody: {
+            content: {
+                "application/json": string;
+            };
+        };
+        responses: {
+            /** @description Report. Check committed and errors */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CsvImportReport"];
+                };
+            };
+            /** @description The file cannot be read */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Workspace admins only */
             403: {
                 headers: {
                     [name: string]: unknown;
