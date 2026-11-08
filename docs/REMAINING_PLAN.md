@@ -39,13 +39,13 @@ Recorded at close-out on 8 November 2026. API checks ran against a disposable Po
 | D7 typed responses | Done for comments, links, saved views, search, notifications and approvals. The remaining `Value` endpoints are still untyped. | `d7` 3 checks |
 | D8 saved views | Done. `query` and `kind` are stored; a view that names a removed status is reported with `stale: true`. | `d8` 14/14 |
 | D9 permissions | Done. A second member is refused (403) on status, field and rule changes, and their reads still work. | `d9` 22/22 |
-| D10 table layout | Changed as planned. Re-check at 1024px and 390px is in the close-out visual pass. | Pending the visual pass |
+| D10 table layout | Done, with a follow-up fix in `4176fad`. A global `td:first-child` rule gave the checkbox column a 240px minimum, which pushed Status off-screen at 1024px. At 1024px all columns now fit. At 375px the table scrolls inside its container and the page does not. | Browser measurements on the final build |
 | D11 housekeeping | Done. Stray `/tmp/placeholder` removed. | File no longer present |
 | D12 mobile simulator | Build succeeds for the iOS simulator. The app stayed on a spinner because the keychain read at startup was not guarded; it now starts signed out if that read fails. The sign-in screen renders on iPhone 17 Pro. Signing in on the simulator was not exercised. | Simulator screenshot after the fix |
-| D13 close-out | API checks below. Visual pass is the last step. | See counts |
+| D13 close-out | API checks below. Browser checks on the final build: D2 (valid query returns 2 of 2; unknown field shows its error) and D10 (both widths). D1, D3 and D8 were checked in the browser during their steps and by API scripts, not again on the final build. | See counts |
 
 API checks on the final build: `verify_api` 33/33, `verify_phase_b` 41/41, `verify_phase_c` 34/34, `verify_d1` 33/33, `verify_d2` 38/38, `verify_d3` 24/24, `verify_d4` 22/22, `d7` 3/3, `d8` 14/14, `d9` 22/22. Total 264 checks, all passing.
 
 One Phase B check changed. "Unknown filter key → 400" used `kind` as the unknown key. D8 made `kind` a valid saved-view filter, so the check now uses `bogus`. The behaviour is correct; the check was out of date.
 
-Not verified: behaviour on a physical device or in the simulator beyond the sign-in screen; offline and draft-resend paths on a device; a screen-reader pass; a full keyboard walk; non-admin edge cases beyond D9.
+Not verified: a browser re-check of D1, D3 and D8 on the final build; behaviour on a physical device or in the simulator beyond the sign-in screen; offline and draft-resend paths on a device; a screen-reader pass; a full keyboard walk; non-admin edge cases beyond D9.
