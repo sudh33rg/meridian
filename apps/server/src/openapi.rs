@@ -155,6 +155,7 @@ impl Modify for BearerAuth {
         api::personal::delete_view,
         api::personal::get_notification_preferences,
         api::personal::set_notification_preference,
+        api::query::search_issues,
         api::fields::list_fields,
         api::fields::create_field,
         api::fields::update_field,

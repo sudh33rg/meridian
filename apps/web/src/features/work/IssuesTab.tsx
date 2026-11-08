@@ -7,6 +7,7 @@ import { useToast } from "../shared/Toast";
 import { KindIcon, KINDS, PRIORITIES, PriorityIcon } from "./meta";
 import { errorMessage, request, send } from "../../lib/api";
 import { loadIssues, type BulkResult, type SavedView } from "../../lib/issues";
+import type { Issue } from "../../lib/types";
 
 type Sort = "updated" | "priority" | "number";
 type Group = "none" | "status" | "priority";
@@ -38,6 +39,8 @@ export function IssuesTab() {
   const [sort, setSort] = useState<Sort>("updated");
   const [group, setGroup] = useState<Group>("none");
   const [showArchived, setShowArchived] = useState(false);
+  const [queryText, setQueryText] = useState("");
+  const [activeQuery, setActiveQuery] = useState("");
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [viewId, setViewId] = useState("");
   // null: the name field is closed; a string: it is open with that draft.
@@ -107,11 +110,19 @@ export function IssuesTab() {
     onError: (e) => toast(errorMessage(e)),
   });
 
+  // A query runs on the server against active issues and replaces the list until it is cleared.
+  const queryResultsQ = useQuery({
+    queryKey: ["issue-query", selected, activeQuery],
+    queryFn: () =>
+      request<Issue[]>(token, `/projects/${selected}/issues/search?query=${encodeURIComponent(activeQuery)}`),
+    enabled: !!selected && !!activeQuery,
+    retry: false,
+  });
   const archivedItems = archivedQ.data;
-  const source = useMemo(
-    () => (showArchived ? (archivedItems ?? []) : issues),
-    [showArchived, archivedItems, issues],
-  );
+  const source = useMemo(() => {
+    if (activeQuery) return queryResultsQ.data ?? [];
+    return showArchived ? (archivedItems ?? []) : issues;
+  }, [activeQuery, queryResultsQ.data, showArchived, archivedItems, issues]);
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = source.filter(
@@ -205,6 +216,40 @@ export function IssuesTab() {
             placeholder="Filter issues…"
           />
         </div>
+        <form
+          className="query-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setActiveQuery(queryText.trim());
+          }}
+        >
+          <input
+            aria-label="Issue query"
+            value={queryText}
+            onChange={(e) => setQueryText(e.target.value)}
+            placeholder='Query, e.g. status:in_progress priority:high -label:legacy cf.region:EU'
+          />
+          <button className="secondary" type="submit" disabled={!queryText.trim()}>
+            Run
+          </button>
+          {activeQuery && (
+            <button
+              className="secondary"
+              type="button"
+              onClick={() => {
+                setQueryText("");
+                setActiveQuery("");
+              }}
+            >
+              Clear query
+            </button>
+          )}
+        </form>
+        {queryResultsQ.error && (
+          <p className="query-error" role="alert">
+            {errorMessage(queryResultsQ.error)}
+          </p>
+        )}
         <div className="filters">
           <SlidersHorizontal size={15} className="muted" aria-hidden="true" />
           <Chip
