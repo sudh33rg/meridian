@@ -2232,6 +2232,22 @@ export interface paths {
         patch: operations["update_status"];
         trace?: never;
     };
+    "/api/projects/{id}/statuses/{key}/wip-limit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["set_wip_limit"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}/timeline": {
         parameters: {
             query?: never;
@@ -3879,6 +3895,11 @@ export interface components {
              * @description Board column order, from 0.
              */
             position: number;
+            /**
+             * Format: int32
+             * @description Most issues the column holds before moves into it are refused, or null for no limit.
+             */
+            wip_limit?: number | null;
         };
         ProjectUpdate: {
             /** Format: uuid */
@@ -4459,6 +4480,13 @@ export interface components {
             /** Format: int32 */
             position: number;
             title: string;
+        };
+        WipLimitInput: {
+            /**
+             * Format: int32
+             * @description 1 to 1000, or null to remove the limit.
+             */
+            limit?: number | null;
         };
         /** @description One worklog: time an author spent on an issue. */
         Worklog: {
@@ -14498,6 +14526,71 @@ export interface operations {
             };
             /** @description A project needs at least one To do status */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    set_wip_limit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Status key */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WipLimitInput"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectStatus"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Project admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description No such status */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

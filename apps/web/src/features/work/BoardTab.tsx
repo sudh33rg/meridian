@@ -72,7 +72,10 @@ export function BoardTab() {
               <div className="column-title">
                 <span className={"column-dot dot-" + Math.min(index, 3)} />
                 <b>{status.name}</b>
-                <span className="count">{list.length}</span>
+                <span className="count">
+                  {list.length}
+                  {status.wip_limit ? ` / ${status.wip_limit}` : ""}
+                </span>
               </div>
               {loading &&
                 [0, 1].map((n) => (

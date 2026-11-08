@@ -72,6 +72,30 @@ export function WorkflowEditor({
                 else e.target.value = s.name;
               }}
             />
+            <input
+              type="number"
+              min={1}
+              max={1000}
+              aria-label={`WIP limit of ${s.name}`}
+              title="Work-in-progress limit: moves into this column stop at this many issues. Empty for none."
+              placeholder="No limit"
+              defaultValue={s.wip_limit == null ? "" : String(s.wip_limit)}
+              key={`${s.key}-wip-${s.wip_limit ?? "none"}`}
+              onBlur={(e) => {
+                const raw = e.target.value.trim();
+                const next = raw === "" ? null : Number(raw);
+                if (next !== null && (!Number.isInteger(next) || next < 1 || next > 1000)) {
+                  toast("A WIP limit is a whole number from 1 to 1000, or empty", { kind: "error" });
+                  e.target.value = s.wip_limit == null ? "" : String(s.wip_limit);
+                  return;
+                }
+                if (next !== (s.wip_limit ?? null)) {
+                  void send(`/projects/${projectId}/statuses/${s.key}/wip-limit`, token, "PUT", { limit: next })
+                    .then(() => refresh())
+                    .catch(fail);
+                }
+              }}
+            />
             <select
               aria-label={`Category of ${s.name}`}
               value={s.category}

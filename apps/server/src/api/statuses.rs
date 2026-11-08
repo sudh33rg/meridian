@@ -17,6 +17,8 @@ pub(crate) struct ProjectStatus {
     pub(crate) category: String,
     /// Board column order, from 0.
     pub(crate) position: i32,
+    /// Most issues the column holds before moves into it are refused, or null for no limit.
+    pub(crate) wip_limit: Option<i32>,
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct NewStatus {
@@ -25,6 +27,11 @@ pub(crate) struct NewStatus {
     pub(crate) category: String,
     /// Optional. Derived from the name when absent: lowercase letters, digits and underscores.
     pub(crate) key: Option<String>,
+}
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct WipLimitInput {
+    /// 1 to 1000, or null to remove the limit.
+    pub(crate) limit: Option<i32>,
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct StatusPatch {
@@ -151,7 +158,7 @@ fn validate_category(category: &str) -> ApiResult<String> {
 pub(crate) async fn list_statuses(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<ProjectStatus>>> {
     ensure_access(&mut tx, project).await?;
     let rows: Vec<ProjectStatus> = sqlx::query_as(
-        "SELECT key,name,category,position FROM project_statuses WHERE tenant_id=$1 AND project_id=$2 ORDER BY position, key",
+        "SELECT key,name,category,position,wip_limit FROM project_statuses WHERE tenant_id=$1 AND project_id=$2 ORDER BY position, key",
     )
     .bind(tx.identity.tenant_id)
     .bind(project)
@@ -197,7 +204,7 @@ pub(crate) async fn create_status(
     .await
     .map_err(db_err)?;
     let row: ProjectStatus = sqlx::query_as(
-        "INSERT INTO project_statuses(tenant_id,project_id,key,name,category,position) VALUES($1,$2,$3,$4,$5,$6) RETURNING key,name,category,position",
+        "INSERT INTO project_statuses(tenant_id,project_id,key,name,category,position) VALUES($1,$2,$3,$4,$5,$6) RETURNING key,name,category,position,wip_limit",
     )
     .bind(i.tenant_id)
     .bind(project)
@@ -249,7 +256,7 @@ pub(crate) async fn update_status(
     let i = tx.identity.clone();
     ensure_project_admin(&mut tx, project).await?;
     let current: Option<ProjectStatus> = sqlx::query_as(
-        "SELECT key,name,category,position FROM project_statuses WHERE tenant_id=$1 AND project_id=$2 AND key=$3",
+        "SELECT key,name,category,position,wip_limit FROM project_statuses WHERE tenant_id=$1 AND project_id=$2 AND key=$3",
     )
     .bind(i.tenant_id)
     .bind(project)
@@ -293,7 +300,7 @@ pub(crate) async fn update_status(
         reorder(&mut tx, i.tenant_id, project, &key, target).await?;
     }
     let row: ProjectStatus = sqlx::query_as(
-        "SELECT key,name,category,position FROM project_statuses WHERE tenant_id=$1 AND project_id=$2 AND key=$3",
+        "SELECT key,name,category,position,wip_limit FROM project_statuses WHERE tenant_id=$1 AND project_id=$2 AND key=$3",
     )
     .bind(i.tenant_id)
     .bind(project)
@@ -363,8 +370,44 @@ pub(crate) async fn delete_status(
     Ok(StatusCode::NO_CONTENT)
 }
 
+#[utoipa::path(put, path = "/api/projects/{id}/statuses/{key}/wip-limit", tag = "workflow", params(("id" = Uuid, Path, description = "Resource id"), ("key" = String, Path, description = "Status key")), request_body = WipLimitInput, responses((status = 200, description = "Updated", body = ProjectStatus), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Project admins only", body = ErrorBody), (status = 404, description = "No such status", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn set_wip_limit(
+    mut tx: Tx,
+    Path((project, key)): Path<(Uuid, String)>,
+    Json(v): Json<WipLimitInput>,
+) -> ApiResult<Json<ProjectStatus>> {
+    let i = tx.identity.clone();
+    ensure_project_admin(&mut tx, project).await?;
+    if v.limit.is_some_and(|n| !(1..=1000).contains(&n)) {
+        return Err(bad("A WIP limit is between 1 and 1000, or null for none"));
+    }
+    let updated = sqlx::query("UPDATE project_statuses SET wip_limit=$1 WHERE tenant_id=$2 AND project_id=$3 AND key=$4")
+        .bind(v.limit)
+        .bind(i.tenant_id)
+        .bind(project)
+        .bind(&key)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    if updated.rows_affected() == 0 {
+        return Err(err(StatusCode::NOT_FOUND, "Status not found"));
+    }
+    let row: ProjectStatus = sqlx::query_as(
+        "SELECT key,name,category,position,wip_limit FROM project_statuses WHERE tenant_id=$1 AND project_id=$2 AND key=$3",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .bind(&key)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    log_event(&mut tx, &i, "status_wip_limit_set", "project", project).await?;
+    Ok(Json(row))
+}
+
 pub(crate) fn routes() -> Router<App> {
     Router::new()
+        .route("/api/projects/{id}/statuses/{key}/wip-limit", axum::routing::put(set_wip_limit))
         .route("/api/projects/{id}/statuses", get(list_statuses).post(create_status))
         .route("/api/projects/{id}/statuses/{key}", patch(update_status).delete(delete_status))
 }

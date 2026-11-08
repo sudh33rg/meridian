@@ -62,6 +62,31 @@ pub(crate) async fn check_transition(
     if from == to {
         return Ok(());
     }
+    // A full column refuses the move, whatever the rules say.
+    let limit: Option<i32> = sqlx::query_scalar(
+        "SELECT wip_limit FROM project_statuses WHERE tenant_id=$1 AND project_id=$2 AND key=$3",
+    )
+    .bind(tenant)
+    .bind(project)
+    .bind(to)
+    .fetch_optional(&mut *db)
+    .await
+    .map_err(db_err)?
+    .flatten();
+    if let Some(limit) = limit {
+        let held: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM issues WHERE tenant_id=$1 AND project_id=$2 AND status=$3 AND archived_at IS NULL",
+        )
+        .bind(tenant)
+        .bind(project)
+        .bind(to)
+        .fetch_one(&mut *db)
+        .await
+        .map_err(db_err)?;
+        if held >= i64::from(limit) {
+            return Err(bad(&format!("“{to}” is full: its WIP limit is {limit} and it holds {held} issues")));
+        }
+    }
     let has_rules: bool = sqlx::query_scalar(
         "SELECT EXISTS(SELECT 1 FROM status_transitions WHERE tenant_id=$1 AND project_id=$2 AND from_key=$3)",
     )

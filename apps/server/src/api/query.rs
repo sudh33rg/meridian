@@ -1,9 +1,12 @@
 //! Issue query language. A query is a list of terms separated by spaces; every term must match.
 //!
 //!   status:in_progress   priority:high   kind:bug   label:backend   number:42
-//!   assignee:me          assignee:<user id>   title:login   login (a bare word searches titles)
+//!   assignee:me          assignee:currentUser()   assignee:<user id>   title:login
+//!   sprint:openSprints() sprint:none  sprint:<sprint id>   login (a bare word searches titles)
 //!   cf.region:EU         custom fields: equality for numbers, dates, booleans and choices; text contains
 //!   -status:done         a leading minus negates a term (issues without the value still match)
+//!   status:todo OR status:done   OR joins the two terms on either side into one group (no nesting)
+//!   order:rank | order:priority | order:updated | order:number   one ordering term (default number)
 //!   "quoted phrase"      quotes keep spaces inside a value
 //!
 //! The query compiles to parameterised SQL inside the caller's tenant and project, so access is
@@ -27,6 +30,9 @@ pub(crate) enum Field {
     Label,
     Title,
     Number,
+    Sprint,
+    /// An ordering term. It filters nothing; the value is one of rank, priority, updated or number.
+    Order,
     Custom(String),
 }
 
@@ -35,7 +41,11 @@ pub(crate) struct Term {
     pub(crate) negate: bool,
     pub(crate) field: Field,
     pub(crate) value: String,
+    /// Terms with the same group are joined by OR; groups are joined by AND.
+    pub(crate) group: usize,
 }
+
+const ORDERS: [&str; 4] = ["rank", "priority", "updated", "number"];
 
 #[derive(Deserialize, utoipa::IntoParams)]
 pub(crate) struct SearchQuery {
@@ -83,8 +93,17 @@ pub(crate) fn parse(query: &str) -> ApiResult<Vec<Term>> {
     if tokens.len() > MAX_TERMS {
         return Err(bad("A query can have up to 20 terms"));
     }
-    let mut terms = Vec::new();
+    let mut terms: Vec<Term> = Vec::new();
+    let mut group = 0usize;
+    let mut pending_or = false;
     for raw in tokens {
+        if raw == "OR" {
+            if pending_or || !terms.iter().any(|t| t.field != Field::Order) {
+                return Err(bad("OR must sit between two filters"));
+            }
+            pending_or = true;
+            continue;
+        }
         let (negate, body) = match raw.strip_prefix('-') {
             Some(rest) if !rest.is_empty() => (true, rest.to_string()),
             _ => (false, raw.clone()),
@@ -108,18 +127,54 @@ pub(crate) fn parse(query: &str) -> ApiResult<Vec<Term>> {
             "label" => Field::Label,
             "title" => Field::Title,
             "number" => Field::Number,
+            "sprint" => Field::Sprint,
+            "order" => Field::Order,
             other if other.starts_with("cf.") && other.len() > 3 => Field::Custom(other[3..].to_string()),
             other => {
                 return Err(bad(&format!(
-                    "Unknown field “{other}”. Use status, priority, kind, assignee, label, title, number or cf.<key>"
+                    "Unknown field “{other}”. Use status, priority, kind, assignee, label, title, number, sprint, order or cf.<key>"
                 )))
             }
         };
+        match &field {
+            Field::Order => {
+                if negate || pending_or {
+                    return Err(bad("order: cannot be negated or joined with OR"));
+                }
+                if !ORDERS.contains(&value.as_str()) {
+                    return Err(bad("Order must be rank, priority, updated or number"));
+                }
+                if terms.iter().any(|t| t.field == Field::Order) {
+                    return Err(bad("A query can have one order: term"));
+                }
+            }
+            Field::Sprint => {
+                let valid = value == "none" || value == "openSprints()" || Uuid::parse_str(&value).is_ok();
+                if !valid {
+                    return Err(bad("Sprint must be none, openSprints() or a sprint id"));
+                }
+            }
+            _ => {}
+        }
+        if matches!(field, Field::Order) {
+            terms.push(Term { negate, field, value, group: 0 });
+            continue;
+        }
+        if !terms.iter().any(|t| t.field != Field::Order) {
+            group = 0;
+        } else if !pending_or {
+            group += 1;
+        }
+        pending_or = false;
         terms.push(Term {
             negate,
             field,
             value,
+            group,
         });
+    }
+    if pending_or {
+        return Err(bad("OR must be followed by a filter"));
     }
     Ok(terms)
 }
@@ -158,12 +213,33 @@ pub(crate) async fn search_issues(
         .push(" AND project_id=")
         .push_bind(project)
         .push(" AND archived_at IS NULL");
+    let mut current_group: Option<usize> = None;
+    let mut order = "number";
     for t in &terms {
+        if t.field == Field::Order {
+            order = match t.value.as_str() {
+                "rank" => "backlog_rank ASC, number ASC",
+                "priority" => "CASE priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END, number DESC",
+                "updated" => "updated_at DESC, number DESC",
+                _ => "number DESC",
+            };
+            continue;
+        }
+        // Each group is one AND-ed parenthesised list; its terms are OR-ed inside it.
+        if current_group != Some(t.group) {
+            if current_group.is_some() {
+                qb.push(")");
+            }
+            qb.push(" AND (");
+            current_group = Some(t.group);
+        } else {
+            qb.push(" OR ");
+        }
         // A negated term keeps issues where the value is missing: NULL counts as "does not match".
         if t.negate {
-            qb.push(" AND NOT COALESCE((");
+            qb.push("NOT COALESCE((");
         } else {
-            qb.push(" AND (");
+            qb.push("(");
         }
         match &t.field {
             Field::Status => {
@@ -193,8 +269,25 @@ pub(crate) async fn search_issues(
                 }
                 qb.push("kind = ").push_bind(t.value.clone());
             }
+            Field::Sprint => match t.value.as_str() {
+                "none" => {
+                    qb.push("sprint_id IS NULL");
+                }
+                "openSprints()" => {
+                    qb.push("sprint_id IN (SELECT id FROM sprints WHERE tenant_id=")
+                        .push_bind(i.tenant_id)
+                        .push(" AND project_id=")
+                        .push_bind(project)
+                        .push(" AND state<>'completed')");
+                }
+                id => {
+                    let sprint = Uuid::parse_str(id).map_err(|_| bad("Sprint must be none, openSprints() or a sprint id"))?;
+                    qb.push("sprint_id = ").push_bind(sprint);
+                }
+            },
+            Field::Order => {}
             Field::Assignee => {
-                let user = if t.value == "me" {
+                let user = if t.value == "me" || t.value == "currentUser()" {
                     i.user_id
                 } else {
                     Uuid::parse_str(&t.value)
@@ -296,7 +389,10 @@ pub(crate) async fn search_issues(
             qb.push(")");
         }
     }
-    qb.push(" ORDER BY number DESC LIMIT ").push_bind(limit);
+    if current_group.is_some() {
+        qb.push(")");
+    }
+    qb.push(" ORDER BY ").push(order).push(" LIMIT ").push_bind(limit);
     let rows: Vec<Issue> = qb
         .build_query_as::<Issue>()
         .fetch_all(&mut *tx)

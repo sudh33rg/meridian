@@ -6,6 +6,8 @@ export type ProjectStatus = {
   name: string;
   category: StatusCategory;
   position: number;
+  /** Most issues the column holds before a move into it is refused, or null. */
+  wip_limit?: number | null;
 };
 
 export const CATEGORY_LABEL: Record<StatusCategory, string> = {
