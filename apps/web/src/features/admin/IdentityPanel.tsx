@@ -1,3 +1,4 @@
+import { formatDateTime } from "../../lib/datetime";
 import React, { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Building2 } from "lucide-react";
@@ -286,7 +287,7 @@ export function IdentityPanel() {
               <tr key={t.id}>
                 <td>{t.name}</td>
                 <td className="muted">
-                  {t.last_used_at ? `last used ${new Date(t.last_used_at).toLocaleString()}` : "never used"}
+                  {t.last_used_at ? `last used ${formatDateTime(t.last_used_at)}` : "never used"}
                 </td>
                 <td style={{ textAlign: "right" }}>
                   <button className="secondary" onClick={() => revoke.mutate(t.id)}>

@@ -1,3 +1,4 @@
+import { formatDate } from "../../lib/datetime";
 import React from "react";
 import {
   ArrowUpRight,
@@ -217,7 +218,7 @@ export function OverviewTab() {
               <span>
                 <b>{p.title}</b>
                 <small>
-                  Version {p.version} · Updated {new Date(p.updated_at).toLocaleDateString()}
+                  Version {p.version} · Updated {formatDate(p.updated_at)}
                 </small>
               </span>
               <ArrowUpRight size={14} />

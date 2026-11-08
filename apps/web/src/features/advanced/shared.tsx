@@ -1,10 +1,11 @@
+import { formatDate } from "../../lib/datetime";
 import React from "react";
 import { Sparkles } from "lucide-react";
 import type { Item } from "../../lib/types";
 
 export const str = (x: unknown) => String(x ?? "");
 export const count = (x: unknown) => Number(x || 0);
-export const day = (x: unknown) => (x ? new Date(str(x)).toLocaleDateString() : "—");
+export const day = (x: unknown) => (x ? formatDate(str(x)) : "—");
 export function Empty({ title, caption }: { title: string; caption: string }) {
   return (
     <div className="ext-empty">

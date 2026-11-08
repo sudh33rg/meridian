@@ -1,3 +1,4 @@
+import { formatDateTime } from "../../lib/datetime";
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MonitorSmartphone, ShieldCheck } from "lucide-react";
@@ -38,7 +39,7 @@ const device = (ua: string) => {
             : "";
   return os ? `${browser} on ${os}` : browser;
 };
-const when = (s: string) => new Date(s).toLocaleString();
+const when = (s: string) => formatDateTime(s);
 
 function ChangePassword({ onChanged }: { onChanged: () => void }) {
   const [form, setForm] = useState({ current_password: "", new_password: "" });

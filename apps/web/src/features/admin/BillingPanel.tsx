@@ -1,3 +1,4 @@
+import { formatDate } from "../../lib/datetime";
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CreditCard } from "lucide-react";
@@ -104,7 +105,7 @@ export function BillingPanel() {
         </h3>
         <p className="muted">
           Status: <span className="tag">{o.status.replace("_", " ")}</span>
-          {o.current_period_end ? ` · renews ${new Date(o.current_period_end).toLocaleDateString()}` : ""}
+          {o.current_period_end ? ` · renews ${formatDate(o.current_period_end)}` : ""}
         </p>
         <Bar label="Members" v={o.usage.seats} />
         <Bar label="Projects" v={o.usage.projects} />

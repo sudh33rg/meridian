@@ -1,3 +1,4 @@
+import { formatDate } from "../../lib/datetime";
 import React, { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bookmark, Layers, Plus, RotateCcw, Search, SlidersHorizontal, X } from "lucide-react";
@@ -506,7 +507,7 @@ export function IssuesTab() {
                           ))}
                         </select>
                       </td>
-                      <td>{new Date(i.updated_at).toLocaleDateString()}</td>
+                      <td>{formatDate(i.updated_at)}</td>
                     </tr>
                   ))}
                 </React.Fragment>

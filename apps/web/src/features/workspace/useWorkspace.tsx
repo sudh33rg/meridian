@@ -13,7 +13,8 @@ import { loadIssues } from "../../lib/issues";
 import { fallbackLabel, type ProjectStatus } from "../../lib/statuses";
 import { FALLBACK_TYPES, type IssueType } from "../../lib/issue-types";
 import { clearSession, saveSession as persistSession, type Me } from "../../lib/session";
-import type { Issue, Page, Project, Session } from "../../lib/types";
+import type { Issue, Page, Project, Session, WorkspaceSettings } from "../../lib/types";
+import { setWorkspaceTimeZone } from "../../lib/datetime";
 import type { ExtraTab } from "../advanced/AdvancedWorkspace";
 import { useToast } from "../shared/Toast";
 
@@ -157,6 +158,13 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
     enabled: !!selected,
   });
   const statuses = useMemo(() => statusesQ.data ?? [], [statusesQ.data]);
+  const settingsQ = useQuery({
+    queryKey: ["workspace-settings"],
+    queryFn: () => api<WorkspaceSettings>("/workspace/settings", token),
+    enabled: !!token,
+  });
+  // Set during render, not in an effect, so the dates rendered with this data use the new zone.
+  setWorkspaceTimeZone(settingsQ.data?.timezone);
   const issueTypesQ = useQuery({
     queryKey: ["issue-types", selected],
     queryFn: () => api<IssueType[]>(`/projects/${selected}/issue-types`, token),

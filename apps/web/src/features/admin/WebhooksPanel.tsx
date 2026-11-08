@@ -1,3 +1,4 @@
+import { formatTime, formatDateTime } from "../../lib/datetime";
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Webhook } from "lucide-react";
@@ -54,7 +55,7 @@ function Deliveries({ hookId }: { hookId: string }) {
               <span className="muted small">{d.last_error ?? ""}</span>
             </td>
             <td>{d.attempts}</td>
-            <td>{new Date(d.created_at).toLocaleTimeString()}</td>
+            <td>{formatTime(d.created_at)}</td>
             <td style={{ textAlign: "right" }}>
               <button className="secondary" onClick={() => again.mutate(d.id)}>
                 Redeliver
@@ -160,7 +161,7 @@ export function WebhooksPanel() {
                 <b>{h.name}</b> <span className="tag">{h.enabled ? "Enabled" : "Disabled"}</span>
                 <div className="muted small">
                   {h.url} · {h.events.length ? h.events.join(", ") : "all events"}
-                  {h.last_success_at ? ` · last success ${new Date(h.last_success_at).toLocaleString()}` : ""}
+                  {h.last_success_at ? ` · last success ${formatDateTime(h.last_success_at)}` : ""}
                 </div>
                 {h.disabled_reason && (
                   <div className="error small" style={{ marginTop: 6 }}>

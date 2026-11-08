@@ -1,3 +1,4 @@
+import { formatDate } from "../../lib/datetime";
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "../workspace/useWorkspace";
@@ -227,7 +228,7 @@ export function RoadmapPanel() {
             {(updates.data ?? []).slice(0, 10).map((u) => (
               <li key={u.id} className="small">
                 <span className={"chip " + (u.health === "on_track" ? "success" : "warn")}>{HEALTH[u.health] ?? u.health}</span>{" "}
-                {u.body} <span className="muted">— {u.author_name}, {new Date(u.created_at).toLocaleDateString()}</span>
+                {u.body} <span className="muted">— {u.author_name}, {formatDate(u.created_at)}</span>
               </li>
             ))}
           </ul>

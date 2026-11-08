@@ -1,3 +1,4 @@
+import { formatDateTime } from "../../lib/datetime";
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, Eye, EyeOff, ListChecks, MoveRight, Plus, ThumbsUp, Trash2 } from "lucide-react";
@@ -498,7 +499,7 @@ function IssueHistory({ token, issueId }: { token: string; issueId: string }) {
       <ul className="plain-list history-list">
         {rows.slice(0, 40).map((h, n) => (
           <li key={`${h.changed_at}-${n}`} className="small">
-            <span className="muted">{new Date(h.changed_at).toLocaleString()}</span> {h.actor_name}{" "}
+            <span className="muted">{formatDateTime(h.changed_at)}</span> {h.actor_name}{" "}
             {h.kind === "status" ? (
               <>
                 moved status {h.old_value ? <b>{h.old_value}</b> : "from nothing"} → <b>{h.new_value}</b>

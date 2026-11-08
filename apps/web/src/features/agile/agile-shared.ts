@@ -1,3 +1,4 @@
+import { formatWith } from "../../lib/datetime";
 import { useQuery, type QueryClient } from "@tanstack/react-query";
 import type { components } from "../../api-schema";
 import { request } from "../../lib/api";
@@ -58,7 +59,7 @@ export function shortDay(value?: string | null) {
   if (!value) return "";
   const d = new Date(value.length === 10 ? `${value}T00:00:00` : value);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return formatWith(value.length === 10 ? value : d, { month: "short", day: "numeric" });
 }
 
 export const SPRINT_STATE_LABEL: Record<string, string> = {
