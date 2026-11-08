@@ -26958,7 +26958,8 @@
           "working_days",
           "week_start",
           "default_sprint_days",
-          "locale"
+          "locale",
+          "trash_retention_days"
         ],
         "properties": {
           "default_sprint_days": {
@@ -26972,6 +26973,11 @@
           "timezone": {
             "type": "string",
             "description": "An IANA name such as `Europe/London`, or `UTC`."
+          },
+          "trash_retention_days": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Days a trashed issue waits before it is purged, 7 to 365 (Phase J4). Audit records are kept."
           },
           "week_start": {
             "type": "integer",
@@ -27010,6 +27016,14 @@
           },
           "timezone": {
             "type": "string"
+          },
+          "trash_retention_days": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Days a trashed issue waits before purge, 7 to 365. Omit to keep the current setting."
           },
           "week_start": {
             "type": "integer",

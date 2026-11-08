@@ -5454,6 +5454,11 @@ export interface components {
             timezone: string;
             /**
              * Format: int32
+             * @description Days a trashed issue waits before it is purged, 7 to 365 (Phase J4). Audit records are kept.
+             */
+            trash_retention_days: number;
+            /**
+             * Format: int32
              * @description First day of the week, 0 (Sunday) to 6 (Saturday).
              */
             week_start: number;
@@ -5466,6 +5471,11 @@ export interface components {
             /** @description `en` or `es`. Omit to keep the current language. */
             locale?: string | null;
             timezone: string;
+            /**
+             * Format: int32
+             * @description Days a trashed issue waits before purge, 7 to 365. Omit to keep the current setting.
+             */
+            trash_retention_days?: number | null;
             /** Format: int32 */
             week_start: number;
             working_days: number[];

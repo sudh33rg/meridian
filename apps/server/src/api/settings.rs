@@ -15,6 +15,8 @@ pub(crate) struct WorkspaceSettings {
     pub(crate) default_sprint_days: i32,
     /// Interface language: `en` or `es` (Phase K5). Dates and numbers follow it.
     pub(crate) locale: String,
+    /// Days a trashed issue waits before it is purged, 7 to 365 (Phase J4). Audit records are kept.
+    pub(crate) trash_retention_days: i32,
 }
 
 const DEFAULTS: (&str, &[i16], i16, i32) = ("UTC", &[1, 2, 3, 4, 5], 1, 14);
@@ -25,7 +27,7 @@ pub(crate) const LOCALES: [&str; 2] = ["en", "es"];
 pub(crate) async fn get_settings(mut tx: Tx) -> ApiResult<Json<WorkspaceSettings>> {
     let i = tx.identity.clone();
     let row: Option<WorkspaceSettings> = sqlx::query_as(
-        "SELECT timezone, working_days, week_start, default_sprint_days, locale FROM workspace_settings WHERE tenant_id=$1",
+        "SELECT timezone, working_days, week_start, default_sprint_days, locale, trash_retention_days FROM workspace_settings WHERE tenant_id=$1",
     )
     .bind(i.tenant_id)
     .fetch_optional(&mut *tx)
@@ -37,6 +39,7 @@ pub(crate) async fn get_settings(mut tx: Tx) -> ApiResult<Json<WorkspaceSettings
         week_start: DEFAULTS.2,
         default_sprint_days: DEFAULTS.3,
         locale: "en".into(),
+        trash_retention_days: 30,
     })))
 }
 
@@ -48,6 +51,8 @@ pub(crate) struct WorkspaceSettingsInput {
     pub(crate) default_sprint_days: i32,
     /// `en` or `es`. Omit to keep the current language.
     pub(crate) locale: Option<String>,
+    /// Days a trashed issue waits before purge, 7 to 365. Omit to keep the current setting.
+    pub(crate) trash_retention_days: Option<i32>,
 }
 
 #[utoipa::path(put, path = "/api/workspace/settings", tag = "org", request_body = WorkspaceSettingsInput, responses((status = 200, description = "Success", body = WorkspaceSettings), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody)), security(("bearer" = [])))]
@@ -74,17 +79,22 @@ pub(crate) async fn put_settings(mut tx: Tx, Json(v): Json<WorkspaceSettingsInpu
     if !(1..=60).contains(&v.default_sprint_days) {
         return Err(bad("default_sprint_days must be between 1 and 60"));
     }
+    if let Some(days) = v.trash_retention_days {
+        if !(7..=365).contains(&days) {
+            return Err(bad("trash_retention_days must be between 7 and 365"));
+        }
+    }
     if let Some(l) = &v.locale {
         if !LOCALES.contains(&l.as_str()) {
             return Err(bad("locale must be en or es"));
         }
     }
     let row: WorkspaceSettings = sqlx::query_as(
-        "INSERT INTO workspace_settings(tenant_id,timezone,working_days,week_start,default_sprint_days,locale) VALUES($1,$2,$3,$4,$5,COALESCE($6,'en')) \
+        "INSERT INTO workspace_settings(tenant_id,timezone,working_days,week_start,default_sprint_days,locale,trash_retention_days) VALUES($1,$2,$3,$4,$5,COALESCE($6,'en'),COALESCE($7,30)) \
          ON CONFLICT (tenant_id) DO UPDATE SET timezone=EXCLUDED.timezone, working_days=EXCLUDED.working_days, \
          week_start=EXCLUDED.week_start, default_sprint_days=EXCLUDED.default_sprint_days, \
-         locale=COALESCE($6, workspace_settings.locale), updated_at=now() \
-         RETURNING timezone, working_days, week_start, default_sprint_days, locale",
+         locale=COALESCE($6, workspace_settings.locale), trash_retention_days=COALESCE($7, workspace_settings.trash_retention_days), updated_at=now() \
+         RETURNING timezone, working_days, week_start, default_sprint_days, locale, trash_retention_days",
     )
     .bind(i.tenant_id)
     .bind(tz)
@@ -92,6 +102,7 @@ pub(crate) async fn put_settings(mut tx: Tx, Json(v): Json<WorkspaceSettingsInpu
     .bind(v.week_start)
     .bind(v.default_sprint_days)
     .bind(v.locale.clone())
+    .bind(v.trash_retention_days)
     .fetch_one(&mut *tx)
     .await
     .map_err(db_err)?;

@@ -820,7 +820,7 @@ pub(crate) async fn trash_issue(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<S
         ));
     }
     sqlx::query(
-        "UPDATE issues SET archived_at=COALESCE(archived_at, now()), trashed_at=now(), purge_after=now()+interval '30 days', trashed_by=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3",
+        "UPDATE issues SET archived_at=COALESCE(archived_at, now()), trashed_at=now(), purge_after=now()+make_interval(days => COALESCE((SELECT trash_retention_days FROM workspace_settings WHERE tenant_id=$2), 30)), trashed_by=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3",
     )
     .bind(i.user_id)
     .bind(i.tenant_id)

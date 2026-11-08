@@ -5,7 +5,7 @@ import { useWorkspace } from "../workspace/useWorkspace";
 import { errorMessage, request, send } from "../../lib/api";
 import { useToast } from "../shared/Toast";
 
-type Settings = { timezone: string; working_days: number[]; week_start: number; default_sprint_days: number; locale: string };
+type Settings = { timezone: string; working_days: number[]; week_start: number; default_sprint_days: number; locale: string; trash_retention_days: number };
 
 const DAYS = [
   [1, "Mon"],
@@ -54,6 +54,17 @@ export function WorkspaceSettingsPanel() {
             <option value="en">English</option>
             <option value="es">Español</option>
           </select>
+        </label>
+        <label>
+          Days before trashed issues are purged
+          <input
+            type="number"
+            min={7}
+            max={365}
+            value={current.trash_retention_days}
+            disabled={!admin}
+            onChange={(e) => setDraft({ ...current, trash_retention_days: Number(e.target.value) })}
+          />
         </label>
         <label>
           Week starts on
