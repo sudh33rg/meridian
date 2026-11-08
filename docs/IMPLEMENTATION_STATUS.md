@@ -174,7 +174,7 @@ The remaining plan items were taken in one pass. Each row names what exists in s
 | I6 | Jira issue JSON import through the CSV path | Changelog, sprints, versions; Cloud API pull |
 | L1 | Mobile backlog, releases, sprint and release detail | Android build (no Android SDK or Java here); device run |
 | L2 | Conflict on status changes is shown with a choice; sync protocol in `docs/SYNC_PROTOCOL.md` | Conflicts for fields other than status and for comments |
-| P1 | Not done (see below) | Screen-reader pass and keyboard walk need a running app |
+| P1 | Static jsx-a11y pass over the web source: no rule errors, sixteen warnings, recorded in `docs/ACCESSIBILITY_AUDIT.md` | Screen-reader pass, keyboard walk, contrast and mobile checks need a running app |
 
 Owner-blocked and not attempted: I3 (chat channels), I7 (marketplace), J4 (retention rules), L3 (push provider), M1 (AI data policy and provider), N1 (owner-run gates: first CI run on GitHub, real SSO and Stripe, external security review), and the I2 sender domain.
 
