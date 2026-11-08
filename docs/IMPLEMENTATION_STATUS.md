@@ -113,3 +113,19 @@ Migration `0023_roadmaps.sql`; API in `apps/server/src/api/roadmap.rs`; web in `
 | H6 baselines | Snapshot of open issues' due dates, and variance against it (`GET /baselines/{id}/variance`). | Scenario comparison and schedule re-baselining. |
 
 Checks: `cargo check`, `make openapi`, `make manifest`, `npm run build` pass. No tests added. Not yet run against PostgreSQL or in a browser.
+
+## Phase I — integrations and automation (8 November 2026, partial)
+
+Migration `0024_integrations.sql`; API in `apps/server/src/api/integrations.rs` and `collab.rs` (automation); web in `apps/web/src/features/agile/IntegrationsPanels.tsx` and the drawer’s Development section.
+
+| Step | What exists in source | Still open |
+|---|---|---|
+| I1 automation | Rules have conditions (priority, kind, status, label, team, assignee; eq or neq) and up to five actions (set priority, set status through the workflow, set assignee, add label, comment, notify admins). Triggers: created, status changed, updated, comment added. Actions never start other rules. Changes from actions are recorded in the history. Rules are created through the API. | No visual rule builder yet (the existing Automations page lists and creates preset rules only). Scheduled rules, branches and cross-project rules are not built. |
+| I2 email and digests | Not built. Constitution III.7 keeps outbound delivery off until its gates are in place. | Email for notifications and digests, behind a server setting that defaults to off. |
+| I3 chat | Not built. Sending issue content to Slack or Teams is data egress, which needs the owner’s decision on channels. | Incoming webhooks through the safe HTTP client, once approved. |
+| I4 git linking | `PUT/GET /api/projects/{id}/git-secret` (admin; sealed at rest). `POST /api/integrations/git/{id}` takes push and pull request events signed with `X-Hub-Signature-256`; keys like `KEY-123` link commits and pull requests to issues. Drawer lists the links. | Other hosts’ event formats (GitLab, Bitbucket), branch names, and status updates from merges. |
+| I5 tokens | Personal API tokens (`mtk_…`), shown once, stored as SHA-256, read or write scope, optional expiry, revocation, last-used time. Read tokens refuse changes. Tokens cannot create tokens. Panel on the Integrations page. | OAuth 2.0 apps with consent, and per-token project restriction. |
+| I6 importers | Jira CSV (from D4) only. | Jira JSON or Cloud API with changelog, sprints and versions; Confluence space export; Linear, GitHub and Trello. |
+| I7 marketplace | Not started. Owner decision: whether third-party apps are hosted at all. | — |
+
+Checks: `cargo check`, `make openapi` (222 operations), `make manifest`, `npm run build` pass. No tests added. Token authentication has not been exercised against a running API.

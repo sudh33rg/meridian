@@ -62,6 +62,7 @@ export function IssueDepth({
   const token = session.token;
   const id = issue.id;
   const projectId = issue.project_id;
+  const projectKey = projectKeyOf(projects, projectId);
   const [minutes, setMinutes] = useState("");
   const [workDay, setWorkDay] = useState(() => new Date().toISOString().slice(0, 10));
   const [workNote, setWorkNote] = useState("");
@@ -417,6 +418,7 @@ export function IssueDepth({
         )}
       </div>
 
+      <DevLinks token={token} issueId={id} projectKey={projectKey} />
       <IssueHistory token={token} issueId={id} />
 
       {!archived && (
@@ -518,4 +520,43 @@ function IssueHistory({ token, issueId }: { token: string; issueId: string }) {
 
 function trimValue(v: string) {
   return v.length > 60 ? `${v.slice(0, 57)}…` : v;
+}
+
+function projectKeyOf(projects: { id: string; key: string }[], id: string) {
+  return projects.find((p) => p.id === id)?.key ?? "";
+}
+
+/** Commits and pull requests that name this issue, collected from the repository. */
+function DevLinks({ token, issueId }: { token: string; issueId: string; projectKey: string }) {
+  const links = useQuery({
+    queryKey: ["dev-links", issueId],
+    queryFn: () =>
+      request<
+        { id: number; kind: string; reference: string; title: string; url: string; author: string; occurred_at: string }[]
+      >(token, `/issues/${issueId}/dev-links`),
+  });
+  const rows = links.data ?? [];
+  return (
+    <div className="drawer-section" aria-label="Development">
+      <h3>Development · {rows.length}</h3>
+      <ul className="plain-list">
+        {rows.map((l) => (
+          <li key={l.id} className="small">
+            <span className="chip">{l.kind === "pull_request" ? `PR #${l.reference}` : l.reference.slice(0, 8)}</span>{" "}
+            {l.url ? (
+              <a href={l.url} target="_blank" rel="noreferrer">
+                {l.title || l.url}
+              </a>
+            ) : (
+              l.title
+            )}{" "}
+            <span className="muted">{l.author ? `· ${l.author}` : ""}</span>
+          </li>
+        ))}
+      </ul>
+      {!links.isLoading && rows.length === 0 && (
+        <p className="muted small">No commits or pull requests yet. Link a repository from the Integrations page.</p>
+      )}
+    </div>
+  );
 }

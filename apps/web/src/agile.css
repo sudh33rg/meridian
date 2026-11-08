@@ -696,3 +696,26 @@
   padding: 6px 4px;
   border-bottom: 1px solid var(--divider);
 }
+
+/* Integrations (Phase I) */
+.integrations {
+  padding: 12px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.integrations h3 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-md);
+}
+.token-secret {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  word-break: break-all;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}

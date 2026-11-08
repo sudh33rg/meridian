@@ -32,7 +32,13 @@ pub(crate) async fn analytics(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json
 pub(crate) struct AutomationInput {
     pub(crate) name: String,
     pub(crate) trigger_event: String,
+    /// `custom` for rules with conditions and actions. The other two values are the original presets.
     pub(crate) action_type: String,
+    /// Each condition: `{"field": "priority|kind|status|label|team_id|assignee_id", "op": "eq|neq", "value": "..."}`. All must hold.
+    pub(crate) conditions: Option<Vec<Value>>,
+    /// Up to five actions for `custom` rules, each `{"type": ..., "value": ...}`. Types: set_priority, set_status,
+    /// set_assignee (a member id, "me" or null), add_label, comment, notify_admins.
+    pub(crate) actions: Option<Vec<Value>>,
 }
 #[utoipa::path(get, path = "/api/projects/{id}/automations", tag = "collab", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn automations(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json<Vec<Value>>> {
@@ -51,15 +57,63 @@ pub(crate) async fn new_automation(
     require_admin(&i)?;
     valid_project(&mut tx, &i, p).await?;
     validate_title(&v.name)?;
-    if !["issue_created", "issue_status_changed"].contains(&v.trigger_event.as_str())
-        || !["notify_project_admins", "set_priority_high"].contains(&v.action_type.as_str())
-    {
-        return Err(bad("Unsupported automation trigger or action"));
+    if !["issue_created", "issue_status_changed", "issue_updated", "comment_added"].contains(&v.trigger_event.as_str()) {
+        return Err(bad("Unsupported automation trigger"));
     }
-    let rule=sqlx::query_scalar("INSERT INTO automation_rules(tenant_id,project_id,name,trigger_event,action_type,created_by) VALUES($1,$2,$3,$4,$5,$6) RETURNING to_jsonb(automation_rules)")
-        .bind(i.tenant_id).bind(p).bind(v.name).bind(v.trigger_event).bind(v.action_type).bind(i.user_id).fetch_one(&mut *tx).await.map_err(db_err)?;
+    let conditions = v.conditions.clone().unwrap_or_default();
+    let actions = v.actions.clone().unwrap_or_default();
+    match v.action_type.as_str() {
+        "notify_project_admins" | "set_priority_high" => {
+            if !actions.is_empty() || !conditions.is_empty() {
+                return Err(bad("Preset rules take no conditions or actions"));
+            }
+        }
+        "custom" => {
+            if actions.is_empty() || actions.len() > 5 {
+                return Err(bad("A custom rule needs between 1 and 5 actions"));
+            }
+            if conditions.len() > 10 {
+                return Err(bad("A rule can have at most 10 conditions"));
+            }
+            for c in &conditions {
+                let field = c.get("field").and_then(Value::as_str).unwrap_or("");
+                let op = c.get("op").and_then(Value::as_str).unwrap_or("");
+                let value = c.get("value").and_then(Value::as_str).unwrap_or("");
+                if !["priority", "kind", "status", "label", "team_id", "assignee_id"].contains(&field)
+                    || !["eq", "neq"].contains(&op)
+                    || value.is_empty()
+                    || value.len() > 200
+                {
+                    return Err(bad("Each condition needs a known field, op eq or neq, and a value"));
+                }
+            }
+            for a in &actions {
+                let kind = a.get("type").and_then(Value::as_str).unwrap_or("");
+                let value = a.get("value");
+                let text = value.and_then(Value::as_str).unwrap_or("");
+                let ok = match kind {
+                    "set_priority" => ["low", "medium", "high", "urgent"].contains(&text),
+                    "set_status" => !text.is_empty() && text.len() <= 64,
+                    "set_assignee" => text == "me" || value.is_some_and(Value::is_null) || Uuid::parse_str(text).is_ok(),
+                    "add_label" => !text.trim().is_empty() && text.len() <= 40,
+                    "comment" => !text.trim().is_empty() && text.len() <= 2000,
+                    "notify_admins" => true,
+                    _ => false,
+                };
+                if !ok {
+                    return Err(bad("Unsupported automation action or value"));
+                }
+            }
+        }
+        _ => return Err(bad("Unsupported automation action")),
+    }
+    let rule = sqlx::query_scalar("INSERT INTO automation_rules(tenant_id,project_id,name,trigger_event,action_type,created_by,conditions,actions) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING to_jsonb(automation_rules)")
+        .bind(i.tenant_id).bind(p).bind(v.name.trim()).bind(v.trigger_event).bind(v.action_type).bind(i.user_id)
+        .bind(Value::Array(conditions)).bind(Value::Array(actions)).fetch_one(&mut *tx).await.map_err(db_err)?;
     Ok((StatusCode::CREATED, Json(rule)))
 }
+/// Runs the enabled rules for one event on one issue. Actions write directly and never fire other
+/// rules, so a rule cannot start a chain. Every change an action makes is recorded in the history.
 pub(crate) async fn run_automations(
     db: &mut PgConnection,
     i: &Identity,
@@ -67,30 +121,129 @@ pub(crate) async fn run_automations(
     entity: Uuid,
     event: &str,
 ) -> ApiResult<()> {
-    let rules:Vec<(Uuid,String)>=sqlx::query_as("SELECT id,action_type FROM automation_rules WHERE tenant_id=$1 AND project_id=$2 AND enabled=true AND trigger_event=$3 LIMIT 30")
-        .bind(i.tenant_id).bind(project).bind(event).fetch_all(&mut *db).await.map_err(db_err)?;
-    for (rule, action) in rules {
-        // Only allowlisted, non-recursive actions; activity is not replayed as a new trigger.
-        match action.as_str() {
-            "set_priority_high" => {
-                sqlx::query("UPDATE issues SET priority='high',updated_at=now() WHERE tenant_id=$1 AND id=$2 AND priority IN ('low','medium')")
-                    .bind(i.tenant_id).bind(entity).execute(&mut *db).await.map_err(db_err)?;
+    let rules: Vec<(Uuid, String, Value, Value)> = sqlx::query_as(
+        "SELECT id, action_type, conditions, actions FROM automation_rules WHERE tenant_id=$1 AND project_id=$2 AND enabled=true AND trigger_event=$3 ORDER BY created_at LIMIT 30",
+    )
+    .bind(i.tenant_id).bind(project).bind(event).fetch_all(&mut *db).await.map_err(db_err)?;
+    for (rule, action, conditions, actions) in rules {
+        if action == "custom" {
+            if !conditions_hold(db, i.tenant_id, entity, &conditions).await? {
+                continue;
             }
-            "notify_project_admins" => {
-                sqlx::query("INSERT INTO notifications(tenant_id,recipient_id,actor_id,kind,title,entity_type,entity_id) SELECT $1,m.user_id,$2,'automation','Automation ran for an issue','issue',$3 FROM memberships m WHERE m.tenant_id=$1 AND m.role IN ('owner','admin') AND m.user_id<>$2 AND NOT EXISTS (SELECT 1 FROM notification_preferences np WHERE np.tenant_id=m.tenant_id AND np.user_id=m.user_id AND np.kind='automation' AND np.enabled=false)")
-                    .bind(i.tenant_id).bind(i.user_id).bind(entity).execute(&mut *db).await.map_err(db_err)?;
+            let before = crate::api::history::issue_json(db, i.tenant_id, entity).await?;
+            for a in actions.as_array().cloned().unwrap_or_default().iter().take(5) {
+                run_action(db, i, project, entity, a).await?;
             }
-            _ => {}
+            let after = crate::api::history::issue_json(db, i.tenant_id, entity).await?;
+            crate::api::history::record_row_changes(db, i.tenant_id, i.user_id, entity, &before, &after).await?;
+        } else {
+            // Only allowlisted, non-recursive presets.
+            match action.as_str() {
+                "set_priority_high" => {
+                    sqlx::query("UPDATE issues SET priority='high',updated_at=now() WHERE tenant_id=$1 AND id=$2 AND priority IN ('low','medium')")
+                        .bind(i.tenant_id).bind(entity).execute(&mut *db).await.map_err(db_err)?;
+                }
+                "notify_project_admins" => {
+                    sqlx::query("INSERT INTO notifications(tenant_id,recipient_id,actor_id,kind,title,entity_type,entity_id) SELECT $1,m.user_id,$2,'automation','Automation ran for an issue','issue',$3 FROM memberships m WHERE m.tenant_id=$1 AND m.role IN ('owner','admin') AND m.disabled_at IS NULL")
+                        .bind(i.tenant_id).bind(i.user_id).bind(entity).execute(&mut *db).await.map_err(db_err)?;
+                }
+                _ => {}
+            }
         }
-        sqlx::query(
-            "INSERT INTO automation_runs(tenant_id,rule_id,entity_id,result) VALUES($1,$2,$3,'ok')",
-        )
-        .bind(i.tenant_id)
-        .bind(rule)
-        .bind(entity)
-        .execute(&mut *db)
-        .await
-        .map_err(db_err)?;
+        sqlx::query("INSERT INTO automation_runs(tenant_id,rule_id,entity_id,result) VALUES($1,$2,$3,'ok')")
+            .bind(i.tenant_id).bind(rule).bind(entity).execute(&mut *db).await.map_err(db_err)?;
+    }
+    Ok(())
+}
+
+/// True when every condition holds for the issue's current values.
+async fn conditions_hold(db: &mut PgConnection, tenant: Uuid, issue: Uuid, conditions: &Value) -> ApiResult<bool> {
+    let row: Option<(String, String, String, Option<Uuid>, Option<Uuid>, Vec<String>)> = sqlx::query_as(
+        "SELECT priority, kind, status, team_id, assignee_id, labels FROM issues WHERE tenant_id=$1 AND id=$2",
+    )
+    .bind(tenant).bind(issue).fetch_optional(&mut *db).await.map_err(db_err)?;
+    let Some((priority, kind, status, team, assignee, labels)) = row else {
+        return Ok(false);
+    };
+    for c in conditions.as_array().cloned().unwrap_or_default() {
+        let field = c.get("field").and_then(Value::as_str).unwrap_or("");
+        let op = c.get("op").and_then(Value::as_str).unwrap_or("eq");
+        let value = c.get("value").and_then(Value::as_str).unwrap_or("");
+        let holds = match field {
+            "priority" => priority == value,
+            "kind" => kind == value,
+            "status" => status == value,
+            "team_id" => team.map(|t| t.to_string()).as_deref() == Some(value),
+            "assignee_id" => assignee.map(|a| a.to_string()).as_deref() == Some(value),
+            "label" => labels.iter().any(|l| l == value),
+            _ => false,
+        };
+        let pass = if op == "neq" { !holds } else { holds };
+        if !pass {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+/// One action of a custom rule. Values were checked when the rule was saved; anything that no longer
+/// fits (a status that was removed, a transition that is now refused) is skipped, not forced.
+async fn run_action(db: &mut PgConnection, i: &Identity, project: Uuid, issue: Uuid, action: &Value) -> ApiResult<()> {
+    let kind = action.get("type").and_then(Value::as_str).unwrap_or("");
+    let value = action.get("value");
+    let text = value.and_then(Value::as_str).unwrap_or("");
+    match kind {
+        "set_priority" => {
+            if ["low", "medium", "high", "urgent"].contains(&text) {
+                sqlx::query("UPDATE issues SET priority=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3")
+                    .bind(text).bind(i.tenant_id).bind(issue).execute(&mut *db).await.map_err(db_err)?;
+            }
+        }
+        "set_status" => {
+            if crate::api::statuses::status_defined(db, i.tenant_id, project, text).await? {
+                let (from, custom): (String, Value) =
+                    sqlx::query_as("SELECT status, custom_fields FROM issues WHERE tenant_id=$1 AND id=$2")
+                        .bind(i.tenant_id).bind(issue).fetch_one(&mut *db).await.map_err(db_err)?;
+                if crate::api::transitions::check_transition(db, i.tenant_id, project, &from, text, &custom).await.is_ok() {
+                    sqlx::query("UPDATE issues SET status=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3")
+                        .bind(text).bind(i.tenant_id).bind(issue).execute(&mut *db).await.map_err(db_err)?;
+                }
+            }
+        }
+        "set_assignee" => {
+            let target: Option<Uuid> = if text == "me" {
+                Some(i.user_id)
+            } else {
+                value.and_then(Value::as_str).and_then(|t| Uuid::parse_str(t).ok())
+            };
+            let member = match target {
+                Some(u) => sqlx::query_scalar::<_, bool>("SELECT EXISTS(SELECT 1 FROM memberships WHERE tenant_id=$1 AND user_id=$2 AND disabled_at IS NULL)")
+                    .bind(i.tenant_id).bind(u).fetch_one(&mut *db).await.map_err(db_err)?,
+                None => true,
+            };
+            if member {
+                sqlx::query("UPDATE issues SET assignee_id=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3")
+                    .bind(target).bind(i.tenant_id).bind(issue).execute(&mut *db).await.map_err(db_err)?;
+            }
+        }
+        "add_label" => {
+            let label = text.trim();
+            if !label.is_empty() && label.len() <= 40 {
+                sqlx::query("UPDATE issues SET labels=array_append(labels,$1), updated_at=now() WHERE tenant_id=$2 AND id=$3 AND NOT ($1 = ANY(labels)) AND cardinality(labels) < 30")
+                    .bind(label).bind(i.tenant_id).bind(issue).execute(&mut *db).await.map_err(db_err)?;
+            }
+        }
+        "comment" => {
+            if !text.trim().is_empty() && text.len() <= 2000 {
+                sqlx::query("INSERT INTO issue_comments(tenant_id,issue_id,author_id,body) VALUES($1,$2,$3,$4)")
+                    .bind(i.tenant_id).bind(issue).bind(i.user_id).bind(text.trim()).execute(&mut *db).await.map_err(db_err)?;
+            }
+        }
+        "notify_admins" => {
+            sqlx::query("INSERT INTO notifications(tenant_id,recipient_id,actor_id,kind,title,entity_type,entity_id) SELECT $1,m.user_id,$2,'automation','Automation ran for an issue','issue',$3 FROM memberships m WHERE m.tenant_id=$1 AND m.role IN ('owner','admin') AND m.disabled_at IS NULL")
+                .bind(i.tenant_id).bind(i.user_id).bind(issue).execute(&mut *db).await.map_err(db_err)?;
+        }
+        _ => {}
     }
     Ok(())
 }

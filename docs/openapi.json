@@ -3276,6 +3276,59 @@
         ]
       }
     },
+    "/api/integrations/git/{id}": {
+      "post": {
+        "tags": [
+          "integrations"
+        ],
+        "summary": "Inbound repository events for one project. Authenticated by the project's signing secret, not by\na session. The tenant comes from the project row, never from the request body.",
+        "operationId": "git_webhook",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Project id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Events read; returns how many links were created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unsupported event or body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Signature missing or wrong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/invitations": {
       "get": {
         "tags": [
@@ -4274,6 +4327,76 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/issues/{id}/dev-links": {
+      "get": {
+        "tags": [
+          "integrations"
+        ],
+        "operationId": "issue_dev_links",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Commits and pull requests that name this issue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DevLink"
+                  }
                 }
               }
             }
@@ -6115,6 +6238,157 @@
           },
           "401": {
             "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/me/tokens": {
+      "get": {
+        "tags": [
+          "me"
+        ],
+        "operationId": "list_tokens",
+        "responses": {
+          "200": {
+            "description": "Your API tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApiTokenRow"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "me"
+        ],
+        "operationId": "create_token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiTokenInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The secret is in the response once; store it now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedApiToken"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tokens cannot create tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/me/tokens/{id}": {
+      "delete": {
+        "tags": [
+          "me"
+        ],
+        "operationId": "revoke_token",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Token id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revoked"
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -9765,6 +10039,141 @@
           },
           "409": {
             "description": "Issues hold values the new options would remove",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/projects/{id}/git-secret": {
+      "get": {
+        "tags": [
+          "integrations"
+        ],
+        "operationId": "get_git_secret",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Whether a secret is set; the secret itself is never returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GitSecretStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "integrations"
+        ],
+        "operationId": "put_git_secret",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GitSecretInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Saved (sealed at rest)"
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
             "content": {
               "application/json": {
                 "schema": {
@@ -15695,6 +16104,83 @@
           }
         }
       },
+      "ApiTokenInput": {
+        "type": "object",
+        "required": [
+          "name",
+          "scope"
+        ],
+        "properties": {
+          "expires_days": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Days until the token expires, 1 to 365. Omit for no expiry."
+          },
+          "name": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string",
+            "description": "`read` (GET only) or `write` (the same reach as your session)."
+          }
+        }
+      },
+      "ApiTokenRow": {
+        "type": "object",
+        "description": "A token as listed to its owner. The secret is never listed.",
+        "required": [
+          "id",
+          "name",
+          "prefix",
+          "scope",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "last_used_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "name": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string",
+            "description": "The first characters of the token, to tell tokens apart."
+          },
+          "revoked_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "scope": {
+            "type": "string",
+            "description": "`read` or `write`."
+          }
+        }
+      },
       "Approval": {
         "type": "object",
         "description": "An approval request. Columns match the `approvals` table.",
@@ -15871,7 +16357,24 @@
         ],
         "properties": {
           "action_type": {
-            "type": "string"
+            "type": "string",
+            "description": "`custom` for rules with conditions and actions. The other two values are the original presets."
+          },
+          "actions": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {},
+            "description": "Up to five actions for `custom` rules, each `{\"type\": ..., \"value\": ...}`. Types: set_priority, set_status,\nset_assignee (a member id, \"me\" or null), add_label, comment, notify_admins."
+          },
+          "conditions": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {},
+            "description": "Each condition: `{\"field\": \"priority|kind|status|label|team_id|assignee_id\", \"op\": \"eq|neq\", \"value\": \"...\"}`. All must hold."
           },
           "name": {
             "type": "string"
@@ -16446,6 +16949,21 @@
           }
         }
       },
+      "CreatedApiToken": {
+        "type": "object",
+        "required": [
+          "token",
+          "info"
+        ],
+        "properties": {
+          "info": {
+            "$ref": "#/components/schemas/ApiTokenRow"
+          },
+          "token": {
+            "type": "string"
+          }
+        }
+      },
       "CreatedResolved": {
         "type": "object",
         "description": "Issues created and issues completed on each day.",
@@ -16768,6 +17286,46 @@
           }
         }
       },
+      "DevLink": {
+        "type": "object",
+        "description": "A commit or pull request linked to an issue.",
+        "required": [
+          "id",
+          "kind",
+          "reference",
+          "title",
+          "url",
+          "author",
+          "occurred_at"
+        ],
+        "properties": {
+          "author": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`commit` or `pull_request`."
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Commit id or pull request number."
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
       "DisableInput": {
         "type": "object",
         "required": [
@@ -16962,6 +17520,34 @@
         "properties": {
           "email": {
             "type": "string"
+          }
+        }
+      },
+      "GitSecretInput": {
+        "type": "object",
+        "required": [
+          "secret"
+        ],
+        "properties": {
+          "secret": {
+            "type": "string",
+            "description": "Shared secret the repository host signs events with. 16 to 200 characters."
+          }
+        }
+      },
+      "GitSecretStatus": {
+        "type": "object",
+        "required": [
+          "configured",
+          "webhook_path"
+        ],
+        "properties": {
+          "configured": {
+            "type": "boolean"
+          },
+          "webhook_path": {
+            "type": "string",
+            "description": "Where to send repository events: `POST /api/integrations/git/{project_id}`."
           }
         }
       },

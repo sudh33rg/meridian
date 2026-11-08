@@ -788,6 +788,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/integrations/git/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Inbound repository events for one project. Authenticated by the project's signing secret, not by
+         *     a session. The tenant comes from the project row, never from the request body.
+         */
+        post: operations["git_webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/invitations": {
         parameters: {
             query?: never;
@@ -924,6 +944,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["issue_details"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/issues/{id}/dev-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["issue_dev_links"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1199,6 +1235,38 @@ export interface paths {
         put: operations["set_notification_preference"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_tokens"];
+        put?: never;
+        post: operations["create_token"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/tokens/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["revoke_token"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1746,6 +1814,22 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["update_field"];
+        trace?: never;
+    };
+    "/api/projects/{id}/git-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_git_secret"];
+        put: operations["put_git_secret"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/projects/{id}/goals": {
@@ -2621,6 +2705,34 @@ export interface components {
             password?: string | null;
             token: string;
         };
+        ApiTokenInput: {
+            /**
+             * Format: int64
+             * @description Days until the token expires, 1 to 365. Omit for no expiry.
+             */
+            expires_days?: number | null;
+            name: string;
+            /** @description `read` (GET only) or `write` (the same reach as your session). */
+            scope: string;
+        };
+        /** @description A token as listed to its owner. The secret is never listed. */
+        ApiTokenRow: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            expires_at?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            last_used_at?: string | null;
+            name: string;
+            /** @description The first characters of the token, to tell tokens apart. */
+            prefix: string;
+            /** Format: date-time */
+            revoked_at?: string | null;
+            /** @description `read` or `write`. */
+            scope: string;
+        };
         /** @description An approval request. Columns match the `approvals` table. */
         Approval: {
             /** Format: date-time */
@@ -2676,7 +2788,15 @@ export interface components {
             user_id: string;
         };
         AutomationInput: {
+            /** @description `custom` for rules with conditions and actions. The other two values are the original presets. */
             action_type: string;
+            /**
+             * @description Up to five actions for `custom` rules, each `{"type": ..., "value": ...}`. Types: set_priority, set_status,
+             *     set_assignee (a member id, "me" or null), add_label, comment, notify_admins.
+             */
+            actions?: unknown[] | null;
+            /** @description Each condition: `{"field": "priority|kind|status|label|team_id|assignee_id", "op": "eq|neq", "value": "..."}`. All must hold. */
+            conditions?: unknown[] | null;
             name: string;
             trigger_event: string;
         };
@@ -2879,6 +2999,10 @@ export interface components {
             description?: string | null;
             name?: string | null;
         };
+        CreatedApiToken: {
+            info: components["schemas"]["ApiTokenRow"];
+            token: string;
+        };
         /** @description Issues created and issues completed on each day. */
         CreatedResolved: {
             /** Format: int64 */
@@ -2978,6 +3102,20 @@ export interface components {
             /** Format: uuid */
             to: string;
         };
+        /** @description A commit or pull request linked to an issue. */
+        DevLink: {
+            author: string;
+            /** Format: int64 */
+            id: number;
+            /** @description `commit` or `pull_request`. */
+            kind: string;
+            /** Format: date-time */
+            occurred_at: string;
+            /** @description Commit id or pull request number. */
+            reference: string;
+            title: string;
+            url: string;
+        };
         DisableInput: {
             code: string;
             password: string;
@@ -3042,6 +3180,15 @@ export interface components {
         };
         ForgotInput: {
             email: string;
+        };
+        GitSecretInput: {
+            /** @description Shared secret the repository host signs events with. 16 to 200 characters. */
+            secret: string;
+        };
+        GitSecretStatus: {
+            configured: boolean;
+            /** @description Where to send repository events: `POST /api/integrations/git/{project_id}`. */
+            webhook_path: string;
         };
         GoalInput: {
             description?: string | null;
@@ -6660,6 +6807,47 @@ export interface operations {
             };
         };
     };
+    git_webhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Events read; returns how many links were created */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Unsupported event or body */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Signature missing or wrong */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     invitations: {
         parameters: {
             query?: never;
@@ -7412,6 +7600,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    issue_dev_links: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Commits and pull requests that name this issue */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DevLink"][];
                 };
             };
             /** @description Missing or invalid session */
@@ -8787,6 +9025,125 @@ export interface operations {
             };
             /** @description Missing or invalid session */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list_tokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Your API tokens */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiTokenRow"][];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    create_token: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiTokenInput"];
+            };
+        };
+        responses: {
+            /** @description The secret is in the response once; store it now */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedApiToken"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Tokens cannot create tokens */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    revoke_token: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Token id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11523,6 +11880,108 @@ export interface operations {
             };
             /** @description Issues hold values the new options would remove */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    get_git_secret: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Whether a secret is set; the secret itself is never returned */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GitSecretStatus"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    put_git_secret: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GitSecretInput"];
+            };
+        };
+        responses: {
+            /** @description Saved (sealed at rest) */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

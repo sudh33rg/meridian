@@ -2,6 +2,7 @@ pub mod access;
 pub mod agile;
 pub mod fields;
 pub mod history;
+pub mod integrations;
 pub mod admin;
 pub mod collab;
 pub mod common;

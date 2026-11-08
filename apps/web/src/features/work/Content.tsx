@@ -19,6 +19,7 @@ import { BacklogTab } from "../agile/BacklogTab";
 import { SprintsPanel } from "../agile/SprintsPanel";
 import { ReleasesPanel } from "../agile/ReleasesPanel";
 import { ReportsPanel } from "../agile/ReportsPanel";
+import { ApiTokensPanel, GitLinkPanel } from "../agile/IntegrationsPanels";
 import { RoadmapPanel } from "../agile/RoadmapPanel";
 
 export function Content() {
@@ -142,6 +143,8 @@ export function Content() {
       {tab === "identity" && <IdentityPanel />}
       {tab === "billing" && <BillingPanel />}
       {tab === "integrations" && <WebhooksPanel />}
+      {tab === "integrations" && <ApiTokensPanel />}
+      {tab === "integrations" && <GitLinkPanel />}
       {tab === "access" && project && <AccessPanel />}
       {tab === "appearance" && <AppearancePanel />}
       {![

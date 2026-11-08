@@ -194,6 +194,7 @@ pub(crate) async fn edit_issue(
         });
     };
     crate::api::history::record_row_changes(&mut tx, i.tenant_id, i.user_id, id, &before_json, &row).await?;
+    run_automations(&mut tx, &i, project, id, "issue_updated").await?;
     log_event(&mut tx, &i, "updated", "issue", id).await?;
     log_outbox(
         &mut tx,
@@ -457,7 +458,7 @@ pub(crate) async fn new_issue_comment(
 ) -> ApiResult<(StatusCode, Json<Value>)> {
     let i = tx.identity.clone();
     require_editor(&i)?;
-    valid_issue(&mut tx, &i, id).await?;
+    let project = valid_issue(&mut tx, &i, id).await?;
     validate_body(&v.body)?;
     let body_text = v.body.clone();
     if let Some(parent) = v.parent_id {
@@ -470,6 +471,7 @@ pub(crate) async fn new_issue_comment(
     let row:Value=sqlx::query_scalar("INSERT INTO issue_comments(tenant_id,issue_id,parent_id,author_id,body) VALUES($1,$2,$3,$4,$5) RETURNING to_jsonb(issue_comments)")
         .bind(i.tenant_id).bind(id).bind(v.parent_id).bind(i.user_id).bind(v.body).fetch_one(&mut *tx).await.map_err(db_err)?;
     crate::api::issue_depth::notify_mentions(&mut tx, i.tenant_id, i.user_id, id, &body_text).await?;
+    run_automations(&mut tx, &i, project, id, "comment_added").await?;
     log_event(&mut tx, &i, "commented", "issue", id).await?;
     Ok((StatusCode::CREATED, Json(row)))
 }

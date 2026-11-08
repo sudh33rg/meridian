@@ -628,6 +628,9 @@ pub(crate) async fn authenticate(parts: &Parts, app: &App) -> ApiResult<(Identit
             true,
         ),
     };
+    if value.starts_with("mtk_") {
+        return authenticate_api_token(parts, app, &value).await;
+    }
     if value.len() != 64 {
         return Err(err(StatusCode::UNAUTHORIZED, "Invalid session"));
     }
@@ -910,4 +913,36 @@ pub(crate) fn routes() -> Router<App> {
         .route("/api/auth/reset-password", post(reset_password))
         .route("/api/auth/verify-email", post(verify_email))
         .route("/api/auth/resend-verification", post(resend_verification))
+}
+
+/// Personal API tokens (`mtk_…`). The token maps to its owner's membership, so a removed or disabled
+/// member loses API access at once. A `read` token is refused for any method that changes data.
+async fn authenticate_api_token(parts: &Parts, app: &App, value: &str) -> ApiResult<(Identity, String)> {
+    let unauth = || err(StatusCode::UNAUTHORIZED, "Invalid API token");
+    let hash = token_hash(value);
+    let row: Option<(Uuid, Uuid, String, String, Option<DateTime<Utc>>, Option<DateTime<Utc>>)> = sqlx::query_as(
+        "SELECT t.tenant_id, t.user_id, m.role, t.scope, t.expires_at, t.revoked_at FROM api_tokens t \
+         JOIN memberships m ON m.tenant_id=t.tenant_id AND m.user_id=t.user_id \
+         WHERE t.token_hash=$1 AND m.disabled_at IS NULL",
+    )
+    .bind(&hash)
+    .fetch_optional(&app.db)
+    .await
+    .map_err(db_err)?;
+    let Some((tenant_id, user_id, role, scope, expires_at, revoked_at)) = row else {
+        return Err(unauth());
+    };
+    if revoked_at.is_some() || expires_at.is_some_and(|e| e <= Utc::now()) {
+        return Err(err(StatusCode::UNAUTHORIZED, "API token expired or revoked"));
+    }
+    if scope == "read" && !is_safe_method(&parts.method) {
+        return Err(err(StatusCode::FORBIDDEN, "This API token is read-only"));
+    }
+    let _ = sqlx::query(
+        "UPDATE api_tokens SET last_used_at=now() WHERE token_hash=$1 AND (last_used_at IS NULL OR last_used_at < now() - interval '1 minute')",
+    )
+    .bind(&hash)
+    .execute(&app.db)
+    .await;
+    Ok((Identity { tenant_id, user_id, role }, hash))
 }
