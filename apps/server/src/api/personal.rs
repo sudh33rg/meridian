@@ -21,6 +21,9 @@ pub(crate) struct SavedView {
     pub(crate) filters: Value,
     pub(crate) created_at: DateTime<Utc>,
     pub(crate) updated_at: DateTime<Utc>,
+    /// True when the view names a status, field or query term the project no longer has.
+    #[sqlx(default)]
+    pub(crate) stale: bool,
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct NewSavedView {
@@ -41,6 +44,58 @@ pub(crate) struct NotificationPreferenceInput {
 }
 
 /// Keeps only the known filter keys and checks each value with the same rules as the issue list.
+/// Whether a query term names something the project still has: a status, or a custom field.
+async fn check_query_term(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    project: Uuid,
+    term: &crate::api::query::Term,
+) -> ApiResult<()> {
+    use crate::api::query::Field;
+    match &term.field {
+        Field::Status => {
+            if !crate::api::statuses::status_defined(db, tenant, project, &term.value).await? {
+                return Err(bad(&format!("“{}” is not a status in this project", term.value)));
+            }
+        }
+        Field::Custom(key) => {
+            let defined: bool = sqlx::query_scalar(
+                "SELECT EXISTS(SELECT 1 FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 AND key=$3)",
+            )
+            .bind(tenant)
+            .bind(project)
+            .bind(key)
+            .fetch_one(&mut *db)
+            .await
+            .map_err(db_err)?;
+            if !defined {
+                return Err(bad(&format!("Unknown custom field “{key}”")));
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+/// A saved view is stale when it names a status, a custom field or a query term the project no
+/// longer has. Stale views are shown with a warning instead of silently returning nothing.
+async fn view_is_stale(db: &mut PgConnection, tenant: Uuid, project: Uuid, filters: &Value) -> bool {
+    if let Some(status) = filters.get("status").and_then(Value::as_str) {
+        if !crate::api::statuses::status_defined(db, tenant, project, status).await.unwrap_or(false) {
+            return true;
+        }
+    }
+    if let Some(text) = filters.get("query").and_then(Value::as_str) {
+        let Ok(terms) = crate::api::query::parse(text) else { return true };
+        for term in terms {
+            if check_query_term(db, tenant, project, &term).await.is_err() {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 async fn normalize_filters(
     db: &mut PgConnection,
     tenant: Uuid,
@@ -83,6 +138,24 @@ async fn normalize_filters(
                 }
                 out.insert(key.clone(), json!(s));
             }
+            "kind" => {
+                let k = value
+                    .as_str()
+                    .filter(|k| ["task", "bug", "story", "epic"].contains(k))
+                    .ok_or_else(|| bad("Kind must be task, bug, story or epic"))?;
+                out.insert(key.clone(), json!(k));
+            }
+            "query" => {
+                let text = value.as_str().map(str::trim).filter(|t| !t.is_empty()).ok_or_else(|| bad("The query must not be empty"))?;
+                if text.chars().count() > 500 {
+                    return Err(bad("A saved query is limited to 500 characters"));
+                }
+                // The same syntax as the issue query; status and custom field names must exist now.
+                for term in crate::api::query::parse(text)? {
+                    check_query_term(db, tenant, project, &term).await?;
+                }
+                out.insert(key.clone(), json!(text));
+            }
             _ => return Err(bad("Unknown filter")),
         }
     }
@@ -93,7 +166,7 @@ async fn normalize_filters(
 pub(crate) async fn list_views(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<SavedView>>> {
     let i = tx.identity.clone();
     ensure_access(&mut tx, project).await?;
-    let rows: Vec<SavedView> = sqlx::query_as(
+    let mut rows: Vec<SavedView> = sqlx::query_as(
         "SELECT id,project_id,name,filters,created_at,updated_at FROM saved_views \
          WHERE tenant_id=$1 AND user_id=$2 AND project_id=$3 ORDER BY lower(name)",
     )
@@ -103,6 +176,9 @@ pub(crate) async fn list_views(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResu
     .fetch_all(&mut *tx)
     .await
     .map_err(db_err)?;
+    for row in rows.iter_mut() {
+        row.stale = view_is_stale(&mut tx, i.tenant_id, project, &row.filters).await;
+    }
     Ok(Json(rows))
 }
 

@@ -11365,7 +11365,8 @@
           "name",
           "filters",
           "created_at",
-          "updated_at"
+          "updated_at",
+          "stale"
         ],
         "properties": {
           "created_at": {
@@ -11385,6 +11386,10 @@
           "project_id": {
             "type": "string",
             "format": "uuid"
+          },
+          "stale": {
+            "type": "boolean",
+            "description": "True when the view names a status, field or query term the project no longer has."
           },
           "updated_at": {
             "type": "string",

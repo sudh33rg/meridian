@@ -92,6 +92,8 @@ export function IssuesTab() {
       if (status) filters.status = status;
       if (priority) filters.priority = priority;
       if (search.trim()) filters.q = search.trim();
+      if (kind) filters.kind = kind;
+      if (activeQuery) filters.query = activeQuery;
       return send<SavedView>(`/projects/${selected}/views`, token, "POST", { name, filters });
     },
     onSuccess: (v) => {
@@ -177,7 +179,10 @@ export function IssuesTab() {
     if (!v) return;
     setStatus(v.filters.status ?? "");
     setPriority(v.filters.priority ?? "");
+    setKind(v.filters.kind ?? "");
     setSearch(v.filters.q ?? "");
+    setQueryText(v.filters.query ?? "");
+    setActiveQuery(v.filters.query ?? "");
   };
 
   const Chip = ({
@@ -285,10 +290,15 @@ export function IssuesTab() {
               <option value="">All issues</option>
               {views.map((v) => (
                 <option key={v.id} value={v.id}>
-                  {v.name}
+                  {v.stale ? `${v.name} (stale)` : v.name}
                 </option>
               ))}
             </select>
+            {views.find((v) => v.id === viewId)?.stale && (
+              <span className="query-error" role="status">
+                This view names a status, field or query term that no longer exists. Edit or delete it.
+              </span>
+            )}
           </label>
           {viewId && (
             <button className="secondary" onClick={() => removeView.mutate(viewId)}>

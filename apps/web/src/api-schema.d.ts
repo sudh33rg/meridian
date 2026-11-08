@@ -2255,6 +2255,8 @@ export interface components {
             name: string;
             /** Format: uuid */
             project_id: string;
+            /** @description True when the view names a status, field or query term the project no longer has. */
+            stale: boolean;
             /** Format: date-time */
             updated_at: string;
         };

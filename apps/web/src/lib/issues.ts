@@ -36,6 +36,8 @@ export type SavedView = {
   filters: Record<string, string>;
   created_at: string;
   updated_at: string;
+  /** True when the view names a status, field or query term the project no longer has. */
+  stale?: boolean;
 };
 
 export type BulkItemResult = { id: string; ok: boolean; error?: string | null };
