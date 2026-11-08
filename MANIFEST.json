@@ -92,7 +92,7 @@
     "apps/web/package.json": "626d3867c72aa8c9867cf234097d1cd6345d919ae1e20078a89473590a695efc",
     "apps/web/playwright.config.ts": "ebbc5faab18ff012ae92ecde0bfc8f2fa930f39cab9677e177349a7b0454c4be",
     "apps/web/public/theme-init.js": "10f629c415c021207c29e4c0e07e0a62d8534a54a1e11b038dbb5dd099473140",
-    "apps/web/src/advanced.css": "5e6a96fcef4a65e7de95b9d67f025a98c75a67a5ea6f6862cb9ffa4f2e1dede7",
+    "apps/web/src/advanced.css": "45528bf481715aa299f799a5d0174fb11dd3d1a8492598c0b316f3548726e735",
     "apps/web/src/api-schema.d.ts": "f12769cc28e30187a5e03dd3decd835280df4830781ab8961f7a64c7c558fcdb",
     "apps/web/src/features/admin/BillingPanel.tsx": "b203bf61671867c8652504474115bef1b7fc039f08290bb88a8cd2b316ca53c6",
     "apps/web/src/features/admin/IdentityPanel.tsx": "1be1e2144a4874b2265fe1b46534c5edfe71d1aae7692d9b489d739cad4e66cb",

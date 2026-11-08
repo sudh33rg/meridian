@@ -560,3 +560,33 @@
 .icon-btn.danger {
   color: var(--danger-text);
 }
+
+/* Issue list table: keep the title readable when the checkbox and action columns are present */
+.table-scroll table th:nth-child(2),
+.table-scroll table td:nth-child(2) {
+  min-width: 240px;
+}
+.table-scroll .cell-issue {
+  min-width: 220px;
+}
+.table-scroll .issue-title-button {
+  white-space: normal;
+  text-align: left;
+}
+.query-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 320px;
+}
+.query-form input {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.query-error {
+  color: var(--danger-text);
+  font-size: var(--fs-sm);
+  margin: 0;
+}
