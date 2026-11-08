@@ -5,8 +5,9 @@ import { API_BASE, api, errorMessage, send } from "../../lib/api";
 import { clearSession, saveSession as persistSession, type Me } from "../../lib/session";
 import type { Issue, Page, Project, Session } from "../../lib/types";
 import type { ExtraTab } from "../advanced/AdvancedWorkspace";
+import { useToast } from "../shared/Toast";
 
-export type Tab = "overview" | "board" | "issues" | "knowledge" | ExtraTab;
+export type Tab = "overview" | "board" | "issues" | "knowledge" | "appearance" | ExtraTab;
 export type Modal = "project" | "issue" | "page" | null;
 const emptyDraft = {
   visibility: "workspace",
@@ -31,6 +32,26 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
   const [searchText, setSearch] = useState("");
   const [activePage, setActivePage] = useState<Page | null>(null);
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [collapsed, setCollapsedState] = useState(() => {
+    try {
+      return localStorage.getItem("meridian.sidebar") === "collapsed";
+    } catch {
+      return false;
+    }
+  });
+  const setCollapsed = (v: boolean | ((c: boolean) => boolean)) =>
+    setCollapsedState((c) => {
+      const n = typeof v === "function" ? v(c) : v;
+      try {
+        localStorage.setItem("meridian.sidebar", n ? "collapsed" : "open");
+      } catch {
+        /* ignore */
+      }
+      return n;
+    });
+  const { toast } = useToast();
 
   const token = session.token;
   // Live updates: the server pushes "something changed" notifications for what this user may
@@ -147,6 +168,7 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
       }),
     onSuccess: async (p) => {
       await qc.invalidateQueries({ queryKey: ["projects"] });
+      toast(`Project “${p.name}” created`);
       navigate({ to: "/$tab", params: { tab: "overview" }, search: { project: p.id } });
     },
   });
@@ -160,6 +182,7 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
       }),
     onSuccess: (i) => {
       qc.setQueryData<Issue[]>(["issues", selected], (old) => [i, ...(old ?? [])]);
+      toast(`Created ${project?.key ?? ""}-${i.number}`);
       setTab("board");
     },
   });
@@ -171,6 +194,7 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
       }),
     onSuccess: (p) => {
       qc.setQueryData<Page[]>(["pages", selected], (old) => [p, ...(old ?? [])]);
+      toast("Page created");
       setTab("knowledge");
       setActivePage(p);
     },
@@ -268,7 +292,24 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
     selectedIssue,
     setSelectedIssue,
     create,
-    move: (issue: Issue, status: string) => moveIssue.mutate({ issue, status }),
+    move: (issue: Issue, status: string) => {
+      if (issue.status === status) return;
+      moveIssue.mutate({ issue, status });
+      toast(`${project?.key ?? ""}-${issue.number} moved to ${status.replace("_", " ")}`, {
+        action: {
+          label: "Undo",
+          run: () => moveIssue.mutate({ issue: { ...issue, status }, status: issue.status }),
+        },
+      });
+    },
+    projectsLoading: projectsQ.isLoading,
+    loading: issuesQ.isLoading || pagesQ.isLoading,
+    paletteOpen,
+    setPaletteOpen,
+    helpOpen,
+    setHelpOpen,
+    collapsed,
+    setCollapsed,
     savePage: () => activePage && savePageM.mutate(activePage),
     logout,
     refreshIssues,

@@ -1,0 +1,233 @@
+/* Design tokens. Every color in the app comes from here.
+   Themes are selected by <html data-theme="light|dark|contrast"> and accents by data-accent. */
+
+:root {
+  /* Type scale (13px base, like Linear/Vercel dense UIs) */
+  --font-sans: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: Manrope, "DM Sans", system-ui, sans-serif;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-lg: 15px;
+  --fs-xl: 18px;
+  --fs-2xl: 24px;
+  --fs-3xl: 30px;
+
+  /* Shape and motion */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast: 120ms;
+  --dur: 180ms;
+
+  /* Density scale (multiplier applied to row padding) */
+  --density: 1;
+  --row-pad-y: calc(14px * var(--density));
+  --row-pad-x: 20px;
+  --control-h: calc(36px * var(--density));
+
+  /* Accent (overridden by data-accent) */
+  --accent-h: 224;
+  --accent-s: 78%;
+}
+
+/* ---- Accents: hue only; lightness comes from the theme ---- */
+:root[data-accent="blue"] {
+  --accent-h: 224;
+  --accent-s: 78%;
+}
+:root[data-accent="violet"] {
+  --accent-h: 258;
+  --accent-s: 70%;
+}
+:root[data-accent="teal"] {
+  --accent-h: 175;
+  --accent-s: 72%;
+}
+:root[data-accent="green"] {
+  --accent-h: 146;
+  --accent-s: 56%;
+}
+:root[data-accent="orange"] {
+  --accent-h: 24;
+  --accent-s: 88%;
+}
+:root[data-accent="rose"] {
+  --accent-h: 342;
+  --accent-s: 78%;
+}
+
+/* ---- Light (default) ---- */
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f8fb;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-3: #f1f4f9;
+  --surface-4: #e8edf4;
+  --overlay: rgba(15, 23, 42, 0.45);
+  --glass: rgba(255, 255, 255, 0.8);
+
+  --text: #1e2737;
+  --text-2: #4a586e;
+  --text-3: #75839a;
+  --text-4: #9aa5b7;
+  --text-inverse: #ffffff;
+
+  --border: #e7ecf3;
+  --border-strong: #d3dbe7;
+  --divider: #eef1f6;
+
+  --accent: hsl(var(--accent-h) var(--accent-s) 55%);
+  --accent-strong: hsl(var(--accent-h) var(--accent-s) 46%);
+  --accent-soft: hsl(var(--accent-h) 100% 96.5%);
+  --accent-soft-2: hsl(var(--accent-h) 90% 93%);
+  --accent-text: hsl(var(--accent-h) 60% 42%);
+  --accent-ring: hsl(var(--accent-h) var(--accent-s) 55% / 0.28);
+  --on-accent: #ffffff;
+
+  --success: #2b8a3e;
+  --success-soft: #e8f6ee;
+  --success-border: #b6e2c8;
+  --success-text: #17603a;
+  --warning: #b58a4c;
+  --warning-soft: #fff3df;
+  --warning-border: #f0d98c;
+  --warning-text: #8a5a14;
+  --danger: #c92a2a;
+  --danger-soft: #fff0ef;
+  --danger-border: #ffddda;
+  --danger-text: #b44542;
+  --info: #3b78de;
+  --info-soft: #e9f0ff;
+
+  --shadow-sm: 0 1px 2px rgba(20, 45, 82, 0.06);
+  --shadow: 0 4px 14px rgba(20, 45, 82, 0.08);
+  --shadow-lg: 0 18px 50px rgba(20, 45, 82, 0.22);
+}
+
+/* ---- Dark ---- */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0d1117;
+  --surface: #151b24;
+  --surface-2: #11171f;
+  --surface-3: #1c2431;
+  --surface-4: #263041;
+  --overlay: rgba(0, 0, 0, 0.62);
+  --glass: rgba(21, 27, 36, 0.8);
+
+  --text: #e6ebf3;
+  --text-2: #b4bfd0;
+  --text-3: #8b97ab;
+  --text-4: #66728a;
+  --text-inverse: #0d1117;
+
+  --border: #263041;
+  --border-strong: #35425a;
+  --divider: #1f2836;
+
+  --accent: hsl(var(--accent-h) calc(var(--accent-s) - 8%) 64%);
+  --accent-strong: hsl(var(--accent-h) calc(var(--accent-s) - 8%) 70%);
+  --accent-soft: hsl(var(--accent-h) 38% 17%);
+  --accent-soft-2: hsl(var(--accent-h) 40% 23%);
+  --accent-text: hsl(var(--accent-h) 85% 76%);
+  --accent-ring: hsl(var(--accent-h) 80% 66% / 0.38);
+  --on-accent: #0d1117;
+
+  --success: #56c978;
+  --success-soft: #12301f;
+  --success-border: #1f5b3a;
+  --success-text: #7be09b;
+  --warning: #e0b05a;
+  --warning-soft: #33280f;
+  --warning-border: #5e4a1a;
+  --warning-text: #f0c673;
+  --danger: #ff7a7a;
+  --danger-soft: #3a1a1c;
+  --danger-border: #6a2c2f;
+  --danger-text: #ff9a98;
+  --info: #7aa7f5;
+  --info-soft: #172544;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.7);
+}
+
+/* ---- High contrast (dark base, maximal separation) ---- */
+:root[data-theme="contrast"] {
+  color-scheme: dark;
+  --bg: #000000;
+  --surface: #0a0a0a;
+  --surface-2: #050505;
+  --surface-3: #171717;
+  --surface-4: #262626;
+  --overlay: rgba(0, 0, 0, 0.8);
+  --glass: rgba(0, 0, 0, 0.9);
+
+  --text: #ffffff;
+  --text-2: #f0f0f0;
+  --text-3: #d6d6d6;
+  --text-4: #b0b0b0;
+  --text-inverse: #000000;
+
+  --border: #8c8c8c;
+  --border-strong: #ffffff;
+  --divider: #5a5a5a;
+
+  --accent: hsl(var(--accent-h) 100% 72%);
+  --accent-strong: hsl(var(--accent-h) 100% 80%);
+  --accent-soft: hsl(var(--accent-h) 50% 14%);
+  --accent-soft-2: hsl(var(--accent-h) 50% 22%);
+  --accent-text: hsl(var(--accent-h) 100% 82%);
+  --accent-ring: #ffffff;
+  --on-accent: #000000;
+
+  --success: #6ef59a;
+  --success-soft: #06240f;
+  --success-border: #6ef59a;
+  --success-text: #8cffb2;
+  --warning: #ffd166;
+  --warning-soft: #2b2000;
+  --warning-border: #ffd166;
+  --warning-text: #ffe08f;
+  --danger: #ff8f8f;
+  --danger-soft: #2e0505;
+  --danger-border: #ff8f8f;
+  --danger-text: #ffb0b0;
+  --info: #9cc0ff;
+  --info-soft: #0b1a3a;
+
+  --shadow-sm: none;
+  --shadow: none;
+  --shadow-lg: 0 0 0 2px #fff;
+}
+
+/* ---- Density ---- */
+:root[data-density="compact"] {
+  --density: 0.72;
+  --row-pad-x: 14px;
+}
+
+/* ---- Reduced motion: user setting or OS preference ---- */
+:root[data-motion="reduce"] *,
+:root[data-motion="reduce"] *::before,
+:root[data-motion="reduce"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion="full"]) *,
+  :root:not([data-motion="full"]) *::before,
+  :root:not([data-motion="full"]) *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

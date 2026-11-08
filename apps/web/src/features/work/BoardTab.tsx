@@ -1,71 +1,120 @@
-import React from "react";
-import { Plus, KanbanSquare, Flag } from "lucide-react";
+import React, { useState } from "react";
+import { Plus } from "lucide-react";
 import { useWorkspace } from "../workspace/useWorkspace";
+import { Skeleton } from "../shared/Avatar";
+import { KindIcon, PriorityIcon, STATUSES, STATUS_LABEL } from "./meta";
 
 export function BoardTab() {
-  const { issues, project, tab, setModal, setSelectedIssue, move } = useWorkspace();
+  const { issues, project, tab, setModal, setSelectedIssue, move, loading } = useWorkspace();
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [over, setOver] = useState<string | null>(null);
+  if (tab !== "board") return null;
+  const step = (status: string, dir: -1 | 1) =>
+    STATUSES[STATUSES.indexOf(status as (typeof STATUSES)[number]) + dir];
   return (
-    <>
-      {tab === "board" && (
-        <div className="board">
-          <div className="board-toolbar">
-            <span>
-              <KanbanSquare size={17} /> {project?.name}
-            </span>
-            <button className="secondary" onClick={() => setModal("issue")}>
-              <Plus size={15} /> Add issue
-            </button>
-          </div>
-          <div className="columns">
-            {(["todo", "in_progress", "in_review", "done"] as const).map((status, index) => (
-              <div className="column" key={status}>
-                <div className="column-title">
-                  <span className={"column-dot dot-" + index} />
-                  <b>
-                    {status === "todo"
-                      ? "To do"
-                      : status === "in_progress"
-                        ? "In progress"
-                        : status === "in_review"
-                          ? "In review"
-                          : "Done"}
-                  </b>
-                  <span className="count">{issues.filter((i) => i.status === status).length}</span>
-                </div>
-                {issues
-                  .filter((i) => i.status === status)
-                  .map((i) => (
-                    <article className="issue-card" key={i.id}>
-                      <button className="issue-number-button" onClick={() => setSelectedIssue(i.id)}>
-                        {project?.key}-{i.number}
-                      </button>
-                      <h4>{i.title}</h4>
-                      <div className="issue-foot">
-                        <span className={"priority priority-" + i.priority}>
-                          <Flag size={13} /> {i.priority}
-                        </span>
-                        <select
-                          aria-label="Move issue"
-                          value={i.status}
-                          onChange={(e) => move(i, e.target.value)}
-                        >
-                          {["todo", "in_progress", "in_review", "done"].map((x) => (
-                            <option key={x} value={x}>
-                              {x.replace("_", " ")}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </article>
-                  ))}
-                {!issues.some((i) => i.status === status) && (
-                  <div className="column-empty">No issues here</div>
-                )}
+    <div className="board">
+      <div className="board-toolbar">
+        <span className="board-title">
+          <span className="project-icon sm">{project?.key.slice(0, 2)}</span> {project?.name}
+        </span>
+        <span className="muted small hide-sm">
+          Drag cards between columns, or focus a card and press Alt + ← / →
+        </span>
+        <button className="secondary" onClick={() => setModal("issue")}>
+          <Plus size={15} /> Add issue
+        </button>
+      </div>
+      <div className="columns">
+        {STATUSES.map((status, index) => {
+          const list = issues.filter((i) => i.status === status);
+          return (
+            <section
+              className={"column" + (over === status ? " drop" : "")}
+              key={status}
+              aria-label={STATUS_LABEL[status]}
+              onDragOver={(e) => {
+                if (!dragId) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                if (over !== status) setOver(status);
+              }}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) setOver(null);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const issue = issues.find((i) => i.id === (dragId ?? e.dataTransfer.getData("text/plain")));
+                setOver(null);
+                setDragId(null);
+                if (issue) move(issue, status);
+              }}
+            >
+              <div className="column-title">
+                <span className={"column-dot dot-" + index} />
+                <b>{STATUS_LABEL[status]}</b>
+                <span className="count">{list.length}</span>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </>
+              {loading &&
+                [0, 1].map((n) => (
+                  <div className="issue-card" key={n}>
+                    <Skeleton w="40%" h={10} />
+                    <Skeleton h={12} />
+                  </div>
+                ))}
+              {list.map((i) => (
+                <article
+                  className={"issue-card" + (dragId === i.id ? " dragging" : "")}
+                  key={i.id}
+                  draggable
+                  tabIndex={0}
+                  aria-label={`${project?.key}-${i.number} ${i.title}, ${STATUS_LABEL[i.status]}`}
+                  onDragStart={(e) => {
+                    setDragId(i.id);
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", i.id);
+                  }}
+                  onDragEnd={() => {
+                    setDragId(null);
+                    setOver(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && e.target === e.currentTarget) setSelectedIssue(i.id);
+                    if (e.altKey && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
+                      e.preventDefault();
+                      const to = step(i.status, e.key === "ArrowRight" ? 1 : -1);
+                      if (to) move(i, to);
+                    }
+                  }}
+                >
+                  <div className="issue-top">
+                    <KindIcon kind={i.kind} />
+                    <button className="issue-number-button" onClick={() => setSelectedIssue(i.id)}>
+                      {project?.key}-{i.number}
+                    </button>
+                    <PriorityIcon priority={i.priority} label={false} />
+                  </div>
+                  <h4>{i.title}</h4>
+                  <div className="issue-foot">
+                    <PriorityIcon priority={i.priority} />
+                    <select
+                      aria-label="Move issue"
+                      value={i.status}
+                      onChange={(e) => move(i, e.target.value)}
+                    >
+                      {STATUSES.map((x) => (
+                        <option key={x} value={x}>
+                          {STATUS_LABEL[x]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </article>
+              ))}
+              {!loading && !list.length && <div className="column-empty">Drop issues here</div>}
+            </section>
+          );
+        })}
+      </div>
+    </div>
   );
 }

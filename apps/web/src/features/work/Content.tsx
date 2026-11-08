@@ -7,8 +7,10 @@ import { AdvancedWorkspace, type ExtraTab } from "../advanced/AdvancedWorkspace"
 import { IdentityPanel } from "../admin/IdentityPanel";
 import { BillingPanel } from "../admin/BillingPanel";
 import { WebhooksPanel } from "../admin/WebhooksPanel";
+import { AppearancePanel } from "../workspace/AppearancePanel";
 import { SecurityPanel } from "../advanced/SecurityPanel";
 import { AccessPanel } from "../advanced/AccessPanel";
+import { Skeleton } from "../shared/Avatar";
 import { OverviewTab } from "./OverviewTab";
 import { BoardTab } from "./BoardTab";
 import { IssuesTab } from "./IssuesTab";
@@ -30,9 +32,25 @@ export function Content() {
     setSelectedIssue,
     setPages,
     me,
+    projectsLoading,
     resendVerification,
     verificationSent,
   } = useWorkspace();
+  const needsProject = [
+    "overview",
+    "board",
+    "issues",
+    "knowledge",
+    "sprints",
+    "releases",
+    "goals",
+    "risks",
+    "decisions",
+    "analytics",
+    "automation",
+    "approvals",
+    "access",
+  ].includes(tab);
   return (
     <div className="content">
       {me && !me.email_verified && (
@@ -86,22 +104,11 @@ export function Content() {
           </button>
         </div>
       )}
-      {!project &&
-      [
-        "overview",
-        "board",
-        "issues",
-        "knowledge",
-        "sprints",
-        "releases",
-        "goals",
-        "risks",
-        "decisions",
-        "analytics",
-        "automation",
-        "approvals",
-        "access",
-      ].includes(tab) ? (
+      {!project && needsProject && projectsLoading ? (
+        <div className="empty" aria-busy="true">
+          <Skeleton w={220} h={18} />
+        </div>
+      ) : !project && needsProject ? (
         <div className="empty">
           <Layers3 size={32} />
           <h2>Start with your first project</h2>
@@ -123,6 +130,7 @@ export function Content() {
       {tab === "billing" && <BillingPanel />}
       {tab === "integrations" && <WebhooksPanel />}
       {tab === "access" && project && <AccessPanel />}
+      {tab === "appearance" && <AppearancePanel />}
       {![
         "overview",
         "board",
@@ -133,6 +141,7 @@ export function Content() {
         "identity",
         "billing",
         "integrations",
+        "appearance",
       ].includes(tab) && (
         <AdvancedWorkspace
           key={`${tab}:${selected}`}

@@ -13,8 +13,12 @@ import "@fontsource/manrope/latin-500.css";
 import "@fontsource/manrope/latin-600.css";
 import "@fontsource/manrope/latin-700.css";
 import "@fontsource/manrope/latin-800.css";
+import "./tokens.css";
 import "./style.css";
 import "./advanced.css";
+import "./ui.css";
+import { ThemeProvider } from "./lib/theme";
+import { ToastProvider } from "./features/shared/Toast";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 15_000, retry: 1, refetchOnWindowFocus: false } },
@@ -22,8 +26,12 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      </ToastProvider>
+    </ThemeProvider>
   </React.StrictMode>,
 );
