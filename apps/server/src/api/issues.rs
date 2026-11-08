@@ -144,6 +144,18 @@ pub(crate) async fn edit_issue(
         Some(c) => Some(crate::api::fields::validate_values(&mut tx, i.tenant_id, project, &c).await?),
         None => None,
     };
+    if let Some(ref next) = v.status {
+        // A status change must follow the workflow, judged on the values the issue will hold afterwards.
+        let (from, current): (String, Value) =
+            sqlx::query_as("SELECT status, custom_fields FROM issues WHERE tenant_id=$1 AND id=$2")
+                .bind(i.tenant_id)
+                .bind(id)
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(db_err)?;
+        let after = custom_fields.clone().unwrap_or(current);
+        crate::api::transitions::check_transition(&mut tx, i.tenant_id, project, &from, next, &after).await?;
+    }
     if v.parent_id == Some(id) {
         return Err(bad("An issue cannot be its own parent"));
     }
@@ -329,22 +341,31 @@ pub(crate) async fn bulk_update_issues(
     let mut results = Vec::with_capacity(ids.len());
     let mut updated: i64 = 0;
     for id in ids {
-        let open: bool = sqlx::query_scalar(
-            "SELECT EXISTS(SELECT 1 FROM issues WHERE tenant_id=$1 AND project_id=$2 AND id=$3 AND archived_at IS NULL)",
+        let current: Option<(String, Value)> = sqlx::query_as(
+            "SELECT status, custom_fields FROM issues WHERE tenant_id=$1 AND project_id=$2 AND id=$3 AND archived_at IS NULL",
         )
         .bind(i.tenant_id)
         .bind(project)
         .bind(id)
-        .fetch_one(&mut *tx)
+        .fetch_optional(&mut *tx)
         .await
         .map_err(db_err)?;
-        if !open {
+        let Some((from, custom)) = current else {
             results.push(BulkItemResult {
                 id,
                 ok: false,
                 error: Some("Issue not found in this project, or it is archived".into()),
             });
             continue;
+        };
+        if let Change::Status(s) = &change {
+            // A refused move is reported on its item; the rest of the batch still applies.
+            if let Err(e) =
+                crate::api::transitions::check_transition(&mut tx, i.tenant_id, project, &from, s, &custom).await
+            {
+                results.push(BulkItemResult { id, ok: false, error: Some(e.to_string()) });
+                continue;
+            }
         }
         match &change {
             Change::Status(s) => {

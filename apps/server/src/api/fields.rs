@@ -285,6 +285,9 @@ pub(crate) async fn update_field(
 pub(crate) async fn delete_field(mut tx: Tx, Path((project, key)): Path<(Uuid, String)>) -> ApiResult<StatusCode> {
     let i = tx.identity.clone();
     ensure_project_admin(&mut tx, project).await?;
+    if crate::api::transitions::field_is_required_by_rule(&mut tx, i.tenant_id, project, &key).await? {
+        return Err(err(StatusCode::CONFLICT, "A workflow rule requires this field. Remove the rule first"));
+    }
     let r = sqlx::query("DELETE FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 AND key=$3")
         .bind(i.tenant_id)
         .bind(project)

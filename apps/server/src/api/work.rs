@@ -388,15 +388,18 @@ pub(crate) async fn patch_issue(
     if !can_edit(&i) {
         return Err(forbidden());
     }
-    let project: Uuid = sqlx::query_scalar("SELECT project_id FROM issues WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(issue)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let (project, from, custom): (Uuid, String, serde_json::Value) = sqlx::query_as(
+        "SELECT project_id, status, custom_fields FROM issues WHERE tenant_id=$1 AND id=$2",
+    )
+    .bind(i.tenant_id)
+    .bind(issue)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
     if !crate::api::statuses::status_defined(&mut tx, i.tenant_id, project, &v.status).await? {
         return Err(bad("Unknown status"));
     }
+    crate::api::transitions::check_transition(&mut tx, i.tenant_id, project, &from, &v.status, &custom).await?;
     let row:Issue=sqlx::query_as("UPDATE issues SET status=$1,updated_at=now() WHERE tenant_id=$2 AND id=$3 RETURNING id,project_id,number,title,description,kind,status,priority,created_at,updated_at")
  .bind(v.status).bind(i.tenant_id).bind(issue).fetch_optional(&mut *tx).await.map_err(db_err)?.ok_or_else(||err(StatusCode::NOT_FOUND,"Issue not found"))?;
     log_event(&mut tx, &i, "updated", "issue", issue).await?;

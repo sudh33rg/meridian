@@ -10,5 +10,6 @@ pub mod personal;
 pub mod planning;
 pub mod query;
 pub mod statuses;
+pub mod transitions;
 pub mod security;
 pub mod work;
