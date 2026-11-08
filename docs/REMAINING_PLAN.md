@@ -23,3 +23,29 @@ Status: plan dated 8 November 2026. It lists everything still open from `BEST_IN
 - Every step keeps the constitution: tenant isolation from the session, server-side role checks, forward-only migrations, generated OpenAPI, and no automated tests added.
 - Where a step needs a choice, the default chosen is written into the step's commit message and into `BEST_IN_CLASS_ANALYSIS.md`.
 - Anything a step cannot verify is recorded as not verified, not left implied.
+
+## Results
+
+Recorded at close-out on 8 November 2026. API checks ran against a disposable PostgreSQL 17 database with all 18 migrations applied, on the final build.
+
+| Step | Result | Evidence |
+|---|---|---|
+| D1 custom fields | Done | `verify_d1` 33/33 |
+| D2 query language | Done, with one deviation: the query is served by `GET /projects/{id}/issues/search?query=`, not by a `query=` parameter on the issue list. The web search box uses the search route. | `verify_d2` 38/38 |
+| D3 transition rules | Done. Refused on PATCH, edit, bulk and board moves. | `verify_d3` 24/24 |
+| D4 CSV importer | Done. Dry run by default; idempotent by `Issue Key`. | `verify_d4` 22/22 |
+| D5 accessibility | Partly done. Contrast of text tokens fixed (priority and status labels were 3.1 to 4.3:1). Not done: screen-reader pass and a full keyboard walk. | Browser checks, before commit |
+| D6 mobile | Code done: paging through `X-Next-Cursor`, draft resend with the saved key, offline cache. `dart analyze lib` is clean. Not verified on a device. | `dart analyze` |
+| D7 typed responses | Done for comments, links, saved views, search, notifications and approvals. The remaining `Value` endpoints are still untyped. | `d7` 3 checks |
+| D8 saved views | Done. `query` and `kind` are stored; a view that names a removed status is reported with `stale: true`. | `d8` 14/14 |
+| D9 permissions | Done. A second member is refused (403) on status, field and rule changes, and their reads still work. | `d9` 22/22 |
+| D10 table layout | Changed as planned. Re-check at 1024px and 390px is in the close-out visual pass. | Pending the visual pass |
+| D11 housekeeping | Done. Stray `/tmp/placeholder` removed. | File no longer present |
+| D12 mobile simulator | Build succeeds for the iOS simulator. The app stayed on a spinner because the keychain read at startup was not guarded; it now starts signed out if that read fails. The sign-in screen renders on iPhone 17 Pro. Signing in on the simulator was not exercised. | Simulator screenshot after the fix |
+| D13 close-out | API checks below. Visual pass is the last step. | See counts |
+
+API checks on the final build: `verify_api` 33/33, `verify_phase_b` 41/41, `verify_phase_c` 34/34, `verify_d1` 33/33, `verify_d2` 38/38, `verify_d3` 24/24, `verify_d4` 22/22, `d7` 3/3, `d8` 14/14, `d9` 22/22. Total 264 checks, all passing.
+
+One Phase B check changed. "Unknown filter key → 400" used `kind` as the unknown key. D8 made `kind` a valid saved-view filter, so the check now uses `bogus`. The behaviour is correct; the check was out of date.
+
+Not verified: behaviour on a physical device or in the simulator beyond the sign-in screen; offline and draft-resend paths on a device; a screen-reader pass; a full keyboard walk; non-admin edge cases beyond D9.

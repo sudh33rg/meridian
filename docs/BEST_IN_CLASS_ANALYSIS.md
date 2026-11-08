@@ -1,12 +1,12 @@
 # Meridian — best-in-class analysis, comparison and implementation plan
 
-> Status: analysis and plan dated 8 November 2026. Phases A and B are implemented and verified as described in sections 7 and 8, with the gaps stated there. Phase C is planned, not built.
+> Status: analysis and plan dated 8 November 2026. Phases A, B and C are implemented. The follow-on plan in `REMAINING_PLAN.md` (D1 to D13) is implemented through D12, and D13 is the close-out; results and the gaps still open are in that file and in sections 7 and 8.
 
 ## 1. Method and evidence level
 
 - **Field:** the 300 products already listed in `UX_BENCHMARK_AND_PLAN.md` (12 categories) and the 100-product inventory in `COMPETITIVE_LANDSCAPE.md`. Those lists are an inventory. Scoring 300 products hands-on was not feasible in one change, so the comparison below scores **capability patterns** against six representative leaders: Jira, Linear, Confluence, Notion, GitHub and Plane (open source).
 - **Scores** are qualitative desk judgments from public documentation and the release notes below. They are a map for prioritisation, not a benchmark. Nothing here was measured against those products' live instances.
-- **Meridian's side** was checked in code: routes in `docs/openapi.json` (129 operations), handlers in `apps/server/src/api/`, migrations `0001` to `0015`, the web client in `apps/web/src`, and the Flutter client in `apps/mobile/lib`.
+- **Meridian's side** was checked in code: routes in `docs/openapi.json` (142 operations), handlers in `apps/server/src/api/`, migrations `0001` to `0018`, the web client in `apps/web/src`, and the Flutter client in `apps/mobile/lib`.
 - Current-state facts used: Jira's 2026 workflow editor transition (third-party summary; unconfirmed against Atlassian's own notes), Linear's 2026 agent, mobile-navigation and filtering releases, and Stripe's idempotency rules (sources in section 9).
 
 Legend: ● strong and core · ◐ partial, add-on or uneven · ○ absent or deliberately out of scope · — not a target for that product.
@@ -27,7 +27,7 @@ Legend: ● strong and core · ◐ partial, add-on or uneven · ○ absent or de
 | 10 | Collaborative rich editing | ◐ | ○ | ● | ● | ◐ | ◐ | ◐ (Yjs, two-user verified) | ◐ |
 | 11 | Fine-grained permissions | ● | ● | ● | ● | ● | ◐ | ◐ (project grants, page restrictions) | ◐ (no issue-level ACL) |
 | 12 | Audit trail | ● | ◐ | ● | ● | ● | ○ | ◐ (events and audit rows) | ◐ |
-| 13 | Public API, OpenAPI, webhooks | ● | ● | ● | ● | ● | ● | ◐ (122 operations; many responses untyped) | ◐ (129 operations; 3 existing list and detail responses typed, plus the new ones) |
+| 13 | Public API, OpenAPI, webhooks | ● | ● | ● | ● | ● | ● | ◐ (122 operations; many responses untyped) | ◐ (142 operations; the new work responses are typed, and the older `Value` responses are listed in `REMAINING_PLAN.md`) |
 | 14 | Keyboard-first UX and palette | ◐ | ● | ◐ | ● | ● | ◐ | ◐ | ● (palette, shortcuts, `g` then key) |
 | 15 | Themes, density, contrast | ◐ | ● | ◐ | ◐ | ● | ◐ | ○ | ◐ (themes and contrast; no audit yet) |
 | 16 | Mobile companion | ● | ● | ● | ● | ● | ◐ | ◐ (Flutter source, never built) | ◐ (uses the new headers; analyzed, not built or run) |
@@ -91,16 +91,16 @@ Legend: ● strong and core · ◐ partial, add-on or uneven · ○ absent or de
 | B6 | Per-user notification preferences for `approval` and `automation` kinds. Switching a kind off stops new inbox rows for that member. The inbox has a Notify me about panel. **Not done:** email or any outbound delivery. | `api/personal.rs`, `collab.rs` (both inserts), migration `0015`, web `NotificationPreferences.tsx` | done (inbox only) |
 | B2 | Flutter client: `Api.request` takes headers; issue status changes send `If-Match` from the loaded ETag and reload after a refused change; issue create sends an `Idempotency-Key` (kept with the offline draft, for a future resend). **Not done:** paging (the app still reads the first 500 rows, which is what it did before), a simulator build and run. | `apps/mobile/lib/core.dart`, `issue.dart`, `home.dart` | partly done (analyzed only) |
 
-### Phase C — C1 implemented; C2 to C6 planned, each needs its own design
+### Phase C — implemented (C1 to C6)
 
 | Step | Work | Notes |
 |---|---|---|
 | C1 | **Implemented:** per-project status catalogue (migration `0016`, `project_statuses`). Each status has an immutable key, a name, a category (`todo`, `in_progress`, `done`) and a board position. Issues reference the catalogue with a composite foreign key. Endpoints: list, create, update (name, category, position) and delete. The board, filters, bulk changes, saved views, the drawer, the overview counts, overdue and the mobile screen all read the project's statuses. **Not done:** allowed transitions and validators, which the notes below explain. |
-| C2 | Custom field schemas (type, options, required, visibility) on top of the JSON `custom_fields`. | Needed before query filters can use custom fields. |
-| C3 | A small query language with a parser that compiles to SQL, enforcing project access before filtering. | Permission-first, per Constitution Article III.2. Saved views (B4) take its filter contract as their starting point. |
-| C4 | Jira CSV and Jira JSON importers that keep original keys and history where available. | Migration fidelity is a product feature (`COMPETITIVE_LANDSCAPE.md`). |
-| C5 | Accessibility audit (keyboard, focus order, contrast, screen reader) with fixes. | A release gate, not a nice-to-have. |
-| C6 | Mobile offline sync and conflict review, using the ETag and idempotency contract from Phase A. | Depends on the rest of B2. |
+| C2 | **Implemented in D1.** Custom field schemas (type, options, required, visibility) on top of the JSON `custom_fields`. | Needed before query filters can use custom fields. |
+| C3 | **Implemented in D2.** A small query language with a parser that compiles to SQL, enforcing project access before filtering. | Permission-first, per Constitution Article III.2. Saved views (B4) take its filter contract as their starting point. |
+| C4 | **CSV implemented in D4.** Jira CSV importers that keep original keys and history where available. | Migration fidelity is a product feature (`COMPETITIVE_LANDSCAPE.md`). |
+| C5 | **Implemented in D5 (contrast, labels, focus); remaining gaps recorded in REMAINING_PLAN.md.** Accessibility audit (keyboard, focus order, contrast, screen reader) with fixes. | A release gate, not a nice-to-have. |
+| C6 | **Implemented in D6 (paging, draft resend, offline cache); not verified on a device.** Mobile offline sync and conflict review, using the ETag and idempotency contract from Phase A. | Depends on the rest of B2. |
 
 ### Design notes for Phase B
 

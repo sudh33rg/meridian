@@ -22,7 +22,7 @@ This document explicitly distinguishes source code that exists from planned pari
 
 **Rust**: core API plus advanced domain API; SQLx queries use parameters, authenticated membership sessions, and explicit tenant predicates. There is no external delivery worker or fully custom domain policy engine yet.
 
-**PostgreSQL**: sixteen ordered migrations (0001 to 0016); tenant-scoped relational constraints; indexes for issue status/search, page content search, timeline and notification retrieval; state-machine and uniqueness constraints.
+**PostgreSQL**: eighteen ordered migrations (0001 to 0018); tenant-scoped relational constraints; indexes for issue status/search, page content search, timeline and notification retrieval; state-machine and uniqueness constraints.
 
 **React**: responsive application shell, issue board, knowledge editor, issue details, planning and business modules, approvals, analytics, organization members, global search, inbox, audit, and export. The UI intentionally keeps advanced features separated from the four core work views. **UX modernization (see `UX_BENCHMARK_AND_PLAN.md`):** semantic design tokens with light, dark, system and high-contrast themes, six accent colors, comfortable/compact density and a reduced-motion setting (stored in the browser only; no server preference yet); a collapsible sectioned sidebar and mobile bottom navigation; a ⌘/Ctrl+K command palette and keyboard shortcuts; toasts with undo; drag-and-drop board (with an Alt+arrow keyboard alternative); issue list with filter, sort and group; skeleton loading and a getting-started checklist. Verified by eye in the browser in dark, light, orange-accent, compact and 390px-wide mobile; **not** verified: a formal accessibility audit or screen-reader pass, Safari/Firefox, touch drag-and-drop on a device, the Playwright e2e suite against this UI (selectors were read, not run), the high-contrast theme, and every legacy admin panel in every theme.
 
@@ -44,7 +44,7 @@ This document explicitly distinguishes source code that exists from planned pari
 ## Next recommended engineering sequence
 
 1. Push and confirm the first CI run is green (Flutter job in particular).
-2. Phase 2 of `RESEARCH_AND_ROADMAP.md` (configurable workflows, custom fields, MQL, pagination, typed response schemas for endpoints that still return `Value`).
+2. Done since this list was written (see `REMAINING_PLAN.md` for results): configurable workflows, custom fields, the query language, transition rules, the CSV importer, cursor paging on mobile, and typed responses for the most-used reads. Still open: typed responses for the remaining `Value` endpoints.
 3. Run CI on GitHub (`act` is installed for a local dry run); fix what it finds, including the Flutter job.
 4. Exercise what is written but untested: Stripe Checkout, the ClamAV scan, webhook failure and retry paths, DNS domain verification, SCIM against a real directory, and mobile two-step verification.
 5. Passkeys (WebAuthn), Android builds, and an external security review.

@@ -114,12 +114,58 @@ Issues, filters, bulk changes and saved views accept only statuses the project d
 | POST | `/issues/{id}/archive`, `/issues/{id}/unarchive` | Archive or restore an issue. Editors only; 409 when the issue is already in that state. Archiving needs access to the issue's project |
 | GET | `/projects/{id}/issues?archived=true` | List archived issues instead of active ones (same paging and filters) |
 | POST | `/projects/{id}/issues/bulk` | Set `status`, `priority` or `assignee` on 1 to 100 distinct issues in one transaction. Body: `{"ids":[...],"action":"set_status","value":"done"}`. `set_assignee` takes a workspace member's user id; `null` clears it. Response: `{"updated":n,"results":[{"id","ok","error"}]}`; a skipped item reports why |
-| GET / POST | `/projects/{id}/views` | Your saved views for a project. Filters: `status`, `priority`, `assignee_id`, `q`. Names are unique per project; up to 50 views per project. Other members cannot see them |
+| GET / POST | `/projects/{id}/views` | Your saved views for a project. Filters: `status`, `priority`, `assignee_id`, `q`, `kind` and `query` (see Query language). Names are unique per project; up to 50 views per project. Other members cannot see them |
 | DELETE | `/views/{id}` | Delete one of your views |
 | GET / PUT | `/me/notification-preferences` | Turn inbox notifications for `approval` or `automation` on or off. Both are on by default; `PUT` takes `{"kind","enabled"}` and returns every kind |
 
 Issue reads (`/details`, `/comments`, `/links`, and attachment lists) also work on archived issues, so a restored or archived issue stays readable. Writes such as edits, comments and status changes need an active issue.
 
 Page edit with optimistic concurrency: `PATCH /api/pages/UUID` with `{"title":"...","content":"...","expected_version":1}`. A conflicting write returns HTTP 409.
+
+### Custom fields
+
+Projects define typed fields that issues carry in `custom_fields`. Types are `text`, `number`, `date` (`YYYY-MM-DD`), `boolean`, and `select` (1 to 50 `options`; options are refused on other types). A definition is `{"label","field_type","options"?,"required"?,"key"?}`. The key is derived from the label when omitted and cannot change afterwards. Every issue write validates `custom_fields` against these definitions and returns 400 naming the field when a value is wrong or a required field is missing.
+
+| Verb | Route | Description |
+|---|---|---|
+| GET | `/projects/{id}/fields` | Definitions in position order. Any member who can see the project |
+| POST | `/projects/{id}/fields` | Create a definition. Project admins only |
+| PATCH | `/projects/{id}/fields/{key}` | Change `label`, `required` or `options`. An option removed while an issue still uses it is refused. Project admins only |
+| DELETE | `/projects/{id}/fields/{key}` | Delete a definition and remove its value from every issue. Project admins only |
+
+### Query language
+
+`GET /projects/{id}/issues/search?query=…&limit=…` returns the matching issues, newest number first (`limit` 1 to 200, default 100). The issue list itself does not take a `query` parameter; use this route.
+
+A query is space-separated `field:value` terms, with quotes around a value that contains spaces:
+
+- `status:` (a status the project defines), `priority:`, `assignee:` (a user id or `me`), `label:`, `kind:` (or `type:`), `title:`, and `cf.<key>:` for a custom field.
+- A leading `-` negates a term. A negated term keeps issues where the value is missing.
+- An unknown field, an unknown value or a malformed query returns 400. Project access is applied before any filter, and the SQL is parameterised.
+
+Example: `status:in_progress priority:high -label:legacy cf.region:"EU"`.
+
+### Workflow transition rules
+
+| Verb | Route | Description |
+|---|---|---|
+| GET | `/projects/{id}/transitions` | The rules. Any member who can see the project |
+| POST | `/projects/{id}/transitions` | Add a rule: `{"from","to","requires_field"?}`. Project admins only |
+| DELETE | `/projects/{id}/transitions/{from}/{to}` | Remove a rule. Project admins only |
+
+A project with no rules allows every status change. A status that is the starting point of at least one rule allows only the moves its rules list, and other statuses stay unrestricted. `requires_field` names a custom field that must hold a value after the change. Every status change is checked against the rules: PATCH, edit, bulk and the board.
+
+### CSV import
+
+`POST /projects/{id}/import/csv` takes the CSV as the request body (`text/csv`, at most 1 MB and 500 rows). It needs a workspace admin and project access. The header row must include `Summary` and `Issue Key`. `Issue Type`, `Priority`, `Status` and `Description` are optional. Query parameters:
+
+- `dry_run` (default `true`): report what would change and commit nothing.
+- `create_statuses` (default `false`): create the statuses the file names that the project lacks, up to the 20-per-project limit.
+
+Rows are idempotent by `Issue Key`, so a repeat import skips rows already imported. The report gives each row's action and any error with its line number. A real import commits only when no row has an error.
+
+### Typed responses
+
+Issue comments and links, saved views, search results, notifications and approvals return fixed schemas, listed in the OpenAPI document. Saved views also report `stale: true` when a status, field or query term they use no longer exists in the project, instead of silently returning nothing. Saved views accept `query` and `kind` as filters, in addition to the filters in the table above.
 
 This is a route guide, **not** a complete generated or audited OpenAPI schema. Formal OpenAPI + typed client generation is an M8/M10 release task.

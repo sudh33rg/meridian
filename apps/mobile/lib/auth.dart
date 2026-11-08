@@ -7,7 +7,12 @@ class _EntryPageState extends State<EntryPage> {
   String? token; bool loading=true;
   @override void initState(){super.initState();Api.onSignedOut=(){if(mounted)setState(()=>token=null);};_restore();}
   @override void dispose(){Api.onSignedOut=null;super.dispose();}
-  Future<void> _restore() async {final t=await secureStore.read(key:'session_token');if(mounted)setState((){token=t;loading=false;});}
+  Future<void> _restore() async {
+    // An unreadable keychain must not leave the app on its spinner: start signed out instead.
+    String? t;
+    try{t=await secureStore.read(key:'session_token');}catch(_){t=null;}
+    if(mounted)setState((){token=t;loading=false;});
+  }
   @override Widget build(BuildContext context)=>loading
     ? const Scaffold(body:Center(child:CircularProgressIndicator()))
     : token==null ? LoginPage(onLogin:(t)=>setState(()=>token=t))
