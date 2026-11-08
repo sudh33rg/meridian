@@ -69,14 +69,17 @@ function MacroBlock({ token, projectId, macro }: { token: string; projectId: str
   const query = macro.args.query ?? "";
   const issuesQ = useQuery({
     queryKey: ["macro", projectId, macro.name, query, limit],
+    // Search needs a query; without one the macro reads the project's issues in list order.
     queryFn: () =>
-      api<Issue[]>(
-        `/projects/${projectId}/issues/search?${new URLSearchParams({
-          query,
-          limit: String(isChart ? 200 : limit),
-        }).toString()}`,
-        token,
-      ),
+      query.trim()
+        ? api<Issue[]>(
+            `/projects/${projectId}/issues/search?${new URLSearchParams({
+              query,
+              limit: String(isChart ? 200 : limit),
+            }).toString()}`,
+            token,
+          )
+        : api<Issue[]>(`/projects/${projectId}/issues?limit=${isChart ? 200 : limit}`, token),
   });
   if (issuesQ.isLoading) return <p className="muted small">Loading…</p>;
   if (issuesQ.isError) return <p className="error">This macro could not be loaded.</p>;

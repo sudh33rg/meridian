@@ -36,6 +36,9 @@ pub enum ApiError {
     Gone(String),
     #[error("{0}")]
     TooManyRequests(String),
+    /// A feature the server is not set up for (for example AI without a key).
+    #[error("{0}")]
+    Unavailable(String),
     #[error("Database operation failed")]
     Database(#[source] sqlx::Error),
     #[error("{0}")]
@@ -55,6 +58,7 @@ impl ApiError {
             Self::PreconditionFailed(_) => StatusCode::PRECONDITION_FAILED,
             Self::Gone(_) => StatusCode::GONE,
             Self::TooManyRequests(_) => StatusCode::TOO_MANY_REQUESTS,
+            Self::Unavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
             Self::PlanLimit(_) => StatusCode::PAYMENT_REQUIRED,
             Self::Database(_) | Self::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
@@ -73,6 +77,7 @@ impl ApiError {
             Self::PreconditionFailed(_) => "precondition_failed",
             Self::Gone(_) => "gone",
             Self::TooManyRequests(_) => "rate_limited",
+            Self::Unavailable(_) => "unavailable",
             Self::Database(_) | Self::Internal(_) => "internal",
         }
     }
@@ -111,6 +116,7 @@ pub fn err(status: StatusCode, msg: &str) -> ApiError {
         StatusCode::PRECONDITION_FAILED => ApiError::PreconditionFailed(m),
         StatusCode::GONE => ApiError::Gone(m),
         StatusCode::TOO_MANY_REQUESTS => ApiError::TooManyRequests(m),
+        StatusCode::SERVICE_UNAVAILABLE => ApiError::Unavailable(m),
         _ => ApiError::Internal(m),
     }
 }

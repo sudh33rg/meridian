@@ -829,3 +829,43 @@
   white-space: nowrap;
   cursor: pointer;
 }
+
+/* Page macros (Phase K4): charts, tables and lists rendered from page text. */
+.macro-chart {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0;
+}
+.macro-bar-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 140px) 1fr 40px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.macro-bar {
+  display: block;
+  height: 12px;
+  min-width: 2px;
+  border-radius: 6px;
+  background: var(--accent);
+}
+.macro-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 13px;
+}
+.macro-table th,
+.macro-table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.macro-list {
+  margin: 8px 0;
+  padding-left: 18px;
+}
+.rendered-page .markdown p {
+  margin: 0 0 10px;
+}
