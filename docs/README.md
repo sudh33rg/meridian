@@ -30,7 +30,7 @@ With Docker installed:
 docker compose -f infra/docker-compose.full.yml up --build -d
 ```
 
-Open **http://localhost:8088** and create a workspace. This preview stack contains a local PostgreSQL instance and **must not be exposed to the public Internet**.
+Open **http://localhost:9991** and create a workspace. This preview stack contains a local PostgreSQL instance and **must not be exposed to the public Internet**.
 
 Or develop each service separately:
 
@@ -41,7 +41,7 @@ docker compose -f infra/docker-compose.yml up -d
 # Terminal 2 — Rust API
 cd apps/server
 export DATABASE_URL='postgres://meridian:meridian_local_only@localhost:5432/meridian'
-export CORS_ORIGIN='http://localhost:5173'
+export CORS_ORIGIN='http://localhost:9991'
 cargo run
 
 # Terminal 3 — React
@@ -50,7 +50,7 @@ npm install
 npm run dev
 ```
 
-Browse **http://localhost:5173**. Optionally populate a fresh demo workspace with `python3 scripts/seed_demo.py` against the local API.
+Browse **http://localhost:9991**. Optionally populate a fresh demo workspace with `python3 scripts/seed_demo.py` against the local API.
 
 ### Flutter development
 
@@ -60,10 +60,10 @@ This source package has Dart app code and `pubspec.yaml`. Generate Android/iOS s
 cd apps/mobile
 flutter create --project-name meridian_mobile --platforms android,ios .
 flutter pub get
-flutter run --dart-define=MERIDIAN_API=http://10.0.2.2:8080
+flutter run --dart-define=MERIDIAN_API=http://10.0.2.2:9990
 ```
 
-Android emulator reaches the host with `10.0.2.2`; use HTTPS for remote/real devices. iOS simulator typically uses `http://localhost:8080`. Native provisioning, push entitlements and production app signing are not included.
+Android emulator reaches the host with `10.0.2.2`; use HTTPS for remote/real devices. iOS simulator typically uses `http://localhost:9990`. Native provisioning, push entitlements and production app signing are not included.
 
 ## Tests and API
 

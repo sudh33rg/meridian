@@ -18,10 +18,10 @@ services:
       dockerfile: infra/Dockerfile.api
     environment:
       DATABASE_URL: postgres://meridian:${MERIDIAN_DB_PASSWORD:-local_dev_only}@postgres:5432/meridian
-      CORS_ORIGIN: http://localhost:8088
-      BIND_ADDRESS: 0.0.0.0:8080
+      CORS_ORIGIN: http://localhost:9991
+      BIND_ADDRESS: 0.0.0.0:9990
       RUST_LOG: info
-      PUBLIC_URL: http://localhost:8088
+      PUBLIC_URL: http://localhost:9991
       SMTP_URL: smtp://mailpit:1025
       MAIL_FROM: Meridian <no-reply@meridian.local>
       TRUST_PROXY: 'true'
@@ -42,7 +42,7 @@ services:
     build:
       context: ..
       dockerfile: infra/Dockerfile.web
-    ports: ['8088:80']
+    ports: ['9991:80']
     depends_on: [api]
     restart: unless-stopped
 volumes:

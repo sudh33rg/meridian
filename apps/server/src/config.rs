@@ -80,7 +80,7 @@ impl Config {
             }
         };
         let public_url = std::env::var("PUBLIC_URL")
-            .unwrap_or_else(|_| "http://localhost:5173".into())
+            .unwrap_or_else(|_| "http://localhost:9991".into())
             .trim_end_matches('/')
             .to_string();
         let mut allowed_origins = vec![public_url.clone()];

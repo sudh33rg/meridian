@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Black-box API tests: require a locally running Meridian backend.
-Usage: MERIDIAN_API=http://localhost:8080 python tests/smoke.py
+Usage: MERIDIAN_API=http://localhost:9990 python tests/smoke.py
 No third-party packages needed. Do not run against production.
 """
 import json
@@ -9,7 +9,7 @@ import secrets
 import urllib.error
 import urllib.request
 
-BASE=os.environ.get('MERIDIAN_API','http://localhost:8080').rstrip('/')
+BASE=os.environ.get('MERIDIAN_API','http://localhost:9990').rstrip('/')
 if not BASE.startswith(('http://localhost:', 'http://127.0.0.1:')):
     raise SystemExit('Tests only run on local URLs.')
 

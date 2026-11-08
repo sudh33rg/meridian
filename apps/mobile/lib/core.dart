@@ -5,7 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 // HTTPS is mandatory for deployed environments. This emulator address is local development only.
-const apiBase = String.fromEnvironment('MERIDIAN_API', defaultValue: 'http://10.0.2.2:8080');
+const apiBase = String.fromEnvironment('MERIDIAN_API', defaultValue: 'http://10.0.2.2:9990');
 const secureStore = FlutterSecureStorage();
 const primary = Color(0xFF3468E5);
 

@@ -87,7 +87,7 @@ jobs:
         run: |
           cargo build
           ./target/debug/meridian-api > api.log 2>&1 &
-          for i in $(seq 1 30); do curl -sf localhost:8080/ready && break; sleep 1; done
+          for i in $(seq 1 30); do curl -sf localhost:9990/ready && break; sleep 1; done
       - run: python3 tests/smoke.py
 
   e2e:

@@ -14,9 +14,8 @@ staticClients:
     name: Meridian (development)
     secret: meridian-dev-client-secret
     redirectURIs:
-      - http://localhost:5173/api/auth/sso/callback
-      - http://127.0.0.1:5173/api/auth/sso/callback
-      - http://localhost:8088/api/auth/sso/callback
+      - http://localhost:9991/api/auth/sso/callback
+      - http://127.0.0.1:9991/api/auth/sso/callback
 staticPasswords:
   # Passwords are all "password" (bcrypt hash below). Emails are marked verified by Dex.
   - email: ada@example.test

@@ -3,16 +3,16 @@
 ## Local source development
 
 1. `docker compose -f infra/docker-compose.yml up -d` (PostgreSQL only).
-2. In `apps/server`, set `DATABASE_URL=postgres://meridian:meridian_local_only@localhost:5432/meridian`, `CORS_ORIGIN=http://localhost:5173`, then `cargo run`.
+2. In `apps/server`, set `DATABASE_URL=postgres://meridian:meridian_local_only@localhost:5432/meridian`, `CORS_ORIGIN=http://localhost:9991`, then `cargo run`.
 3. In `apps/web`, run `npm install && npm run dev`.
-4. At http://localhost:5173 create a workspace and a project. Optional: `python3 scripts/seed_demo.py` populates a separate demo workspace at the local API.
-5. For Flutter: `cd apps/mobile && flutter create --platforms=android,ios . && flutter pub get && flutter run --dart-define=MERIDIAN_API=http://10.0.2.2:8080`.
+4. At http://localhost:9991 create a workspace and a project. Optional: `python3 scripts/seed_demo.py` populates a separate demo workspace at the local API.
+5. For Flutter: `cd apps/mobile && flutter create --platforms=android,ios . && flutter pub get && flutter run --dart-define=MERIDIAN_API=http://10.0.2.2:9990`.
 
 Use a physical phone only via HTTPS to a reachable API host. Disable development HTTP allowances in release builds.
 
 ## Single-command container preview
 
-From repository root: `docker compose -f infra/docker-compose.full.yml up --build -d`; open `http://localhost:8088`. The compose file runs API, web and PostgreSQL with **development-only** credentials. Do not expose this stack publicly.
+From repository root: `docker compose -f infra/docker-compose.full.yml up --build -d`; open `http://localhost:9991`. The compose file runs API, web and PostgreSQL with **development-only** credentials. Do not expose this stack publicly.
 
 ## Verification
 
@@ -35,7 +35,7 @@ Migrations are applied on API startup through SQLx. Back up before applying migr
 | `DATABASE_URL` | required | Owner/migration connection. Request transactions `SET ROLE meridian_app` (created by migration 0003; the connecting user must be allowed to become it; superusers and role owners are) |
 | `APP_ENV` | development | `production` forces Secure cookies and requires `APP_SECRET`; a missing `SMTP_URL` then fails email jobs instead of logging them |
 | `APP_SECRET` | random per process | 32+ chars; key for emailed one-time tokens. Changing it invalidates unsent/unused links |
-| `PUBLIC_URL` | `http://localhost:5173` | Base URL in emailed links |
+| `PUBLIC_URL` | `http://localhost:9991` | Base URL in emailed links |
 | `SMTP_URL`, `MAIL_FROM` | unset (log mailer) | `smtp://host:1025` (no TLS), `smtps://` (implicit TLS) or `smtp://host:587?tls=required` |
 | `COOKIE_SECURE`, `TRUST_PROXY` | false | Secure cookies + HSTS header; trust `X-Forwarded-For` for rate limiting |
 | `SESSION_TTL_HOURS`, `REFRESH_TTL_DAYS` | 8, 30 | Access session and refresh token lifetime |

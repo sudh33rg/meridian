@@ -12,14 +12,14 @@ spec:
       containers:
         - name: api
           image: registry.example.com/meridian/api:replace-with-immutable-digest
-          ports: [{containerPort: 8080, name: http}]
+          ports: [{containerPort: 9990, name: http}]
           env:
             - name: DATABASE_URL
               valueFrom: {secretKeyRef: {name: meridian-secrets, key: database-url}}
             - name: CORS_ORIGIN
               value: https://meridian.example.com
             - name: BIND_ADDRESS
-              value: 0.0.0.0:8080
+              value: 0.0.0.0:9990
             - name: APP_ENV
               value: production
             - name: APP_SECRET
@@ -46,7 +46,7 @@ kind: Service
 metadata: {name: meridian-api}
 spec:
   selector: {app: meridian-api}
-  ports: [{port: 8080, targetPort: http}]
+  ports: [{port: 9990, targetPort: http}]
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler

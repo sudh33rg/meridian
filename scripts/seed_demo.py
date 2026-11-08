@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Populate a running LOCAL Meridian API with non-sensitive demo content.
-Usage: MERIDIAN_API=http://localhost:8080 python scripts/seed_demo.py
+Usage: MERIDIAN_API=http://localhost:9990 python scripts/seed_demo.py
 Creates a fresh example workspace; never use real credentials or production URLs.
 """
 import json
@@ -9,7 +9,7 @@ import secrets
 import urllib.error
 import urllib.request
 
-BASE = os.environ.get('MERIDIAN_API','http://localhost:8080').rstrip('/')
+BASE = os.environ.get('MERIDIAN_API','http://localhost:9990').rstrip('/')
 if not BASE.startswith(('http://localhost:', 'http://127.0.0.1:')):
     raise SystemExit('Demo seeding is restricted to a local API URL.')
 TOKEN = None

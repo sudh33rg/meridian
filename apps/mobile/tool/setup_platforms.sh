@@ -1,7 +1,7 @@
 #!/bin/sh
 # Generate the native iOS/Android projects (they are not committed) and apply the development
 # settings Meridian needs. Safe to re-run.
-#   ./tool/setup_platforms.sh && flutter run --dart-define=MERIDIAN_API=http://localhost:8080
+#   ./tool/setup_platforms.sh && flutter run --dart-define=MERIDIAN_API=http://localhost:9990
 set -eu
 cd "$(dirname "$0")/.."
 flutter create --project-name meridian_mobile --platforms ios,android . >/dev/null

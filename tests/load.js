@@ -4,7 +4,7 @@
 import http from 'k6/http';
 import {check, sleep} from 'k6';
 export const options={stages:[{duration:'30s',target:10},{duration:'2m',target:50},{duration:'30s',target:0}],thresholds:{http_req_duration:['p(95)<400'],http_req_failed:['rate<0.01']}};
-const base=__ENV.MERIDIAN_API||'http://localhost:8080';
+const base=__ENV.MERIDIAN_API||'http://localhost:9990';
 export default function(){
   const headers={Authorization:`Bearer ${__ENV.MERIDIAN_TOKEN}`};
   const id=__ENV.MERIDIAN_PROJECT_ID;

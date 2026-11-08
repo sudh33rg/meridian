@@ -214,7 +214,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db = PgPool::connect(&env::var("DATABASE_URL")?).await?;
     sqlx::migrate!().run(&db).await?;
     db::assert_isolation(&db).await?;
-    let origin = env::var("CORS_ORIGIN").unwrap_or_else(|_| "http://localhost:5173".into());
+    let origin = env::var("CORS_ORIGIN").unwrap_or_else(|_| "http://localhost:9991".into());
     let cors = CorsLayer::new()
         .allow_origin(origin.parse::<axum::http::HeaderValue>()?)
         .allow_methods([
@@ -253,7 +253,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
     let app = build_router_with(db, cors, cfg, store);
     let bind = env::var("BIND_ADDRESS")
-        .unwrap_or_else(|_| "127.0.0.1:8080".into())
+        .unwrap_or_else(|_| "127.0.0.1:9990".into())
         .parse::<SocketAddr>()?;
     tracing::info!(address=%bind,"Meridian API ready");
     axum::serve(
