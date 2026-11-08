@@ -5989,6 +5989,118 @@
         ]
       }
     },
+    "/api/projects/{id}/import/csv": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "import_csv",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "dry_run",
+            "in": "path",
+            "description": "Default true: report only. Send false to create the issues.",
+            "required": true,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "create_statuses",
+            "in": "path",
+            "description": "Create statuses that the file names but the project lacks. Default false.",
+            "required": true,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "CSV with a header row. Columns: Summary (required), Issue Key (required), Issue Type, Priority, Status, Description",
+          "content": {
+            "text/csv": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Report. Check committed and errors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CsvImportReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The file cannot be read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admins only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/projects/{id}/import/issues": {
       "post": {
         "tags": [
@@ -9915,6 +10027,76 @@
               "null"
             ],
             "format": "uuid"
+          }
+        }
+      },
+      "CsvImportReport": {
+        "type": "object",
+        "required": [
+          "dry_run",
+          "committed",
+          "to_create",
+          "to_skip",
+          "errors",
+          "new_statuses",
+          "rows"
+        ],
+        "properties": {
+          "committed": {
+            "type": "boolean",
+            "description": "False when nothing was written: a dry run, or a file with row problems."
+          },
+          "dry_run": {
+            "type": "boolean"
+          },
+          "errors": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "new_statuses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Statuses the file names that the project lacks, created when `create_statuses` is set."
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CsvRowReport"
+            }
+          },
+          "to_create": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "to_skip": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "CsvRowReport": {
+        "type": "object",
+        "required": [
+          "line",
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "`create`, `skip` (already imported) or `error`."
+          },
+          "line": {
+            "type": "integer",
+            "description": "The file line the row starts on.",
+            "minimum": 0
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },

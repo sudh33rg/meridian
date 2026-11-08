@@ -104,6 +104,9 @@ pub(crate) async fn import_issues(
     .fetch_one(&mut *tx)
     .await
     .map_err(db_err)?;
+    // Imported issues start in the project's first To do status and must satisfy its required fields.
+    let start = crate::api::statuses::default_status(&mut tx, i.tenant_id, p).await?;
+    crate::api::fields::validate_values(&mut tx, i.tenant_id, p, &serde_json::json!({})).await?;
     let mut created = 0;
     let mut skipped = 0;
     for item in v.items {
@@ -113,9 +116,9 @@ pub(crate) async fn import_issues(
             skipped += 1;
             continue;
         }
-        let id:Uuid=sqlx::query_scalar("INSERT INTO issues(tenant_id,project_id,number,title,description,kind,priority,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id")
+        let id:Uuid=sqlx::query_scalar("INSERT INTO issues(tenant_id,project_id,number,title,description,kind,priority,created_by,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id")
             .bind(i.tenant_id).bind(p).bind(next).bind(item.title).bind(item.description.unwrap_or_default())
-            .bind(item.kind.unwrap_or_else(||"task".into())).bind(item.priority.unwrap_or_else(||"medium".into())).bind(i.user_id)
+            .bind(item.kind.unwrap_or_else(||"task".into())).bind(item.priority.unwrap_or_else(||"medium".into())).bind(i.user_id).bind(&start)
             .fetch_one(&mut *tx).await.map_err(db_err)?;
         sqlx::query("INSERT INTO imported_issue_refs(tenant_id,project_id,external_ref,issue_id) VALUES($1,$2,$3,$4)")
             .bind(i.tenant_id).bind(p).bind(item.external_ref).bind(id).execute(&mut *tx).await.map_err(db_err)?;

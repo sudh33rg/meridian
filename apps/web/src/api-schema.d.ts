@@ -1188,6 +1188,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/import/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["import_csv"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}/import/issues": {
         parameters: {
             query?: never;
@@ -1835,6 +1851,24 @@ export interface components {
             body: string;
             /** Format: uuid */
             parent_id?: string | null;
+        };
+        CsvImportReport: {
+            /** @description False when nothing was written: a dry run, or a file with row problems. */
+            committed: boolean;
+            dry_run: boolean;
+            errors: number;
+            /** @description Statuses the file names that the project lacks, created when `create_statuses` is set. */
+            new_statuses: string[];
+            rows: components["schemas"]["CsvRowReport"][];
+            to_create: number;
+            to_skip: number;
+        };
+        CsvRowReport: {
+            /** @description `create`, `skip` (already imported) or `error`. */
+            action: string;
+            /** @description The file line the row starts on. */
+            line: number;
+            message?: string | null;
         };
         DecisionInput: {
             context?: string | null;
@@ -6906,6 +6940,74 @@ export interface operations {
                 };
             };
             /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    import_csv: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Default true: report only. Send false to create the issues. */
+                dry_run: boolean | null;
+                /** @description Create statuses that the file names but the project lacks. Default false. */
+                create_statuses: boolean | null;
+            };
+            cookie?: never;
+        };
+        /** @description CSV with a header row. Columns: Summary (required), Issue Key (required), Issue Type, Priority, Status, Description */
+        requestBody: {
+            content: {
+                "text/csv": string;
+            };
+        };
+        responses: {
+            /** @description Report. Check committed and errors */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CsvImportReport"];
+                };
+            };
+            /** @description The file cannot be read */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Workspace admins only */
             403: {
                 headers: {
                     [name: string]: unknown;

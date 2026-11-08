@@ -3,7 +3,7 @@
 //! `docs/openapi.json` is the checked-in copy the web client types are generated from; CI checks it is current.
 use crate::api::{
     access::*, admin::*, collab::*, issues::*, knowledge::*, org::*, personal::*, planning::*,
-    fields::*, security::*, transitions::*, statuses::*, work::*,
+    csv_import::*, fields::*, security::*, transitions::*, statuses::*, work::*,
 };
 use crate::*;
 use utoipa::{
@@ -156,6 +156,7 @@ impl Modify for BearerAuth {
         api::personal::get_notification_preferences,
         api::personal::set_notification_preference,
         api::query::search_issues,
+        api::csv_import::import_csv,
         api::transitions::list_transitions,
         api::transitions::create_transition,
         api::transitions::delete_transition,
@@ -173,7 +174,7 @@ impl Modify for BearerAuth {
         auth::logout,
         auth::signup
     ),
-    components(schemas(ErrorBody, BulkIssueInput, BulkItemResult, BulkResult, ProjectStatus, NewStatus, StatusPatch, FieldDefinition, NewField, FieldPatch, TransitionRule, NewTransition, IssueDetail, Notification, Approval,SavedView, NewSavedView, NotificationPreference, NotificationPreferenceInput, api::knowledge::TitleInput, crate::sso::SsoInput, crate::sso::DomainInput, crate::scim::TokenInput, crate::billing::PlanInput, crate::webhooks::WebhookInput, crate::webhooks::WebhookPatch, api::access::PageAccess, api::access::RestrictionInput, api::access::PageGrantInput, crate::mfa::CodeInput, crate::mfa::DisableInput, crate::mfa::VerifyChallengeInput, crate::mfa::SecurityPolicyInput, ChangePasswordInput, RefreshInput, ForgotInput, ResetInput, VerifyInput, GrantInput, VisibilityInput, AcceptInvitation, ApprovalDecision, ApprovalInput, AuthResponse, AutomationInput, CommentInput, DecisionInput, ExistingInvite, GoalInput, ImportInput, ImportItem, InviteInput, Issue, IssueEdit, JoinTeamInput, LinkInput, Login, MemberRoleInput, NewIssue, NewPage, NewProject, Page, PatchIssue, PatchPage, Project, RelationInput, ReleaseInput, RestoreInput, RiskInput, Signup, SprintInput, SprintUpdate, SwitchTenant, TeamInput, WorkspaceInput)),
+    components(schemas(ErrorBody, BulkIssueInput, BulkItemResult, BulkResult, ProjectStatus, NewStatus, StatusPatch, FieldDefinition, NewField, FieldPatch, TransitionRule, NewTransition, CsvImportReport, CsvRowReport, IssueDetail, Notification, Approval,SavedView, NewSavedView, NotificationPreference, NotificationPreferenceInput, api::knowledge::TitleInput, crate::sso::SsoInput, crate::sso::DomainInput, crate::scim::TokenInput, crate::billing::PlanInput, crate::webhooks::WebhookInput, crate::webhooks::WebhookPatch, api::access::PageAccess, api::access::RestrictionInput, api::access::PageGrantInput, crate::mfa::CodeInput, crate::mfa::DisableInput, crate::mfa::VerifyChallengeInput, crate::mfa::SecurityPolicyInput, ChangePasswordInput, RefreshInput, ForgotInput, ResetInput, VerifyInput, GrantInput, VisibilityInput, AcceptInvitation, ApprovalDecision, ApprovalInput, AuthResponse, AutomationInput, CommentInput, DecisionInput, ExistingInvite, GoalInput, ImportInput, ImportItem, InviteInput, Issue, IssueEdit, JoinTeamInput, LinkInput, Login, MemberRoleInput, NewIssue, NewPage, NewProject, Page, PatchIssue, PatchPage, Project, RelationInput, ReleaseInput, RestoreInput, RiskInput, Signup, SprintInput, SprintUpdate, SwitchTenant, TeamInput, WorkspaceInput)),
     modifiers(&BearerAuth)
 )]
 pub struct ApiDoc;

@@ -3,6 +3,7 @@ pub mod fields;
 pub mod admin;
 pub mod collab;
 pub mod common;
+pub mod csv_import;
 pub mod issues;
 pub mod knowledge;
 pub mod org;

@@ -8,6 +8,7 @@ import { KindIcon, KINDS, PRIORITIES, PriorityIcon } from "./meta";
 import { errorMessage, request, send } from "../../lib/api";
 import { loadIssues, type BulkResult, type SavedView } from "../../lib/issues";
 import type { Issue } from "../../lib/types";
+import { ImportPanel } from "./ImportPanel";
 
 type Sort = "updated" | "priority" | "number";
 type Group = "none" | "status" | "priority";
@@ -39,6 +40,7 @@ export function IssuesTab() {
   const [sort, setSort] = useState<Sort>("updated");
   const [group, setGroup] = useState<Group>("none");
   const [showArchived, setShowArchived] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [queryText, setQueryText] = useState("");
   const [activeQuery, setActiveQuery] = useState("");
   const [picked, setPicked] = useState<Set<string>>(new Set());
@@ -339,6 +341,14 @@ export function IssuesTab() {
             </select>
           </label>
           <button
+            className="secondary"
+            aria-expanded={importing}
+            onClick={() => setImporting((v) => !v)}
+            disabled={!selected}
+          >
+            Import CSV
+          </button>
+          <button
             className={showArchived ? "primary" : "secondary"}
             aria-pressed={showArchived}
             onClick={() => {
@@ -353,6 +363,7 @@ export function IssuesTab() {
           </span>
         </div>
       </div>
+      {importing && <ImportPanel token={session.token} projectId={selected} />}
       {picked.size > 0 && !showArchived && (
         <div className="bulk-bar" role="region" aria-label="Bulk actions">
           <span>{picked.size} selected</span>

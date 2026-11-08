@@ -119,6 +119,7 @@ pub(crate) fn build_router_with(
         .merge(api::fields::routes())
         .merge(api::query::routes())
         .merge(api::transitions::routes())
+        .merge(api::csv_import::routes())
         .merge(api::knowledge::routes())
         .merge(api::collab::routes())
         .merge(api::admin::routes())
