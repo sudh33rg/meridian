@@ -639,3 +639,11 @@
   gap: 6px;
   align-items: center;
 }
+
+/* Colour inputs (workspace accent) need a visible swatch, not the browser default sliver. */
+input[type="color"] {
+  width: 3.5rem;
+  height: 2.25rem;
+  padding: 2px;
+  cursor: pointer;
+}

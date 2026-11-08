@@ -253,3 +253,16 @@ Run on a separate local stack: PostgreSQL 17 in a container on a free port, the 
 - **Mobile width (375px):** Backlog and Releases have no horizontal page overflow. The automation rules table overflowed; it is now inside a scrolling container (not re-checked after the change).
 
 Not verified in the browser: the CSV downloads themselves, the view subscription selector, the four importers and the import source selector, the permission scheme editor's new selects, the scheduled rule actually running (its first run waits for the hourly loop), the accent colour control, and the bulk bar at phone width. Known layout issues seen, not fixed: the accent colour input renders as a small swatch; the working-day labels in workspace settings overlap (this was already recorded as a cramped layout in the live run); the rule action buttons stack.
+
+### Phase Q verification, second pass (8 November 2026, ports 9990 and 9992)
+
+Run on the current ports: API on 9990 and a second API on 9994 for the subscription run, a fixed build on 9996, the web dev server on 9992 (its proxy target is 9990), and PostgreSQL 17 on a local container port. The API was seeded with `scripts/seed_demo.py`.
+
+- **API smoke, 46 checks:** exports (issues, sprint, release, history), every bulk action with refusals, nested queries and their refusals, saved view and subscription, scheduled rule create, preview, disable, run log and delete, permission scheme action levels and their validation, the four importers (dry run), and brand settings validation. All passed. A second run on the same database fails only the create-view check, because the view already exists.
+- **Scheduled rule run:** a rule created with the first run due ran at API startup (`ran scheduled automation rules`, 3 runs).
+- **Subscription delivery:** a daily subscription made due in the database produced one inbox notification at startup with the matching count and changes (`sent saved-view subscriptions`).
+- **Shared rate limit:** with `RATE_LIMIT_SHARED=true`, 40 failing logins from one client returned 401 for the first ten and 429 after the auth limit of 30. Counters were written to `rate_limit_windows`.
+- **Browser:** sign-in; the issue view's saved view shows its subscription as Daily; the Import CSV panel lists all six sources; the Reports History CSV endpoint returns 200; the permission editor shows the per-action selects, and setting Planning sprints to Admin and saving persisted (`manage_sprints: 3`); the bulk bar at 375px does not overflow the page; the accent colour control is a visible swatch.
+- **Defect found and fixed:** the history CSV wrote team and sprint ids where names belong. It now writes the names. Verified on the fixed build (port 9996); the browser's proxy still points at the older build on 9990 until that API is restarted.
+
+Not verified: the CSV file download itself (the endpoint returned the expected content), uploading a Trello, GitHub, Linear or Asana file through the panel, the email delivery of a digest or subscription, and the automation builder's table at phone width after the wrapper change.

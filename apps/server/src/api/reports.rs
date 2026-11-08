@@ -831,7 +831,14 @@ pub(crate) async fn history_export(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult
            FROM issue_status_history h JOIN issues i ON i.tenant_id=h.tenant_id AND i.id=h.issue_id \
            JOIN users u ON u.id=h.actor_id WHERE h.tenant_id=$1 AND i.project_id=$2 \
            UNION ALL \
-           SELECT i.number, c.field, c.old_value, c.new_value, u.display_name, to_char(c.changed_at AT TIME ZONE 'UTC','YYYY-MM-DD HH24:MI:SS') \
+           SELECT i.number, c.field, \
+             CASE WHEN c.field = 'team_id' THEN COALESCE((SELECT t.name FROM teams t WHERE t.tenant_id=c.tenant_id AND t.id::text=c.old_value), c.old_value) \
+                  WHEN c.field = 'sprint_id' THEN COALESCE((SELECT s.name FROM sprints s WHERE s.tenant_id=c.tenant_id AND s.id::text=c.old_value), c.old_value) \
+                  ELSE c.old_value END, \
+             CASE WHEN c.field = 'team_id' THEN COALESCE((SELECT t.name FROM teams t WHERE t.tenant_id=c.tenant_id AND t.id::text=c.new_value), c.new_value) \
+                  WHEN c.field = 'sprint_id' THEN COALESCE((SELECT s.name FROM sprints s WHERE s.tenant_id=c.tenant_id AND s.id::text=c.new_value), c.new_value) \
+                  ELSE c.new_value END, \
+             u.display_name, to_char(c.changed_at AT TIME ZONE 'UTC','YYYY-MM-DD HH24:MI:SS') \
            FROM issue_changes c JOIN issues i ON i.tenant_id=c.tenant_id AND i.id=c.issue_id \
            JOIN users u ON u.id=c.actor_id WHERE c.tenant_id=$1 AND i.project_id=$2\
          ) changes ORDER BY 6 DESC LIMIT 10000",
