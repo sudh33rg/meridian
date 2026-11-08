@@ -73,8 +73,8 @@
 
   --text: #1e2737;
   --text-2: #4a586e;
-  --text-3: #75839a;
-  --text-4: #9aa5b7;
+  --text-3: #5b6a82;
+  --text-4: #5f6e85;
   --text-inverse: #ffffff;
 
   --border: #e7ecf3;
@@ -102,6 +102,8 @@
   --danger-border: #ffddda;
   --danger-text: #b44542;
   --info: #3b78de;
+  /* Text colours for status words: the fills above are too light to read on white. */
+  --info-text: #2f67c7;
   --info-soft: #e9f0ff;
 
   --shadow-sm: 0 1px 2px rgba(20, 45, 82, 0.06);
@@ -123,7 +125,7 @@
   --text: #e6ebf3;
   --text-2: #b4bfd0;
   --text-3: #8b97ab;
-  --text-4: #66728a;
+  --text-4: #7b879c;
   --text-inverse: #0d1117;
 
   --border: #263041;
@@ -151,6 +153,7 @@
   --danger-border: #6a2c2f;
   --danger-text: #ff9a98;
   --info: #7aa7f5;
+  --info-text: #7aa7f5;
   --info-soft: #172544;
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
@@ -200,6 +203,7 @@
   --danger-border: #ff8f8f;
   --danger-text: #ffb0b0;
   --info: #9cc0ff;
+  --info-text: #9cc0ff;
   --info-soft: #0b1a3a;
 
   --shadow-sm: none;

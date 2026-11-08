@@ -148,10 +148,11 @@
     "apps/web/src/router.tsx": "87ef6aac766722b745f110ea59213c39914d22a8692fcba25510b1d44c45ddea",
     "apps/web/src/style.css": "b0bd1554626f287aabaeff21570d8e3e454305f18ffb3c7798ffad3f1d7edd8e",
     "apps/web/src/test/setup.ts": "db15744433d254d48a038898f608849ec3226d6a302fc44534bc931d8b8257c6",
-    "apps/web/src/tokens.css": "4c0ebc2a9b79c21aeba0894a3fc0b390cb2399ebf319e9c7c35ab0e1dd95a620",
-    "apps/web/src/ui.css": "53121c6afaf09a659aaf262798d7f1bd2a90a61a9be1e0a539642255ce4e9da0",
+    "apps/web/src/tokens.css": "0cb723ae98e7a0f75c9e008ba05c9a79f14cdd5cdf7c8a0a2fc3b1c95918a5a2",
+    "apps/web/src/ui.css": "94818f5f1ff24c39a1d86692c4415c5563c97c2c5ad55483c3006bd537b38c6a",
     "apps/web/tsconfig.json": "4a75e70349580c3eca7813eaa778bbba2e2ff572dd2267d9170b4d9213712c84",
     "apps/web/vite.config.ts": "6fefdd2b50345645242e5796037421b62b2e730e4a9405aba8c9403fe51dbbc5",
+    "apps/web/vite.verify.config.ts": "9b7a858c204ab3253dbbbb95c193a3c2c4f676c65b25c5f05b293dfca9757a03",
     "docs/API_GUIDE.md": "0f8e224760362e811e34faff85f582bf0aa14891098d179139ada35d1ee83a9c",
     "docs/ARCHITECTURE.md": "57c2f8c09cb4e6b439630ef47ffa65aced79055bffa810ffdd3de3ed791f6e0e",
     "docs/BEST_IN_CLASS_ANALYSIS.md": "68ad5116753a3358a922681a6c126e4443469a471605d46be4985c442ea58b21",
@@ -180,7 +181,7 @@
     "tests/load.js": "1b7e13f242efc4f887daccd941e4ff40f4e5a8d78f71f14b720a82a8ffd8504b",
     "tests/smoke.py": "57d9bdab5e505e40128f04b4e0f6515b86062655ff71e65142ee692cb8d0336a"
   },
-  "file_count": 175,
+  "file_count": 176,
   "verification": "docs/VERIFICATION.md",
   "milestone_ledger": "docs/IMPLEMENTATION_STATUS.md"
 }

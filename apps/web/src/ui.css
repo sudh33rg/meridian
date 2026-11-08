@@ -1087,10 +1087,10 @@ button.crumb:hover {
   color: var(--danger);
 }
 .priority-high {
-  color: var(--warning);
+  color: var(--warning-text);
 }
 .priority-medium {
-  color: var(--info);
+  color: var(--info-text);
 }
 .issue-foot select,
 td select,
@@ -1109,7 +1109,7 @@ td select:hover {
 }
 .status-select.in_progress {
   background: var(--info-soft);
-  color: var(--info);
+  color: var(--info-text);
 }
 .status-select.in_review {
   background: var(--warning-soft);
@@ -1266,7 +1266,7 @@ tr.row-hover:hover td {
 }
 .status.in_progress {
   background: var(--info-soft);
-  color: var(--info);
+  color: var(--info-text);
 }
 .status.in_review {
   background: var(--warning-soft);
