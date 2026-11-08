@@ -22,6 +22,7 @@ import { ReportsPanel } from "../agile/ReportsPanel";
 import { ApiTokensPanel, GitLinkPanel } from "../agile/IntegrationsPanels";
 import { WorkspaceSettingsPanel } from "../agile/WorkspaceSettingsPanel";
 import { RoadmapPanel } from "../agile/RoadmapPanel";
+import { ServicePanel } from "../agile/ServicePanel";
 
 export function Content() {
   const {
@@ -53,6 +54,7 @@ export function Content() {
     "releases",
     "reports",
     "roadmap",
+    "service",
     "goals",
     "risks",
     "decisions",
@@ -136,6 +138,7 @@ export function Content() {
           <ReleasesPanel />
           <ReportsPanel />
           <RoadmapPanel />
+          <ServicePanel />
           <IssuesTab />
           <KnowledgeTab />
         </>
@@ -157,6 +160,7 @@ export function Content() {
         "releases",
         "reports",
         "roadmap",
+        "service",
         "issues",
         "knowledge",
         "security",

@@ -26,6 +26,7 @@ import {
   TriangleAlert,
   Users,
   Zap,
+  Headset,
 } from "lucide-react";
 import type { Tab } from "../workspace/useWorkspace";
 
@@ -111,6 +112,7 @@ export const NAV: NavItem[] = [
     keywords: "okr objectives",
   },
   { id: "roadmap", get label() { return t("nav.roadmap"); }, icon: <CalendarDays size={s} />, group: "plan", keywords: "timeline milestones initiatives capacity baselines critical path updates" },
+  { id: "service", get label() { return t("nav.service"); }, icon: <Headset size={s} />, group: "plan", keywords: "requests queues sla incidents changes" },
   { id: "reports", get label() { return t("nav.reports"); }, icon: <BarChart3 size={s} />, group: "plan", keywords: "charts flow cycle time dashboards export csv" },
   { id: "risks", get label() { return t("nav.risks"); }, icon: <TriangleAlert size={s} />, group: "plan" },
   { id: "decisions", get label() { return t("nav.decisions"); }, icon: <Scale size={s} />, group: "plan", key: "d", keywords: "adr" },

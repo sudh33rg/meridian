@@ -11,6 +11,7 @@ import { WorkflowEditor } from "./WorkflowEditor";
 import { FieldEditor } from "./FieldEditor";
 import { TransitionEditor } from "./TransitionEditor";
 import { SecurityLevels } from "./SecurityLevels";
+import { PermissionScheme } from "./PermissionScheme";
 
 type Group = "none" | "assignee" | "epic";
 
@@ -255,6 +256,7 @@ export function BoardTab() {
           <FieldEditor token={session.token} projectId={selected} />
           <TransitionEditor token={session.token} projectId={selected} statuses={statuses} />
           <SecurityLevels token={session.token} projectId={selected} />
+          <PermissionScheme token={session.token} projectId={selected} />
         </>
       )}
       <div className="swimlanes">

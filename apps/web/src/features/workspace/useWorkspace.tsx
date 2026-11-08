@@ -19,7 +19,7 @@ import { setLocale } from "../../lib/i18n";
 import type { ExtraTab } from "../advanced/AdvancedWorkspace";
 import { useToast } from "../shared/Toast";
 
-export type Tab = "overview" | "board" | "backlog" | "reports" | "roadmap" | "issues" | "knowledge" | "appearance" | ExtraTab;
+export type Tab = "overview" | "board" | "backlog" | "reports" | "roadmap" | "service" | "issues" | "knowledge" | "appearance" | ExtraTab;
 export type Modal = "project" | "issue" | "page" | null;
 
 const emptyDraft = {
