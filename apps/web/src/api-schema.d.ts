@@ -4379,10 +4379,16 @@ export interface components {
             /** Format: uuid */
             request_type_id: string;
             title: string;
+            /** @description Values for the request type's form fields (a JSON object keyed by field key). */
+            values?: unknown;
         };
         NewRequestType: {
+            /** Format: uuid */
+            approver_id?: string | null;
             /** @description Up to 2,000 characters. */
             description?: string | null;
+            /** @description The form, in order. Omit for no form. */
+            fields?: components["schemas"]["RequestFormField"][] | null;
             /** @description `request` (default), `incident` or `change`. */
             flow?: string | null;
             /** @description 1 to 80 characters; unique per project. */
@@ -4392,6 +4398,8 @@ export interface components {
              * @description A queue of this project.
              */
             queue_id: string;
+            /** @description Approval by `approver_id` before work starts. Needs an approver. */
+            requires_approval?: boolean | null;
             /**
              * Format: int32
              * @description 1 to 8,760 hours.
@@ -4771,10 +4779,20 @@ export interface components {
             /** Format: date-time */
             sent_at?: string | null;
         };
+        /** @description One field on a request form. */
+        RequestFormField: {
+            /** @description A custom field of this project. */
+            key: string;
+            required: boolean;
+        };
         RequestType: {
+            /** Format: uuid */
+            approver_id?: string | null;
             /** Format: date-time */
             created_at: string;
             description: string;
+            /** @description The form: custom fields in the order they are shown, each with whether it is required. */
+            fields: components["schemas"]["RequestFormField"][];
             /** @description `request`, `incident` or `change`. */
             flow: string;
             /** Format: uuid */
@@ -4782,6 +4800,8 @@ export interface components {
             name: string;
             /** Format: uuid */
             queue_id: string;
+            /** @description Whether a request of this type waits for approval by `approver_id` (Phase K2). */
+            requires_approval: boolean;
             /**
              * Format: int32
              * @description Hours from submission to the first done status.

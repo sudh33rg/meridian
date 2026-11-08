@@ -166,7 +166,7 @@ The remaining plan items were taken in one pass. Each row names what exists in s
 | F7 | Transition screens, set-field history, post-function editor | Per-field conditional screens |
 | J1 | Permission schemes (member level, edit level, workflow level), edited in the board's workflow section | Custom roles; per-action mapping |
 | J2 | Security levels (row level security), restricted fields | Rulings in the J2 row; live verification |
-| K2 | Queues, request types, requests as issues, SLA report, a Service tab | Request forms, approvals, escalation |
+| K2 | Queues, request types, requests as issues, SLA report, a Service tab, request forms (custom fields, required ones checked), approval (a request that needs approval creates an approval for the named approver), escalation (a request past its target is escalated once to owners and admins by the maintenance loop). Migration `0043` | Escalation is one notification per request, not a chain of escalation levels. Not yet run in a browser or against a live API. |
 | K3 | Templates, blog posts, home page, page tree, page parents | Browser verification |
 | K4 | Issue list, table and chart macros, validation on save | Collaborative saves are not validated |
 | K5 | Workspace language, en and es catalogue, dates in the language | Most interface strings still English |

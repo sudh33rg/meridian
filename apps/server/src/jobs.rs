@@ -251,6 +251,12 @@ pub(crate) fn spawn_maintenance(db: PgPool, email_on: bool) {
                 Ok(_) => {}
                 Err(e) => tracing::error!(error=%e, "digest queueing failed"),
             }
+            // Requests past their target are escalated once to the owners and admins (Phase K2).
+            match crate::api::service::escalate_breached(&db).await {
+                Ok(n) if n > 0 => tracing::info!(notifications = n, "escalated requests past target"),
+                Ok(_) => {}
+                Err(e) => tracing::error!(error=%e, "request escalation failed"),
+            }
             // Personal reminders that are due become notifications (Phase F5).
             match crate::api::issue_content::send_due_reminders(&db).await {
                 Ok(n) if n > 0 => tracing::info!(reminders = n, "sent due reminders"),

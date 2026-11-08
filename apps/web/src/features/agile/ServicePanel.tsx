@@ -4,9 +4,20 @@ import { useWorkspace } from "../workspace/useWorkspace";
 import { errorMessage, request, send } from "../../lib/api";
 import { useToast } from "../shared/Toast";
 import { formatDateTime } from "../../lib/datetime";
+import type { FieldDefinition } from "../../lib/fields";
 
 type Queue = { id: string; name: string; default_assignee_id: string | null };
-type RequestType = { id: string; name: string; description: string; flow: string; queue_id: string; target_hours: number };
+type RequestType = {
+  id: string;
+  name: string;
+  description: string;
+  flow: string;
+  queue_id: string;
+  target_hours: number;
+  requires_approval: boolean;
+  approver_id: string | null;
+  fields: { key: string; required: boolean }[];
+};
 type Sla = {
   id: string;
   number: number;
@@ -45,6 +56,11 @@ export function ServicePanel() {
   const [reqType, setReqType] = useState("");
   const [reqTitle, setReqTitle] = useState("");
   const [reqText, setReqText] = useState("");
+  const [typeNeedsApproval, setTypeNeedsApproval] = useState(false);
+  const [typeApprover, setTypeApprover] = useState("");
+  // The form being built: field key to whether it is required, in the order chosen.
+  const [typeForm, setTypeForm] = useState<Record<string, boolean>>({});
+  const [reqValues, setReqValues] = useState<Record<string, string>>({});
   const active = tab === "service" && !!selected;
 
   const queuesQ = useQuery({
@@ -60,6 +76,11 @@ export function ServicePanel() {
   const slaQ = useQuery({
     queryKey: ["service-sla", selected],
     queryFn: () => request<Sla[]>(token, `/projects/${selected}/service/sla`),
+    enabled: active,
+  });
+  const fieldsQ = useQuery({
+    queryKey: ["fields", selected],
+    queryFn: () => request<FieldDefinition[]>(token, `/projects/${selected}/fields`),
     enabled: active,
   });
   const membersQ = useQuery({
@@ -96,10 +117,16 @@ export function ServicePanel() {
         flow: typeFlow,
         queue_id: typeQueue,
         target_hours: Number(typeHours),
+        requires_approval: typeNeedsApproval,
+        approver_id: typeNeedsApproval ? typeApprover : null,
+        fields: Object.entries(typeForm).map(([key, required]) => ({ key, required })),
       }),
     onSuccess: () => {
       setTypeName("");
       setTypeDesc("");
+      setTypeNeedsApproval(false);
+      setTypeApprover("");
+      setTypeForm({});
       toast("Request type added");
       refresh();
     },
@@ -111,21 +138,42 @@ export function ServicePanel() {
         request_type_id: reqType,
         title: reqTitle.trim(),
         description: reqText,
+        values: formValues(),
       }),
     onSuccess: () => {
       setReqTitle("");
       setReqText("");
+      setReqValues({});
       toast("Request submitted");
       refresh();
     },
     onError: fail,
   });
 
+  // The chosen request type's form, with each field's definition.
+  const chosen = (typesQ.data ?? []).find((t) => t.id === reqType);
+  const formFields = (chosen?.fields ?? [])
+    .map((ff) => ({ def: (fieldsQ.data ?? []).find((f) => f.key === ff.key), required: ff.required }))
+    .filter((x): x is { def: FieldDefinition; required: boolean } => !!x.def)
+    .map((x) => ({ ...x.def, required: x.required }));
+  function formValues(): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    for (const f of formFields) {
+      const raw = reqValues[f.key];
+      if (raw === undefined || raw === "") continue;
+      if (f.field_type === "number") out[f.key] = Number(raw);
+      else if (f.field_type === "boolean") out[f.key] = raw === "true";
+      else out[f.key] = raw;
+    }
+    return out;
+  }
+
   if (!active) return null;
   const queues = queuesQ.data ?? [];
   const types = typesQ.data ?? [];
   const sla = slaQ.data ?? [];
   const breached = sla.filter((r) => r.state === "breached" || r.state === "missed").length;
+
 
   return (
     <div className="service-panel">
@@ -212,6 +260,56 @@ export function ServicePanel() {
               ))}
             </select>
             <input aria-label="Target hours" type="number" min={1} max={8760} value={typeHours} onChange={(e) => setTypeHours(e.target.value)} />
+            <label className="inline-check">
+              <input type="checkbox" checked={typeNeedsApproval} onChange={(e) => setTypeNeedsApproval(e.target.checked)} /> Needs approval
+            </label>
+            {typeNeedsApproval && (
+              <select aria-label="Approver" value={typeApprover} onChange={(e) => setTypeApprover(e.target.value)}>
+                <option value="">Approver…</option>
+                {(membersQ.data ?? []).map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            )}
+            <fieldset className="screen-fields">
+              <legend className="muted small">Form fields (in the order chosen)</legend>
+              {(fieldsQ.data ?? []).map((f) => {
+                const on = f.key in typeForm;
+                return (
+                  <span key={f.key} className="inline-check">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        onChange={() =>
+                          setTypeForm((old) => {
+                            const next = { ...old };
+                            if (f.key in next) delete next[f.key];
+                            else next[f.key] = false;
+                            return next;
+                          })
+                        }
+                      />{" "}
+                      {f.label}
+                    </label>
+                    {on && (
+                      <label>
+                        {" "}
+                        <input
+                          type="checkbox"
+                          checked={!!typeForm[f.key]}
+                          onChange={(e) => setTypeForm((old) => ({ ...old, [f.key]: e.target.checked }))}
+                        />{" "}
+                        required
+                      </label>
+                    )}
+                  </span>
+                );
+              })}
+              {!(fieldsQ.data ?? []).length && <span className="muted small">Define custom fields in the board's workflow section first.</span>}
+            </fieldset>
             <button className="secondary" type="submit" disabled={!typeName.trim() || !typeQueue || addType.isPending}>
               Add request type
             </button>
@@ -237,6 +335,35 @@ export function ServicePanel() {
           </select>
           <input aria-label="Request title" maxLength={200} value={reqTitle} onChange={(e) => setReqTitle(e.target.value)} placeholder="What do you need?" />
           <input aria-label="Request details" maxLength={20000} value={reqText} onChange={(e) => setReqText(e.target.value)} placeholder="Details (optional)" />
+          {formFields.map((f) => (
+            <label key={f.key} className="inline-check">
+              {f.label}
+              {f.required ? " *" : ""}
+              {f.field_type === "select" ? (
+                <select value={reqValues[f.key] ?? ""} onChange={(e) => setReqValues({ ...reqValues, [f.key]: e.target.value })}>
+                  <option value="">—</option>
+                  {f.options.map((o) => (
+                    <option key={o} value={o}>
+                      {o}
+                    </option>
+                  ))}
+                </select>
+              ) : f.field_type === "boolean" ? (
+                <input
+                  type="checkbox"
+                  checked={reqValues[f.key] === "true"}
+                  onChange={(e) => setReqValues({ ...reqValues, [f.key]: e.target.checked ? "true" : "false" })}
+                />
+              ) : (
+                <input
+                  type={f.field_type === "number" ? "number" : f.field_type === "date" ? "date" : "text"}
+                  required={f.required}
+                  value={reqValues[f.key] ?? ""}
+                  onChange={(e) => setReqValues({ ...reqValues, [f.key]: e.target.value })}
+                />
+              )}
+            </label>
+          ))}
           <button className="primary" type="submit" disabled={!reqType || !reqTitle.trim() || submit.isPending}>
             Submit
           </button>

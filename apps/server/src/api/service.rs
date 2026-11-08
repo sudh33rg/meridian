@@ -7,7 +7,7 @@ use crate::api::common::*;
 use crate::*;
 use axum::routing::{delete, get, post};
 use chrono::{DateTime, Utc};
-use serde_json::json;
+use serde_json::{json, Value};
 
 const FLOWS: [&str; 3] = ["request", "incident", "change"];
 const SLA_ROWS: i64 = 500;
@@ -40,6 +40,20 @@ pub(crate) struct RequestType {
     /// Hours from submission to the first done status.
     pub(crate) target_hours: i32,
     pub(crate) created_at: DateTime<Utc>,
+    /// Whether a request of this type waits for approval by `approver_id` (Phase K2).
+    pub(crate) requires_approval: bool,
+    pub(crate) approver_id: Option<Uuid>,
+    /// The form: custom fields in the order they are shown, each with whether it is required.
+    #[sqlx(skip)]
+    pub(crate) fields: Vec<RequestFormField>,
+}
+
+/// One field on a request form.
+#[derive(Clone, Serialize, Deserialize, utoipa::ToSchema)]
+pub(crate) struct RequestFormField {
+    /// A custom field of this project.
+    pub(crate) key: String,
+    pub(crate) required: bool,
 }
 
 #[derive(Deserialize, utoipa::ToSchema)]
@@ -54,6 +68,11 @@ pub(crate) struct NewRequestType {
     pub(crate) queue_id: Uuid,
     /// 1 to 8,760 hours.
     pub(crate) target_hours: i32,
+    /// Approval by `approver_id` before work starts. Needs an approver.
+    pub(crate) requires_approval: Option<bool>,
+    pub(crate) approver_id: Option<Uuid>,
+    /// The form, in order. Omit for no form.
+    pub(crate) fields: Option<Vec<RequestFormField>>,
 }
 
 #[derive(Deserialize, utoipa::ToSchema)]
@@ -61,6 +80,8 @@ pub(crate) struct NewRequest {
     pub(crate) request_type_id: Uuid,
     pub(crate) title: String,
     pub(crate) description: Option<String>,
+    /// Values for the request type's form fields (a JSON object keyed by field key).
+    pub(crate) values: Option<serde_json::Value>,
 }
 
 /// Row of the SLA report before the timer is worked out.
@@ -224,13 +245,17 @@ pub(crate) async fn list_request_types(mut tx: Tx, Path(project): Path<Uuid>) ->
     let i = tx.identity.clone();
     ensure_access(&mut tx, project).await?;
     let rows: Vec<RequestType> = sqlx::query_as(
-        "SELECT id,name,description,flow,queue_id,target_hours,created_at FROM request_types WHERE tenant_id=$1 AND project_id=$2 ORDER BY lower(name)",
+        "SELECT id,name,description,flow,queue_id,target_hours,created_at,requires_approval,approver_id FROM request_types WHERE tenant_id=$1 AND project_id=$2 ORDER BY lower(name)",
     )
     .bind(i.tenant_id)
     .bind(project)
     .fetch_all(&mut *tx)
     .await
     .map_err(db_err)?;
+    let mut rows = rows;
+    for row in rows.iter_mut() {
+        row.fields = request_form(&mut tx, i.tenant_id, row.id).await?;
+    }
     Ok(Json(rows))
 }
 
@@ -272,9 +297,47 @@ pub(crate) async fn create_request_type(
     if taken {
         return Err(err(StatusCode::CONFLICT, "A request type with this name already exists"));
     }
-    let row: RequestType = sqlx::query_as(
-        "INSERT INTO request_types(tenant_id,project_id,name,description,flow,queue_id,target_hours) VALUES($1,$2,$3,$4,$5,$6,$7) \
-         RETURNING id,name,description,flow,queue_id,target_hours,created_at",
+    let requires_approval = v.requires_approval.unwrap_or(false);
+    if requires_approval {
+        let approver = v.approver_id.ok_or_else(|| bad("A request type that needs approval names an approver"))?;
+        let member: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM memberships WHERE tenant_id=$1 AND user_id=$2 AND disabled_at IS NULL)",
+        )
+        .bind(i.tenant_id)
+        .bind(approver)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(db_err)?;
+        if !member {
+            return Err(bad("The approver must be an active member of this workspace"));
+        }
+    }
+    let form = v.fields.clone().unwrap_or_default();
+    if form.len() > 20 {
+        return Err(bad("A request form has at most 20 fields"));
+    }
+    let mut seen = std::collections::HashSet::new();
+    for f in &form {
+        if !seen.insert(f.key.as_str()) {
+            return Err(bad(&format!("“{}” is on the form twice", f.key)));
+        }
+        let defined: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 AND key=$3)",
+        )
+        .bind(i.tenant_id)
+        .bind(project)
+        .bind(&f.key)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(db_err)?;
+        if !defined {
+            return Err(bad(&format!("“{}” is not a custom field in this project", f.key)));
+        }
+    }
+    let mut row: RequestType = sqlx::query_as(
+        "INSERT INTO request_types(tenant_id,project_id,name,description,flow,queue_id,target_hours,requires_approval,approver_id) \
+         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) \
+         RETURNING id,name,description,flow,queue_id,target_hours,created_at,requires_approval,approver_id",
     )
     .bind(i.tenant_id)
     .bind(project)
@@ -283,9 +346,26 @@ pub(crate) async fn create_request_type(
     .bind(&flow)
     .bind(v.queue_id)
     .bind(v.target_hours)
+    .bind(requires_approval)
+    .bind(if requires_approval { v.approver_id } else { None })
     .fetch_one(&mut *tx)
     .await
     .map_err(db_err)?;
+    for (position, f) in form.iter().enumerate() {
+        sqlx::query(
+            "INSERT INTO request_type_fields(tenant_id,project_id,request_type_id,field_key,position,required) VALUES($1,$2,$3,$4,$5,$6)",
+        )
+        .bind(i.tenant_id)
+        .bind(project)
+        .bind(row.id)
+        .bind(&f.key)
+        .bind(position as i32)
+        .bind(f.required)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    }
+    row.fields = form.clone();
     log_event(&mut tx, &i, "request_type_created", "project", project).await?;
     Ok((StatusCode::CREATED, Json(row)))
 }
@@ -327,14 +407,16 @@ pub(crate) async fn submit_request(
     if description.chars().count() > 20_000 {
         return Err(bad("A request description is limited to 20,000 characters"));
     }
-    let (rt_project, queue, type_name): (Uuid, Uuid, String) =
-        sqlx::query_as("SELECT project_id, queue_id, name FROM request_types WHERE tenant_id=$1 AND id=$2")
-            .bind(i.tenant_id)
-            .bind(v.request_type_id)
-            .fetch_optional(&mut *tx)
-            .await
-            .map_err(db_err)?
-            .ok_or_else(|| err(StatusCode::NOT_FOUND, "Request type not found"))?;
+    let (rt_project, queue, type_name, needs_approval, approver): (Uuid, Uuid, String, bool, Option<Uuid>) =
+        sqlx::query_as(
+            "SELECT project_id, queue_id, name, requires_approval, approver_id FROM request_types WHERE tenant_id=$1 AND id=$2",
+        )
+        .bind(i.tenant_id)
+        .bind(v.request_type_id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(db_err)?
+        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Request type not found"))?;
     if rt_project != project {
         return Err(bad("That request type belongs to another project"));
     }
@@ -365,9 +447,28 @@ pub(crate) async fn submit_request(
     .await
     .map_err(db_err)?;
     let status = crate::api::statuses::default_status(&mut tx, i.tenant_id, project).await?;
+    // The form: only the fields on this request type are stored; required ones must be filled, and
+    // restricted fields are for project admins.
+    let is_admin = project_level(&mut tx, &i, project).await?.unwrap_or(0) >= 3;
+    let given = v.values.clone().unwrap_or_else(|| json!({}));
+    let given = given.as_object().cloned().unwrap_or_default();
+    let mut custom = serde_json::Map::new();
+    for form_field in request_form(&mut tx, i.tenant_id, v.request_type_id).await? {
+        let def = crate::api::fields::definition(&mut tx, i.tenant_id, project, &form_field.key).await?;
+        match given.get(&form_field.key) {
+            Some(value) if !value.is_null() => {
+                if def.restricted && !is_admin {
+                    return Err(forbidden());
+                }
+                custom.insert(form_field.key.clone(), crate::api::fields::check_value(&def, value)?);
+            }
+            _ if form_field.required => return Err(bad(&format!("{} is required", def.label))),
+            _ => {}
+        }
+    }
     let row: crate::api::work::Issue = sqlx::query_as(
-        "INSERT INTO issues(tenant_id,project_id,number,title,description,kind,priority,created_by,status,assignee_id,request_type_id) \
-         VALUES($1,$2,$3,$4,$5,$6,'medium',$7,$8,$9,$10) \
+        "INSERT INTO issues(tenant_id,project_id,number,title,description,kind,priority,created_by,status,assignee_id,request_type_id,custom_fields) \
+         VALUES($1,$2,$3,$4,$5,$6,'medium',$7,$8,$9,$10,$11) \
          RETURNING id,project_id,number,title,description,kind,status,priority,created_at,updated_at",
     )
     .bind(i.tenant_id)
@@ -380,9 +481,26 @@ pub(crate) async fn submit_request(
     .bind(&status)
     .bind(assignee)
     .bind(v.request_type_id)
+    .bind(Value::Object(custom))
     .fetch_one(&mut *tx)
     .await
     .map_err(db_err)?;
+    if needs_approval {
+        // The approver decides in the approvals inbox; the request is worked once it is approved.
+        let approver = approver.ok_or_else(|| ApiError::Internal("A request type needs approval but has no approver".into()))?;
+        sqlx::query(
+            "INSERT INTO approvals(tenant_id,project_id,title,subject_type,subject_id,requester_id,reviewer_id) VALUES($1,$2,$3,'issue',$4,$5,$6)",
+        )
+        .bind(i.tenant_id)
+        .bind(project)
+        .bind(format!("Approve request: {}", row.title))
+        .bind(row.id)
+        .bind(i.user_id)
+        .bind(approver)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    }
     log_event(&mut tx, &i, "created", "issue", row.id).await?;
     crate::api::history::record_status(&mut tx, i.tenant_id, row.id, None, &row.status, i.user_id).await?;
     log_outbox(
@@ -458,4 +576,42 @@ pub(crate) fn routes() -> Router<App> {
         .route("/api/service/request-types/{id}", delete(delete_request_type))
         .route("/api/projects/{id}/service/requests", post(submit_request))
         .route("/api/projects/{id}/service/sla", get(sla_report))
+}
+
+/// The form of a request type, in order: each field key with whether it is required.
+pub(crate) async fn request_form(tx: &mut Tx, tenant: Uuid, request_type: Uuid) -> ApiResult<Vec<RequestFormField>> {
+    let rows: Vec<(String, bool)> = sqlx::query_as(
+        "SELECT field_key, required FROM request_type_fields WHERE tenant_id=$1 AND request_type_id=$2 ORDER BY position",
+    )
+    .bind(tenant)
+    .bind(request_type)
+    .fetch_all(&mut **tx)
+    .await
+    .map_err(db_err)?;
+    Ok(rows.into_iter().map(|(key, required)| RequestFormField { key, required }).collect())
+}
+
+/// Escalates requests that have passed their target without reaching a done status. Each request is
+/// escalated once (`issues.escalated_at`), and its project's owners and admins are told. Runs from the
+/// hourly maintenance loop on the system connection.
+pub(crate) async fn escalate_breached(db: &sqlx::PgPool) -> Result<u64, sqlx::Error> {
+    let result = sqlx::query(
+        "WITH due AS (UPDATE issues i SET escalated_at=now() FROM request_types rt \
+           WHERE rt.tenant_id=i.tenant_id AND rt.id=i.request_type_id AND i.escalated_at IS NULL \
+           AND i.trashed_at IS NULL AND i.archived_at IS NULL \
+           AND COALESCE((SELECT min(h.changed_at) FROM issue_status_history h WHERE h.tenant_id=i.tenant_id AND h.issue_id=i.id), i.created_at) \
+               + make_interval(hours => rt.target_hours) < now() \
+           AND NOT EXISTS (SELECT 1 FROM issue_status_history h JOIN project_statuses ps \
+               ON ps.tenant_id=h.tenant_id AND ps.project_id=i.project_id AND ps.key=h.to_status AND ps.category='done' \
+               WHERE h.tenant_id=i.tenant_id AND h.issue_id=i.id) \
+           AND i.id IN (SELECT id FROM issues WHERE escalated_at IS NULL LIMIT 200) \
+           RETURNING i.id, i.tenant_id, i.project_id, i.number, i.title) \
+         INSERT INTO notifications(tenant_id,recipient_id,actor_id,kind,title,body,entity_type,entity_id) \
+         SELECT d.tenant_id, m.user_id, m.user_id, 'sla', 'A request is past its target', \
+           '#' || d.number || ' ' || d.title, 'issue', d.id \
+         FROM due d JOIN memberships m ON m.tenant_id=d.tenant_id AND m.role IN ('owner','admin') AND m.disabled_at IS NULL",
+    )
+    .execute(db)
+    .await?;
+    Ok(result.rows_affected())
 }

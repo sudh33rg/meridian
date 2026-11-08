@@ -390,3 +390,17 @@ pub(crate) fn without_keys(values: &Value, keys: &[String]) -> Value {
         other => other.clone(),
     }
 }
+
+/// One field definition of the project, by key.
+pub(crate) async fn definition(tx: &mut Tx, tenant: Uuid, project: Uuid, key: &str) -> ApiResult<FieldDefinition> {
+    sqlx::query_as(
+        "SELECT key,label,field_type,options,required,position,restricted FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 AND key=$3",
+    )
+    .bind(tenant)
+    .bind(project)
+    .bind(key)
+    .fetch_optional(&mut **tx)
+    .await
+    .map_err(db_err)?
+    .ok_or_else(|| bad(&format!("“{key}” is not a custom field in this project")))
+}

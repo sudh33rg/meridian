@@ -23593,6 +23593,9 @@
           },
           "title": {
             "type": "string"
+          },
+          "values": {
+            "description": "Values for the request type's form fields (a JSON object keyed by field key)."
           }
         }
       },
@@ -23604,12 +23607,29 @@
           "target_hours"
         ],
         "properties": {
+          "approver_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
           "description": {
             "type": [
               "string",
               "null"
             ],
             "description": "Up to 2,000 characters."
+          },
+          "fields": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/RequestFormField"
+            },
+            "description": "The form, in order. Omit for no form."
           },
           "flow": {
             "type": [
@@ -23626,6 +23646,13 @@
             "type": "string",
             "format": "uuid",
             "description": "A queue of this project."
+          },
+          "requires_approval": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Approval by `approver_id` before work starts. Needs an approver."
           },
           "target_hours": {
             "type": "integer",
@@ -24649,6 +24676,23 @@
           }
         }
       },
+      "RequestFormField": {
+        "type": "object",
+        "description": "One field on a request form.",
+        "required": [
+          "key",
+          "required"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "A custom field of this project."
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      },
       "RequestType": {
         "type": "object",
         "required": [
@@ -24658,15 +24702,31 @@
           "flow",
           "queue_id",
           "target_hours",
-          "created_at"
+          "created_at",
+          "requires_approval",
+          "fields"
         ],
         "properties": {
+          "approver_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time"
           },
           "description": {
             "type": "string"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RequestFormField"
+            },
+            "description": "The form: custom fields in the order they are shown, each with whether it is required."
           },
           "flow": {
             "type": "string",
@@ -24682,6 +24742,10 @@
           "queue_id": {
             "type": "string",
             "format": "uuid"
+          },
+          "requires_approval": {
+            "type": "boolean",
+            "description": "Whether a request of this type waits for approval by `approver_id` (Phase K2)."
           },
           "target_hours": {
             "type": "integer",
