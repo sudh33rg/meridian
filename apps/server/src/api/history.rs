@@ -71,7 +71,11 @@ pub(crate) async fn record_change(
 }
 
 /// The issue as a JSON row, taken before a change so the change can be compared with it afterwards.
-pub(crate) async fn issue_json(db: &mut PgConnection, tenant: Uuid, issue: Uuid) -> ApiResult<Value> {
+pub(crate) async fn issue_json(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    issue: Uuid,
+) -> ApiResult<Value> {
     sqlx::query_scalar("SELECT to_jsonb(issues) FROM issues WHERE tenant_id=$1 AND id=$2")
         .bind(tenant)
         .bind(issue)
@@ -103,6 +107,10 @@ pub(crate) async fn record_row_changes(
     if old_status != new_status {
         if let Some(to) = new_status.as_deref() {
             record_status(db, tenant, issue, old_status.as_deref(), to, actor).await?;
+            if let Some(from) = old_status.as_deref() {
+                crate::api::transitions::run_post_functions(db, tenant, actor, issue, from, to)
+                    .await?;
+            }
         }
     }
     for field in TRACKED_FIELDS {
@@ -135,7 +143,10 @@ pub(crate) struct IssueHistoryEntry {
 }
 
 #[utoipa::path(get, path = "/api/issues/{id}/history", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Status and field changes, newest first", body = Vec<IssueHistoryEntry>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn issue_history(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Vec<IssueHistoryEntry>>> {
+pub(crate) async fn issue_history(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<Vec<IssueHistoryEntry>>> {
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "issues", id).await?;
     let rows: Vec<IssueHistoryEntry> = sqlx::query_as(

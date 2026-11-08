@@ -177,6 +177,7 @@ pub(crate) async fn edit_issue(
             &from,
             next,
             &after,
+            i.role == "admin" || i.role == "owner",
         )
         .await?;
     }
@@ -411,6 +412,7 @@ pub(crate) async fn bulk_update_issues(
                 &from,
                 s,
                 &custom,
+                i.role == "admin" || i.role == "owner",
             )
             .await
             {

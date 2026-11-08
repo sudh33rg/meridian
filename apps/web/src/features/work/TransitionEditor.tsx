@@ -6,7 +6,12 @@ import type { FieldDefinition } from "../../lib/fields";
 import type { ProjectStatus } from "../../lib/statuses";
 import { useToast } from "../shared/Toast";
 
-export type TransitionRule = { from: string; to: string; requires_field: string | null };
+export type TransitionRule = {
+  from: string;
+  to: string;
+  requires_field: string | null;
+  requires_admin: boolean;
+};
 
 /** Which status changes the project allows. A status with no rules can move anywhere; once it has
  * rules, only the listed targets are allowed. A rule can also require a custom field to be filled. */
@@ -24,6 +29,7 @@ export function TransitionEditor({
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [requires, setRequires] = useState("");
+  const [adminOnly, setAdminOnly] = useState(false);
   const rulesQ = useQuery({
     queryKey: ["transitions", projectId],
     queryFn: () => request<TransitionRule[]>(token, `/projects/${projectId}/transitions`),
@@ -43,11 +49,13 @@ export function TransitionEditor({
         from,
         to,
         requires_field: requires || null,
+        requires_admin: adminOnly,
       }),
     onSuccess: () => {
       setFrom("");
       setTo("");
       setRequires("");
+      setAdminOnly(false);
       toast("Workflow rule added");
       refresh();
     },
@@ -78,6 +86,7 @@ export function TransitionEditor({
             <span>
               {name(r.from)} → {name(r.to)}
               {r.requires_field && <span className="muted small"> · needs {fieldLabel(r.requires_field)}</span>}
+              {r.requires_admin && <span className="muted small"> · admins only</span>}
             </span>
             <button
               className="icon-btn danger"
@@ -124,6 +133,9 @@ export function TransitionEditor({
             </option>
           ))}
         </select>
+        <label className="muted small">
+          <input type="checkbox" checked={adminOnly} onChange={(e) => setAdminOnly(e.target.checked)} /> Admins only
+        </label>
         <button className="secondary" type="submit" disabled={!from || !to || add.isPending}>
           <Plus size={14} /> Add move
         </button>

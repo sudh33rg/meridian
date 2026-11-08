@@ -50,8 +50,15 @@ fn validate_label(label: &str) -> ApiResult<String> {
 
 fn validate_options(options: &[String]) -> ApiResult<Vec<String>> {
     let cleaned: Vec<String> = options.iter().map(|o| o.trim().to_string()).collect();
-    if cleaned.is_empty() || cleaned.len() > 50 || cleaned.iter().any(|o| o.is_empty() || o.chars().count() > 60) {
-        return Err(bad("A select field needs 1 to 50 options of up to 60 characters"));
+    if cleaned.is_empty()
+        || cleaned.len() > 50
+        || cleaned
+            .iter()
+            .any(|o| o.is_empty() || o.chars().count() > 60)
+    {
+        return Err(bad(
+            "A select field needs 1 to 50 options of up to 60 characters",
+        ));
     }
     let mut unique = cleaned.clone();
     unique.sort();
@@ -62,7 +69,7 @@ fn validate_options(options: &[String]) -> ApiResult<Vec<String>> {
     Ok(cleaned)
 }
 
-fn check_value(def: &FieldDefinition, v: &Value) -> ApiResult<Value> {
+pub(crate) fn check_value(def: &FieldDefinition, v: &Value) -> ApiResult<Value> {
     let fail = |what: &str| bad(&format!("{} must be {what}", def.label));
     match def.field_type.as_str() {
         "text" => v
@@ -80,7 +87,10 @@ fn check_value(def: &FieldDefinition, v: &Value) -> ApiResult<Value> {
             .filter(|s| chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").is_ok())
             .map(|s| json!(s))
             .ok_or_else(|| fail("a date (YYYY-MM-DD)")),
-        "boolean" => v.as_bool().map(|b| json!(b)).ok_or_else(|| fail("true or false")),
+        "boolean" => v
+            .as_bool()
+            .map(|b| json!(b))
+            .ok_or_else(|| fail("true or false")),
         "select" => v
             .as_str()
             .filter(|s| def.options.iter().any(|o| o == s))
@@ -106,7 +116,9 @@ pub(crate) async fn validate_values(
     .fetch_all(&mut *db)
     .await
     .map_err(db_err)?;
-    let obj = values.as_object().ok_or_else(|| bad("Custom fields must be an object"))?;
+    let obj = values
+        .as_object()
+        .ok_or_else(|| bad("Custom fields must be an object"))?;
     let mut out = Map::new();
     for (key, value) in obj {
         let def = defs
@@ -127,7 +139,10 @@ pub(crate) async fn validate_values(
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/fields", tag = "fields", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "The project's custom fields in form order", body = Vec<FieldDefinition>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_fields(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<FieldDefinition>>> {
+pub(crate) async fn list_fields(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+) -> ApiResult<Json<Vec<FieldDefinition>>> {
     ensure_access(&mut tx, project).await?;
     let rows: Vec<FieldDefinition> = sqlx::query_as(
         "SELECT key,label,field_type,options,required,position FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 ORDER BY position, key",
@@ -150,7 +165,9 @@ pub(crate) async fn create_field(
     ensure_project_admin(&mut tx, project).await?;
     let label = validate_label(&v.label)?;
     if !FIELD_TYPES.contains(&v.field_type.as_str()) {
-        return Err(bad("Field type must be text, number, date, boolean or select"));
+        return Err(bad(
+            "Field type must be text, number, date, boolean or select",
+        ));
     }
     let options = match (v.field_type.as_str(), &v.options) {
         ("select", Some(o)) => validate_options(o)?,
@@ -160,15 +177,19 @@ pub(crate) async fn create_field(
     };
     let key = match v.key {
         Some(k) if valid_key(&k) => k,
-        Some(_) => return Err(bad("A field key uses lowercase letters, digits and underscores, starting with a letter")),
+        Some(_) => return Err(bad(
+            "A field key uses lowercase letters, digits and underscores, starting with a letter",
+        )),
         None => slug(&label)?,
     };
-    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM field_definitions WHERE tenant_id=$1 AND project_id=$2")
-        .bind(i.tenant_id)
-        .bind(project)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let count: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM field_definitions WHERE tenant_id=$1 AND project_id=$2",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
     if count >= MAX_FIELDS_PER_PROJECT {
         return Err(bad("A project can have up to 30 custom fields"));
     }
@@ -182,7 +203,10 @@ pub(crate) async fn create_field(
     .await
     .map_err(db_err)?;
     if taken {
-        return Err(err(StatusCode::CONFLICT, "A field with this key already exists"));
+        return Err(err(
+            StatusCode::CONFLICT,
+            "A field with this key already exists",
+        ));
     }
     let position: i32 = sqlx::query_scalar(
         "SELECT COALESCE(MAX(position), -1) + 1 FROM field_definitions WHERE tenant_id=$1 AND project_id=$2",
@@ -282,19 +306,29 @@ pub(crate) async fn update_field(
 }
 
 #[utoipa::path(delete, path = "/api/projects/{id}/fields/{key}", tag = "fields", params(("id" = Uuid, Path, description = "Resource id"), ("key" = String, Path, description = "Field key")), responses((status = 204, description = "Deleted; its values are removed from every issue"), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Project admins only", body = ErrorBody), (status = 404, description = "No such field", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn delete_field(mut tx: Tx, Path((project, key)): Path<(Uuid, String)>) -> ApiResult<StatusCode> {
+pub(crate) async fn delete_field(
+    mut tx: Tx,
+    Path((project, key)): Path<(Uuid, String)>,
+) -> ApiResult<StatusCode> {
     let i = tx.identity.clone();
     ensure_project_admin(&mut tx, project).await?;
-    if crate::api::transitions::field_is_required_by_rule(&mut tx, i.tenant_id, project, &key).await? {
-        return Err(err(StatusCode::CONFLICT, "A workflow rule requires this field. Remove the rule first"));
+    if crate::api::transitions::field_is_required_by_rule(&mut tx, i.tenant_id, project, &key)
+        .await?
+    {
+        return Err(err(
+            StatusCode::CONFLICT,
+            "A workflow rule requires this field. Remove the rule first",
+        ));
     }
-    let r = sqlx::query("DELETE FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 AND key=$3")
-        .bind(i.tenant_id)
-        .bind(project)
-        .bind(&key)
-        .execute(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let r = sqlx::query(
+        "DELETE FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 AND key=$3",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .bind(&key)
+    .execute(&mut *tx)
+    .await
+    .map_err(db_err)?;
     if r.rows_affected() == 0 {
         return Err(err(StatusCode::NOT_FOUND, "Field not found"));
     }
@@ -312,6 +346,12 @@ pub(crate) async fn delete_field(mut tx: Tx, Path((project, key)): Path<(Uuid, S
 
 pub(crate) fn routes() -> Router<App> {
     Router::new()
-        .route("/api/projects/{id}/fields", get(list_fields).post(create_field))
-        .route("/api/projects/{id}/fields/{key}", patch(update_field).delete(delete_field))
+        .route(
+            "/api/projects/{id}/fields",
+            get(list_fields).post(create_field),
+        )
+        .route(
+            "/api/projects/{id}/fields/{key}",
+            patch(update_field).delete(delete_field),
+        )
 }

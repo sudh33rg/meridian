@@ -441,6 +441,7 @@ pub(crate) async fn patch_issue(
         &from,
         &v.status,
         &custom,
+        i.role == "admin" || i.role == "owner",
     )
     .await?;
     let row:Issue=sqlx::query_as("UPDATE issues SET status=$1,updated_at=now() WHERE tenant_id=$2 AND id=$3 RETURNING id,project_id,number,title,description,kind,status,priority,created_at,updated_at")

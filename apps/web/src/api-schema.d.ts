@@ -2280,6 +2280,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/transitions/{from}/{to}/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_actions"];
+        put?: never;
+        post: operations["create_action"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/transitions/{from}/{to}/actions/{action}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_action"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}/trash": {
         parameters: {
             query?: never;
@@ -3712,8 +3744,18 @@ export interface components {
         };
         NewTransition: {
             from: string;
+            /** @description Defaults to false. */
+            requires_admin?: boolean | null;
             requires_field?: string | null;
             to: string;
+        };
+        NewTransitionAction: {
+            /** @description `set_field` or `notify_admins`. */
+            action: string;
+            /** @description Required for `set_field`: a custom field of this project. */
+            field?: string | null;
+            /** @description Required for `set_field`: a value the field accepts. */
+            value?: unknown;
         };
         /** @description One inbox entry. Columns match the `notifications` table. */
         Notification: {
@@ -4274,8 +4316,21 @@ export interface components {
         TokenInput: {
             name: string;
         };
+        /**
+         * @description One post-function of a rule. `set_field` writes `value` into `field`; `notify_admins` tells the
+         *     workspace admins and owners that the issue changed.
+         */
+        TransitionAction: {
+            action: string;
+            field?: string | null;
+            /** Format: uuid */
+            id: string;
+            value?: unknown;
+        };
         TransitionRule: {
             from: string;
+            /** @description Only a workspace admin or owner may make this change. */
+            requires_admin: boolean;
             /** @description A custom field that must hold a value after the change, or null. */
             requires_field?: string | null;
             to: string;
@@ -14648,6 +14703,172 @@ export interface operations {
                 };
             };
             /** @description No such rule */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list_actions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description From status key */
+                from: string;
+                /** @description To status key */
+                to: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The rule's post-functions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransitionAction"][];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description No such rule */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    create_action: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description From status key */
+                from: string;
+                /** @description To status key */
+                to: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewTransitionAction"];
+            };
+        };
+        responses: {
+            /** @description Added */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransitionAction"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Project admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description No such rule */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    delete_action: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description From status key */
+                from: string;
+                /** @description To status key */
+                to: string;
+                /** @description Post-function id */
+                action: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Project admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description No such post-function */
             404: {
                 headers: {
                     [name: string]: unknown;

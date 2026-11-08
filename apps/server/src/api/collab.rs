@@ -57,7 +57,14 @@ pub(crate) async fn new_automation(
     require_admin(&i)?;
     valid_project(&mut tx, &i, p).await?;
     validate_title(&v.name)?;
-    if !["issue_created", "issue_status_changed", "issue_updated", "comment_added"].contains(&v.trigger_event.as_str()) {
+    if ![
+        "issue_created",
+        "issue_status_changed",
+        "issue_updated",
+        "comment_added",
+    ]
+    .contains(&v.trigger_event.as_str())
+    {
         return Err(bad("Unsupported automation trigger"));
     }
     let conditions = v.conditions.clone().unwrap_or_default();
@@ -79,12 +86,22 @@ pub(crate) async fn new_automation(
                 let field = c.get("field").and_then(Value::as_str).unwrap_or("");
                 let op = c.get("op").and_then(Value::as_str).unwrap_or("");
                 let value = c.get("value").and_then(Value::as_str).unwrap_or("");
-                if !["priority", "kind", "status", "label", "team_id", "assignee_id"].contains(&field)
+                if ![
+                    "priority",
+                    "kind",
+                    "status",
+                    "label",
+                    "team_id",
+                    "assignee_id",
+                ]
+                .contains(&field)
                     || !["eq", "neq"].contains(&op)
                     || value.is_empty()
                     || value.len() > 200
                 {
-                    return Err(bad("Each condition needs a known field, op eq or neq, and a value"));
+                    return Err(bad(
+                        "Each condition needs a known field, op eq or neq, and a value",
+                    ));
                 }
             }
             for a in &actions {
@@ -94,7 +111,11 @@ pub(crate) async fn new_automation(
                 let ok = match kind {
                     "set_priority" => ["low", "medium", "high", "urgent"].contains(&text),
                     "set_status" => !text.is_empty() && text.len() <= 64,
-                    "set_assignee" => text == "me" || value.is_some_and(Value::is_null) || Uuid::parse_str(text).is_ok(),
+                    "set_assignee" => {
+                        text == "me"
+                            || value.is_some_and(Value::is_null)
+                            || Uuid::parse_str(text).is_ok()
+                    }
                     "add_label" => !text.trim().is_empty() && text.len() <= 40,
                     "comment" => !text.trim().is_empty() && text.len() <= 2000,
                     "notify_admins" => true,
@@ -131,11 +152,25 @@ pub(crate) async fn run_automations(
                 continue;
             }
             let before = crate::api::history::issue_json(db, i.tenant_id, entity).await?;
-            for a in actions.as_array().cloned().unwrap_or_default().iter().take(5) {
+            for a in actions
+                .as_array()
+                .cloned()
+                .unwrap_or_default()
+                .iter()
+                .take(5)
+            {
                 run_action(db, i, project, entity, a).await?;
             }
             let after = crate::api::history::issue_json(db, i.tenant_id, entity).await?;
-            crate::api::history::record_row_changes(db, i.tenant_id, i.user_id, entity, &before, &after).await?;
+            crate::api::history::record_row_changes(
+                db,
+                i.tenant_id,
+                i.user_id,
+                entity,
+                &before,
+                &after,
+            )
+            .await?;
         } else {
             // Only allowlisted, non-recursive presets.
             match action.as_str() {
@@ -150,14 +185,26 @@ pub(crate) async fn run_automations(
                 _ => {}
             }
         }
-        sqlx::query("INSERT INTO automation_runs(tenant_id,rule_id,entity_id,result) VALUES($1,$2,$3,'ok')")
-            .bind(i.tenant_id).bind(rule).bind(entity).execute(&mut *db).await.map_err(db_err)?;
+        sqlx::query(
+            "INSERT INTO automation_runs(tenant_id,rule_id,entity_id,result) VALUES($1,$2,$3,'ok')",
+        )
+        .bind(i.tenant_id)
+        .bind(rule)
+        .bind(entity)
+        .execute(&mut *db)
+        .await
+        .map_err(db_err)?;
     }
     Ok(())
 }
 
 /// True when every condition holds for the issue's current values.
-async fn conditions_hold(db: &mut PgConnection, tenant: Uuid, issue: Uuid, conditions: &Value) -> ApiResult<bool> {
+async fn conditions_hold(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    issue: Uuid,
+    conditions: &Value,
+) -> ApiResult<bool> {
     let row: Option<(String, String, String, Option<Uuid>, Option<Uuid>, Vec<String>)> = sqlx::query_as(
         "SELECT priority, kind, status, team_id, assignee_id, labels FROM issues WHERE tenant_id=$1 AND id=$2",
     )
@@ -188,25 +235,64 @@ async fn conditions_hold(db: &mut PgConnection, tenant: Uuid, issue: Uuid, condi
 
 /// One action of a custom rule. Values were checked when the rule was saved; anything that no longer
 /// fits (a status that was removed, a transition that is now refused) is skipped, not forced.
-async fn run_action(db: &mut PgConnection, i: &Identity, project: Uuid, issue: Uuid, action: &Value) -> ApiResult<()> {
+async fn run_action(
+    db: &mut PgConnection,
+    i: &Identity,
+    project: Uuid,
+    issue: Uuid,
+    action: &Value,
+) -> ApiResult<()> {
     let kind = action.get("type").and_then(Value::as_str).unwrap_or("");
     let value = action.get("value");
     let text = value.and_then(Value::as_str).unwrap_or("");
     match kind {
         "set_priority" => {
             if ["low", "medium", "high", "urgent"].contains(&text) {
-                sqlx::query("UPDATE issues SET priority=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3")
-                    .bind(text).bind(i.tenant_id).bind(issue).execute(&mut *db).await.map_err(db_err)?;
+                sqlx::query(
+                    "UPDATE issues SET priority=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3",
+                )
+                .bind(text)
+                .bind(i.tenant_id)
+                .bind(issue)
+                .execute(&mut *db)
+                .await
+                .map_err(db_err)?;
             }
         }
         "set_status" => {
             if crate::api::statuses::status_defined(db, i.tenant_id, project, text).await? {
-                let (from, custom): (String, Value) =
-                    sqlx::query_as("SELECT status, custom_fields FROM issues WHERE tenant_id=$1 AND id=$2")
-                        .bind(i.tenant_id).bind(issue).fetch_one(&mut *db).await.map_err(db_err)?;
-                if crate::api::transitions::check_transition(db, i.tenant_id, project, &from, text, &custom).await.is_ok() {
+                let (from, custom): (String, Value) = sqlx::query_as(
+                    "SELECT status, custom_fields FROM issues WHERE tenant_id=$1 AND id=$2",
+                )
+                .bind(i.tenant_id)
+                .bind(issue)
+                .fetch_one(&mut *db)
+                .await
+                .map_err(db_err)?;
+                // Automations never pass the admin-only validator.
+                if crate::api::transitions::check_transition(
+                    db,
+                    i.tenant_id,
+                    project,
+                    &from,
+                    text,
+                    &custom,
+                    false,
+                )
+                .await
+                .is_ok()
+                {
                     sqlx::query("UPDATE issues SET status=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3")
                         .bind(text).bind(i.tenant_id).bind(issue).execute(&mut *db).await.map_err(db_err)?;
+                    crate::api::transitions::run_post_functions(
+                        db,
+                        i.tenant_id,
+                        i.user_id,
+                        issue,
+                        &from,
+                        text,
+                    )
+                    .await?;
                 }
             }
         }
@@ -214,7 +300,9 @@ async fn run_action(db: &mut PgConnection, i: &Identity, project: Uuid, issue: U
             let target: Option<Uuid> = if text == "me" {
                 Some(i.user_id)
             } else {
-                value.and_then(Value::as_str).and_then(|t| Uuid::parse_str(t).ok())
+                value
+                    .and_then(Value::as_str)
+                    .and_then(|t| Uuid::parse_str(t).ok())
             };
             let member = match target {
                 Some(u) => sqlx::query_scalar::<_, bool>("SELECT EXISTS(SELECT 1 FROM memberships WHERE tenant_id=$1 AND user_id=$2 AND disabled_at IS NULL)")
