@@ -501,7 +501,15 @@
   background: var(--surface-2);
 }
 .check-col {
-  width: 36px;
+  width: 1%;
+  white-space: nowrap;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+/* The global `td:first-child` rule sets a 240px minimum for the first body cell; the checkbox cell needs none. */
+.table-scroll td.check-col,
+.table-scroll th.check-col {
+  min-width: 0;
 }
 .inline-form {
   display: inline-flex;
@@ -567,7 +575,7 @@
   min-width: 240px;
 }
 .table-scroll .cell-issue {
-  min-width: 220px;
+  min-width: 200px;
 }
 .table-scroll .issue-title-button {
   white-space: normal;

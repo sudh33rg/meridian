@@ -139,7 +139,7 @@ Projects define typed fields that issues carry in `custom_fields`. Types are `te
 
 A query is space-separated `field:value` terms, with quotes around a value that contains spaces:
 
-- `status:` (a status the project defines), `priority:`, `assignee:` (a user id or `me`), `label:`, `kind:` (or `type:`), `title:`, and `cf.<key>:` for a custom field.
+- `status:` (a status the project defines), `priority:`, `assignee:` (a user id or `me`), `label:`, `kind:` (or `type:`), `title:`, `number:` (the issue number, such as `number:12`), and `cf.<key>:` for a custom field.
 - A leading `-` negates a term. A negated term keeps issues where the value is missing.
 - An unknown field, an unknown value or a malformed query returns 400. Project access is applied before any filter, and the SQL is parameterised.
 
