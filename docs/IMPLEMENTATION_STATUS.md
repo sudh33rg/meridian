@@ -173,7 +173,7 @@ The remaining plan items were taken in one pass. Each row names what exists in s
 | I2 | Email digest behind `EMAIL_NOTIFICATIONS`, signed unsubscribe | Production sender domain (owner decision); no live SMTP test |
 | I6 | Jira issue JSON import through the CSV path | Changelog, sprints, versions; Cloud API pull |
 | L1 | Mobile backlog, releases, sprint and release detail | Android build (no Android SDK or Java here); device run |
-| L2 | Conflict on status changes is shown with a choice; sync protocol in `docs/SYNC_PROTOCOL.md` | Conflicts for fields other than status and for comments |
+| L2 | Mobile: a conflict on a status change is shown with a choice. Web: a conflict on any issue edit reloads the latest version and keeps the person's edits for review. Sync protocol in `docs/SYNC_PROTOCOL.md` | Mobile conflicts for fields other than status, and for comments (comments never conflict) |
 | I3 | Slack and Teams webhooks per project (admin-set, sealed URLs, quota, default off) | Not run against a live channel |
 | M1 (AI phase) | Summaries and triage over project text, opt-in per workspace, server API key; drafting not built | Provider not named by the owner (default Anthropic API); not run against the live model |
 | P1 | Static jsx-a11y pass over the web source: no rule errors, sixteen warnings, recorded in `docs/ACCESSIBILITY_AUDIT.md` | Screen-reader pass, keyboard walk, contrast and mobile checks need a running app |

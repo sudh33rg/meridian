@@ -180,9 +180,15 @@ export function IssueDrawer({
       setError("");
     } catch (e) {
       if (e instanceof ApiError && e.status === 412) {
-        // Someone else changed the issue. Load the latest version so the next save is based on it.
+        // Someone else changed the issue. Keep this person's edits, load the latest version so the next save is
+        // based on it, and put the edits back for review.
+        const mine = { title, priority, status, values };
         await reload();
-        setError("This issue changed while you were editing. The latest version is loaded; review it and save again.");
+        setTitle(mine.title);
+        setPriority(mine.priority);
+        setStatus(mine.status);
+        setValues(mine.values);
+        setError("This issue changed while you were editing. The latest version is loaded and your edits are kept; review them and save again.");
         return;
       }
       setError((e as Error).message);
