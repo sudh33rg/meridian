@@ -1656,6 +1656,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pages/{id}/parent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["set_page_parent"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pages/{id}/restore": {
         parameters: {
             query?: never;
@@ -1880,6 +1896,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/blog-posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_blog_posts"];
+        put?: never;
+        post: operations["create_blog_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}/board": {
         parameters: {
             query?: never;
@@ -2082,6 +2114,22 @@ export interface paths {
         get: operations["goals"];
         put?: never;
         post: operations["new_goal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/home-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_home_page"];
+        put: operations["set_home_page"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3455,6 +3503,13 @@ export interface components {
         BaselineInput: {
             name: string;
         };
+        BlogPost: {
+            /** Format: uuid */
+            page_id: string;
+            /** Format: date-time */
+            published_at: string;
+            title: string;
+        };
         /** @description One issue as a board card shows it. */
         BoardIssue: {
             /** Format: uuid */
@@ -3900,6 +3955,11 @@ export interface components {
             /** @description `user` or `team`. */
             subject_type: string;
         };
+        /** @description The project's home page. `page_id` is null until an admin sets one. */
+        HomePage: {
+            /** Format: uuid */
+            page_id?: string | null;
+        };
         ImportInput: {
             items: components["schemas"]["ImportItem"][];
         };
@@ -4201,6 +4261,10 @@ export interface components {
             dropped_fields: string[];
             issue: components["schemas"]["Issue"];
         };
+        NewBlogPost: {
+            content?: string | null;
+            title: string;
+        };
         NewField: {
             field_type: string;
             /** @description Optional. Derived from the label when absent. */
@@ -4406,6 +4470,13 @@ export interface components {
             subject_id: string;
             /** @description `user` or `team`. */
             subject_type: string;
+        };
+        PageParent: {
+            /**
+             * Format: uuid
+             * @description A page of the same project, or null to move the page to the top level.
+             */
+            parent_id?: string | null;
         };
         PageTemplate: {
             /** @description The starting text for a new page. */
@@ -11882,6 +11953,69 @@ export interface operations {
             };
         };
     };
+    set_page_parent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PageParent"];
+            };
+        };
+        responses: {
+            /** @description Moved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page"];
+                };
+            };
+            /** @description A page cannot move under itself or its own children, or to another project */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     restore_page: {
         parameters: {
             query?: never;
@@ -12957,6 +13091,110 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Baseline"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list_blog_posts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Newest blog posts you can open (at most 200) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlogPost"][];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    create_blog_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewBlogPost"];
+            };
+        };
+        responses: {
+            /** @description Published as a page and listed in the blog */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page"];
                 };
             };
             /** @description Validation or domain error */
@@ -14135,6 +14373,110 @@ export interface operations {
                 };
             };
             /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    get_home_page: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The home page, if one is set */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomePage"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    set_home_page: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HomePage"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomePage"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Project admins only */
             403: {
                 headers: {
                     [name: string]: unknown;

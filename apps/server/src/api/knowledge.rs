@@ -276,6 +276,199 @@ pub(crate) fn routes() -> Router<App> {
             get(list_page_templates).post(create_page_template),
         )
         .route("/api/page-templates/{id}", delete(delete_page_template))
+        .route(
+            "/api/projects/{id}/blog-posts",
+            get(list_blog_posts).post(create_blog_post),
+        )
+        .route(
+            "/api/projects/{id}/home-page",
+            get(get_home_page).put(set_home_page),
+        )
+        .route("/api/pages/{id}/parent", axum::routing::put(set_page_parent))
+}
+
+// ---------------------------------------------------------------------------------------------
+// K3. Blog posts, the project home page and the page tree
+// ---------------------------------------------------------------------------------------------
+
+#[derive(Serialize, FromRow, utoipa::ToSchema)]
+pub(crate) struct BlogPost {
+    pub(crate) page_id: Uuid,
+    pub(crate) title: String,
+    pub(crate) published_at: DateTime<Utc>,
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct NewBlogPost {
+    pub(crate) title: String,
+    pub(crate) content: Option<String>,
+}
+
+/// The project's home page. `page_id` is null until an admin sets one.
+#[derive(Serialize, Deserialize, utoipa::ToSchema)]
+pub(crate) struct HomePage {
+    pub(crate) page_id: Option<Uuid>,
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct PageParent {
+    /// A page of the same project, or null to move the page to the top level.
+    pub(crate) parent_id: Option<Uuid>,
+}
+
+#[utoipa::path(get, path = "/api/projects/{id}/blog-posts", tag = "knowledge", params(("id" = Uuid, Path, description = "Project id")), responses((status = 200, description = "Newest blog posts you can open (at most 200)", body = Vec<BlogPost>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn list_blog_posts(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<BlogPost>>> {
+    let i = tx.identity.clone();
+    ensure_access(&mut tx, project).await?;
+    let rows: Vec<BlogPost> = sqlx::query_as(
+        "SELECT b.page_id, p.title, b.published_at FROM blog_posts b JOIN pages p ON p.tenant_id=b.tenant_id AND p.id=b.page_id \
+         WHERE b.tenant_id=$1 AND b.project_id=$2 AND page_access(p.id,$3,$4)>=1 ORDER BY b.published_at DESC LIMIT 200",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .bind(i.user_id)
+    .bind(&i.role)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    Ok(Json(rows))
+}
+
+#[utoipa::path(post, path = "/api/projects/{id}/blog-posts", tag = "knowledge", params(("id" = Uuid, Path, description = "Project id")), request_body = NewBlogPost, responses((status = 201, description = "Published as a page and listed in the blog", body = crate::api::work::Page), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn create_blog_post(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+    Json(v): Json<NewBlogPost>,
+) -> ApiResult<(StatusCode, Json<crate::api::work::Page>)> {
+    let i = tx.identity.clone();
+    ensure_access(&mut tx, project).await?;
+    if !can_edit(&i) {
+        return Err(forbidden());
+    }
+    let title = v.title.trim().to_string();
+    if title.is_empty() || title.chars().count() > 200 {
+        return Err(bad("A blog post title is 1 to 200 characters"));
+    }
+    let page: crate::api::work::Page = sqlx::query_as(
+        "INSERT INTO pages(tenant_id,project_id,title,content,created_by) VALUES($1,$2,$3,$4,$5) \
+         RETURNING id,project_id,parent_id,title,content,version,updated_at",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .bind(&title)
+    .bind(v.content.unwrap_or_default())
+    .bind(i.user_id)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    sqlx::query("INSERT INTO blog_posts(tenant_id,project_id,page_id) VALUES($1,$2,$3)")
+        .bind(i.tenant_id)
+        .bind(project)
+        .bind(page.id)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    log_event(&mut tx, &i, "created", "page", page.id).await?;
+    log_event(&mut tx, &i, "blog_post_published", "project", project).await?;
+    Ok((StatusCode::CREATED, Json(page)))
+}
+
+#[utoipa::path(get, path = "/api/projects/{id}/home-page", tag = "knowledge", params(("id" = Uuid, Path, description = "Project id")), responses((status = 200, description = "The home page, if one is set", body = HomePage), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn get_home_page(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<HomePage>> {
+    let i = tx.identity.clone();
+    ensure_access(&mut tx, project).await?;
+    let page_id: Option<Uuid> = sqlx::query_scalar("SELECT home_page_id FROM projects WHERE tenant_id=$1 AND id=$2")
+        .bind(i.tenant_id)
+        .bind(project)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    Ok(Json(HomePage { page_id }))
+}
+
+#[utoipa::path(put, path = "/api/projects/{id}/home-page", tag = "knowledge", params(("id" = Uuid, Path, description = "Project id")), request_body = HomePage, responses((status = 200, description = "Saved", body = HomePage), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Project admins only", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn set_home_page(mut tx: Tx, Path(project): Path<Uuid>, Json(v): Json<HomePage>) -> ApiResult<Json<HomePage>> {
+    let i = tx.identity.clone();
+    ensure_project_admin(&mut tx, project).await?;
+    if let Some(page) = v.page_id {
+        let inside: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM pages WHERE tenant_id=$1 AND project_id=$2 AND id=$3)")
+            .bind(i.tenant_id)
+            .bind(project)
+            .bind(page)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
+        if !inside {
+            return Err(bad("The home page must be a page of this project"));
+        }
+    }
+    sqlx::query("UPDATE projects SET home_page_id=$1 WHERE tenant_id=$2 AND id=$3")
+        .bind(v.page_id)
+        .bind(i.tenant_id)
+        .bind(project)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    log_event(&mut tx, &i, "home_page_set", "project", project).await?;
+    Ok(Json(v))
+}
+
+#[utoipa::path(put, path = "/api/pages/{id}/parent", tag = "knowledge", params(("id" = Uuid, Path, description = "Resource id")), request_body = PageParent, responses((status = 200, description = "Moved", body = crate::api::work::Page), (status = 400, description = "A page cannot move under itself or its own children, or to another project", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn set_page_parent(mut tx: Tx, Path(page): Path<Uuid>, Json(v): Json<PageParent>) -> ApiResult<Json<crate::api::work::Page>> {
+    let i = tx.identity.clone();
+    let project: Uuid = sqlx::query_scalar("SELECT project_id FROM pages WHERE tenant_id=$1 AND id=$2")
+        .bind(i.tenant_id)
+        .bind(page)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(db_err)?
+        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Page not found"))?;
+    ensure_access(&mut tx, project).await?;
+    if !can_edit(&i) {
+        return Err(forbidden());
+    }
+    if let Some(parent) = v.parent_id {
+        if parent == page {
+            return Err(bad("A page cannot be its own parent"));
+        }
+        let same_project: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM pages WHERE tenant_id=$1 AND project_id=$2 AND id=$3)")
+            .bind(i.tenant_id)
+            .bind(project)
+            .bind(parent)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
+        if !same_project {
+            return Err(bad("The parent page must belong to this project"));
+        }
+        // Walk up from the proposed parent: if this page is reached, the move would create a cycle.
+        let cycle: bool = sqlx::query_scalar(
+            "WITH RECURSIVE up AS (SELECT id, parent_id FROM pages WHERE tenant_id=$1 AND id=$2 \
+               UNION ALL SELECT p.id, p.parent_id FROM pages p JOIN up ON p.tenant_id=$1 AND p.id=up.parent_id) \
+             SELECT EXISTS(SELECT 1 FROM up WHERE id=$3)",
+        )
+        .bind(i.tenant_id)
+        .bind(parent)
+        .bind(page)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(db_err)?;
+        if cycle {
+            return Err(bad("A page cannot move under one of its own children"));
+        }
+    }
+    let row: crate::api::work::Page = sqlx::query_as(
+        "UPDATE pages SET parent_id=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3 \
+         RETURNING id,project_id,parent_id,title,content,version,updated_at",
+    )
+    .bind(v.parent_id)
+    .bind(i.tenant_id)
+    .bind(page)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    log_event(&mut tx, &i, "page_moved", "page", page).await?;
+    Ok(Json(row))
 }
 
 // ---------------------------------------------------------------------------------------------
