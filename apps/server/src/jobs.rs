@@ -127,6 +127,7 @@ async fn handle(ctx: &Ctx, job: &Job) -> Result<(), String> {
     match job.kind.as_str() {
         "email.auth_token" => email_auth_token(ctx, &job.payload).await,
         "email.invite" => email_invite(ctx, &job.payload).await,
+        "email.digest" => email_digest(ctx, &job.payload).await,
         "attachment.scan" => {
             let id = payload_id(&job.payload, "attachment_id")?;
             crate::attachments::scan_job(&ctx.db, &ctx.cfg, &ctx.store, id).await
@@ -186,6 +187,22 @@ async fn email_auth_token(ctx: &Ctx, payload: &Value) -> Result<(), String> {
     ctx.mailer.send(&email, subject, &body).await
 }
 
+/// One member's daily digest. Nothing is sent unless email is enabled on this server.
+async fn email_digest(ctx: &Ctx, payload: &Value) -> Result<(), String> {
+    if !(ctx.cfg.email_notifications && ctx.cfg.smtp_url.is_some()) {
+        return Ok(());
+    }
+    let tenant = payload_id(payload, "tenant_id")?;
+    let user = payload_id(payload, "user_id")?;
+    let text = crate::api::digest::digest_text(&ctx.db, &ctx.cfg.secret, &ctx.cfg.public_url, tenant, user)
+        .await
+        .map_err(|e| e.to_string())?;
+    match text {
+        Some((subject, body, to)) => ctx.mailer.send(&to, &subject, &body).await,
+        None => Ok(()),
+    }
+}
+
 async fn email_invite(ctx: &Ctx, payload: &Value) -> Result<(), String> {
     let id = payload_id(payload, "invitation_id")?;
     let row: Option<(String, String, bool, String, String)> = sqlx::query_as(
@@ -218,7 +235,7 @@ async fn email_invite(ctx: &Ctx, payload: &Value) -> Result<(), String> {
 
 /// Housekeeping on the system connection, once an hour. Idempotency keys are kept for 24 hours,
 /// the minimum window Stripe documents; after pruning, a reused key creates a new record.
-pub(crate) fn spawn_maintenance(db: PgPool) {
+pub(crate) fn spawn_maintenance(db: PgPool, email_on: bool) {
     tokio::spawn(async move {
         loop {
             prune_idempotency_keys(&db).await;
@@ -227,6 +244,12 @@ pub(crate) fn spawn_maintenance(db: PgPool) {
                 Ok(n) if n > 0 => tracing::debug!(sprints = n, "captured sprint burndown"),
                 Ok(_) => {}
                 Err(e) => tracing::error!(error=%e, "sprint burndown capture failed"),
+            }
+            // Daily digests are queued for opted-in members with unread notifications (Phase I2).
+            match crate::api::digest::enqueue_due_digests(&db, email_on).await {
+                Ok(n) if n > 0 => tracing::info!(digests = n, "queued email digests"),
+                Ok(_) => {}
+                Err(e) => tracing::error!(error=%e, "digest queueing failed"),
             }
             // Personal reminders that are due become notifications (Phase F5).
             match crate::api::issue_content::send_due_reminders(&db).await {

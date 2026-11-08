@@ -740,6 +740,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/email/unsubscribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The link in every digest. It turns the digest off for one member of one workspace. It is a GET so
+         *     that mail clients can open it, and it changes nothing unless the signed token is right.
+         */
+        get: operations["unsubscribe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/entitlements": {
         parameters: {
             query?: never;
@@ -1409,6 +1429,22 @@ export interface paths {
         };
         get: operations["me"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/digest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_digest"];
+        put: operations["set_digest"];
         post?: never;
         delete?: never;
         options?: never;
@@ -3842,6 +3878,12 @@ export interface components {
             reference: string;
             title: string;
             url: string;
+        };
+        DigestSetting: {
+            /** @description Whether the server currently sends email at all (EMAIL_NOTIFICATIONS and SMTP_URL). */
+            email_available: boolean;
+            /** @description Email me a daily digest of my unread notifications. */
+            enabled: boolean;
         };
         DisableInput: {
             code: string;
@@ -7728,6 +7770,42 @@ export interface operations {
             };
         };
     };
+    unsubscribe: {
+        parameters: {
+            query: {
+                /** @description Workspace id */
+                tenant: string;
+                /** @description Member id */
+                user: string;
+                /** @description Signed token from the email */
+                token: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unsubscribed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description The link is not valid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     entitlements: {
         parameters: {
             query?: never;
@@ -10906,6 +10984,68 @@ export interface operations {
             };
             /** @description Not found in this workspace */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    get_digest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Your digest setting */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestSetting"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    set_digest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DigestSetting"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestSetting"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

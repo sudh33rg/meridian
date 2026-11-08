@@ -3197,6 +3197,68 @@
         ]
       }
     },
+    "/api/email/unsubscribe": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "The link in every digest. It turns the digest off for one member of one workspace. It is a GET so\nthat mail clients can open it, and it changes nothing unless the signed token is right.",
+        "operationId": "unsubscribe",
+        "parameters": [
+          {
+            "name": "tenant",
+            "in": "query",
+            "description": "Workspace id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "user",
+            "in": "query",
+            "description": "Member id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "description": "Signed token from the email",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unsubscribed",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The link is not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/entitlements": {
       "get": {
         "tags": [
@@ -7446,6 +7508,84 @@
           },
           "404": {
             "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/me/digest": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "operationId": "get_digest",
+        "responses": {
+          "200": {
+            "description": "Your digest setting",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestSetting"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "notifications"
+        ],
+        "operationId": "set_digest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DigestSetting"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DigestSetting"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
             "content": {
               "application/json": {
                 "schema": {
@@ -21910,6 +22050,23 @@
           },
           "url": {
             "type": "string"
+          }
+        }
+      },
+      "DigestSetting": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "email_available"
+        ],
+        "properties": {
+          "email_available": {
+            "type": "boolean",
+            "description": "Whether the server currently sends email at all (EMAIL_NOTIFICATIONS and SMTP_URL)."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Email me a daily digest of my unread notifications."
           }
         }
       },

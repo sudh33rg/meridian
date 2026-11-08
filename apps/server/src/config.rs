@@ -19,6 +19,9 @@ pub(crate) struct Config {
     pub(crate) allow_private_outbound: bool,
     pub(crate) stripe_secret_key: Option<String>,
     pub(crate) stripe_webhook_secret: Option<String>,
+    /// Outbound email (daily digests). Off unless EMAIL_NOTIFICATIONS=true, and it also needs SMTP_URL.
+    /// The production sender domain is an owner decision (see IMPLEMENTATION_STATUS).
+    pub(crate) email_notifications: bool,
     pub(crate) stripe_price_team: Option<String>,
     pub(crate) stripe_price_business: Option<String>,
     /// Webhook deliveries per workspace per minute (excess is deferred, never dropped).
@@ -94,6 +97,7 @@ impl Config {
             allow_private_outbound: env_bool("ALLOW_PRIVATE_OUTBOUND") && !production,
             stripe_secret_key: opt_env("STRIPE_SECRET_KEY"),
             stripe_webhook_secret: opt_env("STRIPE_WEBHOOK_SECRET"),
+            email_notifications: env_bool("EMAIL_NOTIFICATIONS"),
             stripe_price_team: opt_env("STRIPE_PRICE_TEAM"),
             stripe_price_business: opt_env("STRIPE_PRICE_BUSINESS"),
             webhook_per_min: env_num("WEBHOOK_RATE_PER_MIN", 600),

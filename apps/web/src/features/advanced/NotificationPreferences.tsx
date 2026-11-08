@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { request } from "../../lib/api";
 import type { NotificationKind, NotificationPreference } from "../../lib/issues";
 
-/** Turns inbox kinds on or off for the signed-in member. Email delivery is not part of this yet,
- * so the switches only control what appears in the inbox. */
+/** Turns inbox kinds on or off for the signed-in member. The digest switch sends one email a day when the
+ * server has email set up. */
 const LABELS: Record<NotificationKind, { title: string; caption: string }> = {
   approval: {
     title: "Approval requests",
@@ -23,11 +23,28 @@ export function NotificationPreferences({
   onError: (message: string) => void;
 }) {
   const [prefs, setPrefs] = useState<NotificationPreference[] | null>(null);
+  const [digest, setDigest] = useState<{ enabled: boolean; email_available: boolean } | null>(null);
   useEffect(() => {
     request<NotificationPreference[]>(token, "/me/notification-preferences")
       .then(setPrefs)
       .catch((e: Error) => onError(e.message));
+    request<{ enabled: boolean; email_available: boolean }>(token, "/me/digest")
+      .then(setDigest)
+      .catch((e: Error) => onError(e.message));
   }, [token, onError]);
+
+  const changeDigest = async (enabled: boolean) => {
+    if (!digest) return;
+    try {
+      const next = await request<{ enabled: boolean; email_available: boolean }>(token, "/me/digest", {
+        method: "PUT",
+        body: JSON.stringify({ enabled, email_available: digest.email_available }),
+      });
+      setDigest(next);
+    } catch (e) {
+      onError((e as Error).message);
+    }
+  };
 
   const change = async (kind: NotificationKind, enabled: boolean) => {
     try {
@@ -58,6 +75,24 @@ export function NotificationPreferences({
           </span>
         </label>
       ))}
+      {digest && (
+        <label className="pref-row">
+          <input
+            type="checkbox"
+            checked={digest.enabled}
+            disabled={!digest.email_available}
+            onChange={(e) => void changeDigest(e.target.checked)}
+          />
+          <span>
+            <b>Daily email digest</b>
+            <small>
+              {digest.email_available
+                ? "One email a day with your unread notifications from the last day."
+                : "Email is not set up on this server, so no digest is sent."}
+            </small>
+          </span>
+        </label>
+      )}
     </fieldset>
   );
 }
