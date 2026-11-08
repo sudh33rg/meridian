@@ -7,5 +7,6 @@ pub mod knowledge;
 pub mod org;
 pub mod personal;
 pub mod planning;
+pub mod statuses;
 pub mod security;
 pub mod work;

@@ -13,7 +13,8 @@ import {
 } from "lucide-react";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { Skeleton } from "../shared/Avatar";
-import { KindIcon, STATUSES, STATUS_LABEL, StatusPill } from "./meta";
+import { KindIcon, StatusPill } from "./meta";
+import { statusClass, type ProjectStatus } from "../../lib/statuses";
 
 function Ring({ pct }: { pct: number }) {
   const r = 22;
@@ -45,10 +46,12 @@ function Ring({ pct }: { pct: number }) {
 }
 
 export function OverviewTab() {
-  const { issues, pages, project, tab, setTab, setActivePage, setModal, loading } = useWorkspace();
+  const { issues, pages, project, tab, setTab, setActivePage, setModal, loading, statuses } = useWorkspace();
   if (tab !== "overview") return null;
-  const done = issues.filter((i) => i.status === "done").length;
-  const inProg = issues.filter((i) => i.status === "in_progress").length;
+  // Counts follow each status's category, so a custom status behaves like the built-in one it matches.
+  const categoryOf = (key: string) => statuses.find((s) => s.key === key)?.category;
+  const done = issues.filter((i) => categoryOf(i.status) === "done").length;
+  const inProg = issues.filter((i) => categoryOf(i.status) === "in_progress").length;
   const pct = issues.length ? Math.round((done / issues.length) * 100) : 0;
   const steps = [
     { label: "Create a project", done: !!project, run: () => setModal("project") },
@@ -105,18 +108,23 @@ export function OverviewTab() {
             <span className="muted small">{issues.length} issues</span>
           </div>
           <div className="stack-bar" role="img" aria-label="Issues by status">
-            {STATUSES.map((s) => {
-              const n = issues.filter((i) => i.status === s).length;
+            {statuses.map((s: ProjectStatus) => {
+              const n = issues.filter((i) => i.status === s.key).length;
               return n ? (
-                <i key={s} className={"seg-" + s} style={{ flex: n }} title={`${STATUS_LABEL[s]}: ${n}`} />
+                <i
+                  key={s.key}
+                  className={"seg-" + statusClass(s)}
+                  style={{ flex: n }}
+                  title={`${s.name}: ${n}`}
+                />
               ) : null;
             })}
           </div>
           <div className="legend">
-            {STATUSES.map((s) => (
-              <span key={s}>
-                <i className={"seg-" + s} /> {STATUS_LABEL[s]}{" "}
-                <b>{issues.filter((i) => i.status === s).length}</b>
+            {statuses.map((s: ProjectStatus) => (
+              <span key={s.key}>
+                <i className={"seg-" + statusClass(s)} /> {s.name}{" "}
+                <b>{issues.filter((i) => i.status === s.key).length}</b>
               </span>
             ))}
           </div>

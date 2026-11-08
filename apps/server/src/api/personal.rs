@@ -2,7 +2,7 @@
 //! Rows are tenant-scoped by row level security and private to their owner, so every query also
 //! filters on the caller's user id.
 use crate::api::common::*;
-use crate::api::work::{ISSUE_PRIORITIES, ISSUE_STATUSES};
+use crate::api::work::ISSUE_PRIORITIES;
 use crate::*;
 use axum::routing::{delete, get};
 use serde_json::{json, Map, Value};
@@ -41,16 +41,21 @@ pub(crate) struct NotificationPreferenceInput {
 }
 
 /// Keeps only the known filter keys and checks each value with the same rules as the issue list.
-fn normalize_filters(raw: &Value) -> ApiResult<Value> {
+async fn normalize_filters(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    project: Uuid,
+    raw: &Value,
+) -> ApiResult<Value> {
     let obj = raw.as_object().ok_or_else(|| bad("Filters must be an object"))?;
     let mut out = Map::new();
     for (key, value) in obj {
         match key.as_str() {
             "status" => {
-                let s = value
-                    .as_str()
-                    .filter(|s| ISSUE_STATUSES.contains(s))
-                    .ok_or_else(|| bad("Invalid status filter"))?;
+                let s = value.as_str().ok_or_else(|| bad("Invalid status filter"))?;
+                if !crate::api::statuses::status_defined(db, tenant, project, s).await? {
+                    return Err(bad("Invalid status filter"));
+                }
                 out.insert(key.clone(), json!(s));
             }
             "priority" => {
@@ -117,7 +122,7 @@ pub(crate) async fn create_view(
     if name.is_empty() || name.chars().count() > 80 {
         return Err(bad("View name must be 1 to 80 characters"));
     }
-    let filters = normalize_filters(&v.filters)?;
+    let filters = normalize_filters(&mut tx, i.tenant_id, project, &v.filters).await?;
     let count: i64 = sqlx::query_scalar(
         "SELECT count(*) FROM saved_views WHERE tenant_id=$1 AND user_id=$2 AND project_id=$3",
     )

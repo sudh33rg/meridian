@@ -514,3 +514,49 @@
   flex-wrap: wrap;
   gap: 10px;
 }
+
+/* Workflow editor on the board: one row per status column */
+.workflow {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  display: grid;
+  gap: 10px;
+}
+.workflow-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+.workflow-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+.workflow-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) 140px auto auto auto;
+  gap: 6px;
+  align-items: center;
+}
+.workflow-row input,
+.workflow-row select {
+  min-width: 0;
+}
+.workflow-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.workflow-add input {
+  min-width: 180px;
+}
+.icon-btn.danger {
+  color: var(--danger-text);
+}

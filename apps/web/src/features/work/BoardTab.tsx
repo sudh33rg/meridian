@@ -1,16 +1,19 @@
 import React, { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Settings2 } from "lucide-react";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { Skeleton } from "../shared/Avatar";
-import { KindIcon, PriorityIcon, STATUSES, STATUS_LABEL } from "./meta";
+import { KindIcon, PriorityIcon } from "./meta";
+import { WorkflowEditor } from "./WorkflowEditor";
 
 export function BoardTab() {
-  const { issues, project, tab, setModal, setSelectedIssue, move, loading } = useWorkspace();
+  const { issues, project, tab, setModal, setSelectedIssue, move, loading, statuses, statusLabel, session, selected } =
+    useWorkspace();
   const [dragId, setDragId] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
   if (tab !== "board") return null;
-  const step = (status: string, dir: -1 | 1) =>
-    STATUSES[STATUSES.indexOf(status as (typeof STATUSES)[number]) + dir];
+  const keys = statuses.map((s) => s.key);
+  const step = (status: string, dir: -1 | 1) => keys[keys.indexOf(status) + dir];
   return (
     <div className="board">
       <div className="board-toolbar">
@@ -20,23 +23,32 @@ export function BoardTab() {
         <span className="muted small hide-sm">
           Drag cards between columns, or focus a card and press Alt + ← / →
         </span>
+        <button
+          className="secondary"
+          aria-expanded={editing}
+          onClick={() => setEditing((v) => !v)}
+          disabled={!selected}
+        >
+          <Settings2 size={15} /> Workflow
+        </button>
         <button className="secondary" onClick={() => setModal("issue")}>
           <Plus size={15} /> Add issue
         </button>
       </div>
+      {editing && <WorkflowEditor token={session.token} projectId={selected} statuses={statuses} />}
       <div className="columns">
-        {STATUSES.map((status, index) => {
-          const list = issues.filter((i) => i.status === status);
+        {statuses.map((status, index) => {
+          const list = issues.filter((i) => i.status === status.key);
           return (
             <section
-              className={"column" + (over === status ? " drop" : "")}
-              key={status}
-              aria-label={STATUS_LABEL[status]}
+              className={"column" + (over === status.key ? " drop" : "")}
+              key={status.key}
+              aria-label={status.name}
               onDragOver={(e) => {
                 if (!dragId) return;
                 e.preventDefault();
                 e.dataTransfer.dropEffect = "move";
-                if (over !== status) setOver(status);
+                if (over !== status.key) setOver(status.key);
               }}
               onDragLeave={(e) => {
                 if (!e.currentTarget.contains(e.relatedTarget as Node)) setOver(null);
@@ -46,12 +58,12 @@ export function BoardTab() {
                 const issue = issues.find((i) => i.id === (dragId ?? e.dataTransfer.getData("text/plain")));
                 setOver(null);
                 setDragId(null);
-                if (issue) move(issue, status);
+                if (issue) move(issue, status.key);
               }}
             >
               <div className="column-title">
-                <span className={"column-dot dot-" + index} />
-                <b>{STATUS_LABEL[status]}</b>
+                <span className={"column-dot dot-" + Math.min(index, 3)} />
+                <b>{status.name}</b>
                 <span className="count">{list.length}</span>
               </div>
               {loading &&
@@ -67,7 +79,7 @@ export function BoardTab() {
                   key={i.id}
                   draggable
                   tabIndex={0}
-                  aria-label={`${project?.key}-${i.number} ${i.title}, ${STATUS_LABEL[i.status]}`}
+                  aria-label={`${project?.key}-${i.number} ${i.title}, ${statusLabel(i.status)}`}
                   onDragStart={(e) => {
                     setDragId(i.id);
                     e.dataTransfer.effectAllowed = "move";
@@ -101,9 +113,9 @@ export function BoardTab() {
                       value={i.status}
                       onChange={(e) => move(i, e.target.value)}
                     >
-                      {STATUSES.map((x) => (
-                        <option key={x} value={x}>
-                          {STATUS_LABEL[x]}
+                      {statuses.map((x) => (
+                        <option key={x.key} value={x.key}>
+                          {x.name}
                         </option>
                       ))}
                     </select>

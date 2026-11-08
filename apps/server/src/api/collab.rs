@@ -21,7 +21,7 @@ pub(crate) async fn analytics(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json
         .bind(i.tenant_id).bind(p).fetch_all(&mut *tx).await.map_err(db_err)?;
     let kinds:Vec<Value>=sqlx::query_scalar("SELECT jsonb_build_object('kind',kind,'count',count(*)) FROM issues WHERE tenant_id=$1 AND project_id=$2 AND archived_at IS NULL GROUP BY kind")
         .bind(i.tenant_id).bind(p).fetch_all(&mut *tx).await.map_err(db_err)?;
-    let overdue:i64=sqlx::query_scalar("SELECT count(*) FROM issues WHERE tenant_id=$1 AND project_id=$2 AND due_at<now() AND status<>'done' AND archived_at IS NULL")
+    let overdue:i64=sqlx::query_scalar("SELECT count(*) FROM issues WHERE tenant_id=$1 AND project_id=$2 AND due_at<now() AND NOT EXISTS (SELECT 1 FROM project_statuses ps WHERE ps.tenant_id=issues.tenant_id AND ps.project_id=issues.project_id AND ps.key=issues.status AND ps.category='done') AND archived_at IS NULL")
         .bind(i.tenant_id).bind(p).fetch_one(&mut *tx).await.map_err(db_err)?;
     Ok(Json(
         json!({"statuses":counts,"types":kinds,"overdue":overdue}),

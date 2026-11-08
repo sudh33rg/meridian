@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import {
@@ -10,6 +10,7 @@ import {
   send,
 } from "../../lib/api";
 import { loadIssues } from "../../lib/issues";
+import { fallbackLabel, type ProjectStatus } from "../../lib/statuses";
 import { clearSession, saveSession as persistSession, type Me } from "../../lib/session";
 import type { Issue, Page, Project, Session } from "../../lib/types";
 import type { ExtraTab } from "../advanced/AdvancedWorkspace";
@@ -147,6 +148,16 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
     queryFn: () => api<Page[]>(`/projects/${selected}/pages`, token),
     enabled: !!selected,
   });
+  const statusesQ = useQuery({
+    queryKey: ["statuses", selected],
+    queryFn: () => api<ProjectStatus[]>(`/projects/${selected}/statuses`, token),
+    enabled: !!selected,
+  });
+  const statuses = useMemo(() => statusesQ.data ?? [], [statusesQ.data]);
+  const statusLabel = useCallback(
+    (key: string) => statuses.find((s) => s.key === key)?.name ?? fallbackLabel(key),
+    [statuses],
+  );
   const issues = useMemo(() => issuesQ.data ?? [], [issuesQ.data]);
   const pages = useMemo(() => pagesQ.data ?? [], [pagesQ.data]);
   const queryError = projectsQ.error || issuesQ.error || pagesQ.error;
@@ -293,6 +304,8 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
     verificationSent,
     projects,
     issues,
+    statuses,
+    statusLabel,
     pages,
     filtered,
     project,
@@ -319,7 +332,7 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
     move: (issue: Issue, status: string) => {
       if (issue.status === status) return;
       moveIssue.mutate({ issue, status });
-      toast(`${project?.key ?? ""}-${issue.number} moved to ${status.replace("_", " ")}`, {
+      toast(`${project?.key ?? ""}-${issue.number} moved to ${statusLabel(status)}`, {
         action: {
           label: "Undo",
           run: () => moveIssue.mutate({ issue: { ...issue, status }, status: issue.status }),

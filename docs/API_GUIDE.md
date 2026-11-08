@@ -94,6 +94,19 @@ curl -X POST "$MERIDIAN_API/api/projects/$PROJECT_ID/issues" \
 - **Idempotent create.** `POST /projects/{id}/issues` accepts an `Idempotency-Key` header of 8 to 255 visible ASCII characters. A retry with the same key and the same body returns the original `201` response with `Idempotent-Replayed: true` and creates nothing. The same key with a different body returns `409`. Requests that fail are not stored, so a failed create can be retried with the same key. Stored keys are pruned after 24 hours by hourly maintenance, so a key reused after that creates a new issue.
 - **Cross-origin browsers.** `ETag`, `X-Next-Cursor` and `Idempotent-Replayed` are exposed to browser clients through CORS, and `If-Match` and `Idempotency-Key` are allowed request headers.
 
+### Workflow statuses
+
+Each project defines the statuses its issues can be in. A status has a key (fixed once created; issues store it), a name, a category (`todo`, `in_progress` or `done`) and a position (its board column). Every new project starts with To do, In progress, In review and Done.
+
+| Verb | Route | Description |
+|---|---|---|
+| GET | `/projects/{id}/statuses` | The statuses in column order. Any member who can see the project |
+| POST | `/projects/{id}/statuses` | Add a status at the end: `{"name","category","key"?}`. The key is derived from the name when omitted. Project admins only; up to 20 per project |
+| PATCH | `/projects/{id}/statuses/{key}` | Rename, recategorise or move (`position` is the new column index; the others shift). Project admins only |
+| DELETE | `/projects/{id}/statuses/{key}` | Delete a status. Refused (409) while any issue uses it, or when it is the project's last To do status |
+
+Issues, filters, bulk changes and saved views accept only statuses the project defines (400 otherwise). Completion (overview, overdue, open counts) follows the category, so a custom status in the `done` category counts as completed.
+
 ### Archive, bulk changes, saved views and notification preferences
 
 | Verb | Route | Description |

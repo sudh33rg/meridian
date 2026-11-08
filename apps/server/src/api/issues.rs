@@ -1,7 +1,7 @@
 //! Issue details, edits, comments and links.
 use crate::api::collab::run_automations;
 use crate::api::common::*;
-use crate::api::work::{ISSUE_PRIORITIES, ISSUE_STATUSES};
+use crate::api::work::ISSUE_PRIORITIES;
 use crate::*;
 use axum::http::header::{ETAG, IF_MATCH};
 use axum::http::HeaderValue;
@@ -115,7 +115,7 @@ pub(crate) async fn edit_issue(
         }
     }
     if let Some(ref s) = v.status {
-        if !["todo", "in_progress", "in_review", "done"].contains(&s.as_str()) {
+        if !crate::api::statuses::status_defined(&mut tx, i.tenant_id, project, s).await? {
             return Err(bad("Invalid status"));
         }
     }
@@ -290,10 +290,13 @@ pub(crate) async fn bulk_update_issues(
         Assignee(Option<Uuid>),
     }
     let change = match v.action.as_str() {
-        "set_status" => match v.value.as_deref() {
-            Some(s) if ISSUE_STATUSES.contains(&s) => Change::Status(s.to_string()),
-            _ => return Err(bad("A valid status is required")),
-        },
+        "set_status" => {
+            let s = v.value.as_deref().ok_or_else(|| bad("A valid status is required"))?;
+            if !crate::api::statuses::status_defined(&mut tx, i.tenant_id, project, s).await? {
+                return Err(bad("A valid status is required"));
+            }
+            Change::Status(s.to_string())
+        }
         "set_priority" => match v.value.as_deref() {
             Some(p) if ISSUE_PRIORITIES.contains(&p) => Change::Priority(p.to_string()),
             _ => return Err(bad("A valid priority is required")),

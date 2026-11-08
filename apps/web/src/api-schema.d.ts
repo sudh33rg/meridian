@@ -1284,6 +1284,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/statuses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_statuses"];
+        put?: never;
+        post: operations["create_status"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/statuses/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_status"];
+        options?: never;
+        head?: never;
+        patch: operations["update_status"];
+        trace?: never;
+    };
     "/api/projects/{id}/views": {
         parameters: {
             query?: never;
@@ -1889,6 +1921,13 @@ export interface components {
             /** @description 1 to 80 characters; unique per member and project. */
             name: string;
         };
+        NewStatus: {
+            category: string;
+            /** @description Optional. Derived from the name when absent: lowercase letters, digits and underscores. */
+            key?: string | null;
+            /** @description 1 to 40 characters. */
+            name: string;
+        };
         /** @description One inbox entry. Columns match the `notifications` table. */
         Notification: {
             /** Format: uuid */
@@ -1983,6 +2022,17 @@ export interface components {
             /** @description `workspace` (everyone in the workspace) or `private` (explicit grants only). */
             visibility: string;
         };
+        ProjectStatus: {
+            /** @description `todo`, `in_progress` or `done`. */
+            category: string;
+            key: string;
+            name: string;
+            /**
+             * Format: int32
+             * @description Board column order, from 0.
+             */
+            position: number;
+        };
         RefreshInput: {
             /** @description API clients send the refresh token here; browsers rely on the HttpOnly cookie. */
             refresh_token?: string | null;
@@ -2067,6 +2117,15 @@ export interface components {
             enforce_sso: boolean;
             issuer: string;
             jit_provisioning: boolean;
+        };
+        StatusPatch: {
+            category?: string | null;
+            name?: string | null;
+            /**
+             * Format: int32
+             * @description New column index. Other statuses shift to make room.
+             */
+            position?: number | null;
         };
         SwitchTenant: {
             /** Format: uuid */
@@ -6610,7 +6669,7 @@ export interface operations {
                 limit: number | null;
                 /** @description Continue below the issue number returned in `X-Next-Cursor`. */
                 cursor: string | null;
-                /** @description Exact status filter: todo, in_progress, in_review or done. */
+                /** @description Exact status key, as defined by the project's workflow. */
                 status: string | null;
                 /** @description Exact priority filter: low, medium, high or urgent. */
                 priority: string | null;
@@ -7348,6 +7407,234 @@ export interface operations {
             };
             /** @description Not found in this workspace */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list_statuses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The project's statuses in column order */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectStatus"][];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    create_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewStatus"];
+            };
+        };
+        responses: {
+            /** @description Created at the end of the board */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectStatus"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Project admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The key already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    delete_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Status key */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Project admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description No such status */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Issues still use it, or it is the last To do status */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    update_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Status key */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatusPatch"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectStatus"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Project admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description No such status */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description A project needs at least one To do status */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

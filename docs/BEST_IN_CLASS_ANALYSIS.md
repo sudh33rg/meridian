@@ -16,7 +16,7 @@ Legend: ● strong and core · ◐ partial, add-on or uneven · ○ absent or de
 | # | Capability | Jira | Linear | Confluence | Notion | GitHub | Plane | Meridian before | Meridian now |
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | Issue hierarchy (epics, sub-items) | ● | ● | — | ◐ | ● | ● | ◐ (`parent_id`, `epic` kind) | ◐ |
-| 2 | Configurable workflow statuses | ● | ● | — | ◐ | ◐ | ● | ○ (four fixed statuses) | ○ (planned C1) |
+| 2 | Configurable workflow statuses | ● | ● | — | ◐ | ◐ | ● | ○ (four fixed statuses) | ◐ (per-project statuses with categories; no transition rules) |
 | 3 | Custom fields with schemas | ● | ◐ | ◐ | ● | ● | ● | ◐ (free JSON only) | ◐ |
 | 4 | Query language and saved filters | ● | ● | ● | ● | ● | ◐ | ◐ (client-side filters) | ◐ (saved views with status, priority and title; no query language) |
 | 5 | Large lists: paged, no silent truncation | ● | ● | ● | ● | ● | ● | ○ (hard cap of 500, silent) | ● |
@@ -54,7 +54,7 @@ Legend: ● strong and core · ◐ partial, add-on or uneven · ○ absent or de
 | G1 | Lists stop silently at 500 rows | All | High: data looks complete when it is not | Small | **Fixed** (A1, A4) |
 | G2 | Edits overwrite newer changes | Linear, Notion, GitHub REST | High: silent data loss between two editors | Small | **Fixed** for issues (A2, A4) |
 | G3 | Retries create duplicates; offline drafts unsafe | Stripe, Linear sync | High for mobile offline drafts | Small | **Fixed** for issue create, web and mobile (A3, A4, B2) |
-| G4 | Fixed workflow statuses | Jira, Linear, Plane | High for teams with their own process | Large | Planned C1 |
+| G4 | Fixed workflow statuses | Jira, Linear, Plane | High for teams with their own process | Large | **Partly fixed** (C1): per-project statuses with categories, reordering and deletion rules; transition rules and validators still open |
 | G5 | Untyped responses (`Value`) in many handlers | Stripe, GitHub | Medium: client code has to guess | Medium | **Partly fixed** (B3: three existing responses typed, new ones typed; the rest remain) |
 | G6 | No saved views or query language | Jira JQL, Linear views | High for power users | Large | **Partly fixed**: saved views (B4); the query language is planned C3 |
 | G7 | No bulk edit | Jira, Linear | Medium | Medium | **Fixed** for status, priority and assignee (B5) |
@@ -91,11 +91,11 @@ Legend: ● strong and core · ◐ partial, add-on or uneven · ○ absent or de
 | B6 | Per-user notification preferences for `approval` and `automation` kinds. Switching a kind off stops new inbox rows for that member. The inbox has a Notify me about panel. **Not done:** email or any outbound delivery. | `api/personal.rs`, `collab.rs` (both inserts), migration `0015`, web `NotificationPreferences.tsx` | done (inbox only) |
 | B2 | Flutter client: `Api.request` takes headers; issue status changes send `If-Match` from the loaded ETag and reload after a refused change; issue create sends an `Idempotency-Key` (kept with the offline draft, for a future resend). **Not done:** paging (the app still reads the first 500 rows, which is what it did before), a simulator build and run. | `apps/mobile/lib/core.dart`, `issue.dart`, `home.dart` | partly done (analyzed only) |
 
-### Phase C — larger, each needs its own design and migration
+### Phase C — C1 implemented; C2 to C6 planned, each needs its own design
 
 | Step | Work | Notes |
 |---|---|---|
-| C1 | Configurable workflows: per-project status catalogue, allowed transitions and validators. | Replaces the fixed status enum. Forward-only migration with a backfill. |
+| C1 | **Implemented:** per-project status catalogue (migration `0016`, `project_statuses`). Each status has an immutable key, a name, a category (`todo`, `in_progress`, `done`) and a board position. Issues reference the catalogue with a composite foreign key. Endpoints: list, create, update (name, category, position) and delete. The board, filters, bulk changes, saved views, the drawer, the overview counts, overdue and the mobile screen all read the project's statuses. **Not done:** allowed transitions and validators, which the notes below explain. |
 | C2 | Custom field schemas (type, options, required, visibility) on top of the JSON `custom_fields`. | Needed before query filters can use custom fields. |
 | C3 | A small query language with a parser that compiles to SQL, enforcing project access before filtering. | Permission-first, per Constitution Article III.2. Saved views (B4) take its filter contract as their starting point. |
 | C4 | Jira CSV and Jira JSON importers that keep original keys and history where available. | Migration fidelity is a product feature (`COMPETITIVE_LANDSCAPE.md`). |
@@ -108,6 +108,13 @@ Legend: ● strong and core · ◐ partial, add-on or uneven · ○ absent or de
 - **Bulk changes are one transaction.** A single failing item cannot leave a half-applied batch; invalid input (bad action, bad value, empty or over 100) is rejected before any write.
 - **Preferences are opt-out.** An absent row means enabled, so existing members keep receiving every notification they received before.
 - **Saved views are personal data.** Rows are tenant-scoped by row level security and additionally filtered by user id in every query.
+
+### Design notes for Phase C
+
+- **Keys are fixed, names are not.** Issues store the key, so a key cannot change. Renaming a status changes only its label. A status is deleted only when no issue (archived ones included) uses it, and a project always keeps one To do status, which is where new issues start.
+- **Categories drive behaviour, keys do not.** A `done` category status counts as completed and closes an issue for overdue and open counts. A custom status in the `done` category behaves like Done. Overview's "In progress" now counts the `in_progress` category, so an In review issue counts there too.
+- **Existing projects keep their statuses.** The migration backfills the four original statuses into every project, in their original order, before it replaces the old fixed check with the foreign key.
+- **Transition rules are deliberately deferred.** Any defined status can move to any other, as before. Restricting transitions needs a rule model (who may move what, and when), which should be designed with the query language (C3) rather than bolted onto the board.
 
 ## 6. Deliberately not taken now
 
@@ -156,6 +163,18 @@ Run after the final build (the same server code as this commit):
 **Not verified:** the mobile layout of the new toolbar at 390px (the issue table is cramped at 1024px as well, since the checkbox column was added), the Flutter app on a simulator, Safari and Firefox, screen readers, the view-by-another-member privacy rule (only one member existed in the test workspace), email delivery (not built), and paging in the Flutter app.
 
 **Test-environment note:** the per-client rate limit (HTTP 429) stopped one run of the scripts partway through, because they send many requests in a burst. The limit is working as designed; the checks were rerun after the window cleared.
+
+### Phase C
+
+Run against a disposable PostgreSQL 17 database that was first brought to migration 15 with its original data (a legacy project with one issue in each of the four original statuses), then started on the new build so that migration `0016` ran against that data.
+
+- **Migration backfill:** the legacy project gained the four original statuses in their original order; its four issues kept their statuses; the old fixed check was replaced by the composite foreign key.
+- **Database integrity:** inserting an issue with an undefined status is rejected by `issues_status_in_project_fk`.
+- **API checks: 34 of 34 passed:** defaults, creation and validation (duplicate keys, bad categories, blank names, letter-first keys), custom statuses on issues (create, PATCH, edit, bulk, filters, saved views), completion counts following the category, reordering (contiguous positions), renaming (key kept), deletion (refused while in use or when it is the last To do status; allowed otherwise; 404 when repeated), and the 20-status limit.
+- **Regression:** Phase A 33 of 33 and Phase B 41 of 41, both on the Phase C build.
+- **Browser checks:** the board columns come from the catalogue; the Workflow editor added QA, moved it, and refused its deletion while an issue used it (the message named the count); an issue moved into QA with Alt+Right; every status dropdown (board, drawer, filters) lists QA in order. The board's move toast showed the raw key ("qa") until it was changed to the status name.
+
+**Not verified:** a non-admin member being refused (only the owner existed in the test workspace), the Flutter screen on a simulator, the overview's breakdown colours for custom statuses beyond the category colours, and transition rules (not built).
 
 ## 9. Sources
 

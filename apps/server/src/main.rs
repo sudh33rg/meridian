@@ -115,6 +115,7 @@ pub(crate) fn build_router_with(
         .merge(api::planning::routes())
         .merge(api::issues::routes())
         .merge(api::personal::routes())
+        .merge(api::statuses::routes())
         .merge(api::knowledge::routes())
         .merge(api::collab::routes())
         .merge(api::admin::routes())

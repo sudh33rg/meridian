@@ -6,7 +6,6 @@ use axum::response::IntoResponse;
 use axum::routing::patch;
 use sha2::{Digest, Sha256};
 
-pub(crate) const ISSUE_STATUSES: [&str; 4] = ["todo", "in_progress", "in_review", "done"];
 pub(crate) const ISSUE_PRIORITIES: [&str; 4] = ["low", "medium", "high", "urgent"];
 
 /// Query for `GET /api/projects/{id}/issues`. Results are ordered by issue number, newest first.
@@ -18,7 +17,7 @@ pub(crate) struct IssueListQuery {
     pub(crate) limit: Option<i64>,
     /// Continue below the issue number returned in `X-Next-Cursor`.
     pub(crate) cursor: Option<String>,
-    /// Exact status filter: todo, in_progress, in_review or done.
+    /// Exact status key, as defined by the project's workflow.
     pub(crate) status: Option<String>,
     /// Exact priority filter: low, medium, high or urgent.
     pub(crate) priority: Option<String>,
@@ -118,6 +117,7 @@ pub(crate) async fn create_project(
     .fetch_one(&mut *tx)
     .await
     .map_err(|_| bad("Project key may already exist"))?;
+    crate::api::statuses::seed_defaults(&mut tx, i.tenant_id, id).await?;
     if visibility == "private" {
         // The creator must not lock themselves out of their own private project.
         sqlx::query("INSERT INTO relation_tuples(tenant_id,object_type,object_id,relation,subject_type,subject_id,created_by) VALUES($1,'project',$2,'admin','user',$3,$3)")
@@ -188,8 +188,10 @@ pub(crate) async fn issues(
                 .ok_or_else(|| bad("Invalid cursor"))?,
         ),
     };
-    if p.status.as_deref().is_some_and(|s| !ISSUE_STATUSES.contains(&s)) {
-        return Err(bad("Invalid status filter"));
+    if let Some(s) = p.status.as_deref() {
+        if !crate::api::statuses::status_defined(&mut tx, i.tenant_id, project, s).await? {
+            return Err(bad("Invalid status filter"));
+        }
     }
     if p.priority.as_deref().is_some_and(|s| !ISSUE_PRIORITIES.contains(&s)) {
         return Err(bad("Invalid priority filter"));
@@ -330,8 +332,10 @@ pub(crate) async fn create_issue(
     .fetch_one(&mut *tx)
     .await
     .map_err(db_err)?;
-    let row:Issue=sqlx::query_as("INSERT INTO issues(tenant_id,project_id,number,title,description,kind,priority,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,project_id,number,title,description,kind,status,priority,created_at,updated_at")
- .bind(i.tenant_id).bind(project).bind(next).bind(v.title.trim()).bind(v.description.unwrap_or_default()).bind(kind).bind(priority).bind(i.user_id).fetch_one(&mut *tx).await.map_err(db_err)?;
+    // New issues start in the project's first To do status (the workflow decides which that is).
+    let status = crate::api::statuses::default_status(&mut tx, i.tenant_id, project).await?;
+    let row:Issue=sqlx::query_as("INSERT INTO issues(tenant_id,project_id,number,title,description,kind,priority,created_by,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id,project_id,number,title,description,kind,status,priority,created_at,updated_at")
+ .bind(i.tenant_id).bind(project).bind(next).bind(v.title.trim()).bind(v.description.unwrap_or_default()).bind(kind).bind(priority).bind(i.user_id).bind(status).fetch_one(&mut *tx).await.map_err(db_err)?;
     log_event(&mut tx, &i, "created", "issue", row.id).await?;
     log_outbox(
         &mut tx,
@@ -373,7 +377,13 @@ pub(crate) async fn patch_issue(
     if !can_edit(&i) {
         return Err(forbidden());
     }
-    if !["todo", "in_progress", "in_review", "done"].contains(&v.status.as_str()) {
+    let project: Uuid = sqlx::query_scalar("SELECT project_id FROM issues WHERE tenant_id=$1 AND id=$2")
+        .bind(i.tenant_id)
+        .bind(issue)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    if !crate::api::statuses::status_defined(&mut tx, i.tenant_id, project, &v.status).await? {
         return Err(bad("Unknown status"));
     }
     let row:Issue=sqlx::query_as("UPDATE issues SET status=$1,updated_at=now() WHERE tenant_id=$2 AND id=$3 RETURNING id,project_id,number,title,description,kind,status,priority,created_at,updated_at")

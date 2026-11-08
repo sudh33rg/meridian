@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { EntityRelations } from "./EntityRelations";
 import { Attachments } from "../shared/Attachments";
 import { X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { ApiError, request, requestWithHeaders } from "../../lib/api";
+import type { ProjectStatus } from "../../lib/statuses";
 import type { Item } from "../../lib/types";
 import { str, day } from "./shared";
 
@@ -26,6 +28,13 @@ export function IssueDrawer({
     [error, setError] = useState("");
   // The ETag of the issue as last loaded; sent back as If-Match so a stale save is refused.
   const etag = useRef<string | null>(null);
+  // The issue's project defines which statuses it can take.
+  const projectId = issue ? str(issue.project_id) : "";
+  const statusesQ = useQuery({
+    queryKey: ["statuses", projectId],
+    queryFn: () => request<ProjectStatus[]>(token, `/projects/${projectId}/statuses`),
+    enabled: !!projectId,
+  });
   const reload = useCallback(async () => {
     try {
       const [details, c] = await Promise.all([
@@ -122,9 +131,9 @@ export function IssueDrawer({
               <label>
                 Status
                 <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                  {["todo", "in_progress", "in_review", "done"].map((x) => (
-                    <option key={x} value={x}>
-                      {x.replaceAll("_", " ")}
+                  {(statusesQ.data ?? []).map((x) => (
+                    <option key={x.key} value={x.key}>
+                      {x.name}
                     </option>
                   ))}
                 </select>

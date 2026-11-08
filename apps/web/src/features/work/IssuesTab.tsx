@@ -4,7 +4,7 @@ import { Bookmark, Layers, Plus, RotateCcw, Search, SlidersHorizontal, X } from 
 import { useWorkspace } from "../workspace/useWorkspace";
 import { Skeleton } from "../shared/Avatar";
 import { useToast } from "../shared/Toast";
-import { KindIcon, KINDS, PRIORITIES, PriorityIcon, STATUSES, STATUS_LABEL } from "./meta";
+import { KindIcon, KINDS, PRIORITIES, PriorityIcon } from "./meta";
 import { errorMessage, request, send } from "../../lib/api";
 import { loadIssues, type BulkResult, type SavedView } from "../../lib/issues";
 
@@ -14,8 +14,21 @@ const PRIO_RANK: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 
 const COLUMNS = 6;
 
 export function IssuesTab() {
-  const { issues, project, tab, search, setSearch, setSelectedIssue, move, setModal, loading, session, selected } =
-    useWorkspace();
+  const {
+    issues,
+    project,
+    tab,
+    search,
+    setSearch,
+    setSelectedIssue,
+    move,
+    setModal,
+    loading,
+    session,
+    selected,
+    statuses,
+    statusLabel,
+  } = useWorkspace();
   const token = session.token;
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -123,9 +136,9 @@ export function IssuesTab() {
   const groups: { key: string; label: string; items: typeof rows }[] =
     group === "none"
       ? [{ key: "all", label: "", items: rows }]
-      : (group === "status" ? [...STATUSES] : [...PRIORITIES]).map((g) => ({
+      : (group === "status" ? statuses.map((s) => s.key) : [...PRIORITIES]).map((g) => ({
           key: g,
-          label: group === "status" ? STATUS_LABEL[g] : g,
+          label: group === "status" ? statusLabel(g) : g,
           items: rows.filter((i) => (group === "status" ? i.status : i.priority) === g),
         }));
 
@@ -159,11 +172,13 @@ export function IssuesTab() {
     value,
     set,
     options,
+    labelOf = (o: string) => o,
   }: {
     label: string;
     value: string;
     set: (v: string) => void;
     options: readonly string[];
+    labelOf?: (v: string) => string;
   }) => (
     <label className={"filter-chip" + (value ? " on" : "")}>
       <span>{label}</span>
@@ -171,7 +186,7 @@ export function IssuesTab() {
         <option value="">Any</option>
         {options.map((o) => (
           <option key={o} value={o}>
-            {STATUS_LABEL[o] ?? o}
+            {labelOf(o)}
           </option>
         ))}
       </select>
@@ -192,7 +207,13 @@ export function IssuesTab() {
         </div>
         <div className="filters">
           <SlidersHorizontal size={15} className="muted" aria-hidden="true" />
-          <Chip label="Status" value={status} set={setStatus} options={STATUSES} />
+          <Chip
+            label="Status"
+            value={status}
+            set={setStatus}
+            options={statuses.map((s) => s.key)}
+            labelOf={statusLabel}
+          />
           <Chip label="Priority" value={priority} set={setPriority} options={PRIORITIES} />
           <Chip label="Type" value={kind} set={setKind} options={KINDS} />
           {filtering && (
@@ -297,9 +318,9 @@ export function IssuesTab() {
             onChange={(e) => e.target.value && bulk.mutate({ action: "set_status", value: e.target.value })}
           >
             <option value="">Set status…</option>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_LABEL[s]}
+            {statuses.map((s) => (
+              <option key={s.key} value={s.key}>
+                {s.name}
               </option>
             ))}
           </select>
@@ -410,9 +431,9 @@ export function IssuesTab() {
                           disabled={showArchived}
                           onChange={(e) => move(i, e.target.value)}
                         >
-                          {STATUSES.map((x) => (
-                            <option key={x} value={x}>
-                              {STATUS_LABEL[x]}
+                          {statuses.map((x) => (
+                            <option key={x.key} value={x.key}>
+                              {x.name}
                             </option>
                           ))}
                         </select>

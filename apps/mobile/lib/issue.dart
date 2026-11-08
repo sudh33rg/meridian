@@ -9,13 +9,17 @@ class _MobileIssuePageState extends State<MobileIssuePage> {
   dynamic issue;List<dynamic> comments=[];String? error;final comment=TextEditingController();String status='todo';
   /// ETag of the issue as last loaded; sent as If-Match so a stale status change is refused.
   String? _etag;
+  /// The project's statuses in column order (key and name), loaded with the issue.
+  List<dynamic> _statuses=[];
   @override void initState(){super.initState();load();}
   @override void dispose(){comment.dispose();super.dispose();}
   Future<void> load()async{try{final r=await Future.wait([
     Api.requestWithEtag('/issues/${widget.issueId}/details',token:widget.token),
     Api.request('/issues/${widget.issueId}/comments',token:widget.token),
   ]);final details=r[0] as ({dynamic body,String? etag});
-  if(mounted)setState((){issue=details.body;_etag=details.etag;comments=r[1] as List<dynamic>;status=issue['status'] as String;error=null;});}
+  // The project's workflow decides which statuses this issue can take.
+  final statuses=await Api.request('/projects/${details.body['project_id']}/statuses',token:widget.token) as List<dynamic>;
+  if(mounted)setState((){issue=details.body;_etag=details.etag;comments=r[1] as List<dynamic>;_statuses=statuses;status=issue['status'] as String;error=null;});}
   catch(e){if(mounted)setState(()=>error=userMessage(e));}}
   Future<void> updateStatus(String next)async{
     try{await Api.request('/issues/${widget.issueId}/edit',token:widget.token,method:'PATCH',data:{'status':next},headers:_etag==null?null:{'If-Match':_etag!});await load();}
@@ -29,11 +33,8 @@ class _MobileIssuePageState extends State<MobileIssuePage> {
       if(error!=null)Text(error!,style:const TextStyle(color:Colors.red)),
       Text(issue['title']??'',style:Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight:FontWeight.w800)),
       const SizedBox(height:9),Text(issue['description']??'No description',style:TextStyle(color:Colors.blueGrey.shade500,height:1.5)),
-      const SizedBox(height:22),DropdownButtonFormField<String>(key:ValueKey('status-$status'),initialValue:status,decoration:const InputDecoration(labelText:'Status',border:OutlineInputBorder()),items:const [
-        DropdownMenuItem(value:'todo',child:Text('To do')),
-        DropdownMenuItem(value:'in_progress',child:Text('In progress')),
-        DropdownMenuItem(value:'in_review',child:Text('In review')),
-        DropdownMenuItem(value:'done',child:Text('Done')),
+      const SizedBox(height:22),DropdownButtonFormField<String>(key:ValueKey('status-$status'),initialValue:status,decoration:const InputDecoration(labelText:'Status',border:OutlineInputBorder()),items:[
+        for(final s in _statuses)DropdownMenuItem<String>(value:s['key'] as String,child:Text(s['name'] as String)),
       ],onChanged:(v){if(v!=null)updateStatus(v);}),
       const SizedBox(height:26),Text('Discussion (${comments.length})',style:Theme.of(context).textTheme.titleMedium),
       const SizedBox(height:12),...comments.map((c)=>Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
