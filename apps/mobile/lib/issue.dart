@@ -23,10 +23,28 @@ class _MobileIssuePageState extends State<MobileIssuePage> {
   catch(e){if(mounted)setState(()=>error=userMessage(e));}}
   Future<void> updateStatus(String next)async{
     try{await Api.request('/issues/${widget.issueId}/edit',token:widget.token,method:'PATCH',data:{'status':next},headers:_etag==null?null:{'If-Match':_etag!});await load();}
+    on ConflictError {
+      // Someone changed the issue after this device loaded it. Show what is there now and let the person decide.
+      await load();
+      if(mounted)await _conflictDialog(next);
+    }
     catch(e){
-      // A refused (stale) change keeps its message; the reload shows the latest status to decide again.
       final message=userMessage(e);await load();if(mounted)setState(()=>error=message);
     }}
+  /// Shows the latest status after a conflict. The person either keeps it or applies their change on top.
+  Future<void> _conflictDialog(String next)async{
+    final latest=_statuses.where((s)=>s['key']==status).map((s)=>s['name'] as String).firstOrNull??status;
+    final wanted=_statuses.where((s)=>s['key']==next).map((s)=>s['name'] as String).firstOrNull??next;
+    final apply=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(
+      title:const Text('This issue changed'),
+      content:Text('It is now "$latest" on the server. Your change was to "$wanted". Apply your change to the latest version?'),
+      actions:[
+        TextButton(onPressed:()=>Navigator.pop(c,false),child:const Text('Keep the latest')),
+        FilledButton(onPressed:()=>Navigator.pop(c,true),child:const Text('Apply my change')),
+      ],
+    ));
+    if(apply==true)await updateStatus(next);
+  }
   Future<void> postComment()async{if(comment.text.trim().isEmpty)return;try{await Api.request('/issues/${widget.issueId}/comments',token:widget.token,method:'POST',data:{'body':comment.text.trim()});comment.clear();await load();}catch(e){if(mounted)setState(()=>error=userMessage(e));}}
   @override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:Text('Issue ${issue?['number']??''}')),
     body:issue==null?Center(child:Text(error??'Loading…')):ListView(padding:const EdgeInsets.all(19),children:[

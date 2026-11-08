@@ -15,6 +15,15 @@ String newIdempotencyKey() {
   return List.generate(16, (_) => rng.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
 }
 
+/// The server refused a write because the record changed since this device loaded it (HTTP 412).
+/// The caller shows the conflict and decides; nothing is overwritten silently.
+class ConflictError implements Exception {
+  final String message;
+  const ConflictError(this.message);
+  @override
+  String toString() => message;
+}
+
 class Api {
   /// Latest access token after a refresh rotation. Screens keep passing the token they were built
   /// with; once a rotation happened this newer one is used instead, so callers need no changes.
@@ -105,7 +114,9 @@ class Api {
 
   static dynamic _decode(http.Response response) {
     final parsed = response.body.isEmpty ? null : jsonDecode(response.body);
-    if (response.statusCode >= 400) throw Exception(parsed is Map ? (parsed['error'] ?? 'Request failed') : 'Request failed');
+    final message = parsed is Map ? (parsed['error'] ?? 'Request failed') : 'Request failed';
+    if (response.statusCode == 412) throw ConflictError('$message');
+    if (response.statusCode >= 400) throw Exception(message);
     return parsed;
   }
 

@@ -155,6 +155,29 @@ Checks: `cargo check`, `make openapi`, `make manifest`, `npm run build` pass. No
 
 Migrations `0001` to `0025` apply in order to an in-process PostgreSQL-compatible database. The API has not been run against a database for these phases and no new endpoint has been exercised. The web app builds and the changed files lint clean; no page has been viewed in a browser. Phases L, M, N and P are not started, and phases I2, I3, I6, I7, J2, J4, K2 to K5 are open (see the phase sections above and `REMAINING_PLAN.md`). Visual verification waits until the planned work is complete, as the working rules require.
 
+## Phases F5 to P: this build (8 November 2026)
+
+The remaining plan items were taken in one pass. Each row names what exists in source and what is still open. Build checks: `cargo check`, `make openapi`, `make manifest`, `npm run build` and eslint on changed web files, and the mobile `dart analyze lib` (run with a scratch HOME, because the sandbox blocks the analysis server's default directory). Migrations `0001` to `0042` apply in order in an in-process PostgreSQL-compatible database, and a visibility scenario for J2 behaves as designed in that database. No request has been made to a running API and no page has been viewed: the owner must start PostgreSQL (`make up`) and run the stack before any of this is verified.
+
+| Item | What exists in source | Still open |
+|---|---|---|
+| F5 | Markdown descriptions (sanitised), comment reactions, reminders | Reactions are fixed; no editor toolbar |
+| F6 | Automatic purge of trash past 30 days, attachments included | Restore after purge is not possible (by design); purge needs a live run |
+| F7 | Transition screens, set-field history, post-function editor | Per-field conditional screens |
+| J1 | Permission schemes (member level, edit level, workflow level) | Custom roles; per-action mapping; settings screen |
+| J2 | Security levels (row level security), restricted fields | Rulings in the J2 row; live verification |
+| K2 | Queues, request types, requests as issues, SLA report | Request forms, approvals, escalation, web screen |
+| K3 | Templates, blog posts, home page, page tree, page parents | Browser verification |
+| K4 | Issue list, table and chart macros, validation on save | Collaborative saves are not validated |
+| K5 | Workspace language, en and es catalogue, dates in the language | Most interface strings still English |
+| I2 | Email digest behind `EMAIL_NOTIFICATIONS`, signed unsubscribe | Production sender domain (owner decision); no live SMTP test |
+| I6 | Jira issue JSON import through the CSV path | Changelog, sprints, versions; Cloud API pull |
+| L1 | Mobile backlog, releases, sprint and release detail | Android build (no Android SDK or Java here); device run |
+| L2 | Conflict on status changes is shown with a choice; sync protocol in `docs/SYNC_PROTOCOL.md` | Conflicts for fields other than status and for comments |
+| P1 | Not done (see below) | Screen-reader pass and keyboard walk need a running app |
+
+Owner-blocked and not attempted: I3 (chat channels), I7 (marketplace), J4 (retention rules), L3 (push provider), M1 (AI data policy and provider), N1 (owner-run gates: first CI run on GitHub, real SSO and Stripe, external security review), and the I2 sender domain.
+
 ## Verification status for the fifth build: J1 permission schemes, K2 service management (8 November 2026)
 
 - **Migrations applied in an in-process PostgreSQL-compatible database (PGlite 0.2.17, PostgreSQL 17 SQL).** Files `0001` to `0035` apply in order with no errors. This checks the SQL, including the `project_access` replacement in `0034` (a SQL function is validated when created) and the `ON DELETE SET NULL (column)` and `DO` block in `0032` and `0035`. It is not a real server: row level security, the API and the sqlx migration bookkeeping were not exercised.
