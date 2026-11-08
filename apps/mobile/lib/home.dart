@@ -46,10 +46,12 @@ class _HomePageState extends State<HomePage>{
         FilledButton(onPressed:()async{
           final t=title.text.trim();if(t.isEmpty)return;
           final payload={'title':t,'description':description.text};
-          try{await Api.request('/projects/$projectId/issues',token:widget.token,method:'POST',data:payload);if(ctx.mounted)Navigator.pop(ctx);await loadDetails();}
+          // One key per submit: a retry of this same create reuses it and cannot duplicate the issue.
+          final key=newIdempotencyKey();
+          try{await Api.request('/projects/$projectId/issues',token:widget.token,method:'POST',data:payload,headers:{'Idempotency-Key':key});if(ctx.mounted)Navigator.pop(ctx);await loadDetails();}
           catch(e){
             if(ctx.mounted){Navigator.pop(ctx);}
-            setState(()=>drafts.add({'project_id':projectId,...payload,'saved_at':DateTime.now().toIso8601String()}));await _saveDrafts();
+            setState(()=>drafts.add({'project_id':projectId,...payload,'idempotency_key':key,'saved_at':DateTime.now().toIso8601String()}));await _saveDrafts();
             fail('Not sent. Saved a secure local draft; check whether the request succeeded before resubmitting. $e');
           }
         },child:const Text('Create'))]));

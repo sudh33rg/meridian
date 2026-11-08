@@ -183,7 +183,12 @@ pub(crate) struct ListQuery {
 #[utoipa::path(get, path = "/api/attachments", tag = "attachments", params(("entity_type" = String, Query, description = "issue or page"), ("entity_id" = Uuid, Query, description = "Issue or page id")), responses((status = 200, description = "Files on the entity", body = Vec<Object>), (status = 404, description = "Entity not found or not visible", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn list(mut tx: Tx, Query(q): Query<ListQuery>) -> ApiResult<Json<Vec<Value>>> {
     let i = tx.identity.clone();
-    authorize_entity(&mut tx, &q.entity_type, q.entity_id).await?;
+    // Reading attachments stays open on archived issues, like their details; uploads still need an active issue.
+    if q.entity_type == "issue" {
+        ensure_entity_access(&mut tx, "issues", q.entity_id).await?;
+    } else {
+        authorize_entity(&mut tx, &q.entity_type, q.entity_id).await?;
+    }
     let rows = sqlx::query_scalar("SELECT jsonb_build_object('id',a.id,'file_name',a.file_name,'content_type',a.content_type,'size_bytes',a.size_bytes,'scan_status',a.scan_status,'uploaded_by',u.display_name,'created_at',a.created_at) FROM attachments a JOIN users u ON u.id=a.uploaded_by WHERE a.tenant_id=$1 AND a.entity_type=$2 AND a.entity_id=$3 AND a.deleted_at IS NULL ORDER BY a.created_at DESC LIMIT 200")
         .bind(i.tenant_id).bind(&q.entity_type).bind(q.entity_id).fetch_all(&mut *tx).await.map_err(db_err)?;
     Ok(Json(rows))

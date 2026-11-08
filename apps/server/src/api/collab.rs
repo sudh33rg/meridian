@@ -77,7 +77,7 @@ pub(crate) async fn run_automations(
                     .bind(i.tenant_id).bind(entity).execute(&mut *db).await.map_err(db_err)?;
             }
             "notify_project_admins" => {
-                sqlx::query("INSERT INTO notifications(tenant_id,recipient_id,actor_id,kind,title,entity_type,entity_id) SELECT $1,m.user_id,$2,'automation','Automation ran for an issue','issue',$3 FROM memberships m WHERE m.tenant_id=$1 AND m.role IN ('owner','admin') AND m.user_id<>$2")
+                sqlx::query("INSERT INTO notifications(tenant_id,recipient_id,actor_id,kind,title,entity_type,entity_id) SELECT $1,m.user_id,$2,'automation','Automation ran for an issue','issue',$3 FROM memberships m WHERE m.tenant_id=$1 AND m.role IN ('owner','admin') AND m.user_id<>$2 AND NOT EXISTS (SELECT 1 FROM notification_preferences np WHERE np.tenant_id=m.tenant_id AND np.user_id=m.user_id AND np.kind='automation' AND np.enabled=false)")
                     .bind(i.tenant_id).bind(i.user_id).bind(entity).execute(&mut *db).await.map_err(db_err)?;
             }
             _ => {}
@@ -94,11 +94,28 @@ pub(crate) async fn run_automations(
     }
     Ok(())
 }
-#[utoipa::path(get, path = "/api/notifications", tag = "collab", responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn inbox(mut tx: Tx) -> ApiResult<Json<Vec<Value>>> {
+/// One inbox entry. Columns match the `notifications` table.
+#[derive(Serialize, FromRow, utoipa::ToSchema)]
+pub(crate) struct Notification {
+    pub(crate) id: Uuid,
+    pub(crate) tenant_id: Uuid,
+    pub(crate) recipient_id: Uuid,
+    pub(crate) actor_id: Option<Uuid>,
+    /// `approval` or `automation`.
+    pub(crate) kind: String,
+    pub(crate) title: String,
+    pub(crate) body: String,
+    pub(crate) entity_type: Option<String>,
+    pub(crate) entity_id: Option<Uuid>,
+    pub(crate) read_at: Option<DateTime<Utc>>,
+    pub(crate) created_at: DateTime<Utc>,
+}
+#[utoipa::path(get, path = "/api/notifications", tag = "collab", responses((status = 200, description = "Success", body = Vec<Notification>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn inbox(mut tx: Tx) -> ApiResult<Json<Vec<Notification>>> {
     let i = tx.identity.clone();
-    Ok(Json(sqlx::query_scalar("SELECT to_jsonb(n) FROM notifications n WHERE tenant_id=$1 AND recipient_id=$2 ORDER BY created_at DESC LIMIT 100")
-        .bind(i.tenant_id).bind(i.user_id).fetch_all(&mut *tx).await.map_err(db_err)?))
+    let rows: Vec<Notification> = sqlx::query_as("SELECT id,tenant_id,recipient_id,actor_id,kind,title,body,entity_type,entity_id,read_at,created_at FROM notifications WHERE tenant_id=$1 AND recipient_id=$2 ORDER BY created_at DESC LIMIT 100")
+        .bind(i.tenant_id).bind(i.user_id).fetch_all(&mut *tx).await.map_err(db_err)?;
+    Ok(Json(rows))
 }
 #[utoipa::path(post, path = "/api/notifications/{id}/read", tag = "collab", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 204, description = "Success"), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn mark_read(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<StatusCode> {
@@ -173,15 +190,34 @@ pub(crate) async fn new_approval(
         .fetch_one(&mut *tx).await.map_err(db_err)?;
     let id = Uuid::parse_str(row["id"].as_str().unwrap_or(""))
         .map_err(|_| bad("Invalid approval ID"))?;
-    sqlx::query("INSERT INTO notifications(tenant_id,recipient_id,actor_id,kind,title,entity_type,entity_id) VALUES($1,$2,$3,'approval','Approval requested','approval',$4)")
+    sqlx::query("INSERT INTO notifications(tenant_id,recipient_id,actor_id,kind,title,entity_type,entity_id) SELECT $1::uuid,$2::uuid,$3::uuid,'approval','Approval requested','approval',$4::uuid WHERE NOT EXISTS (SELECT 1 FROM notification_preferences np WHERE np.tenant_id=$1 AND np.user_id=$2 AND np.kind='approval' AND np.enabled=false)")
         .bind(i.tenant_id).bind(v.reviewer_id).bind(i.user_id).bind(id).execute(&mut *tx).await.map_err(db_err)?;
     Ok((StatusCode::CREATED, Json(row)))
 }
-#[utoipa::path(get, path = "/api/approvals/mine", tag = "collab", responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn my_approvals(mut tx: Tx) -> ApiResult<Json<Vec<Value>>> {
+/// An approval request. Columns match the `approvals` table.
+#[derive(Serialize, FromRow, utoipa::ToSchema)]
+pub(crate) struct Approval {
+    pub(crate) id: Uuid,
+    pub(crate) tenant_id: Uuid,
+    pub(crate) project_id: Uuid,
+    pub(crate) title: String,
+    /// `issue`, `page` or `decision`.
+    pub(crate) subject_type: String,
+    pub(crate) subject_id: Uuid,
+    pub(crate) requester_id: Uuid,
+    pub(crate) reviewer_id: Uuid,
+    /// `pending`, `approved` or `rejected`.
+    pub(crate) status: String,
+    pub(crate) note: String,
+    pub(crate) decided_at: Option<DateTime<Utc>>,
+    pub(crate) created_at: DateTime<Utc>,
+}
+#[utoipa::path(get, path = "/api/approvals/mine", tag = "collab", responses((status = 200, description = "Success", body = Vec<Approval>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn my_approvals(mut tx: Tx) -> ApiResult<Json<Vec<Approval>>> {
     let i = tx.identity.clone();
-    Ok(Json(sqlx::query_scalar("SELECT to_jsonb(a) FROM approvals a WHERE tenant_id=$1 AND reviewer_id=$2 ORDER BY created_at DESC LIMIT 250")
-        .bind(i.tenant_id).bind(i.user_id).fetch_all(&mut *tx).await.map_err(db_err)?))
+    let rows: Vec<Approval> = sqlx::query_as("SELECT id,tenant_id,project_id,title,subject_type,subject_id,requester_id,reviewer_id,status,note,decided_at,created_at FROM approvals WHERE tenant_id=$1 AND reviewer_id=$2 ORDER BY created_at DESC LIMIT 250")
+        .bind(i.tenant_id).bind(i.user_id).fetch_all(&mut *tx).await.map_err(db_err)?;
+    Ok(Json(rows))
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct ApprovalDecision {

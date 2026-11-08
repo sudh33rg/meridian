@@ -1,25 +1,107 @@
 import React, { useMemo, useState } from "react";
-import { Layers, Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Bookmark, Layers, Plus, RotateCcw, Search, SlidersHorizontal, X } from "lucide-react";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { Skeleton } from "../shared/Avatar";
+import { useToast } from "../shared/Toast";
 import { KindIcon, KINDS, PRIORITIES, PriorityIcon, STATUSES, STATUS_LABEL } from "./meta";
+import { errorMessage, request, send } from "../../lib/api";
+import { loadIssues, type BulkResult, type SavedView } from "../../lib/issues";
 
 type Sort = "updated" | "priority" | "number";
 type Group = "none" | "status" | "priority";
 const PRIO_RANK: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
+const COLUMNS = 6;
 
 export function IssuesTab() {
-  const { issues, project, tab, search, setSearch, setSelectedIssue, move, setModal, loading } =
+  const { issues, project, tab, search, setSearch, setSelectedIssue, move, setModal, loading, session, selected } =
     useWorkspace();
+  const token = session.token;
+  const { toast } = useToast();
+  const qc = useQueryClient();
   const [status, setStatus] = useState("");
   const [priority, setPriority] = useState("");
   const [kind, setKind] = useState("");
   const [sort, setSort] = useState<Sort>("updated");
   const [group, setGroup] = useState<Group>("none");
+  const [showArchived, setShowArchived] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [viewId, setViewId] = useState("");
+  // null: the name field is closed; a string: it is open with that draft.
+  const [naming, setNaming] = useState<string | null>(null);
 
+  const archivedQ = useQuery({
+    queryKey: ["issues-archived", selected],
+    queryFn: () => loadIssues(token, selected, true),
+    enabled: showArchived && !!selected,
+  });
+  const viewsQ = useQuery({
+    queryKey: ["views", selected],
+    queryFn: () => request<SavedView[]>(token, `/projects/${selected}/views`),
+    enabled: !!selected,
+  });
+  const views = viewsQ.data ?? [];
+
+  const bulk = useMutation({
+    mutationFn: (change: { action: string; value: string }) =>
+      send<BulkResult>(`/projects/${selected}/issues/bulk`, token, "POST", {
+        ids: [...picked],
+        action: change.action,
+        value: change.value,
+      }),
+    onSuccess: (r) => {
+      const skipped = r.results.filter((x) => !x.ok).length;
+      toast(`${r.updated} updated${skipped ? `, ${skipped} skipped (archived or not in this project)` : ""}`);
+      setPicked(new Set());
+      void qc.invalidateQueries({ queryKey: ["issues", selected] });
+    },
+    onError: (e) => toast(errorMessage(e)),
+  });
+  const restore = useMutation({
+    mutationFn: (id: string) => send<void>(`/issues/${id}/unarchive`, token, "POST"),
+    onSuccess: () => {
+      toast("Issue restored");
+      void qc.invalidateQueries({ queryKey: ["issues-archived", selected] });
+      void qc.invalidateQueries({ queryKey: ["issues", selected] });
+    },
+    onError: (e) => toast(errorMessage(e)),
+  });
+  const saveView = useMutation({
+    mutationFn: (name: string) => {
+      // The server stores status, priority and title search. Type and assignee filters are not part
+      // of saved views yet.
+      const filters: Record<string, string> = {};
+      if (status) filters.status = status;
+      if (priority) filters.priority = priority;
+      if (search.trim()) filters.q = search.trim();
+      return send<SavedView>(`/projects/${selected}/views`, token, "POST", { name, filters });
+    },
+    onSuccess: (v) => {
+      setViewId(v.id);
+      setNaming(null);
+      toast(`Saved view “${v.name}”`);
+      void qc.invalidateQueries({ queryKey: ["views", selected] });
+    },
+    onError: (e) => toast(errorMessage(e)),
+  });
+  const removeView = useMutation({
+    mutationFn: (id: string) => send<void>(`/views/${id}`, token, "DELETE"),
+    onSuccess: () => {
+      setViewId("");
+      toast("View deleted");
+      void qc.invalidateQueries({ queryKey: ["views", selected] });
+    },
+    onError: (e) => toast(errorMessage(e)),
+  });
+
+  const archivedItems = archivedQ.data;
+  const source = useMemo(
+    () => (showArchived ? (archivedItems ?? []) : issues),
+    [showArchived, archivedItems, issues],
+  );
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const list = issues.filter(
+    const list = source.filter(
       (i) =>
         (!status || i.status === status) &&
         (!priority || i.priority === priority) &&
@@ -33,10 +115,11 @@ export function IssuesTab() {
           ? a.number - b.number
           : +new Date(b.updated_at) - +new Date(a.updated_at),
     );
-  }, [issues, search, status, priority, kind, sort]);
+  }, [source, search, status, priority, kind, sort]);
 
   if (tab !== "issues") return null;
   const filtering = !!(status || priority || kind || search);
+  const allVisiblePicked = rows.length > 0 && rows.every((r) => picked.has(r.id));
   const groups: { key: string; label: string; items: typeof rows }[] =
     group === "none"
       ? [{ key: "all", label: "", items: rows }]
@@ -45,6 +128,31 @@ export function IssuesTab() {
           label: group === "status" ? STATUS_LABEL[g] : g,
           items: rows.filter((i) => (group === "status" ? i.status : i.priority) === g),
         }));
+
+  const togglePicked = (id: string) =>
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const togglePageSelection = () =>
+    setPicked((prev) => {
+      const next = new Set(prev);
+      for (const r of rows) {
+        if (allVisiblePicked) next.delete(r.id);
+        else next.add(r.id);
+      }
+      return next;
+    });
+  const applyView = (id: string) => {
+    setViewId(id);
+    const v = views.find((x) => x.id === id);
+    if (!v) return;
+    setStatus(v.filters.status ?? "");
+    setPriority(v.filters.priority ?? "");
+    setSearch(v.filters.q ?? "");
+  };
 
   const Chip = ({
     label,
@@ -95,6 +203,7 @@ export function IssuesTab() {
                 setPriority("");
                 setKind("");
                 setSearch("");
+                setViewId("");
               }}
             >
               <X size={13} /> Clear
@@ -102,6 +211,51 @@ export function IssuesTab() {
           )}
         </div>
         <div className="view-opts">
+          <label className="filter-chip">
+            <Bookmark size={13} />
+            <select aria-label="Saved view" value={viewId} onChange={(e) => applyView(e.target.value)}>
+              <option value="">All issues</option>
+              {views.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          {viewId && (
+            <button className="secondary" onClick={() => removeView.mutate(viewId)}>
+              Delete view
+            </button>
+          )}
+          {naming === null ? (
+            <button className="secondary" onClick={() => setNaming("")} disabled={!selected}>
+              Save view
+            </button>
+          ) : (
+            <form
+              className="inline-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const name = naming.trim();
+                if (name) saveView.mutate(name);
+              }}
+            >
+              <input
+                aria-label="View name"
+                autoFocus
+                maxLength={80}
+                value={naming}
+                onChange={(e) => setNaming(e.target.value)}
+                placeholder="View name"
+              />
+              <button className="primary" type="submit" disabled={!naming.trim()}>
+                Save
+              </button>
+              <button className="secondary" type="button" onClick={() => setNaming(null)}>
+                Cancel
+              </button>
+            </form>
+          )}
           <label className="filter-chip">
             <span>Sort</span>
             <select aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
@@ -118,15 +272,70 @@ export function IssuesTab() {
               <option value="priority">Group: priority</option>
             </select>
           </label>
+          <button
+            className={showArchived ? "primary" : "secondary"}
+            aria-pressed={showArchived}
+            onClick={() => {
+              setShowArchived((v) => !v);
+              setPicked(new Set());
+            }}
+          >
+            {showArchived ? "Showing archived" : "Show archived"}
+          </button>
           <span className="muted small count-label">
-            {rows.length} of {issues.length}
+            {rows.length} of {source.length}
           </span>
         </div>
       </div>
+      {picked.size > 0 && !showArchived && (
+        <div className="bulk-bar" role="region" aria-label="Bulk actions">
+          <span>{picked.size} selected</span>
+          <select
+            aria-label="Set status for selected issues"
+            value=""
+            disabled={bulk.isPending}
+            onChange={(e) => e.target.value && bulk.mutate({ action: "set_status", value: e.target.value })}
+          >
+            <option value="">Set status…</option>
+            {STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {STATUS_LABEL[s]}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Set priority for selected issues"
+            value=""
+            disabled={bulk.isPending}
+            onChange={(e) => e.target.value && bulk.mutate({ action: "set_priority", value: e.target.value })}
+          >
+            <option value="">Set priority…</option>
+            {PRIORITIES.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+          <button className="secondary" onClick={() => setPicked(new Set())}>
+            Clear selection
+          </button>
+        </div>
+      )}
       <div className="table-scroll">
         <table>
           <thead>
             <tr>
+              <th scope="col" className="check-col">
+                {!showArchived && (
+                  <input
+                    type="checkbox"
+                    aria-label="Select all visible issues"
+                    checked={allVisiblePicked}
+                    disabled={rows.length === 0}
+                    onChange={togglePageSelection}
+                  />
+                )}
+              </th>
               <th scope="col">Issue</th>
               <th scope="col">Type</th>
               <th scope="col">Priority</th>
@@ -135,20 +344,20 @@ export function IssuesTab() {
             </tr>
           </thead>
           <tbody>
-            {loading &&
+            {(showArchived ? archivedQ.isLoading : loading) &&
               [0, 1, 2, 3].map((n) => (
                 <tr key={n}>
-                  <td colSpan={5}>
+                  <td colSpan={COLUMNS}>
                     <Skeleton h={14} />
                   </td>
                 </tr>
               ))}
-            {!loading &&
+            {!(showArchived ? archivedQ.isLoading : loading) &&
               groups.map((g) => (
                 <React.Fragment key={g.key}>
                   {g.label && (
                     <tr className="group-row">
-                      <th colSpan={5} scope="colgroup">
+                      <th colSpan={COLUMNS} scope="colgroup">
                         <span className="capitalize">{g.label}</span>{" "}
                         <span className="count">{g.items.length}</span>
                       </th>
@@ -156,6 +365,16 @@ export function IssuesTab() {
                   )}
                   {g.items.map((i) => (
                     <tr key={i.id} className="row-hover">
+                      <td className="check-col">
+                        {!showArchived && (
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${project?.key}-${i.number}`}
+                            checked={picked.has(i.id)}
+                            onChange={() => togglePicked(i.id)}
+                          />
+                        )}
+                      </td>
                       <td>
                         <div className="cell-issue">
                           <button className="issue-number-button" onClick={() => setSelectedIssue(i.id)}>
@@ -164,6 +383,15 @@ export function IssuesTab() {
                           <button className="issue-title-button" onClick={() => setSelectedIssue(i.id)}>
                             {i.title}
                           </button>
+                          {showArchived && (
+                            <button
+                              className="secondary"
+                              disabled={restore.isPending}
+                              onClick={() => restore.mutate(i.id)}
+                            >
+                              <RotateCcw size={13} /> Restore
+                            </button>
+                          )}
                         </div>
                       </td>
                       <td>
@@ -179,6 +407,7 @@ export function IssuesTab() {
                           className={"status-select " + i.status}
                           aria-label={`Status of ${project?.key}-${i.number}`}
                           value={i.status}
+                          disabled={showArchived}
                           onChange={(e) => move(i, e.target.value)}
                         >
                           {STATUSES.map((x) => (
@@ -195,10 +424,16 @@ export function IssuesTab() {
               ))}
           </tbody>
         </table>
-        {!loading && !rows.length && (
+        {!(showArchived ? archivedQ.isLoading : loading) && !rows.length && (
           <div className="panel-empty center">
-            <p>{filtering ? "No issues match these filters." : "No issues yet."}</p>
-            {!filtering && (
+            <p>
+              {showArchived
+                ? "No archived issues."
+                : filtering
+                  ? "No issues match these filters."
+                  : "No issues yet."}
+            </p>
+            {!filtering && !showArchived && (
               <button className="primary" onClick={() => setModal("issue")}>
                 <Plus size={15} /> New issue
               </button>

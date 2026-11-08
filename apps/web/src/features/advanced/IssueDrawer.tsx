@@ -66,6 +66,17 @@ export function IssueDrawer({
       setError((e as Error).message);
     }
   };
+  const archiveToggle = async () => {
+    const archived = !!issue?.archived_at;
+    try {
+      await request(token, `/issues/${id}/${archived ? "unarchive" : "archive"}`, { method: "POST" });
+      await reload();
+      onChanged();
+      setError("");
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
   const comment = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -93,9 +104,18 @@ export function IssueDrawer({
         {error && <div className="error">{error}</div>}
         {issue && (
           <>
+            {issue.archived_at && (
+              <p className="drawer-description" role="status">
+                This issue is archived and hidden from the active lists. Restore it to edit.
+              </p>
+            )}
             <label>
               Title
-              <input value={title} onChange={(e) => setTitle(e.target.value)} />
+              <input
+                value={title}
+                disabled={!!issue.archived_at}
+                onChange={(e) => setTitle(e.target.value)}
+              />
             </label>
             <p className="drawer-description">{str(issue.description) || "No description yet."}</p>
             <div className="form-row">
@@ -118,9 +138,14 @@ export function IssueDrawer({
                 </select>
               </label>
             </div>
-            <button className="primary" onClick={save}>
-              Save issue
-            </button>
+            <div className="drawer-actions">
+              <button className="primary" onClick={save} disabled={!!issue.archived_at}>
+                Save issue
+              </button>
+              <button className="secondary" onClick={archiveToggle}>
+                {issue.archived_at ? "Restore issue" : "Archive issue"}
+              </button>
+            </div>
             <div className="drawer-section">
               <h3>Connected knowledge</h3>
               <EntityRelations

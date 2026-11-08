@@ -6,8 +6,8 @@ use axum::response::IntoResponse;
 use axum::routing::patch;
 use sha2::{Digest, Sha256};
 
-const ISSUE_STATUSES: [&str; 4] = ["todo", "in_progress", "in_review", "done"];
-const ISSUE_PRIORITIES: [&str; 4] = ["low", "medium", "high", "urgent"];
+pub(crate) const ISSUE_STATUSES: [&str; 4] = ["todo", "in_progress", "in_review", "done"];
+pub(crate) const ISSUE_PRIORITIES: [&str; 4] = ["low", "medium", "high", "urgent"];
 
 /// Query for `GET /api/projects/{id}/issues`. Results are ordered by issue number, newest first.
 /// Pass the `X-Next-Cursor` response header back as `cursor` to fetch the next page; the header is
@@ -26,6 +26,8 @@ pub(crate) struct IssueListQuery {
     pub(crate) assignee_id: Option<Uuid>,
     /// Case-insensitive title search, up to 200 characters.
     pub(crate) q: Option<String>,
+    /// `true` lists archived issues instead of active ones (default `false`).
+    pub(crate) archived: Option<bool>,
 }
 
 /// Optional `Idempotency-Key` header: 8 to 255 visible ASCII characters.
@@ -216,7 +218,7 @@ pub(crate) async fn issues(
     // Fetch one row past the page size to learn whether another page exists without a COUNT.
     let mut rows: Vec<Issue> = sqlx::query_as(
         "SELECT id,project_id,number,title,description,kind,status,priority,created_at,updated_at \
-         FROM issues WHERE tenant_id=$1 AND project_id=$2 AND archived_at IS NULL \
+         FROM issues WHERE tenant_id=$1 AND project_id=$2 AND ((archived_at IS NOT NULL) = $9) \
          AND ($3::bigint IS NULL OR number < $3) AND ($4::text IS NULL OR status=$4) \
          AND ($5::text IS NULL OR priority=$5) AND ($6::uuid IS NULL OR assignee_id=$6) \
          AND ($7::text IS NULL OR title ILIKE $7 ESCAPE '\\') \
@@ -230,6 +232,7 @@ pub(crate) async fn issues(
     .bind(p.assignee_id)
     .bind(search)
     .bind(limit + 1)
+    .bind(p.archived.unwrap_or(false))
     .fetch_all(&mut *tx)
     .await
     .map_err(db_err)?;

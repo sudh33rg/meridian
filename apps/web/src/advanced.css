@@ -455,3 +455,62 @@
   font-size: 14px;
   color: var(--accent-text);
 }
+
+/* Notification preferences (inbox) */
+.prefs {
+  margin: 0 0 16px;
+  padding: 12px 16px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: grid;
+  gap: 12px;
+}
+.prefs legend {
+  padding: 0 6px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.pref-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+.pref-row input {
+  margin-top: 3px;
+  flex: none;
+}
+.pref-row span {
+  display: grid;
+  gap: 2px;
+}
+.pref-row small {
+  color: var(--text-3);
+}
+
+/* Issue list: bulk actions, saved views and the drawer's archive controls */
+.bulk-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.check-col {
+  width: 36px;
+}
+.inline-form {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.drawer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}

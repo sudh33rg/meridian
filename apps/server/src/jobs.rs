@@ -204,6 +204,47 @@ async fn email_invite(ctx: &Ctx, payload: &Value) -> Result<(), String> {
         .await
 }
 
+/// Housekeeping on the system connection, once an hour. Idempotency keys are kept for 24 hours,
+/// the minimum window Stripe documents; after pruning, a reused key creates a new record.
+pub(crate) fn spawn_maintenance(db: PgPool) {
+    tokio::spawn(async move {
+        loop {
+            prune_idempotency_keys(&db).await;
+            tokio::time::sleep(Duration::from_secs(3600)).await;
+        }
+    });
+}
+
+async fn prune_idempotency_keys(db: &PgPool) {
+    let mut total: u64 = 0;
+    loop {
+        let result = sqlx::query(
+            "DELETE FROM idempotency_keys WHERE (tenant_id,user_id,scope,key) IN \
+             (SELECT tenant_id,user_id,scope,key FROM idempotency_keys \
+              WHERE created_at < now() - interval '24 hours' LIMIT 5000)",
+        )
+        .execute(db)
+        .await;
+        match result {
+            Ok(r) => {
+                total += r.rows_affected();
+                // A full batch may mean more rows are waiting; a short one means we are done.
+                if r.rows_affected() == 5000 {
+                    continue;
+                }
+                if total > 0 {
+                    tracing::info!(pruned = total, "pruned expired idempotency keys");
+                }
+                return;
+            }
+            Err(e) => {
+                tracing::error!(error=%e, "idempotency key pruning failed");
+                return;
+            }
+        }
+    }
+}
+
 /// `json!` re-exported for callers that enqueue.
 pub(crate) fn payload(key: &str, id: Uuid) -> Value {
     json!({ key: id })

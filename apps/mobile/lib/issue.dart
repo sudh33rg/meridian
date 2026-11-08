@@ -7,21 +7,29 @@ class MobileIssuePage extends StatefulWidget {
 }
 class _MobileIssuePageState extends State<MobileIssuePage> {
   dynamic issue;List<dynamic> comments=[];String? error;final comment=TextEditingController();String status='todo';
+  /// ETag of the issue as last loaded; sent as If-Match so a stale status change is refused.
+  String? _etag;
   @override void initState(){super.initState();load();}
   @override void dispose(){comment.dispose();super.dispose();}
   Future<void> load()async{try{final r=await Future.wait([
-    Api.request('/issues/${widget.issueId}/details',token:widget.token),
+    Api.requestWithEtag('/issues/${widget.issueId}/details',token:widget.token),
     Api.request('/issues/${widget.issueId}/comments',token:widget.token),
-  ]);if(mounted)setState((){issue=r[0];comments=r[1];status=issue['status'] as String;error=null;});}
+  ]);final details=r[0] as ({dynamic body,String? etag});
+  if(mounted)setState((){issue=details.body;_etag=details.etag;comments=r[1] as List<dynamic>;status=issue['status'] as String;error=null;});}
   catch(e){if(mounted)setState(()=>error=userMessage(e));}}
-  Future<void> updateStatus(String next)async{try{await Api.request('/issues/${widget.issueId}/edit',token:widget.token,method:'PATCH',data:{'status':next});await load();}catch(e){if(mounted)setState(()=>error=userMessage(e));}}
+  Future<void> updateStatus(String next)async{
+    try{await Api.request('/issues/${widget.issueId}/edit',token:widget.token,method:'PATCH',data:{'status':next},headers:_etag==null?null:{'If-Match':_etag!});await load();}
+    catch(e){
+      // A refused (stale) change keeps its message; the reload shows the latest status to decide again.
+      final message=userMessage(e);await load();if(mounted)setState(()=>error=message);
+    }}
   Future<void> postComment()async{if(comment.text.trim().isEmpty)return;try{await Api.request('/issues/${widget.issueId}/comments',token:widget.token,method:'POST',data:{'body':comment.text.trim()});comment.clear();await load();}catch(e){if(mounted)setState(()=>error=userMessage(e));}}
   @override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:Text('Issue ${issue?['number']??''}')),
     body:issue==null?Center(child:Text(error??'Loading…')):ListView(padding:const EdgeInsets.all(19),children:[
       if(error!=null)Text(error!,style:const TextStyle(color:Colors.red)),
       Text(issue['title']??'',style:Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight:FontWeight.w800)),
       const SizedBox(height:9),Text(issue['description']??'No description',style:TextStyle(color:Colors.blueGrey.shade500,height:1.5)),
-      const SizedBox(height:22),DropdownButtonFormField<String>(initialValue:status,decoration:const InputDecoration(labelText:'Status',border:OutlineInputBorder()),items:const [
+      const SizedBox(height:22),DropdownButtonFormField<String>(key:ValueKey('status-$status'),initialValue:status,decoration:const InputDecoration(labelText:'Status',border:OutlineInputBorder()),items:const [
         DropdownMenuItem(value:'todo',child:Text('To do')),
         DropdownMenuItem(value:'in_progress',child:Text('In progress')),
         DropdownMenuItem(value:'in_review',child:Text('In review')),

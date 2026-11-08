@@ -114,6 +114,7 @@ pub(crate) fn build_router_with(
         .merge(api::org::routes())
         .merge(api::planning::routes())
         .merge(api::issues::routes())
+        .merge(api::personal::routes())
         .merge(api::knowledge::routes())
         .merge(api::collab::routes())
         .merge(api::admin::routes())
@@ -217,6 +218,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mailer = std::sync::Arc::new(mail::Mailer::from_config(&cfg));
     let store = storage::from_config(&cfg)?;
     jobs::spawn_worker(db.clone(), cfg.clone(), mailer, store.clone());
+    jobs::spawn_maintenance(db.clone());
     webhooks::spawn_dispatcher(db.clone(), cfg.clone());
     let sampler = db.clone();
     tokio::spawn(async move {

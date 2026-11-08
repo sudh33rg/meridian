@@ -708,6 +708,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/issues/{id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["unarchive_issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me": {
         parameters: {
             query?: never;
@@ -717,6 +733,22 @@ export interface paths {
         };
         get: operations["me"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/notification-preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_notification_preferences"];
+        put: operations["set_notification_preference"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1156,6 +1188,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/issues/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["bulk_update_issues"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}/overview": {
         parameters: {
             query?: never;
@@ -1230,6 +1278,22 @@ export interface paths {
         get: operations["sprints"];
         put?: never;
         post: operations["new_sprint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/views": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_views"];
+        put?: never;
+        post: operations["create_view"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1375,6 +1439,22 @@ export interface paths {
         put?: never;
         post: operations["join_team"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/views/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_view"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1549,6 +1629,31 @@ export interface components {
             password?: string | null;
             token: string;
         };
+        /** @description An approval request. Columns match the `approvals` table. */
+        Approval: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            decided_at?: string | null;
+            /** Format: uuid */
+            id: string;
+            note: string;
+            /** Format: uuid */
+            project_id: string;
+            /** Format: uuid */
+            requester_id: string;
+            /** Format: uuid */
+            reviewer_id: string;
+            /** @description `pending`, `approved` or `rejected`. */
+            status: string;
+            /** Format: uuid */
+            subject_id: string;
+            /** @description `issue`, `page` or `decision`. */
+            subject_type: string;
+            /** Format: uuid */
+            tenant_id: string;
+            title: string;
+        };
         ApprovalDecision: {
             note?: string | null;
             status: string;
@@ -1582,6 +1687,30 @@ export interface components {
             action_type: string;
             name: string;
             trigger_event: string;
+        };
+        /**
+         * @description Batch change for issues in one project. Each item is checked and reported; the whole batch
+         *     commits or rolls back together.
+         */
+        BulkIssueInput: {
+            /** @description `set_status`, `set_priority` or `set_assignee`. */
+            action: string;
+            /** @description Issue ids in this project: 1 to 100 values; duplicates are ignored. */
+            ids: string[];
+            /** @description The new status or priority, or a user id for `set_assignee`. Null clears the assignee. */
+            value?: string | null;
+        };
+        BulkItemResult: {
+            /** @description Why the issue was skipped; null when it was updated. */
+            error?: string | null;
+            /** Format: uuid */
+            id: string;
+            ok: boolean;
+        };
+        BulkResult: {
+            results: components["schemas"]["BulkItemResult"][];
+            /** Format: int64 */
+            updated: number;
         };
         ChangePasswordInput: {
             current_password: string;
@@ -1665,6 +1794,42 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        /** @description Every column of an issue. Clients receive the same fields as before, now with a fixed schema. */
+        IssueDetail: {
+            /** Format: date-time */
+            archived_at?: string | null;
+            /** Format: uuid */
+            assignee_id?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            created_by: string;
+            custom_fields: unknown;
+            description: string;
+            /** Format: date-time */
+            due_at?: string | null;
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            labels: string[];
+            /** Format: int64 */
+            number: number;
+            /** Format: uuid */
+            parent_id?: string | null;
+            priority: string;
+            /** Format: uuid */
+            project_id: string;
+            /** Format: uuid */
+            sprint_id?: string | null;
+            status: string;
+            /** Format: int32 */
+            story_points?: number | null;
+            /** Format: uuid */
+            tenant_id: string;
+            title: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
         IssueEdit: {
             /** Format: uuid */
             assignee_id?: string | null;
@@ -1718,6 +1883,42 @@ export interface components {
             key: string;
             name: string;
             visibility?: string | null;
+        };
+        NewSavedView: {
+            filters: unknown;
+            /** @description 1 to 80 characters; unique per member and project. */
+            name: string;
+        };
+        /** @description One inbox entry. Columns match the `notifications` table. */
+        Notification: {
+            /** Format: uuid */
+            actor_id?: string | null;
+            body: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            entity_id?: string | null;
+            entity_type?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** @description `approval` or `automation`. */
+            kind: string;
+            /** Format: date-time */
+            read_at?: string | null;
+            /** Format: uuid */
+            recipient_id: string;
+            /** Format: uuid */
+            tenant_id: string;
+            title: string;
+        };
+        NotificationPreference: {
+            enabled: boolean;
+            /** @description `approval` or `automation`. */
+            kind: string;
+        };
+        NotificationPreferenceInput: {
+            enabled: boolean;
+            kind: string;
         };
         Page: {
             content: string;
@@ -1821,6 +2022,19 @@ export interface components {
             likelihood?: number | null;
             mitigation?: string | null;
             title: string;
+        };
+        SavedView: {
+            /** Format: date-time */
+            created_at: string;
+            /** @description Any of `status`, `priority`, `assignee_id` and `q`, with the same rules as the issue list. */
+            filters: unknown;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: uuid */
+            project_id: string;
+            /** Format: date-time */
+            updated_at: string;
         };
         SecurityPolicyInput: {
             require_mfa: boolean;
@@ -2313,7 +2527,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>[];
+                    "application/json": components["schemas"]["Approval"][];
                 };
             };
             /** @description Validation or domain error */
@@ -3972,13 +4186,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Success */
+            /** @description Success. The ETag header is the If-Match value for edits */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["IssueDetail"];
                 };
             };
             /** @description Validation or domain error */
@@ -4214,6 +4428,63 @@ export interface operations {
             };
         };
     };
+    unarchive_issue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Restored to the active lists */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Issue is not archived */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     me: {
         parameters: {
             query?: never;
@@ -4261,6 +4532,77 @@ export interface operations {
             };
             /** @description Not found in this workspace */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    get_notification_preferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Every kind with its current setting; enabled by default */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPreference"][];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    set_notification_preference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationPreferenceInput"];
+            };
+        };
+        responses: {
+            /** @description Updated; returns every kind */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPreference"][];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4461,7 +4803,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>[];
+                    "application/json": components["schemas"]["Notification"][];
                 };
             };
             /** @description Validation or domain error */
@@ -6276,6 +6618,8 @@ export interface operations {
                 assignee_id: string | null;
                 /** @description Case-insensitive title search, up to 200 characters. */
                 q: string | null;
+                /** @description `true` lists archived issues instead of active ones (default `false`). */
+                archived: boolean | null;
             };
             cookie?: never;
         };
@@ -6394,6 +6738,69 @@ export interface operations {
             };
             /** @description Idempotency-Key reused for a different request */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    bulk_update_issues: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkIssueInput"];
+            };
+        };
+        responses: {
+            /** @description Batch applied; per-item results name any skipped issues */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkResult"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6950,6 +7357,110 @@ export interface operations {
             };
         };
     };
+    list_views: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Your saved views for this project */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedView"][];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    create_view: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewSavedView"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedView"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description A view with this name already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     relations: {
         parameters: {
             query?: never;
@@ -7496,6 +8007,45 @@ export interface operations {
                 };
             };
             /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    delete_view: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found for you */
             404: {
                 headers: {
                     [name: string]: unknown;

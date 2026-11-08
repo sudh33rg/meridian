@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -7,6 +8,12 @@ import 'package:http/http.dart' as http;
 const apiBase = String.fromEnvironment('MERIDIAN_API', defaultValue: 'http://10.0.2.2:8080');
 const secureStore = FlutterSecureStorage();
 const primary = Color(0xFF3468E5);
+
+/// A fresh `Idempotency-Key` value (32 hex characters, from a secure random source).
+String newIdempotencyKey() {
+  final rng = Random.secure();
+  return List.generate(16, (_) => rng.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
+}
 
 class Api {
   /// Latest access token after a refresh rotation. Screens keep passing the token they were built
@@ -31,9 +38,19 @@ class Api {
     await secureStore.delete(key: 'refresh_token');
   }
 
-  static Future<http.Response> _send(String path, String? bearer, String method, Object? data) {
+  static Future<http.Response> _send(
+    String path,
+    String? bearer,
+    String method,
+    Object? data,
+    Map<String, String>? extra,
+  ) {
     final url = Uri.parse('$apiBase/api$path');
-    final headers = <String, String>{'Content-Type': 'application/json', if (bearer != null) 'Authorization': 'Bearer $bearer'};
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      if (bearer != null) 'Authorization': 'Bearer $bearer',
+      ...?extra,
+    };
     const limit = Duration(seconds: 15);
     switch (method) {
       case 'POST':
@@ -76,14 +93,33 @@ class Api {
     return false;
   }
 
-  static Future<dynamic> request(String path, {String? token, String method = 'GET', Object? data}) async {
-    var response = await _send(path, token == null ? null : (_access ?? token), method, data);
+  /// One call with a single transparent refresh on 401. Returns the raw response.
+  static Future<http.Response> _call(String path,
+      {String? token, String method = 'GET', Object? data, Map<String, String>? headers}) async {
+    var response = await _send(path, token == null ? null : (_access ?? token), method, data, headers);
     if (response.statusCode == 401 && token != null && !path.startsWith('/auth/') && await _refresh()) {
-      response = await _send(path, _access, method, data);
+      response = await _send(path, _access, method, data, headers);
     }
+    return response;
+  }
+
+  static dynamic _decode(http.Response response) {
     final parsed = response.body.isEmpty ? null : jsonDecode(response.body);
     if (response.statusCode >= 400) throw Exception(parsed is Map ? (parsed['error'] ?? 'Request failed') : 'Request failed');
     return parsed;
+  }
+
+  /// `headers` adds request headers such as `Idempotency-Key` or `If-Match`.
+  static Future<dynamic> request(String path,
+      {String? token, String method = 'GET', Object? data, Map<String, String>? headers}) async {
+    return _decode(await _call(path, token: token, method: method, data: data, headers: headers));
+  }
+
+  /// Like [request] for GET, and also returns the response ETag. An issue's ETag is the `If-Match`
+  /// value an edit must send, so a stale save is refused instead of overwriting newer changes.
+  static Future<({dynamic body, String? etag})> requestWithEtag(String path, {required String token}) async {
+    final response = await _call(path, token: token);
+    return (body: _decode(response), etag: response.headers['etag']);
   }
 }
 

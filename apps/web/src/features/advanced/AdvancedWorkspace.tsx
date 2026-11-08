@@ -21,6 +21,7 @@ import {
 import { request } from "../../lib/api";
 import type { Item, Session, ProjectRef } from "../../lib/types";
 import { str, count, day, Empty, Analytics } from "./shared";
+import { NotificationPreferences } from "./NotificationPreferences";
 
 export type ExtraTab =
   | "sprints"
@@ -677,6 +678,7 @@ export function AdvancedWorkspace({
       )}
       {tab === "inbox" && (
         <div className="panel">
+          <NotificationPreferences token={session.token} onError={onError} />
           {rows.map((r) => (
             <div className="ext-line" key={str(r.id)}>
               <Bell size={20} />

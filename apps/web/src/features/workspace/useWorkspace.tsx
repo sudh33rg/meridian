@@ -7,9 +7,9 @@ import {
   api,
   errorMessage,
   newIdempotencyKey,
-  requestWithHeaders,
   send,
 } from "../../lib/api";
+import { loadIssues } from "../../lib/issues";
 import { clearSession, saveSession as persistSession, type Me } from "../../lib/session";
 import type { Issue, Page, Project, Session } from "../../lib/types";
 import type { ExtraTab } from "../advanced/AdvancedWorkspace";
@@ -18,27 +18,6 @@ import { useToast } from "../shared/Toast";
 export type Tab = "overview" | "board" | "issues" | "knowledge" | "appearance" | ExtraTab;
 export type Modal = "project" | "issue" | "page" | null;
 
-/** Issues arrive in pages of 200, following the `X-Next-Cursor` header. The client stops after
- * `ISSUE_MAX_PAGES` (10,000 issues) and says so in the console; the API also accepts filters for
- * narrower views. */
-const ISSUE_PAGE_SIZE = 200;
-const ISSUE_MAX_PAGES = 50;
-async function loadAllIssues(token: string, projectId: string): Promise<Issue[]> {
-  const all: Issue[] = [];
-  let cursor: string | null = null;
-  for (let page = 0; page < ISSUE_MAX_PAGES; page++) {
-    const query: string = `?limit=${ISSUE_PAGE_SIZE}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`;
-    const { data, headers }: { data: Issue[]; headers: Headers } = await requestWithHeaders<Issue[]>(
-      token,
-      `/projects/${projectId}/issues${query}`,
-    );
-    all.push(...data);
-    cursor = headers.get("x-next-cursor");
-    if (!cursor) return all;
-  }
-  console.warn(`Showing the first ${all.length} issues; this project has more.`);
-  return all;
-}
 const emptyDraft = {
   visibility: "workspace",
   name: "",
@@ -160,7 +139,7 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
   const project = projects.find((p) => p.id === selected);
   const issuesQ = useQuery({
     queryKey: ["issues", selected],
-    queryFn: () => loadAllIssues(token, selected),
+    queryFn: () => loadIssues(token, selected),
     enabled: !!selected,
   });
   const pagesQ = useQuery({

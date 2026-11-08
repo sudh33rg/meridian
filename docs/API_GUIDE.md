@@ -91,8 +91,21 @@ curl -X POST "$MERIDIAN_API/api/projects/$PROJECT_ID/issues" \
 - **Paging.** `GET /projects/{id}/issues` lists newest issue number first. `limit` is 1 to 500 (default 500, the size clients received before paging existed). When another page exists the response carries an `X-Next-Cursor` header; send its value back as `cursor` to continue. The header is absent on the last page. Archived issues are not listed.
 - **Filters.** Exact `status` (todo, in_progress, in_review, done), exact `priority` (low, medium, high, urgent), `assignee_id`, and `q`, a case-insensitive title search of up to 200 characters with LIKE wildcards matched literally.
 - **Optimistic concurrency.** Issue details responses carry an `ETag` (the issue's `updated_at` at microsecond precision). Send it back as `If-Match` on `PATCH /issues/{id}/edit`. If the issue changed since, the server returns `412` with code `precondition_failed` and writes nothing. Without `If-Match` the edit applies as before (last writer wins), so existing clients keep working.
-- **Idempotent create.** `POST /projects/{id}/issues` accepts an `Idempotency-Key` header of 8 to 255 visible ASCII characters. A retry with the same key and the same body returns the original `201` response with `Idempotent-Replayed: true` and creates nothing. The same key with a different body returns `409`. Requests that fail are not stored, so a failed create can be retried with the same key. Stored keys are not yet pruned.
+- **Idempotent create.** `POST /projects/{id}/issues` accepts an `Idempotency-Key` header of 8 to 255 visible ASCII characters. A retry with the same key and the same body returns the original `201` response with `Idempotent-Replayed: true` and creates nothing. The same key with a different body returns `409`. Requests that fail are not stored, so a failed create can be retried with the same key. Stored keys are pruned after 24 hours by hourly maintenance, so a key reused after that creates a new issue.
 - **Cross-origin browsers.** `ETag`, `X-Next-Cursor` and `Idempotent-Replayed` are exposed to browser clients through CORS, and `If-Match` and `Idempotency-Key` are allowed request headers.
+
+### Archive, bulk changes, saved views and notification preferences
+
+| Verb | Route | Description |
+|---|---|---|
+| POST | `/issues/{id}/archive`, `/issues/{id}/unarchive` | Archive or restore an issue. Editors only; 409 when the issue is already in that state. Archiving needs access to the issue's project |
+| GET | `/projects/{id}/issues?archived=true` | List archived issues instead of active ones (same paging and filters) |
+| POST | `/projects/{id}/issues/bulk` | Set `status`, `priority` or `assignee` on 1 to 100 distinct issues in one transaction. Body: `{"ids":[...],"action":"set_status","value":"done"}`. `set_assignee` takes a workspace member's user id; `null` clears it. Response: `{"updated":n,"results":[{"id","ok","error"}]}`; a skipped item reports why |
+| GET / POST | `/projects/{id}/views` | Your saved views for a project. Filters: `status`, `priority`, `assignee_id`, `q`. Names are unique per project; up to 50 views per project. Other members cannot see them |
+| DELETE | `/views/{id}` | Delete one of your views |
+| GET / PUT | `/me/notification-preferences` | Turn inbox notifications for `approval` or `automation` on or off. Both are on by default; `PUT` takes `{"kind","enabled"}` and returns every kind |
+
+Issue reads (`/details`, `/comments`, `/links`, and attachment lists) also work on archived issues, so a restored or archived issue stays readable. Writes such as edits, comments and status changes need an active issue.
 
 Page edit with optimistic concurrency: `PATCH /api/pages/UUID` with `{"title":"...","content":"...","expected_version":1}`. A conflicting write returns HTTP 409.
 

@@ -1,6 +1,7 @@
 //! Issue details, edits, comments and links.
 use crate::api::collab::run_automations;
 use crate::api::common::*;
+use crate::api::work::{ISSUE_PRIORITIES, ISSUE_STATUSES};
 use crate::*;
 use axum::http::header::{ETAG, IF_MATCH};
 use axum::http::HeaderValue;
@@ -30,25 +31,54 @@ fn if_match(headers: &HeaderMap) -> ApiResult<Option<DateTime<Utc>>> {
         .map_err(|_| bad("If-Match must be the ETag of the issue"))
 }
 
-#[utoipa::path(get, path = "/api/issues/{id}/details", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+#[utoipa::path(get, path = "/api/issues/{id}/details", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success. The ETag header is the If-Match value for edits", body = IssueDetail), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn issue_details(
     mut tx: Tx,
     Path(id): Path<Uuid>,
-) -> ApiResult<(HeaderMap, Json<Value>)> {
+) -> ApiResult<(HeaderMap, Json<IssueDetail>)> {
     let i = tx.identity.clone();
-    valid_issue(&mut tx, &i, id).await?;
-    let row: Value =
-        sqlx::query_scalar("SELECT to_jsonb(t) FROM issues t WHERE tenant_id=$1 AND id=$2")
-            .bind(i.tenant_id)
-            .bind(id)
-            .fetch_one(&mut *tx)
-            .await
-            .map_err(db_err)?;
+    // Archived issues stay readable (the drawer offers Restore); edits still require active issues.
+    ensure_entity_access(&mut tx, "issues", id).await?;
+    let row: IssueDetail = sqlx::query_as(
+        "SELECT id,tenant_id,project_id,number,title,description,kind,status,priority,assignee_id,created_by,\
+         created_at,updated_at,parent_id,due_at,story_points,labels,custom_fields,archived_at,sprint_id \
+         FROM issues WHERE tenant_id=$1 AND id=$2",
+    )
+    .bind(i.tenant_id)
+    .bind(id)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
     let mut headers = HeaderMap::new();
-    if let Some(tag) = row.get("updated_at").and_then(Value::as_str).and_then(issue_etag) {
-        headers.insert(ETAG, tag);
+    let tag = format!("\"{}\"", row.updated_at.to_rfc3339_opts(SecondsFormat::Micros, true));
+    if let Ok(v) = HeaderValue::from_str(&tag) {
+        headers.insert(ETAG, v);
     }
     Ok((headers, Json(row)))
+}
+/// Every column of an issue. Clients receive the same fields as before, now with a fixed schema.
+#[derive(Serialize, FromRow, utoipa::ToSchema)]
+pub(crate) struct IssueDetail {
+    pub(crate) id: Uuid,
+    pub(crate) tenant_id: Uuid,
+    pub(crate) project_id: Uuid,
+    pub(crate) number: i64,
+    pub(crate) title: String,
+    pub(crate) description: String,
+    pub(crate) kind: String,
+    pub(crate) status: String,
+    pub(crate) priority: String,
+    pub(crate) assignee_id: Option<Uuid>,
+    pub(crate) created_by: Uuid,
+    pub(crate) created_at: DateTime<Utc>,
+    pub(crate) updated_at: DateTime<Utc>,
+    pub(crate) parent_id: Option<Uuid>,
+    pub(crate) due_at: Option<DateTime<Utc>>,
+    pub(crate) story_points: Option<i32>,
+    pub(crate) labels: Vec<String>,
+    pub(crate) custom_fields: Value,
+    pub(crate) archived_at: Option<DateTime<Utc>>,
+    pub(crate) sprint_id: Option<Uuid>,
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct IssueEdit {
@@ -164,6 +194,8 @@ pub(crate) async fn edit_issue(
 pub(crate) async fn archive_issue(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<StatusCode> {
     let i = tx.identity.clone();
     require_editor(&i)?;
+    // Project access first: archiving must not reach issues in projects the caller cannot see.
+    ensure_entity_access(&mut tx, "issues", id).await?;
     let r = sqlx::query(
         "UPDATE issues SET archived_at=now() WHERE tenant_id=$1 AND id=$2 AND archived_at IS NULL",
     )
@@ -173,10 +205,184 @@ pub(crate) async fn archive_issue(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult
     .await
     .map_err(db_err)?;
     if r.rows_affected() == 0 {
-        return Err(err(StatusCode::NOT_FOUND, "Issue not found"));
+        return Err(err(StatusCode::CONFLICT, "Issue is already archived"));
     }
     log_event(&mut tx, &i, "archived", "issue", id).await?;
     Ok(StatusCode::NO_CONTENT)
+}
+#[utoipa::path(post, path = "/api/issues/{id}/unarchive", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 204, description = "Restored to the active lists"), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody), (status = 409, description = "Issue is not archived", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn unarchive_issue(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<StatusCode> {
+    let i = tx.identity.clone();
+    require_editor(&i)?;
+    ensure_entity_access(&mut tx, "issues", id).await?;
+    let project: Uuid = sqlx::query_scalar(
+        "SELECT project_id FROM issues WHERE tenant_id=$1 AND id=$2 AND archived_at IS NOT NULL",
+    )
+    .bind(i.tenant_id)
+    .bind(id)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(db_err)?
+    .ok_or_else(|| err(StatusCode::CONFLICT, "Issue is not archived"))?;
+    sqlx::query("UPDATE issues SET archived_at=NULL, updated_at=now() WHERE tenant_id=$1 AND id=$2")
+        .bind(i.tenant_id)
+        .bind(id)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    log_event(&mut tx, &i, "unarchived", "issue", id).await?;
+    log_outbox(
+        &mut tx,
+        i.tenant_id,
+        "issue.unarchived",
+        id,
+        json!({"issue_id":id,"project_id":project}),
+    )
+    .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Batch change for issues in one project. Each item is checked and reported; the whole batch
+/// commits or rolls back together.
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct BulkIssueInput {
+    /// Issue ids in this project: 1 to 100 values; duplicates are ignored.
+    pub(crate) ids: Vec<Uuid>,
+    /// `set_status`, `set_priority` or `set_assignee`.
+    pub(crate) action: String,
+    /// The new status or priority, or a user id for `set_assignee`. Null clears the assignee.
+    pub(crate) value: Option<String>,
+}
+#[derive(Serialize, utoipa::ToSchema)]
+pub(crate) struct BulkItemResult {
+    pub(crate) id: Uuid,
+    pub(crate) ok: bool,
+    /// Why the issue was skipped; null when it was updated.
+    pub(crate) error: Option<String>,
+}
+#[derive(Serialize, utoipa::ToSchema)]
+pub(crate) struct BulkResult {
+    pub(crate) updated: i64,
+    pub(crate) results: Vec<BulkItemResult>,
+}
+#[utoipa::path(post, path = "/api/projects/{id}/issues/bulk", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), request_body = BulkIssueInput, responses((status = 200, description = "Batch applied; per-item results name any skipped issues", body = BulkResult), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn bulk_update_issues(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+    Json(v): Json<BulkIssueInput>,
+) -> ApiResult<Json<BulkResult>> {
+    let i = tx.identity.clone();
+    require_editor(&i)?;
+    ensure_access(&mut tx, project).await?;
+    let mut ids: Vec<Uuid> = Vec::new();
+    for id in &v.ids {
+        if !ids.contains(id) {
+            ids.push(*id);
+        }
+    }
+    if ids.is_empty() || ids.len() > 100 {
+        return Err(bad("Choose between 1 and 100 issues"));
+    }
+    // Validate the action and its value once, before any write.
+    enum Change {
+        Status(String),
+        Priority(String),
+        Assignee(Option<Uuid>),
+    }
+    let change = match v.action.as_str() {
+        "set_status" => match v.value.as_deref() {
+            Some(s) if ISSUE_STATUSES.contains(&s) => Change::Status(s.to_string()),
+            _ => return Err(bad("A valid status is required")),
+        },
+        "set_priority" => match v.value.as_deref() {
+            Some(p) if ISSUE_PRIORITIES.contains(&p) => Change::Priority(p.to_string()),
+            _ => return Err(bad("A valid priority is required")),
+        },
+        "set_assignee" => match v.value.as_deref() {
+            None => Change::Assignee(None),
+            Some(raw) => {
+                let user = Uuid::parse_str(raw).map_err(|_| bad("Assignee must be a user id"))?;
+                let member: bool = sqlx::query_scalar(
+                    "SELECT EXISTS(SELECT 1 FROM memberships WHERE tenant_id=$1 AND user_id=$2)",
+                )
+                .bind(i.tenant_id)
+                .bind(user)
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(db_err)?;
+                if !member {
+                    return Err(bad("Assignee must be a member of this workspace"));
+                }
+                Change::Assignee(Some(user))
+            }
+        },
+        _ => return Err(bad("Unknown bulk action")),
+    };
+    let mut results = Vec::with_capacity(ids.len());
+    let mut updated: i64 = 0;
+    for id in ids {
+        let open: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM issues WHERE tenant_id=$1 AND project_id=$2 AND id=$3 AND archived_at IS NULL)",
+        )
+        .bind(i.tenant_id)
+        .bind(project)
+        .bind(id)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(db_err)?;
+        if !open {
+            results.push(BulkItemResult {
+                id,
+                ok: false,
+                error: Some("Issue not found in this project, or it is archived".into()),
+            });
+            continue;
+        }
+        match &change {
+            Change::Status(s) => {
+                sqlx::query("UPDATE issues SET status=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3")
+                    .bind(s.as_str())
+                    .bind(i.tenant_id)
+                    .bind(id)
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(db_err)?;
+            }
+            Change::Priority(p) => {
+                sqlx::query("UPDATE issues SET priority=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3")
+                    .bind(p.as_str())
+                    .bind(i.tenant_id)
+                    .bind(id)
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(db_err)?;
+            }
+            Change::Assignee(a) => {
+                sqlx::query("UPDATE issues SET assignee_id=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3")
+                    .bind(*a)
+                    .bind(i.tenant_id)
+                    .bind(id)
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(db_err)?;
+            }
+        }
+        log_event(&mut tx, &i, "updated", "issue", id).await?;
+        log_outbox(
+            &mut tx,
+            i.tenant_id,
+            "issue.updated",
+            id,
+            json!({"issue_id":id,"project_id":project}),
+        )
+        .await?;
+        if matches!(&change, Change::Status(_)) {
+            run_automations(&mut tx, &i, project, id, "issue_status_changed").await?;
+        }
+        updated += 1;
+        results.push(BulkItemResult { id, ok: true, error: None });
+    }
+    Ok(Json(BulkResult { updated, results }))
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct CommentInput {
@@ -189,7 +395,8 @@ pub(crate) async fn issue_comments(
     Path(id): Path<Uuid>,
 ) -> ApiResult<Json<Vec<Value>>> {
     let i = tx.identity.clone();
-    valid_issue(&mut tx, &i, id).await?;
+    // Reading stays open for archived issues, like the details view; posting still needs an active issue.
+    ensure_entity_access(&mut tx, "issues", id).await?;
     Ok(Json(sqlx::query_scalar("SELECT jsonb_build_object('id',c.id,'body',c.body,'author_id',c.author_id,'author',u.display_name,'parent_id',c.parent_id,'created_at',c.created_at) FROM issue_comments c JOIN users u ON u.id=c.author_id WHERE c.tenant_id=$1 AND c.issue_id=$2 ORDER BY c.created_at ASC LIMIT 1000")
         .bind(i.tenant_id).bind(id).fetch_all(&mut *tx).await.map_err(db_err)?))
 }
@@ -223,7 +430,7 @@ pub(crate) struct LinkInput {
 #[utoipa::path(get, path = "/api/issues/{id}/links", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn issue_links(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Vec<Value>>> {
     let i = tx.identity.clone();
-    valid_issue(&mut tx, &i, id).await?;
+    ensure_entity_access(&mut tx, "issues", id).await?;
     Ok(Json(sqlx::query_scalar("SELECT jsonb_build_object('source_id',source_id,'target_id',target_id,'relation',relation) FROM issue_links WHERE tenant_id=$1 AND (source_id=$2 OR target_id=$2) LIMIT 250")
         .bind(i.tenant_id).bind(id).fetch_all(&mut *tx).await.map_err(db_err)?))
 }
@@ -252,6 +459,8 @@ pub(crate) fn routes() -> Router<App> {
         .route("/api/issues/{id}/details", get(issue_details))
         .route("/api/issues/{id}/edit", patch(edit_issue))
         .route("/api/issues/{id}/archive", post(archive_issue))
+        .route("/api/issues/{id}/unarchive", post(unarchive_issue))
+        .route("/api/projects/{id}/issues/bulk", post(bulk_update_issues))
         .route(
             "/api/issues/{id}/comments",
             get(issue_comments).post(new_issue_comment),
