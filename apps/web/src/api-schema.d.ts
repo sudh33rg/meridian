@@ -1957,6 +1957,22 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        /** @description A comment on an issue, newest first in the list. */
+        IssueComment: {
+            author: string;
+            /** Format: uuid */
+            author_id: string;
+            body: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The comment this one replies to, if any.
+             */
+            parent_id?: string | null;
+        };
         /** @description Every column of an issue. Clients receive the same fields as before, now with a fixed schema. */
         IssueDetail: {
             /** Format: date-time */
@@ -2011,6 +2027,14 @@ export interface components {
             /** Format: int32 */
             story_points?: number | null;
             title?: string | null;
+        };
+        /** @description A link between two issues. `relation` is one of blocks, relates, duplicates or depends_on. */
+        IssueLink: {
+            relation: string;
+            /** Format: uuid */
+            source_id: string;
+            /** Format: uuid */
+            target_id: string;
         };
         JoinTeamInput: {
             /** Format: uuid */
@@ -2233,6 +2257,18 @@ export interface components {
             project_id: string;
             /** Format: date-time */
             updated_at: string;
+        };
+        /** @description One search result: an issue or a page, with a short preview. */
+        SearchHit: {
+            /** Format: uuid */
+            id: string;
+            /** @description `issue` or `page`. */
+            kind: string;
+            /** @description The first 180 characters of the description or content. */
+            preview: string;
+            /** Format: uuid */
+            project_id: string;
+            title: string;
         };
         SecurityPolicyInput: {
             require_mfa: boolean;
@@ -4283,7 +4319,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>[];
+                    "application/json": components["schemas"]["IssueComment"][];
                 };
             };
             /** @description Validation or domain error */
@@ -4539,7 +4575,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>[];
+                    "application/json": components["schemas"]["IssueLink"][];
                 };
             };
             /** @description Validation or domain error */
@@ -8518,7 +8554,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>[];
+                    "application/json": components["schemas"]["SearchHit"][];
                 };
             };
             /** @description Validation or domain error */

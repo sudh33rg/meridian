@@ -2426,7 +2426,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "object"
+                    "$ref": "#/components/schemas/IssueComment"
                   }
                 }
               }
@@ -2777,7 +2777,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "object"
+                    "$ref": "#/components/schemas/IssueLink"
                   }
                 }
               }
@@ -8249,7 +8249,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "object"
+                    "$ref": "#/components/schemas/SearchHit"
                   }
                 }
               }
@@ -10423,6 +10423,45 @@
           }
         }
       },
+      "IssueComment": {
+        "type": "object",
+        "description": "A comment on an issue, newest first in the list.",
+        "required": [
+          "id",
+          "body",
+          "author_id",
+          "author",
+          "created_at"
+        ],
+        "properties": {
+          "author": {
+            "type": "string"
+          },
+          "author_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "body": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "parent_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The comment this one replies to, if any."
+          }
+        }
+      },
       "IssueDetail": {
         "type": "object",
         "description": "Every column of an issue. Clients receive the same fields as before, now with a fixed schema.",
@@ -10614,6 +10653,28 @@
               "string",
               "null"
             ]
+          }
+        }
+      },
+      "IssueLink": {
+        "type": "object",
+        "description": "A link between two issues. `relation` is one of blocks, relates, duplicates or depends_on.",
+        "required": [
+          "source_id",
+          "target_id",
+          "relation"
+        ],
+        "properties": {
+          "relation": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "target_id": {
+            "type": "string",
+            "format": "uuid"
           }
         }
       },
@@ -11328,6 +11389,38 @@
           "updated_at": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "SearchHit": {
+        "type": "object",
+        "description": "One search result: an issue or a page, with a short preview.",
+        "required": [
+          "id",
+          "project_id",
+          "title",
+          "kind",
+          "preview"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`issue` or `page`."
+          },
+          "preview": {
+            "type": "string",
+            "description": "The first 180 characters of the description or content."
+          },
+          "project_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
           }
         }
       },

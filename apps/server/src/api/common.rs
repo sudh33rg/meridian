@@ -263,6 +263,13 @@ pub(crate) async fn log_event(
     .await?;
     Ok(())
 }
+/// Converts rows that SQL built as JSON into a fixed schema. The query and the type live side by
+/// side, so a row that does not fit is a server error rather than a silent change in shape.
+pub(crate) fn typed_rows<T: serde::de::DeserializeOwned>(rows: Vec<Value>) -> ApiResult<Vec<T>> {
+    rows.into_iter()
+        .map(|r| serde_json::from_value(r).map_err(|e| ApiError::Internal(format!("row does not match its schema: {e}"))))
+        .collect()
+}
 pub(crate) async fn log_outbox(
     db: &mut PgConnection,
     tenant: Uuid,

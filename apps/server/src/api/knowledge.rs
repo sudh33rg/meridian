@@ -93,11 +93,22 @@ pub(crate) struct SearchParams {
     pub(crate) q: String,
     pub(crate) limit: Option<i64>,
 }
-#[utoipa::path(get, path = "/api/search", tag = "knowledge", params(SearchParams), responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+/// One search result: an issue or a page, with a short preview.
+#[derive(Serialize, Deserialize, utoipa::ToSchema)]
+pub(crate) struct SearchHit {
+    pub(crate) id: Uuid,
+    pub(crate) project_id: Uuid,
+    pub(crate) title: String,
+    /// `issue` or `page`.
+    pub(crate) kind: String,
+    /// The first 180 characters of the description or content.
+    pub(crate) preview: String,
+}
+#[utoipa::path(get, path = "/api/search", tag = "knowledge", params(SearchParams), responses((status = 200, description = "Success", body = Vec<SearchHit>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn search(
     mut tx: Tx,
     axum::extract::Query(v): axum::extract::Query<SearchParams>,
-) -> ApiResult<Json<Vec<Value>>> {
+) -> ApiResult<Json<Vec<SearchHit>>> {
     let i = tx.identity.clone();
     let term = v.q.trim();
     if term.len() < 2 || term.len() > 160 {
@@ -106,7 +117,7 @@ pub(crate) async fn search(
     let limit = v.limit.unwrap_or(25).clamp(1, 100);
     let found=sqlx::query_scalar("SELECT jsonb_build_object('id',x.id,'project_id',x.project_id,'title',x.title,'kind',x.kind,'preview',left(x.description,180)) FROM (SELECT id,project_id,title,'issue' AS kind,description,ts_rank(to_tsvector('simple',title || ' ' || description),plainto_tsquery('simple',$2)) AS rank FROM issues WHERE tenant_id=$1 AND archived_at IS NULL AND project_access(project_id,$4,$5)>=1 AND to_tsvector('simple',title || ' ' || description) @@ plainto_tsquery('simple',$2) UNION ALL SELECT id,project_id,title,'page' AS kind,content AS description,ts_rank(to_tsvector('simple',title || ' ' || content),plainto_tsquery('simple',$2)) AS rank FROM pages WHERE tenant_id=$1 AND archived_at IS NULL AND page_access(id,$4,$5)>=1 AND to_tsvector('simple',title || ' ' || content) @@ plainto_tsquery('simple',$2)) x ORDER BY rank DESC LIMIT $3")
         .bind(i.tenant_id).bind(term).bind(limit).bind(i.user_id).bind(&i.role).fetch_all(&mut *tx).await.map_err(db_err)?;
-    Ok(Json(found))
+    Ok(Json(typed_rows(found)?))
 }
 fn entity_table(kind: &str) -> ApiResult<&'static str> {
     // Table names are hardcoded; never interpolate user-supplied SQL identifiers.

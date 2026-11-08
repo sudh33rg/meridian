@@ -418,16 +418,28 @@ pub(crate) struct CommentInput {
     pub(crate) body: String,
     pub(crate) parent_id: Option<Uuid>,
 }
-#[utoipa::path(get, path = "/api/issues/{id}/comments", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+#[utoipa::path(get, path = "/api/issues/{id}/comments", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<IssueComment>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn issue_comments(
     mut tx: Tx,
     Path(id): Path<Uuid>,
-) -> ApiResult<Json<Vec<Value>>> {
+) -> ApiResult<Json<Vec<IssueComment>>> {
     let i = tx.identity.clone();
     // Reading stays open for archived issues, like the details view; posting still needs an active issue.
     ensure_entity_access(&mut tx, "issues", id).await?;
-    Ok(Json(sqlx::query_scalar("SELECT jsonb_build_object('id',c.id,'body',c.body,'author_id',c.author_id,'author',u.display_name,'parent_id',c.parent_id,'created_at',c.created_at) FROM issue_comments c JOIN users u ON u.id=c.author_id WHERE c.tenant_id=$1 AND c.issue_id=$2 ORDER BY c.created_at ASC LIMIT 1000")
-        .bind(i.tenant_id).bind(id).fetch_all(&mut *tx).await.map_err(db_err)?))
+    let rows: Vec<Value> = sqlx::query_scalar("SELECT jsonb_build_object('id',c.id,'body',c.body,'author_id',c.author_id,'author',u.display_name,'parent_id',c.parent_id,'created_at',c.created_at) FROM issue_comments c JOIN users u ON u.id=c.author_id WHERE c.tenant_id=$1 AND c.issue_id=$2 ORDER BY c.created_at ASC LIMIT 1000")
+        .bind(i.tenant_id).bind(id).fetch_all(&mut *tx).await.map_err(db_err)?;
+    Ok(Json(typed_rows(rows)?))
+}
+/// A comment on an issue, newest first in the list.
+#[derive(Serialize, Deserialize, utoipa::ToSchema)]
+pub(crate) struct IssueComment {
+    pub(crate) id: Uuid,
+    pub(crate) body: String,
+    pub(crate) author_id: Uuid,
+    pub(crate) author: String,
+    /// The comment this one replies to, if any.
+    pub(crate) parent_id: Option<Uuid>,
+    pub(crate) created_at: DateTime<Utc>,
 }
 #[utoipa::path(post, path = "/api/issues/{id}/comments", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), request_body = CommentInput, responses((status = 201, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn new_issue_comment(
@@ -456,12 +468,20 @@ pub(crate) struct LinkInput {
     pub(crate) target_id: Uuid,
     pub(crate) relation: String,
 }
-#[utoipa::path(get, path = "/api/issues/{id}/links", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn issue_links(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Vec<Value>>> {
+#[utoipa::path(get, path = "/api/issues/{id}/links", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<IssueLink>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn issue_links(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Vec<IssueLink>>> {
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "issues", id).await?;
-    Ok(Json(sqlx::query_scalar("SELECT jsonb_build_object('source_id',source_id,'target_id',target_id,'relation',relation) FROM issue_links WHERE tenant_id=$1 AND (source_id=$2 OR target_id=$2) LIMIT 250")
-        .bind(i.tenant_id).bind(id).fetch_all(&mut *tx).await.map_err(db_err)?))
+    let rows: Vec<Value> = sqlx::query_scalar("SELECT jsonb_build_object('source_id',source_id,'target_id',target_id,'relation',relation) FROM issue_links WHERE tenant_id=$1 AND (source_id=$2 OR target_id=$2) LIMIT 250")
+        .bind(i.tenant_id).bind(id).fetch_all(&mut *tx).await.map_err(db_err)?;
+    Ok(Json(typed_rows(rows)?))
+}
+/// A link between two issues. `relation` is one of blocks, relates, duplicates or depends_on.
+#[derive(Serialize, Deserialize, utoipa::ToSchema)]
+pub(crate) struct IssueLink {
+    pub(crate) source_id: Uuid,
+    pub(crate) target_id: Uuid,
+    pub(crate) relation: String,
 }
 #[utoipa::path(post, path = "/api/issues/{id}/links", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), request_body = LinkInput, responses((status = 204, description = "Success"), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn new_issue_link(
