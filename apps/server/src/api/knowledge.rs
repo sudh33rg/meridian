@@ -349,6 +349,7 @@ pub(crate) async fn create_blog_post(
     if title.is_empty() || title.chars().count() > 200 {
         return Err(bad("A blog post title is 1 to 200 characters"));
     }
+    crate::api::macros::validate_macros(v.content.as_deref().unwrap_or(""))?;
     let page: crate::api::work::Page = sqlx::query_as(
         "INSERT INTO pages(tenant_id,project_id,title,content,created_by) VALUES($1,$2,$3,$4,$5) \
          RETURNING id,project_id,parent_id,title,content,version,updated_at",

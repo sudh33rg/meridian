@@ -526,6 +526,7 @@ pub(crate) async fn create_page(
     if v.title.trim().is_empty() {
         return Err(bad("Title is required"));
     }
+    crate::api::macros::validate_macros(v.content.as_deref().unwrap_or(""))?;
     let exists: bool =
         sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM projects WHERE tenant_id=$1 AND id=$2)")
             .bind(i.tenant_id)
@@ -577,6 +578,7 @@ pub(crate) async fn patch_page(
     if v.title.trim().is_empty() {
         return Err(bad("Title is required"));
     }
+    crate::api::macros::validate_macros(&v.content)?;
     let current:Option<Page>=sqlx::query_as("SELECT id,project_id,parent_id,title,content,version,updated_at FROM pages WHERE tenant_id=$1 AND id=$2 FOR UPDATE").bind(i.tenant_id).bind(page_id).fetch_optional(&mut *tx).await.map_err(db_err)?;
     let c = current.ok_or_else(|| err(StatusCode::NOT_FOUND, "Page not found"))?;
     if c.version != v.expected_version {

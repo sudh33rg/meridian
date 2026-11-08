@@ -21,6 +21,7 @@ pub mod roadmap;
 pub mod service;
 pub mod issue_security;
 pub mod issue_content;
+pub mod macros;
 pub mod security;
 pub mod settings;
 pub mod statuses;

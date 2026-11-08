@@ -1,4 +1,5 @@
 import { formatDate } from "../../lib/datetime";
+import { PageBody } from "../../lib/macros";
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookOpen, Plus, FileText, Home } from "lucide-react";
@@ -292,6 +293,12 @@ function PageEditor() {
       />
       {access.isSuccess && (
         <CollabEditor pageId={page.id} canEdit={canEdit} userName={me?.name || session.name} />
+      )}
+      {page.content.includes("{{") && (
+        <section className="rendered-page" aria-label="Rendered page">
+          <h3>Rendered view</h3>
+          <PageBody content={page.content} token={session.token} projectId={selected} />
+        </section>
       )}
       <Attachments entityType="page" entityId={page.id} canEdit={canEdit} />
       <div className="editor-relations">
