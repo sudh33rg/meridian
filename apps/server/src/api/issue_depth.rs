@@ -1432,7 +1432,17 @@ pub(crate) async fn notify_mentions(
     issue: Uuid,
     body: &str,
 ) -> ApiResult<()> {
-    let handles = mention_handles(body);
+    notify_handles(db, tenant, actor, issue, &mention_handles(body)).await
+}
+
+/// Tells each member named by a handle that they were mentioned on the issue.
+pub(crate) async fn notify_handles(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    actor: Uuid,
+    issue: Uuid,
+    handles: &[String],
+) -> ApiResult<()> {
     if handles.is_empty() {
         return Ok(());
     }
@@ -1445,7 +1455,7 @@ pub(crate) async fn notify_mentions(
     .bind(tenant)
     .bind(actor)
     .bind(issue)
-    .bind(&handles)
+    .bind(handles)
     .execute(&mut *db)
     .await
     .map_err(db_err)?;

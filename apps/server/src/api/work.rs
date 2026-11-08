@@ -381,7 +381,7 @@ pub(crate) async fn create_issue(
     // New issues start in the project's first To do status (the workflow decides which that is).
     let status = crate::api::statuses::default_status(&mut tx, i.tenant_id, project).await?;
     let row:Issue=sqlx::query_as("INSERT INTO issues(tenant_id,project_id,number,title,description,kind,priority,created_by,status,custom_fields,team_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id,project_id,number,title,description,kind,status,priority,created_at,updated_at")
- .bind(i.tenant_id).bind(project).bind(next).bind(v.title.trim()).bind(v.description.unwrap_or_default()).bind(kind).bind(priority).bind(i.user_id).bind(status).bind(custom).bind(team).fetch_one(&mut *tx).await.map_err(db_err)?;
+ .bind(i.tenant_id).bind(project).bind(next).bind(v.title.trim()).bind(crate::api::issue_content::sanitize_markdown(&v.description.unwrap_or_default())).bind(kind).bind(priority).bind(i.user_id).bind(status).bind(custom).bind(team).fetch_one(&mut *tx).await.map_err(db_err)?;
     log_event(&mut tx, &i, "created", "issue", row.id).await?;
     crate::api::history::record_status(&mut tx, i.tenant_id, row.id, None, &row.status, i.user_id)
         .await?;

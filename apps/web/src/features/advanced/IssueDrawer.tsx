@@ -11,6 +11,8 @@ import { displayValue, toPayload, type FieldDefinition } from "../../lib/fields"
 import type { Item } from "../../lib/types";
 import { str, day } from "./shared";
 import { useWorkspace } from "../workspace/useWorkspace";
+import { Markdown } from "../../lib/markdown";
+import { CommentReactions, Reminders } from "./IssueContent";
 
 type CommentHistory = {
   current_body: string;
@@ -266,7 +268,13 @@ export function IssueDrawer({
                 onChange={(e) => setTitle(e.target.value)}
               />
             </label>
-            <p className="drawer-description">{str(issue.description) || "No description yet."}</p>
+            {str(issue.description) ? (
+              <div className="drawer-description">
+                <Markdown source={str(issue.description)} />
+              </div>
+            ) : (
+              <p className="drawer-description">No description yet.</p>
+            )}
             {levelsQ.data && (levelsQ.data.levels.length > 0 || levelsQ.data.can_manage) && (
               <div className="form-row">
                 <label>
@@ -424,6 +432,7 @@ export function IssueDrawer({
               onChanged={() => onChanged()}
             />
             <div className="drawer-section">
+              <Reminders token={token} issueId={id} />
               <h3>Discussion · {comments.length}</h3>
               {comments.map((c) => {
                 const commentId = str(c.id);
@@ -456,6 +465,7 @@ export function IssueDrawer({
                     ) : (
                       <p>{str(c.body)}</p>
                     )}
+                    {!isEditing && <CommentReactions token={token} issueId={id} commentId={commentId} />}
                     {(mine || isAdmin) && !isEditing && (
                       <div className="row-actions">
                         {mine && (

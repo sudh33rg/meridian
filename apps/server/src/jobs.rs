@@ -228,6 +228,12 @@ pub(crate) fn spawn_maintenance(db: PgPool) {
                 Ok(_) => {}
                 Err(e) => tracing::error!(error=%e, "sprint burndown capture failed"),
             }
+            // Personal reminders that are due become notifications (Phase F5).
+            match crate::api::issue_content::send_due_reminders(&db).await {
+                Ok(n) if n > 0 => tracing::info!(reminders = n, "sent due reminders"),
+                Ok(_) => {}
+                Err(e) => tracing::error!(error=%e, "reminder delivery failed"),
+            }
             // Trash past its 30-day window is purged (Phase F6).
             match crate::api::issues::purge_expired_trash(&db).await {
                 Ok(n) if n > 0 => tracing::info!(issues = n, "purged expired trash"),

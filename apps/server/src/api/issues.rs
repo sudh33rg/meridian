@@ -231,8 +231,19 @@ pub(crate) async fn edit_issue(
     }
     let before_json = crate::api::history::issue_json(&mut tx, i.tenant_id, id).await?;
     // Nullable attributes are intentionally unchanged when omitted. Explicit clearing is a separate operation.
+    // The description is markdown: it is cleaned before it is stored (Phase F5).
+    let description = match v.description.as_deref() {
+        Some(text) => {
+            let clean = crate::api::issue_content::sanitize_markdown(text);
+            if clean.chars().count() > crate::api::issue_content::DESCRIPTION_MAX {
+                return Err(bad("A description is limited to 20,000 characters"));
+            }
+            Some(clean)
+        }
+        None => None,
+    };
     let row: Option<Value> = sqlx::query_scalar("UPDATE issues SET title=COALESCE($1,title),description=COALESCE($2,description),kind=COALESCE($3,kind),priority=COALESCE($4,priority),status=COALESCE($5,status),assignee_id=COALESCE($6,assignee_id),sprint_id=COALESCE($7,sprint_id),parent_id=COALESCE($8,parent_id),story_points=COALESCE($9,story_points),due_at=COALESCE($10,due_at),labels=COALESCE($11,labels),custom_fields=COALESCE($12,custom_fields),updated_at=now() WHERE tenant_id=$13 AND id=$14 AND archived_at IS NULL AND ($15::timestamptz IS NULL OR updated_at=$15) RETURNING to_jsonb(issues)")
-        .bind(v.title).bind(v.description).bind(v.kind).bind(v.priority).bind(v.status.clone()).bind(v.assignee_id)
+        .bind(v.title).bind(description).bind(v.kind).bind(v.priority).bind(v.status.clone()).bind(v.assignee_id)
         .bind(v.sprint_id).bind(v.parent_id).bind(v.story_points).bind(v.due_at).bind(v.labels).bind(custom_fields)
         .bind(i.tenant_id).bind(id).bind(expected).fetch_optional(&mut *tx).await.map_err(db_err)?;
     // Nothing matched: either the If-Match precondition failed or the issue was archived meanwhile.
@@ -638,6 +649,13 @@ pub(crate) async fn edit_issue_comment(
         return Err(forbidden());
     }
     keep_revision(&mut tx, &i, comment, author, &previous, "edit").await?;
+    // Mentions added by the edit notify their members; mentions that were already there do not repeat.
+    let before = crate::api::issue_depth::mention_handles(&previous);
+    let fresh: Vec<String> = crate::api::issue_depth::mention_handles(&v.body)
+        .into_iter()
+        .filter(|h| !before.contains(h))
+        .collect();
+    crate::api::issue_depth::notify_handles(&mut tx, i.tenant_id, i.user_id, id, &fresh).await?;
     let row: Value = sqlx::query_scalar(
         "UPDATE issue_comments SET body=$1, edited_at=now(), updated_at=now() WHERE tenant_id=$2 AND issue_id=$3 AND id=$4 RETURNING to_jsonb(issue_comments)",
     )
