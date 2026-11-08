@@ -1017,6 +1017,12 @@ pub(crate) async fn clone_issue(
     let status = crate::api::statuses::default_status(&mut tx, i.tenant_id, project).await?;
     // The copy keeps content, classification, estimates and components. It does not keep the
     // assignee, sprint, parent or subtasks, and it starts in the project's first To do status.
+    let row_project = sqlx::query_scalar::<_, Uuid>("SELECT project_id FROM issues WHERE tenant_id=$1 AND id=$2")
+        .bind(i.tenant_id)
+        .bind(id)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(db_err)?;
     let row: crate::api::work::Issue = sqlx::query_as(
         "INSERT INTO issues(tenant_id,project_id,number,title,description,kind,priority,created_by,status,labels,custom_fields,story_points,team_id,original_estimate_minutes,remaining_estimate_minutes) \
          SELECT tenant_id,project_id,$3,$4,description,kind,priority,$5,$6,labels,custom_fields,story_points,team_id,original_estimate_minutes,remaining_estimate_minutes \
@@ -1032,6 +1038,17 @@ pub(crate) async fn clone_issue(
     .fetch_one(&mut *tx)
     .await
     .map_err(db_err)?;
+    // A copy made by a member does not carry restricted field values (Phase J2).
+    if project_level(&mut tx, &i, row_project).await?.unwrap_or(0) < 3 {
+        let hidden = crate::api::fields::restricted_keys(&mut tx, i.tenant_id, row_project).await?;
+        sqlx::query("UPDATE issues SET custom_fields = custom_fields - $3::text[] WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(row.id)
+            .bind(&hidden)
+            .execute(&mut *tx)
+            .await
+            .map_err(db_err)?;
+    }
     sqlx::query(
         "INSERT INTO issue_components(tenant_id,issue_id,component_id) SELECT tenant_id,$3,component_id FROM issue_components WHERE tenant_id=$1 AND issue_id=$2",
     )
@@ -1142,6 +1159,13 @@ pub(crate) async fn move_issue(
             .fetch_one(&mut *tx)
             .await
             .map_err(db_err)?;
+    // Members cannot move an issue that holds restricted values: the values would be lost or exposed.
+    if project_level(&mut tx, &i, source).await?.unwrap_or(0) < 3 {
+        let hidden = crate::api::fields::restricted_keys(&mut tx, i.tenant_id, source).await?;
+        if hidden.iter().any(|k| custom.get(k).is_some()) {
+            return Err(bad("This issue holds restricted fields. A project admin must move it"));
+        }
+    }
     let defined: Vec<String> = sqlx::query_scalar(
         "SELECT key FROM field_definitions WHERE tenant_id=$1 AND project_id=$2",
     )

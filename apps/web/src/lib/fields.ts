@@ -8,6 +8,8 @@ export type FieldDefinition = {
   options: string[];
   required: boolean;
   position: number;
+  /** Restricted fields are seen and changed by project admins only. */
+  restricted?: boolean;
 };
 
 export const FIELD_TYPE_LABEL: Record<FieldType, string> = {

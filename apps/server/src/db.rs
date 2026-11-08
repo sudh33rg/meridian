@@ -71,6 +71,13 @@ impl FromRequestParts<App> for Tx {
                 .execute(&mut *t)
                 .await
                 .map_err(db_err)?;
+            // The caller's id and role feed the issue security policy (migration 0037).
+            sqlx::query("SELECT set_config('app.user_id', $1, true), set_config('app.role', $2, true)")
+                .bind(identity.user_id.to_string())
+                .bind(identity.role.as_str())
+                .execute(&mut *t)
+                .await
+                .map_err(db_err)?;
             *guard = Some(t);
         }
         Ok(Tx {

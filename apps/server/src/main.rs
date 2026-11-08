@@ -131,6 +131,7 @@ pub(crate) fn build_router_with(
         .merge(api::csv_import::routes())
         .merge(api::knowledge::routes())
         .merge(api::service::routes())
+        .merge(api::issue_security::routes())
         .merge(api::collab::routes())
         .merge(api::admin::routes())
         .merge(api::security::routes())

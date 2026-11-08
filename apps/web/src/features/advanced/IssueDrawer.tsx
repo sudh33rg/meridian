@@ -5,7 +5,7 @@ import { EntityRelations } from "./EntityRelations";
 import { Attachments } from "../shared/Attachments";
 import { Star, X } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ApiError, request, requestWithHeaders } from "../../lib/api";
+import { ApiError, request, requestWithHeaders, send } from "../../lib/api";
 import type { ProjectStatus } from "../../lib/statuses";
 import { displayValue, toPayload, type FieldDefinition } from "../../lib/fields";
 import type { Item } from "../../lib/types";
@@ -17,6 +17,11 @@ type CommentHistory = {
   deleted: boolean;
   revisions: { body: string; author: string; changed_by: string; change: string; changed_at: string }[];
 };
+
+/** Members do not see restricted fields; project admins see all of them. */
+function visibleFields(fields: FieldDefinition[], canSeeRestricted: boolean): FieldDefinition[] {
+  return canSeeRestricted ? fields : fields.filter((f) => !f.restricted);
+}
 
 export function IssueDrawer({
   id,
@@ -52,6 +57,26 @@ export function IssueDrawer({
     enabled: !!projectId,
   });
   const teamsQ = useTeams(token);
+  // Security level: who may see this issue. Project admins change it; everyone sees its name.
+  const levelsQ = useQuery({
+    queryKey: ["security-levels", projectId],
+    queryFn: () =>
+      request<{ can_manage: boolean; levels: { id: string; name: string }[] }>(token, `/projects/${projectId}/security-levels`),
+    enabled: !!projectId,
+  });
+  const issueLevelQ = useQuery({
+    queryKey: ["issue-security", id],
+    queryFn: () => request<{ level_id: string | null; name: string | null }>(token, `/issues/${id}/security-level`),
+    enabled: !!id,
+  });
+  const setLevel = useMutation({
+    mutationFn: (levelId: string | null) => send(`/issues/${id}/security-level`, token, "PUT", { level_id: levelId }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["issue-security", id] });
+      onChanged();
+    },
+    onError: (e) => setError((e as Error).message),
+  });
   // A move to another status can show fields of its transition screen; the drawer says which.
   const currentStatus = issue ? str(issue.status) : "";
   const screenQ = useQuery({
@@ -117,7 +142,9 @@ export function IssueDrawer({
           title,
           priority,
           status,
-          ...(fieldsQ.isSuccess ? { custom_fields: toPayload(fieldsQ.data ?? [], values) } : {}),
+          ...(fieldsQ.isSuccess
+            ? { custom_fields: toPayload(visibleFields(fieldsQ.data ?? [], levelsQ.data?.can_manage ?? false), values) }
+            : {}),
         }),
       });
       await reload();
@@ -240,6 +267,29 @@ export function IssueDrawer({
               />
             </label>
             <p className="drawer-description">{str(issue.description) || "No description yet."}</p>
+            {levelsQ.data && (levelsQ.data.levels.length > 0 || levelsQ.data.can_manage) && (
+              <div className="form-row">
+                <label>
+                  Security level
+                  {levelsQ.data.can_manage ? (
+                    <select
+                      value={issueLevelQ.data?.level_id ?? ""}
+                      onChange={(e) => setLevel.mutate(e.target.value || null)}
+                      disabled={setLevel.isPending}
+                    >
+                      <option value="">Open to the project</option>
+                      {levelsQ.data.levels.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span>{issueLevelQ.data?.name ?? "Open to the project"}</span>
+                  )}
+                </label>
+              </div>
+            )}
             {screenQ.data && screenQ.data.fields.length > 0 && (
               <p className="muted small" role="status">
                 This move shows{" "}
@@ -293,10 +343,10 @@ export function IssueDrawer({
                 </select>
               </label>
             </div>
-            {(fieldsQ.data ?? []).length > 0 && (
+            {visibleFields(fieldsQ.data ?? [], levelsQ.data?.can_manage ?? false).length > 0 && (
               <div className="drawer-section">
                 <h3>Fields</h3>
-                {(fieldsQ.data ?? []).map((f) => {
+                {visibleFields(fieldsQ.data ?? [], levelsQ.data?.can_manage ?? false).map((f) => {
                   const raw = values[f.key];
                   const disabled = !!issue.archived_at;
                   return (

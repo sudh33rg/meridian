@@ -20,6 +20,8 @@ pub(crate) struct FieldDefinition {
     pub(crate) options: Vec<String>,
     pub(crate) required: bool,
     pub(crate) position: i32,
+    /// Restricted fields are seen and changed by project admins only (Phase J2).
+    pub(crate) restricted: bool,
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct NewField {
@@ -31,6 +33,8 @@ pub(crate) struct NewField {
     pub(crate) required: Option<bool>,
     /// Optional. Derived from the label when absent.
     pub(crate) key: Option<String>,
+    /// Restricted to project admins. Default false.
+    pub(crate) restricted: Option<bool>,
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct FieldPatch {
@@ -38,6 +42,8 @@ pub(crate) struct FieldPatch {
     /// Replaces the select options. Refused while an issue holds a value they would remove.
     pub(crate) options: Option<Vec<String>>,
     pub(crate) required: Option<bool>,
+    /// Restrict or open the field to members. Changing it is refused for non-admins by the project check.
+    pub(crate) restricted: Option<bool>,
 }
 
 fn validate_label(label: &str) -> ApiResult<String> {
@@ -109,7 +115,7 @@ pub(crate) async fn validate_values(
     values: &Value,
 ) -> ApiResult<Value> {
     let defs: Vec<FieldDefinition> = sqlx::query_as(
-        "SELECT key,label,field_type,options,required,position FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 ORDER BY position, key",
+        "SELECT key,label,field_type,options,required,position,restricted FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 ORDER BY position, key",
     )
     .bind(tenant)
     .bind(project)
@@ -145,7 +151,7 @@ pub(crate) async fn list_fields(
 ) -> ApiResult<Json<Vec<FieldDefinition>>> {
     ensure_access(&mut tx, project).await?;
     let rows: Vec<FieldDefinition> = sqlx::query_as(
-        "SELECT key,label,field_type,options,required,position FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 ORDER BY position, key",
+        "SELECT key,label,field_type,options,required,position,restricted FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 ORDER BY position, key",
     )
     .bind(tx.identity.tenant_id)
     .bind(project)
@@ -163,6 +169,10 @@ pub(crate) async fn create_field(
 ) -> ApiResult<(StatusCode, Json<FieldDefinition>)> {
     let i = tx.identity.clone();
     ensure_workflow(&mut tx, project).await?;
+    // Restricting or opening a field is an admin decision, whatever the workflow level.
+    if v.restricted.is_some() {
+        ensure_project_admin(&mut tx, project).await?;
+    }
     let label = validate_label(&v.label)?;
     if !FIELD_TYPES.contains(&v.field_type.as_str()) {
         return Err(bad(
@@ -217,7 +227,7 @@ pub(crate) async fn create_field(
     .await
     .map_err(db_err)?;
     let row: FieldDefinition = sqlx::query_as(
-        "INSERT INTO field_definitions(tenant_id,project_id,key,label,field_type,options,required,position) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING key,label,field_type,options,required,position",
+        "INSERT INTO field_definitions(tenant_id,project_id,key,label,field_type,options,required,position,restricted) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING key,label,field_type,options,required,position,restricted",
     )
     .bind(i.tenant_id)
     .bind(project)
@@ -227,6 +237,7 @@ pub(crate) async fn create_field(
     .bind(&options)
     .bind(v.required.unwrap_or(false))
     .bind(position)
+    .bind(v.restricted.unwrap_or(false))
     .fetch_one(&mut *tx)
     .await
     .map_err(db_err)?;
@@ -242,8 +253,12 @@ pub(crate) async fn update_field(
 ) -> ApiResult<Json<FieldDefinition>> {
     let i = tx.identity.clone();
     ensure_workflow(&mut tx, project).await?;
+    // Restricting or opening a field is an admin decision, whatever the workflow level.
+    if v.restricted.is_some() {
+        ensure_project_admin(&mut tx, project).await?;
+    }
     let current: Option<FieldDefinition> = sqlx::query_as(
-        "SELECT key,label,field_type,options,required,position FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 AND key=$3",
+        "SELECT key,label,field_type,options,required,position,restricted FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 AND key=$3",
     )
     .bind(i.tenant_id)
     .bind(project)
@@ -282,18 +297,20 @@ pub(crate) async fn update_field(
         (_, None) => current.options.clone(),
     };
     let required = v.required.unwrap_or(current.required);
-    sqlx::query("UPDATE field_definitions SET label=$1, options=$2, required=$3 WHERE tenant_id=$4 AND project_id=$5 AND key=$6")
+    let restricted = v.restricted.unwrap_or(current.restricted);
+    sqlx::query("UPDATE field_definitions SET label=$1, options=$2, required=$3, restricted=$7 WHERE tenant_id=$4 AND project_id=$5 AND key=$6")
         .bind(&label)
         .bind(&options)
         .bind(required)
         .bind(i.tenant_id)
         .bind(project)
         .bind(&key)
+        .bind(restricted)
         .execute(&mut *tx)
         .await
         .map_err(db_err)?;
     let row: FieldDefinition = sqlx::query_as(
-        "SELECT key,label,field_type,options,required,position FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 AND key=$3",
+        "SELECT key,label,field_type,options,required,position,restricted FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 AND key=$3",
     )
     .bind(i.tenant_id)
     .bind(project)
@@ -354,4 +371,22 @@ pub(crate) fn routes() -> Router<App> {
             "/api/projects/{id}/fields/{key}",
             patch(update_field).delete(delete_field),
         )
+}
+
+/// Keys of the project's restricted fields.
+pub(crate) async fn restricted_keys(db: &mut PgConnection, tenant: Uuid, project: Uuid) -> ApiResult<Vec<String>> {
+    sqlx::query_scalar("SELECT key FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 AND restricted")
+        .bind(tenant)
+        .bind(project)
+        .fetch_all(&mut *db)
+        .await
+        .map_err(db_err)
+}
+
+/// A copy of an object of custom field values without the given keys.
+pub(crate) fn without_keys(values: &Value, keys: &[String]) -> Value {
+    match values {
+        Value::Object(map) => Value::Object(map.iter().filter(|(k, _)| !keys.contains(k)).map(|(k, v)| (k.clone(), v.clone())).collect()),
+        other => other.clone(),
+    }
 }

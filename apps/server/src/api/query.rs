@@ -205,6 +205,15 @@ pub(crate) async fn search_issues(
         return Err(bad("limit must be between 1 and 200"));
     }
     let terms = parse(&p.query)?;
+    // Members cannot search on a restricted field: its values would be learned from the matches (Phase J2).
+    if project_level(&mut tx, &i, project).await?.unwrap_or(0) < 3 {
+        let hidden = crate::api::fields::restricted_keys(&mut tx, i.tenant_id, project).await?;
+        if let Some(term) = terms.iter().find(|t| matches!(&t.field, Field::Custom(k) if hidden.contains(k))) {
+            if let Field::Custom(k) = &term.field {
+                return Err(bad(&format!("cf.{k} is restricted to project admins")));
+            }
+        }
+    }
 
     let mut qb = QueryBuilder::<Postgres>::new(
         "SELECT id,project_id,number,title,description,kind,status,priority,created_at,updated_at FROM issues WHERE tenant_id=",

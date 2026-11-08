@@ -16,6 +16,7 @@ export function FieldEditor({ token, projectId }: { token: string; projectId: st
   const [type, setType] = useState<FieldType>("text");
   const [options, setOptions] = useState("");
   const [required, setRequired] = useState(false);
+  const [restricted, setRestricted] = useState(false);
   const fieldsQ = useQuery({
     queryKey: ["fields", projectId],
     queryFn: () => request<FieldDefinition[]>(token, `/projects/${projectId}/fields`),
@@ -32,14 +33,22 @@ export function FieldEditor({ token, projectId }: { token: string; projectId: st
         field_type: type,
         options: type === "select" ? options.split(",").map((o) => o.trim()).filter(Boolean) : undefined,
         required,
+        restricted,
       }),
     onSuccess: (f) => {
       setLabel("");
       setOptions("");
       setRequired(false);
+      setRestricted(false);
       toast(`Added field “${f.label}”`);
       void refresh();
     },
+    onError: fail,
+  });
+  const toggleRestricted = useMutation({
+    mutationFn: (f: FieldDefinition) =>
+      send<FieldDefinition>(`/projects/${projectId}/fields/${f.key}`, token, "PATCH", { restricted: !f.restricted }),
+    onSuccess: () => void refresh(),
     onError: fail,
   });
   const toggleRequired = useMutation({
@@ -78,6 +87,15 @@ export function FieldEditor({ token, projectId }: { token: string; projectId: st
               onClick={() => toggleRequired.mutate(f)}
             >
               {f.required ? "Required" : "Optional"}
+            </button>
+            <button
+              className="secondary"
+              aria-pressed={!!f.restricted}
+              title="Restricted fields are seen and changed by project admins only"
+              disabled={toggleRestricted.isPending}
+              onClick={() => toggleRestricted.mutate(f)}
+            >
+              {f.restricted ? "Admins only" : "Visible to members"}
             </button>
             <button
               className="icon-btn danger"
@@ -122,6 +140,9 @@ export function FieldEditor({ token, projectId }: { token: string; projectId: st
         )}
         <label className="inline-check">
           <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} /> Required
+        </label>
+        <label className="inline-check">
+          <input type="checkbox" checked={restricted} onChange={(e) => setRestricted(e.target.checked)} /> Admins only
         </label>
         <button className="secondary" type="submit" disabled={!label.trim() || add.isPending}>
           <Plus size={14} /> Add field

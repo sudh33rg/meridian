@@ -45,7 +45,7 @@ pub(crate) async fn issue_details(
     let i = tx.identity.clone();
     // Archived issues stay readable (the drawer offers Restore); edits still require active issues.
     ensure_entity_access(&mut tx, "issues", id).await?;
-    let row: IssueDetail = sqlx::query_as(
+    let mut row: IssueDetail = sqlx::query_as(
         "SELECT id,tenant_id,project_id,number,title,description,kind,status,priority,assignee_id,created_by,\
          created_at,updated_at,parent_id,due_at,story_points,labels,custom_fields,archived_at,sprint_id,team_id,backlog_rank,trashed_at,purge_after \
          FROM issues WHERE tenant_id=$1 AND id=$2",
@@ -55,6 +55,11 @@ pub(crate) async fn issue_details(
     .fetch_one(&mut *tx)
     .await
     .map_err(db_err)?;
+    // Restricted field values are shown to project admins only (Phase J2).
+    if project_level(&mut tx, &i, row.project_id).await?.unwrap_or(0) < 3 {
+        let hidden = crate::api::fields::restricted_keys(&mut tx, i.tenant_id, row.project_id).await?;
+        row.custom_fields = crate::api::fields::without_keys(&row.custom_fields, &hidden);
+    }
     let mut headers = HeaderMap::new();
     let tag = format!(
         "\"{}\"",
@@ -154,10 +159,36 @@ pub(crate) async fn edit_issue(
         return Err(bad("Custom fields must be a small JSON object"));
     }
     // A full set of values replaces the stored ones, so it is checked against every definition.
-    let custom_fields = match v.custom_fields.clone() {
-        Some(c) => {
-            Some(crate::api::fields::validate_values(&mut tx, i.tenant_id, project, &c).await?)
+    // Members cannot change restricted fields, and their edits keep the restricted values as they are.
+    let admin = project_level(&mut tx, &i, project).await?.unwrap_or(0) >= 3;
+    let restricted = crate::api::fields::restricted_keys(&mut tx, i.tenant_id, project).await?;
+    let provided = match v.custom_fields.clone() {
+        Some(c) if !admin && !restricted.is_empty() => {
+            let stored: Value = sqlx::query_scalar("SELECT custom_fields FROM issues WHERE tenant_id=$1 AND id=$2")
+                .bind(i.tenant_id)
+                .bind(id)
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(db_err)?;
+            for key in &restricted {
+                if c.get(key).is_some_and(|next| Some(next) != stored.get(key)) {
+                    return Err(err(StatusCode::FORBIDDEN, &format!("“{key}” is restricted to project admins")));
+                }
+            }
+            let mut merged = crate::api::fields::without_keys(&c, &restricted);
+            if let (Value::Object(map), Value::Object(kept)) = (&mut merged, &stored) {
+                for key in &restricted {
+                    if let Some(value) = kept.get(key) {
+                        map.insert(key.clone(), value.clone());
+                    }
+                }
+            }
+            Some(merged)
         }
+        other => other,
+    };
+    let custom_fields = match provided {
+        Some(c) => Some(crate::api::fields::validate_values(&mut tx, i.tenant_id, project, &c).await?),
         None => None,
     };
     if let Some(ref next) = v.status {

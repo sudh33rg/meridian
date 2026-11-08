@@ -1176,6 +1176,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/issues/{id}/security-level": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_issue_level"];
+        put: operations["set_issue_level"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/issues/{id}/subtasks": {
         parameters: {
             query?: never;
@@ -2351,6 +2367,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/security-levels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_levels"];
+        put?: never;
+        post: operations["create_level"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}/service/queues": {
         parameters: {
             query?: never;
@@ -2760,6 +2792,38 @@ export interface paths {
         };
         get: operations["search"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/security-levels/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_level"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/security-levels/{id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["set_level_members"];
         post?: never;
         delete?: never;
         options?: never;
@@ -3699,12 +3763,16 @@ export interface components {
             /** Format: int32 */
             position: number;
             required: boolean;
+            /** @description Restricted fields are seen and changed by project admins only (Phase J2). */
+            restricted: boolean;
         };
         FieldPatch: {
             label?: string | null;
             /** @description Replaces the select options. Refused while an issue holds a value they would remove. */
             options?: string[] | null;
             required?: boolean | null;
+            /** @description Restrict or open the field to members. Changing it is refused for non-admins by the project check. */
+            restricted?: boolean | null;
         };
         /** @description Issues per status at the end of each day in the range (cumulative flow). */
         FlowRow: {
@@ -3962,6 +4030,18 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        IssueSecurity: {
+            /** Format: uuid */
+            level_id?: string | null;
+            name?: string | null;
+        };
+        IssueSecurityInput: {
+            /**
+             * Format: uuid
+             * @description A level of the issue's project, or null to make the issue open to the project.
+             */
+            level_id?: string | null;
+        };
         /** @description Team ownership of one issue. */
         IssueTeamInput: {
             /**
@@ -4057,6 +4137,8 @@ export interface components {
             /** @description Required for `select` (1 to 50 values); not allowed otherwise. */
             options?: string[] | null;
             required?: boolean | null;
+            /** @description Restricted to project admins. Default false. */
+            restricted?: boolean | null;
         };
         NewIssue: {
             /** @description Values for the project's custom fields. Required fields must be present. */
@@ -4134,6 +4216,12 @@ export interface components {
             name: string;
             /** @description Share the view with everyone who can see the project. Defaults to false (private). */
             shared?: boolean;
+        };
+        NewSecurityLevel: {
+            /** @description Up to 500 characters. */
+            description?: string | null;
+            /** @description 1 to 80 characters; unique per project. */
+            name: string;
         };
         NewServiceQueue: {
             /**
@@ -4585,6 +4673,23 @@ export interface components {
             /** Format: uuid */
             project_id: string;
             title: string;
+        };
+        SecurityLevel: {
+            description: string;
+            /** Format: uuid */
+            id: string;
+            /** @description Member ids of the level. Empty for callers who are not project admins. */
+            member_ids: string[];
+            name: string;
+        };
+        SecurityLevelMembers: {
+            /** @description Members of this workspace who may see the level's issues. Replaces the current list. */
+            user_ids: string[];
+        };
+        /** @description The levels of a project, and whether the caller may change them. */
+        SecurityLevels: {
+            can_manage: boolean;
+            levels: components["schemas"]["SecurityLevel"][];
         };
         SecurityPolicyInput: {
             require_mfa: boolean;
@@ -9463,6 +9568,110 @@ export interface operations {
                 };
             };
             /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    get_issue_level: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The issue's level */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssueSecurity"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Issue not found for you */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    set_issue_level: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueSecurityInput"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssueSecurity"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Project admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Issue or level not found for you */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -15331,6 +15540,110 @@ export interface operations {
             };
         };
     };
+    list_levels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The project's levels */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SecurityLevels"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    create_level: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewSecurityLevel"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SecurityLevel"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Project admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description A level with this name already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     list_queues: {
         parameters: {
             query?: never;
@@ -17551,6 +17864,115 @@ export interface operations {
                 };
             };
             /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    delete_level: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. Its issues become open to the project */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Project admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    set_level_members: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SecurityLevelMembers"];
+            };
+        };
+        responses: {
+            /** @description Saved */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Project admins only */
             403: {
                 headers: {
                     [name: string]: unknown;
