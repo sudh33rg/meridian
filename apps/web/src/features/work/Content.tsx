@@ -19,6 +19,7 @@ import { BacklogTab } from "../agile/BacklogTab";
 import { SprintsPanel } from "../agile/SprintsPanel";
 import { ReleasesPanel } from "../agile/ReleasesPanel";
 import { ReportsPanel } from "../agile/ReportsPanel";
+import { RoadmapPanel } from "../agile/RoadmapPanel";
 
 export function Content() {
   const {
@@ -49,6 +50,7 @@ export function Content() {
     "sprints",
     "releases",
     "reports",
+    "roadmap",
     "goals",
     "risks",
     "decisions",
@@ -131,6 +133,7 @@ export function Content() {
           <SprintsPanel />
           <ReleasesPanel />
           <ReportsPanel />
+          <RoadmapPanel />
           <IssuesTab />
           <KnowledgeTab />
         </>
@@ -148,6 +151,7 @@ export function Content() {
         "sprints",
         "releases",
         "reports",
+        "roadmap",
         "issues",
         "knowledge",
         "security",

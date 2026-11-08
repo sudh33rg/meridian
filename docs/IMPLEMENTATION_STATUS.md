@@ -98,3 +98,18 @@ Migrations `0021_history_and_reports.sql` and `0022_dashboards.sql`; API in `app
 | G5 CSV export | `GET /projects/{id}/export.csv` (active issues, at most 10,000 rows). Cells starting with `=`, `+`, `-`, `@`, tab or carriage return are neutralised. Web Export CSV button. | Sprint and release exports, and an export of history. |
 
 Checks: `cargo check`, `make openapi`, `make manifest`, `npm run build` pass. No tests added. Not yet run against PostgreSQL or in a browser.
+
+## Phase H — roadmaps, portfolio, capacity (8 November 2026)
+
+Migration `0023_roadmaps.sql`; API in `apps/server/src/api/roadmap.rs`; web in `apps/web/src/features/agile/RoadmapPanel.tsx`.
+
+| Step | What exists in source | Still open |
+|---|---|---|
+| H1 timeline and milestones | Milestones (create, edit, mark reached, delete). `GET /projects/{id}/timeline` returns epics (with child progress), releases, open sprints and milestones with dates. `GET /projects/{id}/dependencies`. | No drag-to-reschedule; the timeline is read-only and dates are edited on their own objects. |
+| H2 initiatives | Tenant-level initiatives with status and target date. Epics join with `PUT /initiatives/{id}/epics` (only epics in projects where the caller can edit). Progress counts only epics in projects the caller can open. | Initiative pages and owners' views; a portfolio roll-up across projects beyond epic counts. |
+| H3 updates and goals | Project updates with health (on track, at risk, off track). Goals link to issues (`PUT /goals/{id}/issues`) and report progress from linked work (`GET /goals/{id}/progress`). | Goal check-in cadence and reminders. |
+| H4 capacity | Member capacity in hours a week (admin sets it). `GET /capacity` compares remaining estimates of open work with capacity, limited to projects the caller can open. | Allocation across projects over time; capacity by week. |
+| H5 critical path | `GET /projects/{id}/critical-path`: longest chain of open issues linked by blocking relations, weighted by remaining estimate (60 minutes when unset). Reports loops instead of guessing. | Float and slack per item; calendar-aware scheduling. |
+| H6 baselines | Snapshot of open issues' due dates, and variance against it (`GET /baselines/{id}/variance`). | Scenario comparison and schedule re-baselining. |
+
+Checks: `cargo check`, `make openapi`, `make manifest`, `npm run build` pass. No tests added. Not yet run against PostgreSQL or in a browser.

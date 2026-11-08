@@ -622,3 +622,77 @@
 .history-list li {
   line-height: 1.5;
 }
+
+/* Roadmap (Phase H) */
+.roadmap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+.roadmap .panel {
+  padding: 12px;
+  min-width: 0;
+}
+.roadmap .panel h3 {
+  margin: 0 0 8px;
+  font-size: var(--fs-md);
+}
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.timeline-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 260px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+.timeline-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-sm);
+}
+.timeline-track {
+  position: relative;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--surface-3);
+}
+.timeline-bar {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  overflow: hidden;
+}
+.timeline-progress {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.milestone-mark {
+  position: absolute;
+  top: 1px;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  transform: rotate(45deg);
+  background: var(--warning);
+}
+.simple-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+.simple-table th,
+.simple-table td {
+  text-align: left;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--divider);
+}

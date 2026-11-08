@@ -13,6 +13,7 @@ pub mod org;
 pub mod personal;
 pub mod planning;
 pub mod reports;
+pub mod roadmap;
 pub mod releases;
 pub mod query;
 pub mod statuses;
