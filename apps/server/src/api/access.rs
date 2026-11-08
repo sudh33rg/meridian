@@ -272,8 +272,70 @@ pub(crate) async fn revoke_page_grant(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// A project's permission scheme. Owners and admins always hold level 3 in a project, so no scheme can
+/// lock them out.
+#[derive(Serialize, Deserialize, utoipa::ToSchema)]
+pub(crate) struct PermissionScheme {
+    /// The level a workspace member gets in this project: 1 (viewer, read only) or 2 (member).
+    pub(crate) member_level: i32,
+    /// The level needed to create, edit, comment on and move issues: 2 (member) or 3 (admin).
+    pub(crate) edit_min: i32,
+    /// The level needed to change the statuses, transition rules, custom fields and issue types: 2 or 3.
+    pub(crate) workflow_min: i32,
+}
+
+#[utoipa::path(get, path = "/api/projects/{id}/permission-scheme", tag = "access", params(("id" = Uuid, Path, description = "Project id")), responses((status = 200, description = "The project's scheme; defaults apply when none is saved", body = PermissionScheme), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn get_scheme(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<PermissionScheme>> {
+    let i = tx.identity.clone();
+    ensure_access(&mut tx, project).await?;
+    let s = scheme_of(&mut tx, i.tenant_id, project).await?;
+    Ok(Json(PermissionScheme {
+        member_level: s.member_level,
+        edit_min: s.edit_min,
+        workflow_min: s.workflow_min,
+    }))
+}
+
+#[utoipa::path(put, path = "/api/projects/{id}/permission-scheme", tag = "access", params(("id" = Uuid, Path, description = "Project id")), request_body = PermissionScheme, responses((status = 200, description = "Saved", body = PermissionScheme), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Project admins only", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn set_scheme(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+    Json(v): Json<PermissionScheme>,
+) -> ApiResult<Json<PermissionScheme>> {
+    let i = tx.identity.clone();
+    ensure_project_admin(&mut tx, project).await?;
+    if !matches!(v.member_level, 1 | 2) {
+        return Err(bad("member_level is 1 (viewer) or 2 (member)"));
+    }
+    if !matches!(v.edit_min, 2 | 3) {
+        return Err(bad("edit_min is 2 (member) or 3 (admin)"));
+    }
+    if !matches!(v.workflow_min, 2 | 3) {
+        return Err(bad("workflow_min is 2 (member) or 3 (admin)"));
+    }
+    sqlx::query(
+        "INSERT INTO project_permission_schemes(tenant_id,project_id,member_level,edit_min,workflow_min,updated_at) \
+         VALUES($1,$2,$3,$4,$5,now()) ON CONFLICT (tenant_id, project_id) DO UPDATE SET \
+         member_level=EXCLUDED.member_level, edit_min=EXCLUDED.edit_min, workflow_min=EXCLUDED.workflow_min, updated_at=now()",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .bind(v.member_level as i16)
+    .bind(v.edit_min as i16)
+    .bind(v.workflow_min as i16)
+    .execute(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    log_event(&mut tx, &i, "permission_scheme_updated", "project", project).await?;
+    Ok(Json(v))
+}
+
 pub(crate) fn routes() -> Router<App> {
     Router::new()
+        .route(
+            "/api/projects/{id}/permission-scheme",
+            get(get_scheme).put(set_scheme),
+        )
         .route(
             "/api/projects/{id}/access",
             get(list_access).put(grant_access),

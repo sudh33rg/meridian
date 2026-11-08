@@ -162,7 +162,7 @@ pub(crate) async fn create_field(
     Json(v): Json<NewField>,
 ) -> ApiResult<(StatusCode, Json<FieldDefinition>)> {
     let i = tx.identity.clone();
-    ensure_project_admin(&mut tx, project).await?;
+    ensure_workflow(&mut tx, project).await?;
     let label = validate_label(&v.label)?;
     if !FIELD_TYPES.contains(&v.field_type.as_str()) {
         return Err(bad(
@@ -241,7 +241,7 @@ pub(crate) async fn update_field(
     Json(v): Json<FieldPatch>,
 ) -> ApiResult<Json<FieldDefinition>> {
     let i = tx.identity.clone();
-    ensure_project_admin(&mut tx, project).await?;
+    ensure_workflow(&mut tx, project).await?;
     let current: Option<FieldDefinition> = sqlx::query_as(
         "SELECT key,label,field_type,options,required,position FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 AND key=$3",
     )
@@ -311,7 +311,7 @@ pub(crate) async fn delete_field(
     Path((project, key)): Path<(Uuid, String)>,
 ) -> ApiResult<StatusCode> {
     let i = tx.identity.clone();
-    ensure_project_admin(&mut tx, project).await?;
+    ensure_workflow(&mut tx, project).await?;
     if crate::api::transitions::field_is_required_by_rule(&mut tx, i.tenant_id, project, &key)
         .await?
     {

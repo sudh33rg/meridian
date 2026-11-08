@@ -55,7 +55,7 @@ pub(crate) async fn ensure_access(tx: &mut Tx, project: Uuid) -> ApiResult<()> {
     ) {
         1
     } else {
-        2
+        scheme_of(tx, i.tenant_id, project).await?.edit_min
     };
     match project_level(tx, &i, project).await? {
         Some(l) if l >= need => Ok(()),
@@ -63,6 +63,53 @@ pub(crate) async fn ensure_access(tx: &mut Tx, project: Uuid) -> ApiResult<()> {
         _ => Err(err(StatusCode::NOT_FOUND, "Project not found")),
     }
 }
+/// A project's permission scheme: the level a workspace member gets by default, the level needed to
+/// change issues, and the level needed to change the workflow and fields. A project without a row
+/// gets the defaults, which match the behaviour before schemes existed.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Scheme {
+    pub(crate) member_level: i32,
+    pub(crate) edit_min: i32,
+    pub(crate) workflow_min: i32,
+}
+
+pub(crate) const DEFAULT_SCHEME: Scheme = Scheme {
+    member_level: 2,
+    edit_min: 2,
+    workflow_min: 3,
+};
+
+pub(crate) async fn scheme_of(db: &mut PgConnection, tenant: Uuid, project: Uuid) -> ApiResult<Scheme> {
+    let row: Option<(i16, i16, i16)> = sqlx::query_as(
+        "SELECT member_level, edit_min, workflow_min FROM project_permission_schemes WHERE tenant_id=$1 AND project_id=$2",
+    )
+    .bind(tenant)
+    .bind(project)
+    .fetch_optional(&mut *db)
+    .await
+    .map_err(db_err)?;
+    Ok(match row {
+        Some((m, e, w)) => Scheme {
+            member_level: i32::from(m),
+            edit_min: i32::from(e),
+            workflow_min: i32::from(w),
+        },
+        None => DEFAULT_SCHEME,
+    })
+}
+
+/// Changing the workflow, custom fields and issue types needs the scheme's workflow level. Viewers and
+/// members who are below it are refused with 403; a caller who cannot see the project gets 404.
+pub(crate) async fn ensure_workflow(tx: &mut Tx, project: Uuid) -> ApiResult<()> {
+    let i = tx.identity.clone();
+    let need = scheme_of(tx, i.tenant_id, project).await?.workflow_min;
+    match project_level(tx, &i, project).await? {
+        Some(l) if l >= need => Ok(()),
+        Some(l) if l >= 1 => Err(forbidden()),
+        _ => Err(err(StatusCode::NOT_FOUND, "Project not found")),
+    }
+}
+
 /// Require project admin (grant management).
 pub(crate) async fn ensure_project_admin(tx: &mut Tx, project: Uuid) -> ApiResult<()> {
     let i = tx.identity.clone();

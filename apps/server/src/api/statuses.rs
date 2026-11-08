@@ -175,7 +175,7 @@ pub(crate) async fn create_status(
     Json(v): Json<NewStatus>,
 ) -> ApiResult<(StatusCode, Json<ProjectStatus>)> {
     let i = tx.identity.clone();
-    ensure_project_admin(&mut tx, project).await?;
+    ensure_workflow(&mut tx, project).await?;
     let name = validate_name(&v.name)?;
     let category = validate_category(&v.category)?;
     let key = match v.key {
@@ -254,7 +254,7 @@ pub(crate) async fn update_status(
     Json(v): Json<StatusPatch>,
 ) -> ApiResult<Json<ProjectStatus>> {
     let i = tx.identity.clone();
-    ensure_project_admin(&mut tx, project).await?;
+    ensure_workflow(&mut tx, project).await?;
     let current: Option<ProjectStatus> = sqlx::query_as(
         "SELECT key,name,category,position,wip_limit FROM project_statuses WHERE tenant_id=$1 AND project_id=$2 AND key=$3",
     )
@@ -318,7 +318,7 @@ pub(crate) async fn delete_status(
     Path((project, key)): Path<(Uuid, String)>,
 ) -> ApiResult<StatusCode> {
     let i = tx.identity.clone();
-    ensure_project_admin(&mut tx, project).await?;
+    ensure_workflow(&mut tx, project).await?;
     let category: Option<String> = sqlx::query_scalar(
         "SELECT category FROM project_statuses WHERE tenant_id=$1 AND project_id=$2 AND key=$3",
     )
@@ -377,7 +377,7 @@ pub(crate) async fn set_wip_limit(
     Json(v): Json<WipLimitInput>,
 ) -> ApiResult<Json<ProjectStatus>> {
     let i = tx.identity.clone();
-    ensure_project_admin(&mut tx, project).await?;
+    ensure_workflow(&mut tx, project).await?;
     if v.limit.is_some_and(|n| !(1..=1000).contains(&n)) {
         return Err(bad("A WIP limit is between 1 and 1000, or null for none"));
     }

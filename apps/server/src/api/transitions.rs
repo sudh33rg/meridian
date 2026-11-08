@@ -331,7 +331,7 @@ pub(crate) async fn create_transition(
     Json(v): Json<NewTransition>,
 ) -> ApiResult<(StatusCode, Json<TransitionRule>)> {
     let i = tx.identity.clone();
-    ensure_project_admin(&mut tx, project).await?;
+    ensure_workflow(&mut tx, project).await?;
     if v.from == v.to {
         return Err(bad(
             "A status cannot move to itself; that is always allowed",
@@ -407,7 +407,7 @@ pub(crate) async fn delete_transition(
     Path((project, from, to)): Path<(Uuid, String, String)>,
 ) -> ApiResult<StatusCode> {
     let i = tx.identity.clone();
-    ensure_project_admin(&mut tx, project).await?;
+    ensure_workflow(&mut tx, project).await?;
     let r = sqlx::query("DELETE FROM status_transitions WHERE tenant_id=$1 AND project_id=$2 AND from_key=$3 AND to_key=$4")
         .bind(i.tenant_id)
         .bind(project)
@@ -476,7 +476,7 @@ pub(crate) async fn create_action(
     Json(v): Json<NewTransitionAction>,
 ) -> ApiResult<(StatusCode, Json<TransitionAction>)> {
     let i = tx.identity.clone();
-    ensure_project_admin(&mut tx, project).await?;
+    ensure_workflow(&mut tx, project).await?;
     rule_exists(&mut tx, i.tenant_id, project, &from, &to).await?;
     let count: i64 = sqlx::query_scalar(
         "SELECT count(*) FROM transition_actions WHERE tenant_id=$1 AND project_id=$2 AND from_key=$3 AND to_key=$4",
@@ -566,7 +566,7 @@ pub(crate) async fn delete_action(
     Path((project, from, to, action)): Path<(Uuid, String, String, Uuid)>,
 ) -> ApiResult<StatusCode> {
     let i = tx.identity.clone();
-    ensure_project_admin(&mut tx, project).await?;
+    ensure_workflow(&mut tx, project).await?;
     let r = sqlx::query("DELETE FROM transition_actions WHERE tenant_id=$1 AND project_id=$2 AND from_key=$3 AND to_key=$4 AND id=$5")
         .bind(i.tenant_id)
         .bind(project)

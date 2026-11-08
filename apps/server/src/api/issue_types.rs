@@ -181,7 +181,7 @@ pub(crate) async fn create_issue_type(
     Json(v): Json<NewIssueType>,
 ) -> ApiResult<(StatusCode, Json<IssueType>)> {
     let i = tx.identity.clone();
-    ensure_project_admin(&mut tx, project).await?;
+    ensure_workflow(&mut tx, project).await?;
     let name = validate_name(&v.name)?;
     let icon = validate_icon(v.icon.as_deref().unwrap_or("task"))?;
     let level = v.hierarchy_level.unwrap_or(0);
@@ -247,7 +247,7 @@ pub(crate) async fn update_issue_type(
     Json(v): Json<IssueTypePatch>,
 ) -> ApiResult<Json<IssueType>> {
     let i = tx.identity.clone();
-    ensure_project_admin(&mut tx, project).await?;
+    ensure_workflow(&mut tx, project).await?;
     if type_level(&mut tx, i.tenant_id, project, &key)
         .await?
         .is_none()
@@ -299,7 +299,7 @@ pub(crate) async fn delete_issue_type(
     Path((project, key)): Path<(Uuid, String)>,
 ) -> ApiResult<StatusCode> {
     let i = tx.identity.clone();
-    ensure_project_admin(&mut tx, project).await?;
+    ensure_workflow(&mut tx, project).await?;
     let level = type_level(&mut tx, i.tenant_id, project, &key)
         .await?
         .ok_or_else(|| err(StatusCode::NOT_FOUND, "Issue type not found"))?;

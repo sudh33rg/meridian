@@ -18,6 +18,7 @@ pub mod query;
 pub mod releases;
 pub mod reports;
 pub mod roadmap;
+pub mod service;
 pub mod security;
 pub mod settings;
 pub mod statuses;
