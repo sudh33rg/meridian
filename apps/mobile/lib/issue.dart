@@ -13,9 +13,9 @@ class _MobileIssuePageState extends State<MobileIssuePage> {
     Api.request('/issues/${widget.issueId}/details',token:widget.token),
     Api.request('/issues/${widget.issueId}/comments',token:widget.token),
   ]);if(mounted)setState((){issue=r[0];comments=r[1];status=issue['status'] as String;error=null;});}
-  catch(e){if(mounted)setState(()=>error=e.toString());}}
-  Future<void> updateStatus(String next)async{try{await Api.request('/issues/${widget.issueId}/edit',token:widget.token,method:'PATCH',data:{'status':next});await load();}catch(e){if(mounted)setState(()=>error=e.toString());}}
-  Future<void> postComment()async{if(comment.text.trim().isEmpty)return;try{await Api.request('/issues/${widget.issueId}/comments',token:widget.token,method:'POST',data:{'body':comment.text.trim()});comment.clear();await load();}catch(e){if(mounted)setState(()=>error=e.toString());}}
+  catch(e){if(mounted)setState(()=>error=userMessage(e));}}
+  Future<void> updateStatus(String next)async{try{await Api.request('/issues/${widget.issueId}/edit',token:widget.token,method:'PATCH',data:{'status':next});await load();}catch(e){if(mounted)setState(()=>error=userMessage(e));}}
+  Future<void> postComment()async{if(comment.text.trim().isEmpty)return;try{await Api.request('/issues/${widget.issueId}/comments',token:widget.token,method:'POST',data:{'body':comment.text.trim()});comment.clear();await load();}catch(e){if(mounted)setState(()=>error=userMessage(e));}}
   @override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:Text('Issue ${issue?['number']??''}')),
     body:issue==null?Center(child:Text(error??'Loading…')):ListView(padding:const EdgeInsets.all(19),children:[
       if(error!=null)Text(error!,style:const TextStyle(color:Colors.red)),

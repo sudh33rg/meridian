@@ -25,7 +25,7 @@ class _LoginPageState extends State<LoginPage> {
       final r=await Api.request('/auth/login',method:'POST',data:{'slug':slug.text,'email':email.text,'password':password.text});
       if(r['mfa_required']==true){if(mounted)setState(()=>challenge=r['challenge'] as String);return;}
       await Api.adopt(r as Map<String,dynamic>);widget.onLogin(r['token'] as String);
-    }catch(e){if(mounted)setState(()=>error=e.toString());}
+    }catch(e){if(mounted)setState(()=>error=userMessage(e));}
     finally{if(mounted)setState(()=>busy=false);}
   }
   /// Second step for accounts with two-step verification: authenticator code or recovery code.
@@ -34,7 +34,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final r=await Api.request('/auth/mfa/verify',method:'POST',data:{'challenge':challenge,'code':code.text.trim()});
       await Api.adopt(r as Map<String,dynamic>);widget.onLogin(r['token'] as String);
-    }catch(e){if(mounted)setState(()=>error=e.toString());}
+    }catch(e){if(mounted)setState(()=>error=userMessage(e));}
     finally{if(mounted)setState(()=>busy=false);}
   }
   @override Widget build(BuildContext context)=>Scaffold(body:SafeArea(child:Center(child:ConstrainedBox(

@@ -18,7 +18,7 @@ class _HomePageState extends State<HomePage>{
     try {final raw=await secureStore.read(key:'issue_drafts');if(mounted)setState(()=>drafts=raw==null?[]:jsonDecode(raw) as List<dynamic>);}catch(_){/* corrupted local cache is not trusted */}
   }
   Future<void> _saveDrafts() async {await secureStore.write(key:'issue_drafts',value:jsonEncode(drafts.take(30).toList()));}
-  void fail(Object e){if(mounted)setState(()=>error=e.toString());}
+  void fail(Object e){if(mounted)setState(()=>error=userMessage(e));}
   Future<void> load() async {
     try {final p=await Api.request('/projects',token:widget.token) as List<dynamic>;
       if(!mounted)return;setState((){projects=p;if(!p.any((x)=>x['id']==projectId)){projectId=p.isEmpty?null:p.first['id'] as String;}});

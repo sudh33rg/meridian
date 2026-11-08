@@ -121,8 +121,8 @@ export function BillingPanel() {
           <div key={p.key} className={"panel-card" + (p.key === o.plan ? " current-plan" : "")}>
             <h3>{p.name}</h3>
             <p style={{ fontSize: 22, fontWeight: 700, margin: "4px 0" }}>
-              {p.seat_price_cents ? `$${(p.seat_price_cents / 100).toFixed(0)}` : "Free"}
-              {p.seat_price_cents ? <small className="muted"> / member / month</small> : null}
+              {p.seat_price_cents ? `$${(p.seat_price_cents / 100).toFixed(0)}` : "$0"}
+              <small className="muted">{p.seat_price_cents ? " / member / month" : " forever"}</small>
             </p>
             <ul className="plan-features">
               <li>{fmt(p.seats)} members</li>

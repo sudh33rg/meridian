@@ -46,7 +46,9 @@ These may not be broken without amending this Constitution.
 
 ## Article IV — Known gaps (the honest backlog)
 
-No database RLS; browser session in `sessionStorage`; only four workspace-wide roles (no project/page ACLs); no email delivery, verification, reset, MFA or SSO; no attachments; no real-time or CRDT editing; no functioning webhook dispatcher; no billing; Flutter never built; CI never run on GitHub. Work proceeds along the sequence in `docs/IMPLEMENTATION_STATUS.md`.
+Closed since the first preview (see `docs/IMPLEMENTATION_STATUS.md` for evidence): PostgreSQL row level security with a tenant-bound transaction per request; browser sessions in HttpOnly cookies with CSRF protection and refresh rotation (`sessionStorage` is gone); email verification, password reset and invitation email through a durable job queue; TOTP two-step verification with recovery codes and a workspace requirement; OpenID Connect single sign-on with verified email domains; SCIM 2.0 provisioning; guests, project grants and page restrictions; signed webhook delivery with SSRF protection, retries and auto-disable; attachments with type checks, quotas and an optional malware scanner; a live change feed and collaborative page editing; plan limits enforced on the server with a Stripe adapter; the Flutter app compiles, analyzes clean and signs in on the iOS simulator.
+
+Still open: CI has not yet run on GitHub; Flutter is verified on the iOS simulator only (no Android build, no device testing, mobile does not yet rotate tokens transparently for every screen); the Stripe, SCIM-against-a-real-directory, SSO-against-a-real-provider and ClamAV paths are written but exercised only locally or not at all; there is no passkey or hardware-key support; rate limits are per process; the `quick-xml` and `rsa` advisories from `cargo audit` remain (no fix is available yet); and no external security review or penetration test has been done. Work proceeds along the sequence in `docs/IMPLEMENTATION_STATUS.md`.
 
 ## Article V — Rules of work
 

@@ -111,3 +111,27 @@ Same method as above (run the stack, use it in a browser, probe the API and data
 | Mobile refresh-token rotation | Dart written (`Api` rotates on 401, shares one refresh attempt, clears and signs out when the server rejects it; sign-in stores the refresh token; logout calls the server) | **Not compiled or run** (no Flutter SDK) |
 
 Maintenance note: the operation-count literal in `openapi.rs`'s existing guard test went from 82 to 83 for the new endpoint.
+
+## Update — 8 November 2026 (visual verification of the enterprise release)
+
+Run locally: API and web dev server, Postgres 17 (container on port 55432), Mailpit, Dex as the OIDC provider, and the iOS simulator (iPhone 17 Pro). The OpenAPI spec was confirmed current (96 paths, 122 operations). Everything below was driven through the running app, its API, or the database.
+
+| Area | What was exercised | Result |
+|---|---|---|
+| Sign-up and workspace | Workspace created; verification banner shown | **Passed** |
+| Two-step verification | Enrolment shows QR and key; code confirms and issues 10 recovery codes; the same code is refused on a second sign-in (replay guard); sign-in accepts a current authenticator code; a recovery code signs in and leaves 9 | **Passed** |
+| Billing | Plan cards with live usage; development plan switch to Business; Free shows "$0 forever" (fixed a duplicated label) | **Passed** |
+| Verified domains | Domain added with its DNS TXT challenge; "Verify" is refused until the record exists (correct, no DNS in the sandbox). **Setup shortcut, development only:** the test domain `example.test` was then marked verified directly in the local database so SSO could be tested. This is not a verification and should not be read as one | **Passed** (refusal path); the successful DNS path was not exercised |
+| Single sign-on (OIDC, Dex) | SSO settings saved; "Sign in with SSO" redirects to the provider (discovery, PKCE); signing in as an unseen user from the verified domain creates a Member and lands on the overview | **Passed** |
+| Webhooks | Endpoint created (secret shown once); an `issue.created` change was delivered to a local receiver; the Standard Webhooks HMAC matched the stored secret | **Passed** (failure, retry and auto-disable paths not exercised) |
+| Attachments | Uploaded from the issue drawer; listed as "Not scanned" (no scanner configured, as designed); download returns `attachment`, `nosniff` and a sandbox CSP; an executable and an HTML file were refused (400) | **Passed** (ClamAV not run) |
+| Collaborative editing | Two users on separate origins: text typed by one appears in the other's live editor without reload, both directions; the restricted page shows its grants; the second user reads the page only with a grant | **Passed** |
+| Live change feed | An issue created by one user arrives on the other's stream; events from a **private** project never arrive for a member without access (0 of them) | **Passed** |
+| SCIM 2.0 | Token shown once; user provisioned from a verified domain; an unverified domain is refused (400); filter query; deactivation (`active=false`); missing token refused (401). Driven through the API, not a real identity provider | **Passed** (API only) |
+| Mobile (iOS simulator) | App installed and launched; sign-in as a member with the workspace slug, email and password; home shows the project's issues and page count | **Passed** (password sign-in; the two-step prompt and token rotation on device not exercised) |
+
+Defects found and fixed in this pass: the Free plan card repeated "Free" as title and price; wide tables inside panel cards pushed buttons past the card edge (cards now scroll horizontally); the mobile app showed the raw `Exception:` prefix before server errors (one helper now produces the message). The two web changes were checked in the running dev server (Billing); the mobile change was built and analyzed but not re-run on the simulator.
+
+Not verified in this pass: Android; two-step verification on mobile; SSO enforcement; a successful DNS domain verification; Stripe Checkout and the customer portal; the ClamAV scan; a real SMTP provider; a real identity provider or directory for SCIM; the full Docker stack after the latest nginx change; the Playwright and unit test suites after these changes (last run before the enterprise work).
+
+Environment notes: Docker Desktop was not running, so Colima was started as the Docker daemon. Port 5432 is held by an unrelated container, so Meridian's Postgres used port 55432. The sandbox blocked the local webhook receiver from binding a port; that one step ran outside the sandbox. Keyboard input in the simulator is slow: text reliably lands only after a short pause between taps, and the form shifts up when the keyboard opens.

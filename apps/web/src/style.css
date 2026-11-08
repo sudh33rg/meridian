@@ -1153,6 +1153,10 @@ label select:focus {
   padding: 18px;
   margin-bottom: 18px;
 }
+/* Wide tables inside cards scroll instead of pushing buttons past the card edge */
+.panel-card {
+  overflow-x: auto;
+}
 .panel-card h3 {
   margin: 0 0 4px;
 }

@@ -86,3 +86,6 @@ class Api {
     return parsed;
   }
 }
+
+/// The message to show a person: the server's text when there is one, never the exception type.
+String userMessage(Object e) => e.toString().replaceFirst('Exception: ', '');

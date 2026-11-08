@@ -32,12 +32,12 @@ This document explicitly distinguishes source code that exists from planned pari
 
 1. ~~No RLS~~ **Done (Phase 1)**: see `SECURITY.md`. Remaining: the system (owner) connection is still used for sign-in and cross-workspace flows, and RLS has been exercised only by the app role switch, not against an externally provisioned least-privilege role.
 2. ~~Web authentication in `sessionStorage`~~ **Done (Phase 1)** for the browser (HttpOnly cookies, CSRF, rotation, revoke UI). The mobile app now stores the refresh token and rotates it transparently on a 401 (code written, **not compiled** — no Flutter SDK).
-3. **Permissions**: project visibility and grants exist; page/issue/guest ACLs do not.
+3. **Permissions**: project visibility and grants, guests, and page restrictions inherited down the page tree are implemented. Issue-level ACLs do not exist yet.
 4. ~~Invite delivery / verification / reset~~ **Implemented** with a mail abstraction; unverified accounts are not blocked. Real SMTP delivery has only been exercised against Mailpit.
 5. ~~Audit/outbox atomicity~~ **Done**: entity, audit, event and outbox writes share the request transaction. Automation rule runs also share it.
-6. **No concurrency-tested live editor**: optimistic versions protect against accidental overwrites but don't provide Google Docs-like simultaneous editing.
-7. **Webhook registration only**: URLs are not requested automatically, avoiding unreviewed SSRF risk, but delivery is not functional.
-8. **No payment or SSO vendor integration**: entitlement response is development metadata and must not be treated as billing enforcement.
+6. **Live editing**: pages are edited collaboratively (Yjs/CRDT over WebSocket, verified with two users). Concurrency has not been load-tested beyond that.
+7. **Webhooks deliver**: signed, SSRF-protected, retried and auto-disabled after repeated failures. The failure, retry and auto-disable paths are implemented but not yet exercised.
+8. **Payments and identity providers**: plan limits are enforced on the server; Stripe Checkout and the portal are written but untested here. SSO was verified against a local OIDC provider only; SCIM was verified through its API only.
 9. **Partial toolchain validation**: Rust, web, PostgreSQL migrations, the API smoke test and browser e2e were executed locally on 7 Nov 2026; the CI workflow has not yet run on GitHub and Flutter has never been built.
 10. **No security certification**: no external audit, pentest, verified backups, load run or accessibility certification has been completed.
 
@@ -45,8 +45,8 @@ This document explicitly distinguishes source code that exists from planned pari
 
 1. Push and confirm the first CI run is green (Flutter job in particular).
 2. Phase 2 of `RESEARCH_AND_ROADMAP.md` (configurable workflows, custom fields, MQL, pagination, typed response schemas for endpoints that still return `Value`).
-3. Identity: MFA, SSO/SCIM; compile and exercise the mobile refresh rotation.
-4. Phase 3–5: client sync over the event log, live collaborative editor, webhook/notification dispatch (webhooks stay off until Constitution III.7 is satisfied).
-5. Add asset service.
+3. Run CI on GitHub (`act` is installed for a local dry run); fix what it finds, including the Flutter job.
+4. Exercise what is written but untested: Stripe Checkout, the ClamAV scan, webhook failure and retry paths, DNS domain verification, SCIM against a real directory, and mobile two-step verification.
+5. Passkeys (WebAuthn), Android builds, and an external security review.
 6. Finish complete Agile/Confluence feature families, migration tools, real-time search and optional governed AI.
 7. Run multi-device E2E, destructive failure testing, DR restore, load soak and accessibility audit before any enterprise GA declaration.
