@@ -167,17 +167,34 @@ pub(crate) async fn run_post_functions(
             "set_field" => {
                 let field = field
                     .ok_or_else(|| ApiError::Internal("A set_field action has no field".into()))?;
+                let value = value.unwrap_or(Value::Null);
+                let old: Option<String> =
+                    sqlx::query_scalar("SELECT custom_fields->>$1 FROM issues WHERE tenant_id=$2 AND id=$3")
+                        .bind(&field)
+                        .bind(tenant)
+                        .bind(issue)
+                        .fetch_one(&mut *db)
+                        .await
+                        .map_err(db_err)?;
                 // Keeps updated_at: the post-function is part of the status change, not a separate edit.
                 sqlx::query(
                     "UPDATE issues SET custom_fields = jsonb_set(COALESCE(custom_fields,'{}'::jsonb), ARRAY[$1]::text[], $2, true) WHERE tenant_id=$3 AND id=$4",
                 )
                 .bind(&field)
-                .bind(value.unwrap_or(Value::Null))
+                .bind(&value)
                 .bind(tenant)
                 .bind(issue)
                 .execute(&mut *db)
                 .await
                 .map_err(db_err)?;
+                // The change is recorded in the issue's change history, as an edit would be.
+                let new = match &value {
+                    Value::Null => None,
+                    Value::String(text) => Some(text.clone()),
+                    other => Some(other.to_string()),
+                };
+                crate::api::history::record_change(db, tenant, issue, actor, &format!("custom_fields.{field}"), old, new)
+                    .await?;
             }
             "notify_admins" => {
                 sqlx::query(
@@ -583,8 +600,98 @@ pub(crate) async fn delete_action(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// The fields a transition screen shows, in order.
+#[derive(Serialize, Deserialize, utoipa::ToSchema)]
+pub(crate) struct TransitionScreen {
+    /// Field keys of this project, shown in this order. At most 20; an empty list hides every field.
+    pub(crate) fields: Vec<String>,
+}
+
+#[utoipa::path(get, path = "/api/projects/{id}/transitions/{from}/{to}/screen", tag = "workflow", params(("id" = Uuid, Path, description = "Resource id"), ("from" = String, Path, description = "From status key"), ("to" = String, Path, description = "To status key")), responses((status = 200, description = "The fields this move shows", body = TransitionScreen), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "No such rule", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn get_screen(
+    mut tx: Tx,
+    Path((project, from, to)): Path<(Uuid, String, String)>,
+) -> ApiResult<Json<TransitionScreen>> {
+    let i = tx.identity.clone();
+    ensure_access(&mut tx, project).await?;
+    rule_exists(&mut tx, i.tenant_id, project, &from, &to).await?;
+    let fields: Vec<String> = sqlx::query_scalar(
+        "SELECT field_key FROM transition_screen_fields WHERE tenant_id=$1 AND project_id=$2 AND from_key=$3 AND to_key=$4 ORDER BY position, field_key",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .bind(&from)
+    .bind(&to)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    Ok(Json(TransitionScreen { fields }))
+}
+
+#[utoipa::path(put, path = "/api/projects/{id}/transitions/{from}/{to}/screen", tag = "workflow", params(("id" = Uuid, Path, description = "Resource id"), ("from" = String, Path, description = "From status key"), ("to" = String, Path, description = "To status key")), request_body = TransitionScreen, responses((status = 200, description = "Saved", body = TransitionScreen), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Below the workflow level of the project's scheme", body = ErrorBody), (status = 404, description = "No such rule", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn set_screen(
+    mut tx: Tx,
+    Path((project, from, to)): Path<(Uuid, String, String)>,
+    Json(v): Json<TransitionScreen>,
+) -> ApiResult<Json<TransitionScreen>> {
+    let i = tx.identity.clone();
+    ensure_workflow(&mut tx, project).await?;
+    rule_exists(&mut tx, i.tenant_id, project, &from, &to).await?;
+    if v.fields.len() > 20 {
+        return Err(bad("A transition screen shows at most 20 fields"));
+    }
+    let mut seen = std::collections::HashSet::new();
+    for key in &v.fields {
+        if !seen.insert(key.as_str()) {
+            return Err(bad(&format!("“{key}” is listed twice")));
+        }
+        let defined: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 AND key=$3)",
+        )
+        .bind(i.tenant_id)
+        .bind(project)
+        .bind(key)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(db_err)?;
+        if !defined {
+            return Err(bad(&format!("“{key}” is not a custom field in this project")));
+        }
+    }
+    sqlx::query(
+        "DELETE FROM transition_screen_fields WHERE tenant_id=$1 AND project_id=$2 AND from_key=$3 AND to_key=$4",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .bind(&from)
+    .bind(&to)
+    .execute(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    for (position, key) in v.fields.iter().enumerate() {
+        sqlx::query(
+            "INSERT INTO transition_screen_fields(tenant_id,project_id,from_key,to_key,field_key,position) VALUES($1,$2,$3,$4,$5,$6)",
+        )
+        .bind(i.tenant_id)
+        .bind(project)
+        .bind(&from)
+        .bind(&to)
+        .bind(key)
+        .bind(position as i32)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    }
+    log_event(&mut tx, &i, "transition_screen_updated", "project", project).await?;
+    Ok(Json(v))
+}
+
 pub(crate) fn routes() -> Router<App> {
     Router::new()
+        .route(
+            "/api/projects/{id}/transitions/{from}/{to}/screen",
+            get(get_screen).put(set_screen),
+        )
         .route(
             "/api/projects/{id}/transitions",
             get(list_transitions).post(create_transition),

@@ -876,3 +876,77 @@ pub(crate) fn routes() -> Router<App> {
             get(issue_links).post(new_issue_link),
         )
 }
+
+/// Permanently removes trashed issues whose restore window has ended (Phase F6). It runs from the
+/// hourly maintenance loop on the system connection, in batches of 100 issues, one transaction each.
+///
+/// Before an issue's row is deleted: its live subtasks become top-level issues; its import keys and
+/// release memberships are removed, so the rows that point at it do not block the delete; its
+/// attachments are hidden and their objects are removed by an `attachment.purge` job. Everything else
+/// goes with the issue through the cascading foreign keys. A purge writes an audit row naming the
+/// member who trashed the issue, when that is known.
+pub(crate) async fn purge_expired_trash(db: &sqlx::PgPool) -> Result<u64, sqlx::Error> {
+    let due: Vec<(Uuid, Uuid, Option<Uuid>)> = sqlx::query_as(
+        "SELECT id, tenant_id, trashed_by FROM issues WHERE trashed_at IS NOT NULL AND purge_after IS NOT NULL \
+         AND purge_after <= now() ORDER BY purge_after LIMIT 100",
+    )
+    .fetch_all(db)
+    .await?;
+    let mut purged = 0u64;
+    for (id, tenant, trashed_by) in due {
+        let mut tx = db.begin().await?;
+        sqlx::query("UPDATE issues SET parent_id=NULL WHERE tenant_id=$1 AND parent_id=$2")
+            .bind(tenant)
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+        sqlx::query("DELETE FROM imported_issue_refs WHERE tenant_id=$1 AND issue_id=$2")
+            .bind(tenant)
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+        sqlx::query("DELETE FROM release_issues WHERE tenant_id=$1 AND issue_id=$2")
+            .bind(tenant)
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+        let keys: Vec<String> = sqlx::query_scalar(
+            "UPDATE attachments SET deleted_at=now() WHERE tenant_id=$1 AND entity_type='issue' AND entity_id=$2 \
+             AND deleted_at IS NULL RETURNING storage_key",
+        )
+        .bind(tenant)
+        .bind(id)
+        .fetch_all(&mut *tx)
+        .await?;
+        for key in keys {
+            sqlx::query("INSERT INTO jobs(tenant_id,kind,payload) VALUES($1,'attachment.purge',$2)")
+                .bind(tenant)
+                .bind(json!({ "storage_key": key }))
+                .execute(&mut *tx)
+                .await?;
+        }
+        let removed = sqlx::query(
+            "DELETE FROM issues WHERE tenant_id=$1 AND id=$2 AND trashed_at IS NOT NULL AND purge_after <= now()",
+        )
+        .bind(tenant)
+        .bind(id)
+        .execute(&mut *tx)
+        .await?
+        .rows_affected();
+        if removed == 1 {
+            if let Some(actor) = trashed_by {
+                sqlx::query(
+                    "INSERT INTO audit_events(tenant_id,actor_id,action,entity_type,entity_id) VALUES($1,$2,'issue_purged','issue',$3)",
+                )
+                .bind(tenant)
+                .bind(actor)
+                .bind(id)
+                .execute(&mut *tx)
+                .await?;
+            }
+            purged += 1;
+        }
+        tx.commit().await?;
+    }
+    Ok(purged)
+}

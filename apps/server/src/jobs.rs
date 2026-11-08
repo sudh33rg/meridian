@@ -131,6 +131,18 @@ async fn handle(ctx: &Ctx, job: &Job) -> Result<(), String> {
             let id = payload_id(&job.payload, "attachment_id")?;
             crate::attachments::scan_job(&ctx.db, &ctx.cfg, &ctx.store, id).await
         }
+        "attachment.purge" => {
+            let key = job
+                .payload
+                .get("storage_key")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| "attachment.purge needs a storage_key".to_string())?;
+            use object_store::ObjectStoreExt;
+            match ctx.store.delete(&object_store::path::Path::from(key)).await {
+                Ok(()) | Err(object_store::Error::NotFound { .. }) => Ok(()),
+                Err(e) => Err(e.to_string()),
+            }
+        }
         other => Err(format!("unknown job kind {other}")),
     }
 }
@@ -215,6 +227,12 @@ pub(crate) fn spawn_maintenance(db: PgPool) {
                 Ok(n) if n > 0 => tracing::debug!(sprints = n, "captured sprint burndown"),
                 Ok(_) => {}
                 Err(e) => tracing::error!(error=%e, "sprint burndown capture failed"),
+            }
+            // Trash past its 30-day window is purged (Phase F6).
+            match crate::api::issues::purge_expired_trash(&db).await {
+                Ok(n) if n > 0 => tracing::info!(issues = n, "purged expired trash"),
+                Ok(_) => {}
+                Err(e) => tracing::error!(error=%e, "trash purge failed"),
             }
             tokio::time::sleep(Duration::from_secs(3600)).await;
         }

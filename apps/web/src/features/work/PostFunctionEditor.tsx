@@ -29,6 +29,63 @@ function fieldValue(def: FieldDefinition | undefined, raw: string): unknown {
   return raw;
 }
 
+/** The fields a move shows in its transition screen. Saved per move; the order is the project's field order. */
+function ScreenFields({
+  token,
+  projectId,
+  from,
+  to,
+  fields,
+}: {
+  token: string;
+  projectId: string;
+  from: string;
+  to: string;
+  fields: FieldDefinition[];
+}) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const path = `/projects/${projectId}/transitions/${from}/${to}/screen`;
+  const screenQ = useQuery({
+    queryKey: ["transition-screen", projectId, from, to],
+    queryFn: () => request<{ fields: string[] }>(token, path),
+  });
+  const saved = screenQ.data?.fields ?? [];
+  const [draft, setDraft] = useState<string[] | null>(null);
+  const shown = draft ?? saved;
+  const save = useMutation({
+    mutationFn: () => send<{ fields: string[] }>(path, token, "PUT", { fields: shown }),
+    onSuccess: () => {
+      setDraft(null);
+      toast("Transition screen saved");
+      void qc.invalidateQueries({ queryKey: ["transition-screen", projectId, from, to] });
+    },
+    onError: (e) => toast(errorMessage(e), { kind: "error" }),
+  });
+  const toggle = (key: string) =>
+    setDraft(
+      shown.includes(key)
+        ? shown.filter((k) => k !== key)
+        : fields.map((f) => f.key).filter((k) => shown.includes(k) || k === key),
+    );
+  return (
+    <fieldset className="screen-fields">
+      <legend className="muted small">Fields shown when this move is made</legend>
+      {!fields.length && <p className="muted small">Define custom fields first.</p>}
+      {fields.map((f) => (
+        <label key={f.key} className="filter-chip">
+          <input type="checkbox" checked={shown.includes(f.key)} onChange={() => toggle(f.key)} /> {f.label}
+        </label>
+      ))}
+      {draft && (
+        <button type="button" className="primary" disabled={save.isPending} onClick={() => save.mutate()}>
+          Save screen
+        </button>
+      )}
+    </fieldset>
+  );
+}
+
 /** Post-functions of one allowed move: actions that run in the same transaction as the status change. */
 export function PostFunctionEditor({
   token,
@@ -144,6 +201,7 @@ export function PostFunctionEditor({
               <li className="muted small">No post-functions on this move.</li>
             )}
           </ul>
+          <ScreenFields token={token} projectId={projectId} from={from} to={to} fields={fields} />
           <form
             className="workflow-add"
             onSubmit={(e) => {

@@ -52,6 +52,15 @@ export function IssueDrawer({
     enabled: !!projectId,
   });
   const teamsQ = useTeams(token);
+  // A move to another status can show fields of its transition screen; the drawer says which.
+  const currentStatus = issue ? str(issue.status) : "";
+  const screenQ = useQuery({
+    queryKey: ["transition-screen", projectId, currentStatus, status],
+    queryFn: () =>
+      request<{ fields: string[] }>(token, `/projects/${projectId}/transitions/${currentStatus}/${status}/screen`),
+    enabled: !!projectId && !!currentStatus && status !== currentStatus,
+    retry: false,
+  });
   const { me } = useWorkspace();
   // Comment editing: the comment being edited, its draft text, and the history currently open.
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null),
@@ -231,6 +240,13 @@ export function IssueDrawer({
               />
             </label>
             <p className="drawer-description">{str(issue.description) || "No description yet."}</p>
+            {screenQ.data && screenQ.data.fields.length > 0 && (
+              <p className="muted small" role="status">
+                This move shows{" "}
+                {screenQ.data.fields.map((k) => (fieldsQ.data ?? []).find((f) => f.key === k)?.label ?? k).join(", ")}
+                .
+              </p>
+            )}
             <div className="form-row">
               <label>
                 Status
