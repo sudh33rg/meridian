@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'core.dart';
 import 'reader.dart';
 import 'issue.dart';
+import 'planning.dart';
 
 class HomePage extends StatefulWidget {
   final String token;final VoidCallback onLogout;
@@ -10,7 +11,7 @@ class HomePage extends StatefulWidget {
   @override State<HomePage> createState()=>_HomePageState();
 }
 class _HomePageState extends State<HomePage>{
-  List<dynamic> projects=[],issues=[],pages=[],sprints=[],goals=[],notifications=[],searchResults=[],drafts=[];
+  List<dynamic> projects=[],issues=[],pages=[],sprints=[],goals=[],notifications=[],searchResults=[],drafts=[],backlog=[],releases=[];
   String? projectId,error,offlineNote;bool loading=true;int section=0; final query=TextEditingController();
   @override void initState(){super.initState();load();_readDrafts();}
   @override void dispose(){query.dispose();super.dispose();}
@@ -34,6 +35,14 @@ class _HomePageState extends State<HomePage>{
       if(mounted)setState(()=>notifications=n);
     }catch(e){fail(e);}finally{if(mounted)setState(()=>loading=false);}
   }
+  /// The ranked backlog and the releases of the project. Optional: a failure here leaves the rest alone.
+  Future<void> _loadPlanning(String project) async {
+    try {
+      final b=await Api.requestAllPages('/projects/$project/backlog?include_done=false',token:widget.token);
+      final r=await Api.request('/projects/$project/releases',token:widget.token);
+      if(mounted)setState((){backlog=b;releases=r is List?r:[];});
+    }catch(_){/* planning lists are optional */}
+  }
   Future<void> loadDetails() async {
     final project=projectId;
     if(project==null){if(mounted)setState((){issues=[];pages=[];sprints=[];goals=[];offlineNote=null;});return;}
@@ -44,6 +53,7 @@ class _HomePageState extends State<HomePage>{
         Api.request('/projects/$project/sprints',token:widget.token),Api.request('/projects/$project/goals',token:widget.token),
       ]);
       await _saveIssueCache(project,r[0] as List<dynamic>);
+      await _loadPlanning(project);
       if(mounted)setState((){issues=r[0] as List<dynamic>;pages=r[1] as List<dynamic>;sprints=r[2] as List<dynamic>;goals=r[3] as List<dynamic>;offlineNote=null;});
     }
     catch(e){
@@ -118,8 +128,14 @@ class _HomePageState extends State<HomePage>{
           ],
           if(section==1)...pages.map((p)=>Card(child:ListTile(leading:const Icon(Icons.description_outlined,color:primary),title:Text(p['title']??''),subtitle:Text('Version ${p['version']}'),onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>MobilePageReader(page:p)))))),
           if(section==2)...[
+            Text('Backlog',style:Theme.of(context).textTheme.titleMedium),const SizedBox(height:10),
+            ...backlog.take(50).map((b)=>Card(child:ListTile(leading:const Icon(Icons.list_alt,color:primary),title:Text(b['title']??''),subtitle:Text('${b['kind']} · ${b['priority']}'),trailing:(b['story_points']!=null)?Text('${b['story_points']} pts'):null))),
+            if(backlog.isEmpty)const ListTile(title:Text('Nothing in the backlog'),subtitle:Text('Unsprinted, open work appears here in rank order.')),
+            const SizedBox(height:20),Text('Releases',style:Theme.of(context).textTheme.titleMedium),const SizedBox(height:10),
+            ...releases.map((rl)=>Card(child:ListTile(leading:const Icon(Icons.rocket_launch_outlined,color:primary),title:Text(rl['name']??''),subtitle:Text(rl['status']??''),onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>ReleasePage(token:widget.token,releaseId:rl['id'] as String)))))),
+            const SizedBox(height:20),
             Text('Sprints',style:Theme.of(context).textTheme.titleMedium),const SizedBox(height:10),
-            ...sprints.map((s)=>Card(child:ListTile(leading:const Icon(Icons.event_repeat,color:primary),title:Text(s['name']??''),subtitle:Text(s['goal']??''),trailing:Chip(label:Text(s['state']??''))))),
+            ...sprints.map((s)=>Card(child:ListTile(leading:const Icon(Icons.event_repeat,color:primary),title:Text(s['name']??''),subtitle:Text(s['goal']??''),trailing:Chip(label:Text(s['state']??'')),onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>SprintPage(token:widget.token,sprintId:s['id'] as String,name:s['name']??'')))))),
             const SizedBox(height:20),Text('Goals',style:Theme.of(context).textTheme.titleMedium),const SizedBox(height:10),
             ...goals.map((g)=>Card(child:ListTile(leading:const Icon(Icons.flag_outlined,color:primary),title:Text(g['title']??''),subtitle:LinearProgressIndicator(value:((g['progress'] as num?)??0)/100),trailing:Text('${g['progress']}%')))),
           ],
