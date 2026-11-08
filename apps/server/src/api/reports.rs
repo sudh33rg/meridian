@@ -642,7 +642,7 @@ pub(crate) async fn delete_dashboard(mut tx: Tx, Path(id): Path<Uuid>) -> ApiRes
 
 /// Quotes a CSV cell and neutralises spreadsheet formulas by prefixing a quote when a cell starts
 /// with `=`, `+`, `-`, `@`, a tab or a carriage return.
-fn csv_cell(raw: &str) -> String {
+pub(crate) fn csv_cell(raw: &str) -> String {
     let guarded = match raw.chars().next() {
         Some('=') | Some('+') | Some('-') | Some('@') | Some('\t') | Some('\r') => format!("'{raw}"),
         _ => raw.to_string(),

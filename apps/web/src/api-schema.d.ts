@@ -196,6 +196,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/audit/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["audit_events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audit/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["audit_export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/accept-invite": {
         parameters: {
             query?: never;
@@ -2963,6 +2995,20 @@ export interface components {
             subject_type: string;
             title: string;
         };
+        /** @description One audit event. Events are listed newest first, in the order they were recorded. */
+        AuditEvent: {
+            action: string;
+            actor: string;
+            /** Format: uuid */
+            actor_id: string;
+            /** Format: uuid */
+            entity_id: string;
+            entity_type: string;
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            occurred_at: string;
+        };
         AuthResponse: {
             /** @description Send this with the code to `/auth/mfa/verify`. */
             challenge?: string | null;
@@ -5357,6 +5403,130 @@ export interface operations {
             };
             /** @description Not found in this workspace */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    audit_events: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Exact action name, for example `issue_created`. Up to 80 characters. */
+                action: string | null;
+                /** @description Exact entity type, for example `issue`. Up to 80 characters. */
+                entity_type: string | null;
+                /** @description Only events by this member. */
+                actor_id: string | null;
+                /** @description Events on or after this UTC date (YYYY-MM-DD). */
+                from: string | null;
+                /** @description Events on or before this UTC date (YYYY-MM-DD). */
+                to: string | null;
+                /** @description Page size, 1 to 200 (default 50). Ignored by the CSV export. */
+                limit: number | null;
+                /** @description Value of `X-Next-Cursor` from the previous page. */
+                cursor: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Audit events, newest first. X-Next-Cursor is present when another page exists */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditEvent"][];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Workspace admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    audit_export: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Exact action name, for example `issue_created`. Up to 80 characters. */
+                action: string | null;
+                /** @description Exact entity type, for example `issue`. Up to 80 characters. */
+                entity_type: string | null;
+                /** @description Only events by this member. */
+                actor_id: string | null;
+                /** @description Events on or after this UTC date (YYYY-MM-DD). */
+                from: string | null;
+                /** @description Events on or before this UTC date (YYYY-MM-DD). */
+                to: string | null;
+                /** @description Page size, 1 to 200 (default 50). Ignored by the CSV export. */
+                limit: number | null;
+                /** @description Value of `X-Next-Cursor` from the previous page. */
+                cursor: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matching audit events as CSV (at most 10000 rows). Cells that start with a formula character are quoted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Workspace admins only */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

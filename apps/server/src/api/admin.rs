@@ -137,8 +137,161 @@ pub(crate) async fn import_issues(
     ))
 }
 
+/// Filters for the audit log. Each one is optional and they combine with AND.
+#[derive(Deserialize, utoipa::IntoParams)]
+pub(crate) struct AuditQuery {
+    /// Exact action name, for example `issue_created`. Up to 80 characters.
+    pub(crate) action: Option<String>,
+    /// Exact entity type, for example `issue`. Up to 80 characters.
+    pub(crate) entity_type: Option<String>,
+    /// Only events by this member.
+    pub(crate) actor_id: Option<Uuid>,
+    /// Events on or after this UTC date (YYYY-MM-DD).
+    pub(crate) from: Option<String>,
+    /// Events on or before this UTC date (YYYY-MM-DD).
+    pub(crate) to: Option<String>,
+    /// Page size, 1 to 200 (default 50). Ignored by the CSV export.
+    pub(crate) limit: Option<i64>,
+    /// Value of `X-Next-Cursor` from the previous page.
+    pub(crate) cursor: Option<String>,
+}
+
+/// One audit event. Events are listed newest first, in the order they were recorded.
+#[derive(Serialize, FromRow, utoipa::ToSchema)]
+pub(crate) struct AuditEvent {
+    pub(crate) id: i64,
+    pub(crate) action: String,
+    pub(crate) entity_type: String,
+    pub(crate) entity_id: Uuid,
+    pub(crate) actor_id: Uuid,
+    pub(crate) actor: String,
+    pub(crate) occurred_at: DateTime<Utc>,
+}
+
+/// Largest number of events the CSV export returns.
+const AUDIT_EXPORT_LIMIT: i64 = 10_000;
+
+fn audit_day(raw: Option<&str>, end_of: bool) -> ApiResult<Option<DateTime<Utc>>> {
+    let Some(text) = raw.map(str::trim).filter(|s| !s.is_empty()) else {
+        return Ok(None);
+    };
+    let day = chrono::NaiveDate::parse_from_str(text, "%Y-%m-%d")
+        .map_err(|_| bad("Dates must use the form YYYY-MM-DD"))?;
+    let day = if end_of {
+        day.succ_opt().ok_or_else(|| bad("Date is out of range"))?
+    } else {
+        day
+    };
+    Ok(Some(day.and_hms_opt(0, 0, 0).expect("midnight exists").and_utc()))
+}
+
+/// Runs the filtered audit query for the caller's workspace. `to` is exclusive here: the caller
+/// passes the day after the last day it wants.
+async fn audit_rows(
+    tx: &mut Tx,
+    tenant: Uuid,
+    q: &AuditQuery,
+    limit: i64,
+    cursor: Option<i64>,
+) -> ApiResult<Vec<AuditEvent>> {
+    let action = q.action.as_deref().map(str::trim).filter(|s| !s.is_empty());
+    let entity = q.entity_type.as_deref().map(str::trim).filter(|s| !s.is_empty());
+    if action.is_some_and(|s| s.chars().count() > 80) || entity.is_some_and(|s| s.chars().count() > 80) {
+        return Err(bad("Action and entity type are limited to 80 characters"));
+    }
+    let from = audit_day(q.from.as_deref(), false)?;
+    let to = audit_day(q.to.as_deref(), true)?;
+    if let (Some(f), Some(t)) = (from, to) {
+        if f >= t {
+            return Err(bad("'from' must be on or before 'to'"));
+        }
+    }
+    let rows: Vec<AuditEvent> = sqlx::query_as(
+        "SELECT a.id, a.action, a.entity_type, a.entity_id, a.actor_id, u.display_name AS actor, a.occurred_at \
+         FROM audit_events a JOIN users u ON u.id=a.actor_id \
+         WHERE a.tenant_id=$1 AND ($2::text IS NULL OR a.action=$2) AND ($3::text IS NULL OR a.entity_type=$3) \
+         AND ($4::uuid IS NULL OR a.actor_id=$4) AND ($5::timestamptz IS NULL OR a.occurred_at>=$5) \
+         AND ($6::timestamptz IS NULL OR a.occurred_at<$6) AND ($7::bigint IS NULL OR a.id<$7) \
+         ORDER BY a.id DESC LIMIT $8",
+    )
+    .bind(tenant)
+    .bind(action)
+    .bind(entity)
+    .bind(q.actor_id)
+    .bind(from)
+    .bind(to)
+    .bind(cursor)
+    .bind(limit)
+    .fetch_all(&mut **tx)
+    .await
+    .map_err(db_err)?;
+    Ok(rows)
+}
+
+#[utoipa::path(get, path = "/api/audit/events", tag = "admin", params(AuditQuery), responses((status = 200, description = "Audit events, newest first. X-Next-Cursor is present when another page exists", body = Vec<AuditEvent>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Workspace admins only", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn audit_events(
+    mut tx: Tx,
+    axum::extract::Query(q): axum::extract::Query<AuditQuery>,
+) -> ApiResult<(axum::http::HeaderMap, Json<Vec<AuditEvent>>)> {
+    let i = tx.identity.clone();
+    require_admin(&i)?;
+    let limit = q.limit.unwrap_or(50);
+    if !(1..=200).contains(&limit) {
+        return Err(bad("limit must be between 1 and 200"));
+    }
+    let cursor: Option<i64> = match q.cursor.as_deref().filter(|c| !c.is_empty()) {
+        None => None,
+        Some(c) => Some(c.parse::<i64>().ok().filter(|n| *n > 0).ok_or_else(|| bad("Invalid cursor"))?),
+    };
+    let mut rows = audit_rows(&mut tx, i.tenant_id, &q, limit + 1, cursor).await?;
+    let mut headers = axum::http::HeaderMap::new();
+    if rows.len() as i64 > limit {
+        rows.truncate(limit as usize);
+        if let Some(last) = rows.last() {
+            if let Ok(v) = axum::http::HeaderValue::from_str(&last.id.to_string()) {
+                headers.insert("x-next-cursor", v);
+            }
+        }
+    }
+    Ok((headers, Json(rows)))
+}
+
+#[utoipa::path(get, path = "/api/audit/export.csv", tag = "admin", params(AuditQuery), responses((status = 200, description = "Matching audit events as CSV (at most 10000 rows). Cells that start with a formula character are quoted", content_type = "text/csv", body = String), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Workspace admins only", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn audit_export(
+    mut tx: Tx,
+    axum::extract::Query(q): axum::extract::Query<AuditQuery>,
+) -> ApiResult<axum::response::Response> {
+    use axum::http::header::{CONTENT_DISPOSITION, CONTENT_TYPE};
+    use axum::response::IntoResponse;
+    let i = tx.identity.clone();
+    require_admin(&i)?;
+    let rows = audit_rows(&mut tx, i.tenant_id, &q, AUDIT_EXPORT_LIMIT, None).await?;
+    let mut out = String::from("occurred_at,actor,action,entity_type,entity_id\n");
+    for r in rows {
+        let cells = [
+            r.occurred_at.format("%Y-%m-%dT%H:%M:%SZ").to_string(),
+            r.actor,
+            r.action,
+            r.entity_type,
+            r.entity_id.to_string(),
+        ];
+        out.push_str(&cells.iter().map(|c| crate::api::reports::csv_cell(c)).collect::<Vec<_>>().join(","));
+        out.push('\n');
+    }
+    Ok((
+        [
+            (CONTENT_TYPE, "text/csv; charset=utf-8".to_string()),
+            (CONTENT_DISPOSITION, "attachment; filename=\"audit-events.csv\"".to_string()),
+        ],
+        out,
+    )
+        .into_response())
+}
+
 pub(crate) fn routes() -> Router<App> {
     Router::new()
+        .route("/api/audit/events", get(audit_events))
+        .route("/api/audit/export.csv", get(audit_export))
         .route("/api/projects/{id}/export", get(export_project))
         .route("/api/projects/{id}/import/issues", post(import_issues))
         .route("/api/entitlements", get(entitlements))

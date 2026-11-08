@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
-  Activity,
   Bell,
   BookOpen,
   Check,
@@ -22,6 +21,7 @@ import { request } from "../../lib/api";
 import type { Item, Session, ProjectRef } from "../../lib/types";
 import { str, count, day, Empty, Analytics } from "./shared";
 import { NotificationPreferences } from "./NotificationPreferences";
+import { AuditPanel } from "./AuditPanel";
 
 export type ExtraTab =
   | "sprints"
@@ -147,7 +147,7 @@ export function AdvancedWorkspace({
               : tab === "inbox"
                 ? "/notifications"
                 : tab === "audit"
-                  ? "/audit"
+                  ? null
                   : tab === "integrations"
                     ? "/admin/webhooks"
                     : null;
@@ -742,26 +742,7 @@ export function AdvancedWorkspace({
           </div>
         </>
       )}
-      {tab === "audit" && (
-        <div className="panel">
-          {rows.map((r, n) => (
-            <div className="ext-line" key={n}>
-              <Activity size={17} />
-              <div>
-                <b>
-                  {str(r.actor)} {str(r.action)} {str(r.entity_type)}
-                </b>
-                <small>
-                  {str(r.entity_id)} · {day(r.occurred_at)}
-                </small>
-              </div>
-            </div>
-          ))}
-          {!rows.length && (
-            <Empty title="No recorded events" caption="Administrative activity will appear here." />
-          )}
-        </div>
-      )}
+      {tab === "audit" && <AuditPanel token={session.token} onError={onError} />}
       {tab === "integrations" && (
         <div className="ext-two-cols">
           <div className="panel">

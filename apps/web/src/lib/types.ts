@@ -9,5 +9,6 @@ export type Page = S["Page"];
 export type BoardView = S["BoardView"];
 export type BoardLane = S["BoardLane"];
 export type BoardIssue = S["BoardIssue"];
+export type AuditEvent = S["AuditEvent"];
 export type Item = Record<string, unknown>;
 export type ProjectRef = Pick<Project, "id" | "key" | "name">;
