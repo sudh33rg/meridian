@@ -237,3 +237,19 @@ Plan and step results: `REMAINING_PLAN.md` (Phase Q). Source of the gaps: `PARIT
 Checks run in this build: `cargo check` (server), `make openapi` (229 paths), `make manifest`, `npm run build` (`tsc -b` and Vite), and `cargo clippy --all-targets` on the changed files. Clippy still reports lint errors in older code (for example `access.rs` `explicit_auto_deref`, `attachments.rs`, `reports.rs`, `auth.rs`); they were there before this build and are not fixed here.
 
 Not verified: no migration was applied to PostgreSQL in this build, no endpoint was called, and no page was viewed in a browser. The first real checks are `make up`, `make dev-api` and the seed, then the bulk bar, the sprint and release exports, a nested query, a scheduled rule with its preview, a subscription, one import from each source, the permission editor and the brand name in the sidebar.
+
+### Phase Q verification (8 November 2026)
+
+Run on a separate local stack: PostgreSQL 17 in a container on a free port, the API on port 8091 with migrations `0001` to `0051` applied at startup, the Vite dev server with `MERIDIAN_API_TARGET` pointing at that API, and `scripts/seed_demo.py` against it. The API and the browser pane were used; no shell API calls beyond login.
+
+- **Seed:** ran to completion (teams, team sprint, release with scope).
+- **Backlog:** ranked rows with team tags, Open sprints lane showing the planned project sprint and the active team sprint with its issues. The request returned 200.
+- **All work, bulk:** two issues selected; the bulk bar shows status, priority, team, sprint, release, watcher, label add and remove.
+- **Nested query:** `(status:todo OR status:done) -(label:legacy OR label:old) order:priority` returned the five expected issues (`5 of 5`).
+- **Releases:** scope (three issues with state), history (three additions), Export scope CSV button; freeze and release controls.
+- **Sprints:** team sprint card with Export CSV, Complete sprint; project sprint with Start sprint and Export CSV.
+- **Automation builder:** created a weekly scheduled rule with a `priority is high` condition and the notify action; the dry-run preview returned 3 of 8 open issues and changed nothing; the rule shows "Every weekly · next …".
+- **Workspace settings:** a brand name saved and appeared in the sidebar header at once.
+- **Mobile width (375px):** Backlog and Releases have no horizontal page overflow. The automation rules table overflowed; it is now inside a scrolling container (not re-checked after the change).
+
+Not verified in the browser: the CSV downloads themselves, the view subscription selector, the four importers and the import source selector, the permission scheme editor's new selects, the scheduled rule actually running (its first run waits for the hourly loop), the accent colour control, and the bulk bar at phone width. Known layout issues seen, not fixed: the accent colour input renders as a small swatch; the working-day labels in workspace settings overlap (this was already recorded as a cramped layout in the live run); the rule action buttons stack.

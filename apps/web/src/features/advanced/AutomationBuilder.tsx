@@ -302,6 +302,7 @@ export function AutomationBuilder({
       ) : (rules.data ?? []).length === 0 ? (
         <p className="muted">No rules yet. Create one to automate routine changes.</p>
       ) : (
+        <div className="table-scroll">
         <table className="automation-table">
           <thead>
             <tr>
@@ -363,6 +364,7 @@ export function AutomationBuilder({
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </section>
   );

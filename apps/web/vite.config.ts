@@ -2,13 +2,16 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+// MERIDIAN_API_TARGET points the dev proxy at another local API (default: port 8080).
+const apiTarget = process.env.MERIDIAN_API_TARGET ?? "http://127.0.0.1:8080";
+
 export default defineConfig({
   plugins: [react()],
   // changeOrigin stays false so the API sees the browser's Host (its CSRF Origin check compares it).
   server: {
     proxy: {
-      "/api": { target: "http://127.0.0.1:8080", changeOrigin: false, ws: true },
-      "/health": { target: "http://127.0.0.1:8080", changeOrigin: false },
+      "/api": { target: apiTarget, changeOrigin: false, ws: true },
+      "/health": { target: apiTarget, changeOrigin: false },
     },
   },
   test: {

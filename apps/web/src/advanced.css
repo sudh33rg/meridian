@@ -598,3 +598,44 @@
   font-size: var(--fs-sm);
   margin: 0;
 }
+
+/* Automation rule builder (Phase Q): rows of conditions and actions, a wrapping action cell. */
+.automation-form {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.automation-form fieldset {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid currentColor;
+  opacity: 0.95;
+}
+.automation-form fieldset legend {
+  padding: 0 4px;
+  font-size: 0.85rem;
+}
+.automation-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.automation-row input {
+  min-width: 10rem;
+}
+.automation-buttons,
+.automation-cell-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.bulk-label {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
