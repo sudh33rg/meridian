@@ -154,6 +154,8 @@ pub(crate) struct AuditQuery {
     pub(crate) limit: Option<i64>,
     /// Value of `X-Next-Cursor` from the previous page.
     pub(crate) cursor: Option<String>,
+    /// Free-text search across action, entity type, and actor name.
+    pub(crate) q: Option<String>,
 }
 
 /// One audit event. Events are listed newest first, in the order they were recorded.
@@ -206,13 +208,15 @@ async fn audit_rows(
             return Err(bad("'from' must be on or before 'to'"));
         }
     }
+    let search = q.q.as_deref().map(str::trim).filter(|s| !s.is_empty()).map(|s| format!("%{s}%"));
     let rows: Vec<AuditEvent> = sqlx::query_as(
         "SELECT a.id, a.action, a.entity_type, a.entity_id, a.actor_id, u.display_name AS actor, a.occurred_at \
          FROM audit_events a JOIN users u ON u.id=a.actor_id \
          WHERE a.tenant_id=$1 AND ($2::text IS NULL OR a.action=$2) AND ($3::text IS NULL OR a.entity_type=$3) \
          AND ($4::uuid IS NULL OR a.actor_id=$4) AND ($5::timestamptz IS NULL OR a.occurred_at>=$5) \
          AND ($6::timestamptz IS NULL OR a.occurred_at<$6) AND ($7::bigint IS NULL OR a.id<$7) \
-         ORDER BY a.id DESC LIMIT $8",
+         AND ($8::text IS NULL OR a.action ILIKE $8 OR a.entity_type ILIKE $8 OR u.display_name ILIKE $8) \
+         ORDER BY a.id DESC LIMIT $9",
     )
     .bind(tenant)
     .bind(action)
@@ -221,6 +225,7 @@ async fn audit_rows(
     .bind(from)
     .bind(to)
     .bind(cursor)
+    .bind(search)
     .bind(limit)
     .fetch_all(&mut **tx)
     .await
@@ -288,6 +293,44 @@ pub(crate) async fn audit_export(
         .into_response())
 }
 
+#[derive(Serialize, FromRow, utoipa::ToSchema)]
+pub(crate) struct OtelSpan {
+    pub(crate) trace_id: String,
+    pub(crate) span_id: String,
+    pub(crate) parent_span_id: Option<String>,
+    pub(crate) name: String,
+    pub(crate) kind: String,
+    pub(crate) status_code: String,
+    pub(crate) duration_ms: i32,
+    pub(crate) attributes: Value,
+    pub(crate) occurred_at: DateTime<Utc>,
+}
+
+#[derive(Serialize, utoipa::ToSchema)]
+pub(crate) struct OtelExport {
+    pub(crate) resource_spans: Vec<OtelSpan>,
+    pub(crate) total: i64,
+}
+
+#[utoipa::path(get, path = "/api/admin/traces/export", tag = "admin", responses((status = 200, description = "OpenTelemetry trace spans export", body = OtelExport), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Workspace admins only", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn export_traces(mut tx: Tx) -> ApiResult<Json<OtelExport>> {
+    require_admin(&tx.identity)?;
+    let spans: Vec<OtelSpan> = sqlx::query_as(
+        "SELECT trace_id, span_id, parent_span_id, name, kind, status_code, duration_ms, attributes, occurred_at \
+         FROM trace_spans WHERE tenant_id=$1 ORDER BY occurred_at DESC LIMIT 1000",
+    )
+    .bind(tx.identity.tenant_id)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+
+    let total = spans.len() as i64;
+    Ok(Json(OtelExport {
+        resource_spans: spans,
+        total,
+    }))
+}
+
 pub(crate) fn routes() -> Router<App> {
     Router::new()
         .route("/api/audit/events", get(audit_events))
@@ -296,4 +339,5 @@ pub(crate) fn routes() -> Router<App> {
         .route("/api/projects/{id}/import/issues", post(import_issues))
         .route("/api/entitlements", get(entitlements))
         .route("/api/audit", get(audit_log))
+        .route("/api/admin/traces/export", get(export_traces))
 }

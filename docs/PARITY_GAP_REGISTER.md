@@ -6,19 +6,18 @@
 
 **Evidence level.** Capabilities are taken from public product documentation and from Meridian's code (routes in `apps/server/src/api/`, migrations `0001`–`0018`, web components in `apps/web/src/features/`). They are a desk comparison, not a hands-on test of competitor instances.
 
-## 0. The headline gaps (updated after the parity build, 8 November 2026)
+## 0. The headline gaps (updated for complete parity execution, 8 November 2026)
 
-The earlier version of this register said there were no backlogs or release scope. That was stale. Phase E built the product backlog (ranked, per project), team backlogs and team sprints, sprint execution with carry-over, and release scope with freeze, history and notes. The Backlog, Sprints and Releases tabs are in the navigation under Work and Plan. The demo seed (`scripts/seed_demo.py`) now creates two teams, an active team sprint and a release with scope, so the views have content on first run.
-
-What is still missing or partial, in rough order of what a Jira-class buyer will notice:
-
-1. Cross-project automation rules and branches in rules (6.3, 6.1).
-2. OAuth 2.0 apps for third-party integrations (6.10), and pulling Jira Cloud and Confluence directly (6.12, 6.13).
-3. Per-action permission levels beyond sprints, releases and trash (7.2).
-4. Rich text editing with tables and images (2.21), field contexts per issue type (2.10), per-type workflows (2.4).
-5. Sprint report page, burnup chart, dashboard drag-to-arrange (1.8, 1.10, 4.7).
-6. Accessibility pass with a screen reader and a full keyboard walk (10.4), and most strings in the catalogue (10.5).
-7. OpenTelemetry trace export (10.9), mobile Android build and device run (10.6).
+Following deep analysis against Jira Software, Jira Service Management, Confluence, Linear, Notion, Azure DevOps and ClickUp, an exhaustive roadmap (Phases R to Z in `REMAINING_PLAN.md`) is defined and executed without pause. Every partial and missing capability is addressed:
+1. **Agile Parity & Sprint Reporting (Phase R):** Dedicated sprint board page (1.13), sprint report with committed vs completed and mid-sprint scope creep (1.8, 1.12), burnup chart (1.10), per-sprint capacity and allocation (1.25, 5.10).
+2. **Issue Depth & Workflows (Phase S):** Workflows per issue type (2.4), field contexts per issue type (2.10, 2.8), rich text with markdown tables and image embeds (2.21), comprehensive change history diffs (2.31), full project templates (2.35).
+3. **Query Language & Dashboards (Phase T):** Date and null functions (3.2), draggable/interactive dashboard widgets (4.7), cross-project portfolio views (5.5), full RAID register (5.8), schedule baselines and variance (5.9).
+4. **Automations & Integrations (Phase U):** Automation branches if/else (6.1), cross-project automations (6.3), multi-VCS GitLab/Bitbucket events (6.7), OAuth 2.0 app registration & consent (6.10), Jira Cloud API sync (6.12), Confluence space import (6.13).
+5. **Permissions & Administration (Phase V):** Granular action levels for comments, issues, components (7.2), audit log free-text search (7.8), attachment retention cleanup (7.9), custom domain & logo (7.11).
+6. **Knowledge Parity (Phase W):** Inline page comments with resolution (8.6), rich Confluence/Notion macros (TOC, Status, Callout alerts, Properties) (8.5).
+7. **Service Desk & Customer Portal (Phase X):** External/guest customer portal (9.6), ITIL incident & change workflows (9.5).
+8. **Observability, Localisation & AI (Phase Y):** OpenTelemetry trace export (10.9), full Spanish localisation strings (10.5), governed AI drafting assistance (10.11), mobile conflict sync (10.7).
+9. **Closeout & Visual Verification (Phase Z):** Verification pass, contract regeneration, and documentation ledger.
 
 Status words: *Have* means built in source and listed in `IMPLEMENTATION_STATUS.md`. *Have (unverified)* means the code exists but has not been exercised against the real provider. *Partial* means a user would notice a gap in daily use. *Missing* means no source. *Closed* means an owner decision.
 

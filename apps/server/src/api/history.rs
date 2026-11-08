@@ -6,7 +6,7 @@ use axum::routing::get;
 use serde_json::Value;
 
 /// Fields whose before and after values are recorded in the change log. Status has its own table.
-const TRACKED_FIELDS: [&str; 10] = [
+const TRACKED_FIELDS: [&str; 14] = [
     "title",
     "description",
     "kind",
@@ -17,6 +17,10 @@ const TRACKED_FIELDS: [&str; 10] = [
     "story_points",
     "due_at",
     "team_id",
+    "labels",
+    "custom_fields",
+    "original_estimate_minutes",
+    "remaining_estimate_minutes",
 ];
 
 /// Records a status change. `from` is `None` when the issue is created.

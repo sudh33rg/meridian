@@ -51,6 +51,14 @@ const en = {
   "drawer.connected": "Connected knowledge",
   "common.loading": "Loading…",
   "common.close": "Close",
+  "nav.raid": "RAID",
+  "nav.portal": "Customer Portal",
+  "nav.incidents": "Incidents",
+  "sprint.report": "Sprint Report",
+  "sprint.burnup": "Burnup Chart",
+  "sprint.capacity": "Capacity",
+  "sprint.board": "Sprint Board",
+  "knowledge.inlineComments": "Inline Comments",
 };
 
 export type MessageKey = keyof typeof en;
@@ -104,6 +112,14 @@ const es: Partial<Record<MessageKey, string>> = {
   "drawer.connected": "Conocimiento relacionado",
   "common.loading": "Cargando…",
   "common.close": "Cerrar",
+  "nav.raid": "RAID",
+  "nav.portal": "Portal de Clientes",
+  "nav.incidents": "Incidentes",
+  "sprint.report": "Informe de Sprint",
+  "sprint.burnup": "Gráfico de Burnup",
+  "sprint.capacity": "Capacidad",
+  "sprint.board": "Tablero de Sprint",
+  "knowledge.inlineComments": "Comentarios en línea",
 };
 
 let current: Locale = "en";

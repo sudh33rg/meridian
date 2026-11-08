@@ -5,6 +5,8 @@ import { errorMessage, request, send } from "../../lib/api";
 import { useToast } from "../shared/Toast";
 import { formatDateTime } from "../../lib/datetime";
 import type { FieldDefinition } from "../../lib/fields";
+import { IncidentsView } from "./IncidentsView";
+import { CustomerPortalView } from "./CustomerPortalView";
 
 type Queue = { id: string; name: string; default_assignee_id: string | null };
 type RequestType = {
@@ -401,6 +403,8 @@ export function ServicePanel() {
           </table>
         )}
       </section>
+      <CustomerPortalView projectId={selected} />
+      <IncidentsView projectId={selected} />
     </div>
   );
 }

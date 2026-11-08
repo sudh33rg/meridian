@@ -289,6 +289,8 @@ pub(crate) fn spawn_maintenance(db: PgPool, email_on: bool) {
             {
                 tracing::error!(error=%e, "rate limit cleanup failed");
             }
+            // Expired attachments past workspace retention days are pruned (Phase V3).
+            prune_expired_attachments(&db).await;
             tokio::time::sleep(Duration::from_secs(3600)).await;
         }
     });
@@ -327,4 +329,24 @@ async fn prune_idempotency_keys(db: &PgPool) {
 /// `json!` re-exported for callers that enqueue.
 pub(crate) fn payload(key: &str, id: Uuid) -> Value {
     json!({ key: id })
+}
+
+async fn prune_expired_attachments(db: &PgPool) {
+    if let Err(e) = sqlx::query(
+        "DELETE FROM attachments a \
+         USING workspace_settings ws \
+         WHERE a.tenant_id = ws.tenant_id \
+         AND ws.attachment_retention_days > 0 \
+         AND a.created_at < now() - (ws.attachment_retention_days || ' days')::interval \
+         AND ( \
+           (a.entity_type = 'issue' AND NOT EXISTS (SELECT 1 FROM issues i WHERE i.tenant_id=a.tenant_id AND i.id=a.entity_id AND i.archived_at IS NULL AND i.trashed_at IS NULL)) \
+           OR (a.entity_type = 'page' AND NOT EXISTS (SELECT 1 FROM pages p WHERE p.tenant_id=a.tenant_id AND p.id=a.entity_id)) \
+           OR a.deleted_at IS NOT NULL \
+         )",
+    )
+    .execute(db)
+    .await
+    {
+        tracing::error!(error=%e, "attachment pruning failed");
+    }
 }

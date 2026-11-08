@@ -246,9 +246,108 @@ pub(crate) async fn triage(mut tx: Tx, Path(project): Path<Uuid>, Json(v): Json<
     Ok(Json(AiTriage { priority, reason }))
 }
 
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct AiDraftInput {
+    pub(crate) draft_type: String,
+    pub(crate) prompt: String,
+    pub(crate) context: Option<String>,
+}
+
+#[derive(Serialize, utoipa::ToSchema)]
+pub(crate) struct AiDraftResult {
+    pub(crate) id: Uuid,
+    pub(crate) draft_type: String,
+    pub(crate) output: String,
+}
+
+#[derive(Serialize, sqlx::FromRow, utoipa::ToSchema)]
+pub(crate) struct AiDraftRecord {
+    pub(crate) id: Uuid,
+    pub(crate) project_id: Uuid,
+    pub(crate) user_id: Uuid,
+    pub(crate) draft_type: String,
+    pub(crate) prompt: String,
+    pub(crate) output: String,
+    pub(crate) created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[utoipa::path(post, path = "/api/projects/{id}/ai/draft", tag = "ai", params(("id" = Uuid, Path, description = "Project id")), request_body = AiDraftInput, responses((status = 200, description = "Governed AI generated draft", body = AiDraftResult), (status = 400, description = "Validation error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "AI is off for this workspace", body = ErrorBody), (status = 503, description = "AI is not configured on this server", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn draft(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+    Json(v): Json<AiDraftInput>,
+) -> ApiResult<Json<AiDraftResult>> {
+    let i = tx.identity.clone();
+    valid_project(&mut tx, &i, project).await?;
+    let valid_types = ["description", "acceptance_criteria", "retro_notes", "release_summary"];
+    if !valid_types.contains(&v.draft_type.as_str()) {
+        return Err(bad("draft_type must be one of: description, acceptance_criteria, retro_notes, release_summary"));
+    }
+    if v.prompt.trim().is_empty() {
+        return Err(bad("prompt cannot be empty"));
+    }
+    ai_allowed(&mut tx).await?;
+
+    let context_block = v.context.as_deref().unwrap_or("").trim();
+    let user_prompt = if context_block.is_empty() {
+        format!("Generate a draft for a {}.\nPrompt: {}", v.draft_type, v.prompt)
+    } else {
+        format!("Generate a draft for a {}.\nContext: {}\nPrompt: {}", v.draft_type, context_block, v.prompt)
+    };
+
+    let reply = ask_model(
+        &tx.cfg,
+        SYSTEM,
+        &user_prompt,
+        1000,
+    )
+    .await?;
+
+    let draft_id = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO ai_drafts(id, tenant_id, project_id, user_id, draft_type, prompt, output) \
+         VALUES($1, $2, $3, $4, $5, $6, $7)"
+    )
+    .bind(draft_id)
+    .bind(i.tenant_id)
+    .bind(project)
+    .bind(i.user_id)
+    .bind(&v.draft_type)
+    .bind(&v.prompt)
+    .bind(&reply)
+    .execute(&mut *tx)
+    .await
+    .map_err(db_err)?;
+
+    log_event(&mut tx, &i, "ai_draft", "project", project).await?;
+    Ok(Json(AiDraftResult {
+        id: draft_id,
+        draft_type: v.draft_type,
+        output: reply.trim().to_string(),
+    }))
+}
+
+#[utoipa::path(get, path = "/api/projects/{id}/ai/drafts", tag = "ai", params(("id" = Uuid, Path, description = "Project id")), responses((status = 200, description = "Recent AI drafts", body = Vec<AiDraftRecord>), (status = 401, description = "Missing or invalid session", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn list_drafts(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<AiDraftRecord>>> {
+    let i = tx.identity.clone();
+    valid_project(&mut tx, &i, project).await?;
+    let rows: Vec<AiDraftRecord> = sqlx::query_as(
+        "SELECT id, project_id, user_id, draft_type, prompt, output, created_at FROM ai_drafts \
+         WHERE tenant_id=$1 AND project_id=$2 ORDER BY created_at DESC LIMIT 50"
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    Ok(Json(rows))
+}
+
 pub(crate) fn routes() -> axum::Router<App> {
     axum::Router::new()
         .route("/api/workspace/ai", get(get_settings).put(put_settings))
         .route("/api/projects/{id}/ai/summary", post(summary))
         .route("/api/projects/{id}/ai/triage", post(triage))
+        .route("/api/projects/{id}/ai/draft", post(draft))
+        .route("/api/projects/{id}/ai/drafts", get(list_drafts))
 }

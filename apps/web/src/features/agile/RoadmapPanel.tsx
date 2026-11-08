@@ -5,6 +5,8 @@ import { useWorkspace } from "../workspace/useWorkspace";
 import { errorMessage, request, send } from "../../lib/api";
 import { useToast } from "../shared/Toast";
 import { formatMinutes } from "./IssueDepth";
+import { PortfolioOverviewView } from "./PortfolioOverviewView";
+import { RaidRegisterView } from "./RaidRegisterView";
 
 type Timeline = { kind: string; id: string; name: string; start: string | null; end: string | null; status: string | null; progress: number | null };
 type Milestone = { id: string; name: string; target_on: string; reached_on: string | null };
@@ -24,6 +26,7 @@ export function RoadmapPanel() {
   const qc = useQueryClient();
   const token = session.token;
   const active = tab === "roadmap" && !!selected;
+  const [subView, setSubView] = useState<"roadmap" | "portfolio" | "raid">("roadmap");
   const [msName, setMsName] = useState("");
   const [msDate, setMsDate] = useState("");
   const [health, setHealth] = useState("on_track");
@@ -98,44 +101,69 @@ export function RoadmapPanel() {
 
   return (
     <section className="planning roadmap" aria-labelledby="roadmap-title">
-      <div className="planning-head">
+      <div className="planning-head" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 id="roadmap-title">Roadmap</h2>
-          <p className="muted small">{project?.name}. Dates come from the work itself; nothing here is typed twice.</p>
+          <h2 id="roadmap-title">Roadmap & Governance</h2>
+          <p className="muted small">{project?.name}. Project timeline, portfolio roll-up, and RAID register.</p>
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button
+            className={subView === "roadmap" ? "primary small-btn" : "secondary small-btn"}
+            onClick={() => setSubView("roadmap")}
+          >
+            Project Roadmap
+          </button>
+          <button
+            className={subView === "portfolio" ? "primary small-btn" : "secondary small-btn"}
+            onClick={() => setSubView("portfolio")}
+          >
+            Portfolio Roll-up
+          </button>
+          <button
+            className={subView === "raid" ? "primary small-btn" : "secondary small-btn"}
+            onClick={() => setSubView("raid")}
+          >
+            RAID Register
+          </button>
         </div>
       </div>
 
-      <section className="panel" aria-labelledby="timeline-title">
-        <h3 id="timeline-title">Timeline</h3>
-        {(timeline.data ?? []).filter((t) => t.start || t.end).length === 0 && (
-          <p className="muted small">Add due dates to epics, target dates to releases, and sprint dates to see them here.</p>
-        )}
-        <ul className="timeline" aria-label="Timeline items">
-          {(timeline.data ?? []).map((t) => (
-            <li key={`${t.kind}-${t.id}`} className="timeline-row">
-              <span className="timeline-name">
-                <span className="chip">{t.kind}</span> {t.name}
-                {t.progress != null && <span className="small muted"> · {t.progress}%</span>}
-              </span>
-              <span className="timeline-track" aria-hidden>
-                {t.kind === "milestone" && t.end ? (
-                  <span className="milestone-mark" style={{ left: at(t.end) }} />
-                ) : t.start && t.end ? (
-                  <span
-                    className="timeline-bar"
-                    style={{ left: at(t.start), width: `calc(${at(t.end)} - ${at(t.start)})` }}
-                  >
-                    {t.progress != null && <span className="timeline-progress" style={{ width: `${t.progress}%` }} />}
+      {subView === "portfolio" && <PortfolioOverviewView />}
+      {subView === "raid" && <RaidRegisterView projectId={selected} />}
+
+      {subView === "roadmap" && (
+        <>
+          <section className="panel" aria-labelledby="timeline-title">
+            <h3 id="timeline-title">Timeline</h3>
+            {(timeline.data ?? []).filter((t) => t.start || t.end).length === 0 && (
+              <p className="muted small">Add due dates to epics, target dates to releases, and sprint dates to see them here.</p>
+            )}
+            <ul className="timeline" aria-label="Timeline items">
+              {(timeline.data ?? []).map((t) => (
+                <li key={`${t.kind}-${t.id}`} className="timeline-row">
+                  <span className="timeline-name">
+                    <span className="chip">{t.kind}</span> {t.name}
+                    {t.progress != null && <span className="small muted"> · {t.progress}%</span>}
                   </span>
-                ) : t.end ? (
-                  <span className="milestone-mark" style={{ left: at(t.end) }} />
-                ) : null}
-              </span>
-              <span className="small muted">{t.end ?? t.start ?? "no date"}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
+                  <span className="timeline-track" aria-hidden>
+                    {t.kind === "milestone" && t.end ? (
+                      <span className="milestone-mark" style={{ left: at(t.end) }} />
+                    ) : t.start && t.end ? (
+                      <span
+                        className="timeline-bar"
+                        style={{ left: at(t.start), width: `calc(${at(t.end)} - ${at(t.start)})` }}
+                      >
+                        {t.progress != null && <span className="timeline-progress" style={{ width: `${t.progress}%` }} />}
+                      </span>
+                    ) : t.end ? (
+                      <span className="milestone-mark" style={{ left: at(t.end) }} />
+                    ) : null}
+                  </span>
+                  <span className="small muted">{t.end ?? t.start ?? "no date"}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
 
       <div className="roadmap-grid">
         <section className="panel" aria-labelledby="ms-title">
@@ -376,6 +404,8 @@ export function RoadmapPanel() {
           )}
         </section>
       </div>
+        </>
+      )}
     </section>
   );
 }

@@ -40,6 +40,8 @@ pub(crate) enum Field {
     Title,
     Number,
     Sprint,
+    Due,
+    Created,
     /// An ordering term. It filters nothing; the value is one of rank, priority, updated or number.
     Order,
     Custom(String),
@@ -246,11 +248,13 @@ impl Parser {
             "title" => Field::Title,
             "number" => Field::Number,
             "sprint" => Field::Sprint,
+            "due" => Field::Due,
+            "created" => Field::Created,
             "order" => Field::Order,
             other if other.starts_with("cf.") && other.len() > 3 => Field::Custom(other[3..].to_string()),
             other => {
                 return Err(bad(&format!(
-                    "Unknown field “{other}”. Use status, priority, kind, assignee, label, title, number, sprint, order or cf.<key>"
+                    "Unknown field “{other}”. Use status, priority, kind, assignee, label, title, number, sprint, due, created, order or cf.<key>"
                 )))
             }
         };
@@ -409,10 +413,10 @@ fn push_leaf(
             qb.push("kind = ").push_bind(t.value.clone());
         }
         Field::Sprint => match t.value.as_str() {
-            "none" => {
+            "none" | "empty" => {
                 qb.push("sprint_id IS NULL");
             }
-            "openSprints()" => {
+            "openSprints()" | "currentSprint()" => {
                 qb.push("sprint_id IN (SELECT id FROM sprints WHERE tenant_id=")
                     .push_bind(tenant)
                     .push(" AND project_id=")
@@ -420,18 +424,74 @@ fn push_leaf(
                     .push(" AND state<>'completed')");
             }
             id => {
-                let sprint = Uuid::parse_str(id).map_err(|_| bad("Sprint must be none, openSprints() or a sprint id"))?;
+                let sprint = Uuid::parse_str(id).map_err(|_| bad("Sprint must be none, openSprints(), currentSprint() or a sprint id"))?;
                 qb.push("sprint_id = ").push_bind(sprint);
+            }
+        },
+        Field::Due => match t.value.as_str() {
+            "empty" | "none" => {
+                qb.push("due_at IS NULL");
+            }
+            "notEmpty" => {
+                qb.push("due_at IS NOT NULL");
+            }
+            "now()" | "today" => {
+                qb.push("due_at::date = CURRENT_DATE");
+            }
+            "startOfWeek()" => {
+                qb.push("due_at::date = date_trunc('week', CURRENT_DATE)::date");
+            }
+            "endOfWeek()" => {
+                qb.push("due_at::date = (date_trunc('week', CURRENT_DATE) + INTERVAL '6 days')::date");
+            }
+            "startOfMonth()" => {
+                qb.push("due_at::date = date_trunc('month', CURRENT_DATE)::date");
+            }
+            "endOfMonth()" => {
+                qb.push("due_at::date = (date_trunc('month', CURRENT_DATE) + INTERVAL '1 month - 1 day')::date");
+            }
+            "lastWeek()" => {
+                qb.push("due_at::date = (CURRENT_DATE - INTERVAL '7 days')::date");
+            }
+            val => {
+                if !is_date(val) {
+                    return Err(bad("due takes a date (YYYY-MM-DD), today, now(), startOfWeek(), endOfWeek(), startOfMonth(), endOfMonth(), lastWeek(), empty or notEmpty"));
+                }
+                qb.push("due_at::date = ").push_bind(val.to_string()).push("::date");
+            }
+        },
+        Field::Created => match t.value.as_str() {
+            "now()" | "today" => {
+                qb.push("created_at::date = CURRENT_DATE");
+            }
+            "startOfWeek()" => {
+                qb.push("created_at::date >= date_trunc('week', CURRENT_DATE)::date");
+            }
+            "startOfMonth()" => {
+                qb.push("created_at::date >= date_trunc('month', CURRENT_DATE)::date");
+            }
+            "lastWeek()" => {
+                qb.push("created_at::date >= (CURRENT_DATE - INTERVAL '7 days')::date");
+            }
+            val => {
+                if !is_date(val) {
+                    return Err(bad("created takes a date (YYYY-MM-DD), today, now(), startOfWeek(), startOfMonth() or lastWeek()"));
+                }
+                qb.push("created_at::date = ").push_bind(val.to_string()).push("::date");
             }
         },
         Field::Order => {}
         Field::Assignee => {
-            let who = if t.value == "me" || t.value == "currentUser()" {
-                user
+            if t.value == "empty" || t.value == "none" || t.value == "unassigned" {
+                qb.push("assignee_id IS NULL");
             } else {
-                Uuid::parse_str(&t.value).map_err(|_| bad("Assignee must be a user id or me"))?
-            };
-            qb.push("assignee_id = ").push_bind(who);
+                let who = if t.value == "me" || t.value == "currentUser()" {
+                    user
+                } else {
+                    Uuid::parse_str(&t.value).map_err(|_| bad("Assignee must be a user id, me, currentUser(), none or empty"))?
+                };
+                qb.push("assignee_id = ").push_bind(who);
+            }
         }
         Field::Label => {
             qb.push_bind(t.value.clone()).push(" = ANY(labels)");
@@ -456,10 +516,27 @@ fn push_leaf(
                         .push_bind(n);
                 }
                 "date" => {
-                    if !is_date(&t.value) {
-                        return Err(bad("This field takes a date (YYYY-MM-DD)"));
+                    if t.value == "empty" || t.value == "none" {
+                        qb.push("(custom_fields->>").push_bind(key.clone()).push("::text) IS NULL");
+                    } else if t.value == "notEmpty" {
+                        qb.push("(custom_fields->>").push_bind(key.clone()).push("::text) IS NOT NULL");
+                    } else if t.value == "now()" || t.value == "today" {
+                        qb.push("(custom_fields->>").push_bind(key.clone()).push("::text)::date = CURRENT_DATE");
+                    } else if t.value == "startOfWeek()" {
+                        qb.push("(custom_fields->>").push_bind(key.clone()).push("::text)::date = date_trunc('week', CURRENT_DATE)::date");
+                    } else if t.value == "endOfWeek()" {
+                        qb.push("(custom_fields->>").push_bind(key.clone()).push("::text)::date = (date_trunc('week', CURRENT_DATE) + INTERVAL '6 days')::date");
+                    } else if t.value == "startOfMonth()" {
+                        qb.push("(custom_fields->>").push_bind(key.clone()).push("::text)::date = date_trunc('month', CURRENT_DATE)::date");
+                    } else if t.value == "endOfMonth()" {
+                        qb.push("(custom_fields->>").push_bind(key.clone()).push("::text)::date = (date_trunc('month', CURRENT_DATE) + INTERVAL '1 month - 1 day')::date");
+                    } else if t.value == "lastWeek()" {
+                        qb.push("(custom_fields->>").push_bind(key.clone()).push("::text)::date = (CURRENT_DATE - INTERVAL '7 days')::date");
+                    } else if is_date(&t.value) {
+                        qb.push("custom_fields->>").push_bind(key.clone()).push("::text = ").push_bind(t.value.clone());
+                    } else {
+                        return Err(bad("This field takes a date (YYYY-MM-DD), today, now(), startOfWeek(), endOfWeek(), startOfMonth(), endOfMonth(), lastWeek(), empty or notEmpty"));
                     }
-                    qb.push("custom_fields->>").push_bind(key.clone()).push("::text = ").push_bind(t.value.clone());
                 }
                 "boolean" => {
                     if t.value != "true" && t.value != "false" {

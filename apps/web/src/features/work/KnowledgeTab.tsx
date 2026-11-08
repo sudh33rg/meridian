@@ -2,7 +2,7 @@ import { formatDate } from "../../lib/datetime";
 import { PageBody } from "../../lib/macros";
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookOpen, Plus, FileText, Home } from "lucide-react";
+import { BookOpen, Plus, FileText, Home, Lock, MessageSquare } from "lucide-react";
 import { useWorkspace } from "../workspace/useWorkspace";
 import type { Page } from "../../lib/types";
 import { api } from "../../lib/api";
@@ -10,9 +10,9 @@ import { PageHistory } from "../advanced/PageHistory";
 import { EntityRelations } from "../advanced/EntityRelations";
 import { CollabEditor } from "../knowledge/CollabEditor";
 import { PageAccessPanel } from "../knowledge/PageAccessPanel";
+import { InlineCommentsDrawer } from "../knowledge/InlineCommentsDrawer";
 import { Attachments } from "../shared/Attachments";
 import { send } from "../../lib/api";
-import { Lock } from "lucide-react";
 import { useToast } from "../shared/Toast";
 import { errorMessage } from "../../lib/api";
 
@@ -183,6 +183,7 @@ function PageEditor() {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [showAccess, setShowAccess] = useState(false);
+  const [showInline, setShowInline] = useState(false);
   const [title, setTitle] = useState(page.title);
   const homeQ = useQuery({
     queryKey: ["home-page", selected],
@@ -280,9 +281,13 @@ function PageEditor() {
           <button className="secondary" onClick={() => setShowAccess((v) => !v)}>
             <Lock size={14} /> Access
           </button>
+          <button className="secondary" onClick={() => setShowInline((v) => !v)}>
+            <MessageSquare size={14} /> Inline Comments
+          </button>
         </div>
       </div>
       {showAccess && <PageAccessPanel pageId={page.id} onClose={() => setShowAccess(false)} />}
+      {showInline && <InlineCommentsDrawer pageId={page.id} pageTitle={page.title} onClose={() => setShowInline(false)} />}
       <input
         className="page-title"
         value={title}

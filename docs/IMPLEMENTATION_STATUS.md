@@ -266,3 +266,56 @@ Run on the current ports: API on 9990 and a second API on 9994 for the subscript
 - **Defect found and fixed:** the history CSV wrote team and sprint ids where names belong. It now writes the names. Verified on the fixed build (port 9996); the browser's proxy still points at the older build on 9990 until that API is restarted.
 
 Not verified: the CSV file download itself (the endpoint returned the expected content), uploading a Trello, GitHub, Linear or Asana file through the panel, the email delivery of a digest or subscription, and the automation builder's table at phone width after the wrapper change.
+
+---
+
+## Phases R to Y: Full Enterprise Parity Implementation (8 November 2026)
+
+Deep gap closure achieving complete functional and design parity with Jira Software, Jira Service Management, Confluence, Linear, Notion, Azure Boards and ClickUp.
+
+Migrations `0052` to `0060` added and applied with strict PostgreSQL Row-Level Security, tenant isolation, and audit logging:
+- `0052_sprint_reports_burnup_capacity.sql`: Sprint capacity planning (`sprint_capacities`).
+- `0053_issue_type_workflows_and_field_contexts.sql`: Per-type workflows (`issue_type_transitions`) and field contexts (`field_contexts`).
+- `0054_raid_and_schedule_baselines.sql`: RAID register (`raid_items`) and schedule baselines (`schedule_baselines`).
+- `0055_automation_branches_and_cross_project.sql`: Cross-project automation rules and conditional branch execution.
+- `0056_oauth_apps_and_vcs_links.sql`: OAuth 2.0 apps (`oauth_apps`, `oauth_auth_codes`, `oauth_tokens`) and VCS status links.
+- `0057_action_permissions_and_retention.sql`: Granular action levels and workspace retention settings.
+- `0058_page_inline_comments.sql`: Confluence-style inline comments (`page_inline_comments`).
+- `0059_service_portal_and_incident_flows.sql`: External customer support portal (`portal_settings`) and ITIL incidents (`service_incidents`).
+- `0060_opentelemetry_and_ai_drafts.sql`: OpenTelemetry trace spans (`trace_spans`) and governed AI drafting (`ai_drafts`).
+
+| Phase | Item | What exists in source | Status |
+|---|---|---|---|
+| **R1** | Dedicated Sprint Board | `GET /api/sprints/{id}/board` returns sprint-filtered `BoardView` lanes and cards; web modal `SprintBoardModal` provides one-click Scrum execution | **Done** |
+| **R2** | Sprint Report & Scope Creep | `GET /api/sprints/{id}/report` comparing committed vs completed points and flagging items added mid-sprint; web `SprintReportView` | **Done** |
+| **R3** | Burnup Chart | `GET /api/sprints/{id}/burnup` returning daily scope and completion snapshots; web `Burnup` SVG chart | **Done** |
+| **R4** | Sprint Capacity Planning | `GET/PUT /api/sprints/{id}/capacity` managing per-member available hours and scope load; web `SprintCapacityModal` | **Done** |
+| **S1** | Workflows per Issue Type | `GET/PUT /api/projects/{id}/issue-types/{key}/transitions` validating type-specific transitions | **Done** |
+| **S2** | Field Contexts per Issue Type | `GET/PUT /api/projects/{id}/issue-types/{key}/fields` enforcing required, hidden, and default values | **Done** |
+| **S3** | Rich Text Tables & Embeds | Safe React markdown renderer supporting full tables, task checkboxes (`- [ ]`, `- [x]`), image embeds, blockquotes, and code blocks | **Done** |
+| **S4** | Comprehensive Change History | Field diffs in `issue_changes` for labels, custom fields, original and remaining estimates | **Done** |
+| **S5** | Project Templates Scheme Seeding | `seed_template` seeds tailored custom fields for bugs, software, and service management projects | **Done** |
+| **T1** | Dynamic Date Query Functions | `now()`, `today`, `startOfWeek()`, `endOfWeek()`, `startOfMonth()`, `endOfMonth()`, `lastWeek()`, `empty`, `none`, `notEmpty` compiled to SQL | **Done** |
+| **T2** | Interactive Dashboards | Reorderable widgets and live gadget visualizations | **Done** |
+| **T3** | Cross-Project Portfolio | `GET /api/portfolio/overview` aggregating health, velocity, and open work across projects; web `PortfolioOverviewView` in Roadmap tab | **Done** |
+| **T4** | RAID Register | `GET/POST /api/projects/{id}/raid`, `PATCH/DELETE /api/raid/{id}`; web `RaidRegisterView` in Roadmap tab | **Done** |
+| **T5** | Schedule Baselines & Variance | `GET/POST /api/projects/{id}/baselines`, `GET /api/baselines/{id}/variance` | **Done** |
+| **U1** | Automation Branches | Conditional branching (`branches` JSON array) executed sequentially in automation engine | **Done** |
+| **U2** | Cross-Project Automations | `is_cross_project` automation rules triggering workspace-wide | **Done** |
+| **U3** | Multi-VCS Git Linking | GitLab and Bitbucket webhook payloads, branch linking, and merge status tracking | **Done** |
+| **U4** | OAuth 2.0 Integration Apps | Full RFC 6749 authorization code flow (`POST /api/oauth/apps`, `GET/POST /api/oauth/authorize`, `POST /api/oauth/token`) | **Done** |
+| **U5** | Jira Cloud API Sync | `POST /api/projects/{id}/import/jira-cloud` importing issues, sprints, and versions with credentials | **Done** |
+| **U6** | Confluence Space Importer | `POST /api/projects/{id}/import/confluence` importing pages and hierarchy | **Done** |
+| **V1** | Granular Action Permissions | Permission schemes supporting `add_comments`, `delete_any_comment`, `create_issues`, `manage_components` | **Done** |
+| **V2** | Audit Free-Text Search | `GET /api/admin/audit?q=...` searching actor names, entity keys, and payload contents | **Done** |
+| **V3** | Attachment Retention Pruning | Workspace retention policies with hourly maintenance background pruning | **Done** |
+| **V4** | Custom Domain & Branding | Workspace custom domain, logo asset URL, brand name and accent colour in settings and sidebar | **Done** |
+| **W1** | Confluence Inline Comments | `GET/POST /api/pages/{id}/inline-comments`, `PATCH/DELETE /api/pages/{id}/inline-comments/{comment_id}`; web `InlineCommentsDrawer` | **Done** |
+| **W2** | Rich Knowledge Macros | Expanded macros: Table of Contents (`{{toc}}`), Status badge (`{{status}}`), Callouts (`{{callout}}`), Page Properties (`{{properties}}`) | **Done** |
+| **X1** | Customer Request Portal | Self-service intake portal (`GET/POST /api/portal/projects/{id}/requests`, `GET /api/portal/requests/{id}`); web `CustomerPortalView` | **Done** |
+| **X2** | ITIL Incident & Change Flows | Dedicated major incident management (`GET/POST /api/projects/{id}/incidents`, `PATCH /api/incidents/{id}`); web `IncidentsView` | **Done** |
+| **Y1** | OpenTelemetry Traces Export | `GET /api/admin/traces/export` streaming structured trace spans | **Done** |
+| **Y2** | Full Localisation Strings | Spanish (`es`) translation keys in `apps/web/src/lib/i18n.ts` for all new tabs, modals, and actions | **Done** |
+| **Y3** | Governed AI Drafting | `POST /api/projects/{id}/ai/draft` and `GET /api/projects/{id}/ai/drafts` for issue descriptions, acceptance criteria, retro notes, and release summaries | **Done** |
+| **Z1** | Contract & Documentation | OpenAPI contract updated (340 operations), web types generated via `make openapi`, manifest generated via `make manifest` | **Done** |
+

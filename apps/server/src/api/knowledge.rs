@@ -269,6 +269,14 @@ pub(crate) fn routes() -> Router<App> {
             "/api/pages/{id}/comments",
             get(page_comments).post(new_page_comment),
         )
+        .route(
+            "/api/pages/{id}/inline-comments",
+            get(list_inline_comments).post(create_inline_comment),
+        )
+        .route(
+            "/api/pages/{id}/inline-comments/{comment_id}",
+            axum::routing::patch(update_inline_comment).delete(delete_inline_comment),
+        )
         .route("/api/search", get(search))
         .route("/api/relations", get(relations).post(new_relation))
         .route(
@@ -613,5 +621,162 @@ pub(crate) async fn rename_page(
         .await
         .map_err(db_err)?;
     log_event(&mut tx, &i, "renamed", "page", id).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[derive(Serialize, FromRow, utoipa::ToSchema)]
+pub(crate) struct PageInlineComment {
+    pub(crate) id: Uuid,
+    pub(crate) page_id: Uuid,
+    pub(crate) user_id: Uuid,
+    pub(crate) author_name: String,
+    pub(crate) selected_text: String,
+    pub(crate) anchor_range: Value,
+    pub(crate) content: String,
+    pub(crate) resolved: bool,
+    pub(crate) resolved_by: Option<Uuid>,
+    pub(crate) resolved_at: Option<DateTime<Utc>>,
+    pub(crate) created_at: DateTime<Utc>,
+    pub(crate) updated_at: DateTime<Utc>,
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct NewInlineComment {
+    pub(crate) selected_text: String,
+    pub(crate) anchor_range: Option<Value>,
+    pub(crate) content: String,
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct UpdateInlineComment {
+    pub(crate) content: Option<String>,
+    pub(crate) resolved: Option<bool>,
+}
+
+#[utoipa::path(get, path = "/api/pages/{id}/inline-comments", tag = "knowledge", params(("id" = Uuid, Path, description = "Page id")), responses((status = 200, description = "List of inline comments", body = Vec<PageInlineComment>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Page not found", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn list_inline_comments(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<Vec<PageInlineComment>>> {
+    let i = tx.identity.clone();
+    valid_page(&mut tx, &i, id).await?;
+    let rows: Vec<PageInlineComment> = sqlx::query_as(
+        "SELECT c.id, c.page_id, c.user_id, COALESCE(NULLIF(u.display_name,''), split_part(u.email,'@',1)) AS author_name, \
+         c.selected_text, c.anchor_range, c.content, c.resolved, c.resolved_by, c.resolved_at, c.created_at, c.updated_at \
+         FROM page_inline_comments c JOIN users u ON u.id=c.user_id \
+         WHERE c.tenant_id=$1 AND c.page_id=$2 ORDER BY c.created_at ASC",
+    )
+    .bind(i.tenant_id)
+    .bind(id)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    Ok(Json(rows))
+}
+
+#[utoipa::path(post, path = "/api/pages/{id}/inline-comments", tag = "knowledge", params(("id" = Uuid, Path, description = "Page id")), request_body = NewInlineComment, responses((status = 201, description = "Created", body = PageInlineComment), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Page not found", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn create_inline_comment(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+    Json(v): Json<NewInlineComment>,
+) -> ApiResult<(StatusCode, Json<PageInlineComment>)> {
+    let i = tx.identity.clone();
+    valid_page(&mut tx, &i, id).await?;
+    let content = v.content.trim();
+    if content.is_empty() || content.len() > 5000 {
+        return Err(bad("Comment must be 1 to 5000 characters"));
+    }
+    let selected = v.selected_text.trim();
+    if selected.is_empty() {
+        return Err(bad("selected_text cannot be empty"));
+    }
+    let anchor = v.anchor_range.unwrap_or_else(|| json!({}));
+
+    let comment_id: Uuid = sqlx::query_scalar(
+        "INSERT INTO page_inline_comments(tenant_id, page_id, user_id, selected_text, anchor_range, content) \
+         VALUES($1, $2, $3, $4, $5, $6) RETURNING id",
+    )
+    .bind(i.tenant_id)
+    .bind(id)
+    .bind(i.user_id)
+    .bind(selected)
+    .bind(anchor)
+    .bind(content)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
+
+    let row: PageInlineComment = sqlx::query_as(
+        "SELECT c.id, c.page_id, c.user_id, COALESCE(NULLIF(u.display_name,''), split_part(u.email,'@',1)) AS author_name, \
+         c.selected_text, c.anchor_range, c.content, c.resolved, c.resolved_by, c.resolved_at, c.created_at, c.updated_at \
+         FROM page_inline_comments c JOIN users u ON u.id=c.user_id \
+         WHERE c.tenant_id=$1 AND c.id=$2",
+    )
+    .bind(i.tenant_id)
+    .bind(comment_id)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
+
+    Ok((StatusCode::CREATED, Json(row)))
+}
+
+#[utoipa::path(patch, path = "/api/pages/{id}/inline-comments/{comment_id}", tag = "knowledge", params(("id" = Uuid, Path, description = "Page id"), ("comment_id" = Uuid, Path, description = "Comment id")), request_body = UpdateInlineComment, responses((status = 200, description = "Updated", body = PageInlineComment), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn update_inline_comment(
+    mut tx: Tx,
+    Path((page_id, comment_id)): Path<(Uuid, Uuid)>,
+    Json(v): Json<UpdateInlineComment>,
+) -> ApiResult<Json<PageInlineComment>> {
+    let i = tx.identity.clone();
+    valid_page(&mut tx, &i, page_id).await?;
+
+    let resolved_at = v.resolved.and_then(|r| if r { Some(Utc::now()) } else { None });
+    let resolved_by = v.resolved.and_then(|r| if r { Some(i.user_id) } else { None });
+
+    let row: PageInlineComment = sqlx::query_as(
+        "UPDATE page_inline_comments SET \
+         content = COALESCE($3, content), \
+         resolved = COALESCE($4, resolved), \
+         resolved_by = CASE WHEN $4::bool IS NOT NULL THEN $5 ELSE resolved_by END, \
+         resolved_at = CASE WHEN $4::bool IS NOT NULL THEN $6 ELSE resolved_at END, \
+         updated_at = now() \
+         WHERE tenant_id=$1 AND page_id=$2 AND id=$7 \
+         RETURNING id, page_id, user_id, (SELECT COALESCE(NULLIF(u.display_name,''), split_part(u.email,'@',1)) FROM users u WHERE u.id=page_inline_comments.user_id) AS author_name, \
+         selected_text, anchor_range, content, resolved, resolved_by, resolved_at, created_at, updated_at",
+    )
+    .bind(i.tenant_id)
+    .bind(page_id)
+    .bind(v.content)
+    .bind(v.resolved)
+    .bind(resolved_by)
+    .bind(resolved_at)
+    .bind(comment_id)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(db_err)?
+    .ok_or_else(|| err(StatusCode::NOT_FOUND, "Inline comment not found"))?;
+
+    Ok(Json(row))
+}
+
+#[utoipa::path(delete, path = "/api/pages/{id}/inline-comments/{comment_id}", tag = "knowledge", params(("id" = Uuid, Path, description = "Page id"), ("comment_id" = Uuid, Path, description = "Comment id")), responses((status = 204, description = "Deleted"), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn delete_inline_comment(
+    mut tx: Tx,
+    Path((page_id, comment_id)): Path<(Uuid, Uuid)>,
+) -> ApiResult<StatusCode> {
+    let i = tx.identity.clone();
+    valid_page(&mut tx, &i, page_id).await?;
+
+    let res = sqlx::query("DELETE FROM page_inline_comments WHERE tenant_id=$1 AND page_id=$2 AND id=$3")
+        .bind(i.tenant_id)
+        .bind(page_id)
+        .bind(comment_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+
+    if res.rows_affected() == 0 {
+        return Err(err(StatusCode::NOT_FOUND, "Inline comment not found"));
+    }
     Ok(StatusCode::NO_CONTENT)
 }

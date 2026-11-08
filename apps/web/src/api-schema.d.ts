@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/api/admin/traces/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["export_traces"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/webhook-deliveries/{id}/redeliver": {
         parameters: {
             query?: never;
@@ -840,6 +856,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/incidents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["update_incident"];
+        trace?: never;
+    };
     "/api/initiatives": {
         parameters: {
             query?: never;
@@ -1628,6 +1660,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/oauth/apps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_oauth_apps"];
+        put?: never;
+        post: operations["create_oauth_app"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_authorize"];
+        put?: never;
+        post: operations["submit_authorize"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/oauth/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["exchange_token"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/page-templates/{id}": {
         parameters: {
             query?: never;
@@ -1724,6 +1804,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pages/{id}/inline-comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_inline_comments"];
+        put?: never;
+        post: operations["create_inline_comment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pages/{id}/inline-comments/{comment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_inline_comment"];
+        options?: never;
+        head?: never;
+        patch: operations["update_inline_comment"];
+        trace?: never;
+    };
     "/api/pages/{id}/parent": {
         parameters: {
             query?: never;
@@ -1804,6 +1916,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/portal/projects/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_portal_info"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/projects/{id}/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submit_customer_request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portal/requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_customer_request"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/portfolio": {
         parameters: {
             query?: never;
@@ -1812,6 +1972,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["portfolio"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portfolio/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["portfolio_overview"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1892,6 +2068,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/ai/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["draft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/ai/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_drafts"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2300,6 +2508,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/import/confluence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["import_confluence"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}/import/csv": {
         parameters: {
             query?: never;
@@ -2371,6 +2595,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/import/jira-cloud": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["import_jira_cloud"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}/import/jira/extras": {
         parameters: {
             query?: never;
@@ -2419,6 +2659,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/incidents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_incidents"];
+        put?: never;
+        post: operations["create_incident"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}/issue-types": {
         parameters: {
             query?: never;
@@ -2449,6 +2705,38 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["update_issue_type"];
+        trace?: never;
+    };
+    "/api/projects/{id}/issue-types/{key}/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_type_fields"];
+        put: operations["set_type_fields"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/issue-types/{key}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_type_transitions"];
+        put: operations["set_type_transitions"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/projects/{id}/issues": {
@@ -2573,6 +2861,22 @@ export interface paths {
         get: operations["get_scheme"];
         put: operations["set_scheme"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/raid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_raid_items"];
+        put?: never;
+        post: operations["create_raid_item"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3027,6 +3331,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/raid/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_raid_item"];
+        options?: never;
+        head?: never;
+        patch: operations["update_raid_item"];
+        trace?: never;
+    };
     "/api/relations": {
         parameters: {
             query?: never;
@@ -3331,6 +3651,22 @@ export interface paths {
         patch: operations["update_sprint"];
         trace?: never;
     };
+    "/api/sprints/{id}/board": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["sprint_board"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sprints/{id}/burndown": {
         parameters: {
             query?: never;
@@ -3340,6 +3676,38 @@ export interface paths {
         };
         get: operations["burndown"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sprints/{id}/burnup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["burnup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sprints/{id}/capacity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["sprint_capacity"];
+        put: operations["update_sprint_capacity"];
         post?: never;
         delete?: never;
         options?: never;
@@ -3390,6 +3758,22 @@ export interface paths {
         put?: never;
         post?: never;
         delete: operations["remove_issue_from_sprint"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sprints/{id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["sprint_report"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3692,6 +4076,30 @@ export interface components {
             password?: string | null;
             token: string;
         };
+        AiDraftInput: {
+            context?: string | null;
+            draft_type: string;
+            prompt: string;
+        };
+        AiDraftRecord: {
+            /** Format: date-time */
+            created_at: string;
+            draft_type: string;
+            /** Format: uuid */
+            id: string;
+            output: string;
+            /** Format: uuid */
+            project_id: string;
+            prompt: string;
+            /** Format: uuid */
+            user_id: string;
+        };
+        AiDraftResult: {
+            draft_type: string;
+            /** Format: uuid */
+            id: string;
+            output: string;
+        };
         AiRequest: {
             /** Format: uuid */
             issue_id: string;
@@ -3807,6 +4215,13 @@ export interface components {
             token: string;
             /** Format: uuid */
             user_id: string;
+        };
+        AuthorizePrompt: {
+            app_name: string;
+            client_id: string;
+            redirect_uri: string;
+            scopes: string[];
+            state?: string | null;
         };
         AutomationInput: {
             /** @description `custom` for rules with conditions and actions. The other two values are the original presets. */
@@ -3966,6 +4381,25 @@ export interface components {
             state: string;
             /** @description The UTC day that `current` belongs to. */
             today: string;
+        };
+        Burnup: {
+            current: components["schemas"]["SprintTotals"];
+            snapshots: components["schemas"]["BurnupSnapshot"][];
+            /** Format: uuid */
+            sprint_id: string;
+            state: string;
+            today: string;
+        };
+        BurnupSnapshot: {
+            /** Format: int32 */
+            completed_count: number;
+            /** Format: int32 */
+            completed_points: number;
+            day: string;
+            /** Format: int32 */
+            total_scope_count: number;
+            /** Format: int32 */
+            total_scope_points: number;
         };
         CapacityInput: {
             /** Format: double */
@@ -4136,9 +4570,40 @@ export interface components {
             description?: string | null;
             name?: string | null;
         };
+        ConfluenceImportInput: {
+            dry_run?: boolean | null;
+            pages: components["schemas"]["ConfluencePageItem"][];
+            space_key?: string | null;
+        };
+        ConfluenceImportReport: {
+            /** Format: int64 */
+            created_pages: number;
+            dry_run: boolean;
+            titles: string[];
+        };
+        ConfluencePageItem: {
+            content?: string | null;
+            parent_title?: string | null;
+            title: string;
+        };
+        ConsentInput: {
+            client_id: string;
+            redirect_uri: string;
+            scopes?: string[] | null;
+            state?: string | null;
+        };
+        ConsentResponse: {
+            code: string;
+            redirect_url: string;
+            state?: string | null;
+        };
         CreatedApiToken: {
             info: components["schemas"]["ApiTokenRow"];
             token: string;
+        };
+        CreatedOAuthApp: {
+            app: components["schemas"]["OAuthApp"];
+            client_secret: string;
         };
         /** @description Issues created and issues completed on each day. */
         CreatedResolved: {
@@ -4173,6 +4638,23 @@ export interface components {
             /** @description The file line the row starts on. */
             line: number;
             message?: string | null;
+        };
+        CustomerRequestInput: {
+            description?: string | null;
+            email: string;
+            /** Format: uuid */
+            request_type_id: string;
+            summary: string;
+        };
+        CustomerRequestStatus: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: int64 */
+            number: number;
+            status: string;
+            summary: string;
         };
         CycleItem: {
             /**
@@ -4296,6 +4778,19 @@ export interface components {
         };
         ExistingInvite: {
             token: string;
+        };
+        FieldContextInput: {
+            default_value?: string | null;
+            field_key: string;
+            hidden: boolean;
+            required: boolean;
+        };
+        FieldContextItem: {
+            default_value?: string | null;
+            field_key: string;
+            hidden: boolean;
+            issue_type_key: string;
+            required: boolean;
         };
         FieldDefinition: {
             /** @description `text`, `number`, `date`, `boolean` or `select`. */
@@ -4619,6 +5114,41 @@ export interface components {
             icon?: string | null;
             name?: string | null;
         };
+        IssueTypeTransition: {
+            from_key: string;
+            issue_type_key: string;
+            requires_field?: string | null;
+            to_key: string;
+        };
+        IssueTypeTransitionInput: {
+            from_key: string;
+            requires_field?: string | null;
+            to_key: string;
+        };
+        JiraCloudImportInput: {
+            /** @description Atlassian API token */
+            api_token: string;
+            dry_run?: boolean | null;
+            /** @description Atlassian account email */
+            email: string;
+            /** @description Jira Cloud URL e.g. https://your-domain.atlassian.net */
+            host: string;
+            /** @description Jira project key e.g. PROJ */
+            jira_project: string;
+        };
+        JiraCloudImportReport: {
+            connected: boolean;
+            dry_run: boolean;
+            /** Format: int64 */
+            issues_found: number;
+            /** Format: int64 */
+            issues_imported: number;
+            message: string;
+            /** Format: int64 */
+            sprints_found: number;
+            /** Format: int64 */
+            versions_found: number;
+        };
         JiraExtrasReport: {
             dry_run: boolean;
             issues_found: number;
@@ -4645,6 +5175,12 @@ export interface components {
             email: string;
             password: string;
             slug: string;
+        };
+        MemberCapacityEntry: {
+            /** Format: double */
+            capacity_hours: number;
+            /** Format: uuid */
+            user_id: string;
         };
         MemberRoleInput: {
             role: string;
@@ -4706,6 +5242,18 @@ export interface components {
             /** @description Restricted to project admins. Default false. */
             restricted?: boolean | null;
         };
+        NewIncidentInput: {
+            impact?: string | null;
+            /** Format: uuid */
+            issue_id: string;
+            root_cause?: string | null;
+            severity?: string | null;
+        };
+        NewInlineComment: {
+            anchor_range?: unknown;
+            content: string;
+            selected_text: string;
+        };
         NewIssue: {
             /** @description Values for the project's custom fields. Required fields must be present. */
             custom_fields?: unknown;
@@ -4731,6 +5279,12 @@ export interface components {
             key?: string | null;
             /** @description 1 to 40 characters. */
             name: string;
+        };
+        NewOAuthApp: {
+            is_trusted?: boolean | null;
+            name: string;
+            redirect_uri: string;
+            scopes?: string[] | null;
         };
         NewPage: {
             content?: string | null;
@@ -4760,6 +5314,16 @@ export interface components {
             level: number;
             /** @description 1 to 80 characters; unique per project. */
             name: string;
+        };
+        NewRaidItem: {
+            description?: string | null;
+            due_date?: string | null;
+            kind: string;
+            /** Format: uuid */
+            owner_id?: string | null;
+            severity?: string | null;
+            status?: string | null;
+            title: string;
         };
         NewReminder: {
             /** @description Up to 500 characters. */
@@ -4880,6 +5444,35 @@ export interface components {
             enabled: boolean;
             kind: string;
         };
+        OAuthApp: {
+            client_id: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            is_trusted: boolean;
+            name: string;
+            redirect_uri: string;
+            scopes: string[];
+        };
+        OtelExport: {
+            resource_spans: components["schemas"]["OtelSpan"][];
+            /** Format: int64 */
+            total: number;
+        };
+        OtelSpan: {
+            attributes: unknown;
+            /** Format: int32 */
+            duration_ms: number;
+            kind: string;
+            name: string;
+            /** Format: date-time */
+            occurred_at: string;
+            parent_span_id?: string | null;
+            span_id: string;
+            status_code: string;
+            trace_id: string;
+        };
         Page: {
             content: string;
             /** Format: uuid */
@@ -4916,6 +5509,27 @@ export interface components {
             subject_id: string;
             /** @description `user` or `team`. */
             subject_type: string;
+        };
+        PageInlineComment: {
+            anchor_range: unknown;
+            author_name: string;
+            content: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            page_id: string;
+            resolved: boolean;
+            /** Format: date-time */
+            resolved_at?: string | null;
+            /** Format: uuid */
+            resolved_by?: string | null;
+            selected_text: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: uuid */
+            user_id: string;
         };
         PageParent: {
             /**
@@ -4992,6 +5606,36 @@ export interface components {
             /** @description `free`, `team` or `business`. */
             plan: string;
         };
+        PortalInfo: {
+            portal_name: string;
+            /** Format: uuid */
+            project_id: string;
+            project_name: string;
+            request_types: components["schemas"]["RequestType"][];
+            welcome_message: string;
+        };
+        PortfolioOverview: {
+            projects: components["schemas"]["PortfolioProjectItem"][];
+            /** Format: int64 */
+            total_done_issues: number;
+            /** Format: int64 */
+            total_open_issues: number;
+        };
+        PortfolioProjectItem: {
+            active_sprint?: string | null;
+            /** Format: int64 */
+            done_issues: number;
+            health?: string | null;
+            /** Format: uuid */
+            id: string;
+            key: string;
+            name: string;
+            next_release?: string | null;
+            /** Format: int64 */
+            open_issues: number;
+            /** Format: int64 */
+            total_points: number;
+        };
         Project: {
             /** @description The caller's effective access: `viewer`, `editor` or `admin`. */
             access: string;
@@ -5053,6 +5697,22 @@ export interface components {
         ProjectUpdateInput: {
             body: string;
             health: string;
+        };
+        RaidItem: {
+            /** Format: date-time */
+            created_at: string;
+            description: string;
+            due_date?: string | null;
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            /** Format: uuid */
+            owner_id?: string | null;
+            /** Format: uuid */
+            project_id: string;
+            severity: string;
+            status: string;
+            title: string;
         };
         /** @description Where to put an item in the ranking. */
         RankInput: {
@@ -5336,6 +5996,27 @@ export interface components {
         SecurityPolicyInput: {
             require_mfa: boolean;
         };
+        ServiceIncident: {
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            id: string;
+            impact: string;
+            /** Format: uuid */
+            issue_id: string;
+            /** Format: int64 */
+            issue_number: number;
+            /** Format: uuid */
+            project_id: string;
+            /** Format: date-time */
+            resolved_at?: string | null;
+            root_cause: string;
+            severity: string;
+            /** Format: date-time */
+            started_at: string;
+            status: string;
+            title: string;
+        };
         ServiceQueue: {
             /** Format: date-time */
             created_at: string;
@@ -5347,6 +6028,12 @@ export interface components {
             /** Format: uuid */
             id: string;
             name: string;
+        };
+        SetFieldContextsInput: {
+            contexts: components["schemas"]["FieldContextInput"][];
+        };
+        SetIssueTypeTransitionsInput: {
+            transitions: components["schemas"]["IssueTypeTransitionInput"][];
         };
         Signup: {
             email: string;
@@ -5431,6 +6118,15 @@ export interface components {
             /** Format: uuid */
             tenant_id: string;
         };
+        SprintCapacityView: {
+            members: components["schemas"]["SprintMemberCapacity"][];
+            /** Format: uuid */
+            sprint_id: string;
+            /** Format: int32 */
+            total_assigned_points: number;
+            /** Format: double */
+            total_capacity_hours: number;
+        };
         SprintDetail: {
             /** @description Active issues in the sprint, in rank order. */
             issues: components["schemas"]["BacklogItem"][];
@@ -5453,6 +6149,52 @@ export interface components {
         /** @description Issue ids to add to or remove from a sprint. At most 100 distinct ids. */
         SprintIssuesInput: {
             issue_ids: string[];
+        };
+        SprintMemberCapacity: {
+            /** Format: int32 */
+            assigned_points: number;
+            /** Format: double */
+            capacity_hours: number;
+            email: string;
+            name: string;
+            /** Format: uuid */
+            user_id: string;
+        };
+        SprintReport: {
+            /** Format: int32 */
+            committed_count: number;
+            /** Format: int32 */
+            committed_points: number;
+            /** Format: int32 */
+            completed_count: number;
+            /** Format: int32 */
+            completed_points: number;
+            /** Format: int32 */
+            incomplete_count: number;
+            /** Format: int32 */
+            incomplete_points: number;
+            items: components["schemas"]["SprintReportItem"][];
+            /** Format: int32 */
+            scope_creep_count: number;
+            /** Format: int32 */
+            scope_creep_points: number;
+            sprint: components["schemas"]["SprintDetail"];
+        };
+        SprintReportItem: {
+            added_mid_sprint: boolean;
+            /** Format: uuid */
+            assignee_id?: string | null;
+            /** Format: uuid */
+            id: string;
+            is_done: boolean;
+            kind: string;
+            /** Format: int64 */
+            number: number;
+            priority: string;
+            status: string;
+            /** Format: int32 */
+            story_points?: number | null;
+            title: string;
         };
         /** @description One day of a sprint's burndown. */
         SprintSnapshot: {
@@ -5572,8 +6314,22 @@ export interface components {
         TitleInput: {
             title: string;
         };
+        TokenExchangeInput: {
+            client_id: string;
+            client_secret: string;
+            code: string;
+            grant_type: string;
+            redirect_uri: string;
+        };
         TokenInput: {
             name: string;
+        };
+        TokenResponse: {
+            access_token: string;
+            /** Format: int64 */
+            expires_in: number;
+            scope: string;
+            token_type: string;
         };
         /**
          * @description One post-function of a rule. `set_field` writes `value` into `field`; `notify_admins` tells the
@@ -5614,6 +6370,28 @@ export interface components {
             title: string;
             /** Format: date-time */
             trashed_at: string;
+        };
+        UpdateIncidentInput: {
+            impact?: string | null;
+            root_cause?: string | null;
+            severity?: string | null;
+            status?: string | null;
+        };
+        UpdateInlineComment: {
+            content?: string | null;
+            resolved?: boolean | null;
+        };
+        UpdateRaidItem: {
+            description?: string | null;
+            due_date?: string | null;
+            /** Format: uuid */
+            owner_id?: string | null;
+            severity?: string | null;
+            status?: string | null;
+            title?: string | null;
+        };
+        UpdateSprintCapacityInput: {
+            capacities: components["schemas"]["MemberCapacityEntry"][];
         };
         /** @description One issue compared with its baseline due date. Positive variance means later than planned. */
         Variance: {
@@ -5774,14 +6552,18 @@ export interface components {
             slug: string;
         };
         WorkspaceSettings: {
+            /** Format: int32 */
+            attachment_retention_days?: number | null;
             /** @description Accent colour as `#rrggbb`. Null when not set. */
             brand_color?: string | null;
             /** @description Display name shown in place of the workspace name (Phase J5). Null when not set. */
             brand_name?: string | null;
+            custom_domain?: string | null;
             /** Format: int32 */
             default_sprint_days: number;
             /** @description Interface language: `en` or `es` (Phase K5). Dates and numbers follow it. */
             locale: string;
+            logo_url?: string | null;
             /** @description An IANA name such as `Europe/London`, or `UTC`. */
             timezone: string;
             /**
@@ -5798,14 +6580,18 @@ export interface components {
             working_days: number[];
         };
         WorkspaceSettingsInput: {
+            /** Format: int32 */
+            attachment_retention_days?: number | null;
             /** @description Accent colour as `#rrggbb`; an empty string clears it. Omit to keep it. */
             brand_color?: string | null;
             /** @description Display name; an empty string clears it. Omit to keep it. */
             brand_name?: string | null;
+            custom_domain?: string | null;
             /** Format: int32 */
             default_sprint_days: number;
             /** @description `en` or `es`. Omit to keep the current language. */
             locale?: string | null;
+            logo_url?: string | null;
             timezone: string;
             /**
              * Format: int32
@@ -5825,6 +6611,44 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    export_traces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OpenTelemetry trace spans export */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OtelExport"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Workspace admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     redeliver: {
         parameters: {
             query?: never;
@@ -6618,6 +7442,8 @@ export interface operations {
                 limit: number | null;
                 /** @description Value of `X-Next-Cursor` from the previous page. */
                 cursor: string | null;
+                /** @description Free-text search across action, entity type, and actor name. */
+                q: string | null;
             };
             cookie?: never;
         };
@@ -6680,6 +7506,8 @@ export interface operations {
                 limit: number | null;
                 /** @description Value of `X-Next-Cursor` from the previous page. */
                 cursor: string | null;
+                /** @description Free-text search across action, entity type, and actor name. */
+                q: string | null;
             };
             cookie?: never;
         };
@@ -8607,6 +9435,60 @@ export interface operations {
                 };
             };
             /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    update_incident: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Incident id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateIncidentInput"];
+            };
+        };
+        responses: {
+            /** @description Updated incident */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceIncident"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -12339,6 +13221,222 @@ export interface operations {
             };
         };
     };
+    list_oauth_apps: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Registered OAuth apps */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthApp"][];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    create_oauth_app: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewOAuthApp"];
+            };
+        };
+        responses: {
+            /** @description Created. Secret is shown once */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedOAuthApp"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    get_authorize: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                client_id: string;
+                redirect_uri: string;
+                scope: string | null;
+                state: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Consent details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizePrompt"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    submit_authorize: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsentInput"];
+            };
+        };
+        responses: {
+            /** @description Authorization code granted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsentResponse"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    exchange_token: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenExchangeInput"];
+            };
+        };
+        responses: {
+            /** @description Access token generated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Invalid code or grant */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Client authentication failed */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     delete_page_template: {
         parameters: {
             query?: never;
@@ -12726,6 +13824,198 @@ export interface operations {
             };
         };
     };
+    list_inline_comments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Page id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of inline comments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageInlineComment"][];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Page not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    create_inline_comment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Page id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewInlineComment"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageInlineComment"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Page not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    delete_inline_comment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Page id */
+                id: string;
+                /** @description Comment id */
+                comment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    update_inline_comment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Page id */
+                id: string;
+                /** @description Comment id */
+                comment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateInlineComment"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageInlineComment"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     set_page_parent: {
         parameters: {
             query?: never;
@@ -13024,6 +14314,115 @@ export interface operations {
             };
         };
     };
+    get_portal_info: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Customer portal information */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalInfo"];
+                };
+            };
+            /** @description Project not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    submit_customer_request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerRequestInput"];
+            };
+        };
+        responses: {
+            /** @description Ticket submitted */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerRequestStatus"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Project not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    get_customer_request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Request id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ticket status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerRequestStatus"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     portfolio: {
         parameters: {
             query?: never;
@@ -13071,6 +14470,35 @@ export interface operations {
             };
             /** @description Not found in this workspace */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    portfolio_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cross-project portfolio roll-up */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioOverview"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -13470,6 +14898,101 @@ export interface operations {
             };
             /** @description Not found in this workspace */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    draft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiDraftInput"];
+            };
+        };
+        responses: {
+            /** @description Governed AI generated draft */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiDraftResult"];
+                };
+            };
+            /** @description Validation error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description AI is off for this workspace */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description AI is not configured on this server */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list_drafts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recent AI drafts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiDraftRecord"][];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -14235,6 +15758,8 @@ export interface operations {
                 group_by: string | null;
                 /** @description Only issues owned by this team. */
                 team_id: string | null;
+                /** @description Only issues in this sprint. */
+                sprint_id: string | null;
                 /** @description Only issues assigned to this user. */
                 assignee_id: string | null;
                 /** @description Only issues with no assignee. */
@@ -15725,6 +17250,69 @@ export interface operations {
             };
         };
     };
+    import_confluence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfluenceImportInput"];
+            };
+        };
+        responses: {
+            /** @description Report on imported Confluence pages */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfluenceImportReport"];
+                };
+            };
+            /** @description Invalid payload */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Workspace admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     import_csv: {
         parameters: {
             query?: never;
@@ -15992,6 +17580,69 @@ export interface operations {
             };
         };
     };
+    import_jira_cloud: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JiraCloudImportInput"];
+            };
+        };
+        responses: {
+            /** @description Jira Cloud API sync report */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JiraCloudImportReport"];
+                };
+            };
+            /** @description Invalid host or parameters */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Workspace admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     import_extras: {
         parameters: {
             query?: never;
@@ -16184,6 +17835,101 @@ export interface operations {
                 };
             };
             /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list_incidents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of project incidents */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceIncident"][];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Project not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    create_incident: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewIncidentInput"];
+            };
+        };
+        responses: {
+            /** @description Incident declared */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceIncident"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -16403,6 +18149,222 @@ export interface operations {
                 };
             };
             /** @description No such issue type */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list_type_fields: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Issue type key */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Field contexts for this issue type */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldContextItem"][];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    set_type_fields: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Issue type key */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetFieldContextsInput"];
+            };
+        };
+        responses: {
+            /** @description Updated field contexts for this issue type */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldContextItem"][];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list_type_transitions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Issue type key */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Allowed transitions for this issue type */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssueTypeTransition"][];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    set_type_transitions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Issue type key */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetIssueTypeTransitionsInput"];
+            };
+        };
+        responses: {
+            /** @description Updated transitions for this issue type */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssueTypeTransition"][];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -17171,6 +19133,101 @@ export interface operations {
             };
             /** @description Project admins only */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list_raid_items: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description RAID items for this project */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RaidItem"][];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    create_raid_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewRaidItem"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RaidItem"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -19545,6 +21602,99 @@ export interface operations {
             };
         };
     };
+    delete_raid_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    update_raid_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRaidItem"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RaidItem"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     relations: {
         parameters: {
             query?: never;
@@ -20822,6 +22972,79 @@ export interface operations {
             };
         };
     };
+    sprint_board: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description `none` (one lane), `assignee` or `epic`. Defaults to `none`. */
+                group_by: string | null;
+                /** @description Only issues owned by this team. */
+                team_id: string | null;
+                /** @description Only issues in this sprint. */
+                sprint_id: string | null;
+                /** @description Only issues assigned to this user. */
+                assignee_id: string | null;
+                /** @description Only issues with no assignee. */
+                unassigned: boolean | null;
+                /** @description Only issues with this priority: `low`, `medium`, `high` or `urgent`. */
+                priority: string | null;
+                /** @description Case-insensitive title search, up to 200 characters. */
+                q: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Board lanes for this sprint */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BoardView"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     burndown: {
         parameters: {
             query?: never;
@@ -20841,6 +23064,187 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Burndown"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    burnup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Burnup chart points */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Burnup"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    sprint_capacity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sprint capacity and member allocations */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SprintCapacityView"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    update_sprint_capacity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSprintCapacityInput"];
+            };
+        };
+        responses: {
+            /** @description Updated sprint capacity */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SprintCapacityView"];
                 };
             };
             /** @description Validation or domain error */
@@ -21015,6 +23419,65 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BacklogItem"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    sprint_report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sprint report with committed vs completed and items added mid-sprint */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SprintReport"];
                 };
             };
             /** @description Validation or domain error */

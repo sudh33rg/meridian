@@ -66,7 +66,11 @@ fn validate_one(body: &str) -> ApiResult<()> {
     let allowed: &[&str] = match name.as_str() {
         "issues" | "table" => &["query", "limit"],
         "chart" => &["by", "query"],
-        other => return Err(bad(&format!("“{other}” is not a macro. Use issues, table or chart"))),
+        "toc" => &["max_level"],
+        "status" => &["text", "color"],
+        "callout" => &["type", "title", "text"],
+        "properties" => &["name", "value"],
+        other => return Err(bad(&format!("“{other}” is not a macro. Use issues, table, chart, toc, status, callout or properties"))),
     };
     for (key, value) in &args {
         if !allowed.contains(&key.as_str()) {
@@ -84,6 +88,12 @@ fn validate_one(body: &str) -> ApiResult<()> {
             }
             "by" if !matches!(value.as_str(), "status" | "priority" | "kind") => {
                 return Err(bad("chart by must be status, priority or kind"))
+            }
+            "color" if !matches!(value.as_str(), "gray" | "blue" | "green" | "yellow" | "red" | "purple") => {
+                return Err(bad("status color must be gray, blue, green, yellow, red or purple"))
+            }
+            "type" if !matches!(value.as_str(), "info" | "warning" | "tip" | "caution") => {
+                return Err(bad("callout type must be info, warning, tip or caution"))
             }
             _ => {}
         }

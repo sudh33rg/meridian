@@ -158,4 +158,46 @@ Source: the register in `PARITY_GAP_REGISTER.md`, rechecked against source after
 
 ### Still open after Phase Q
 
-Listed in `PARITY_GAP_REGISTER.md` section 0. The largest items: cross-project automation rules and branches (6.3, 6.1); OAuth 2.0 apps (6.10); Jira Cloud pull and Confluence import (6.12, 6.13); rich text tables and images (2.21); field contexts and per-type workflows (2.10, 2.4); the sprint report and burnup (1.8, 1.10); screen-reader and keyboard pass (10.4); most strings in the catalogue (10.5); OpenTelemetry export (10.9); Android build and device run (10.6).
+Listed in `PARITY_GAP_REGISTER.md` section 0. The remaining items: cross-project automation rules and branches (6.3, 6.1); OAuth 2.0 apps (6.10); Jira Cloud pull and Confluence import (6.12, 6.13); rich text tables and images (2.21); field contexts and per-type workflows (2.10, 2.4); the sprint report and burnup (1.8, 1.10); screen-reader and keyboard pass (10.4); most strings in the catalogue (10.5); OpenTelemetry export (10.9); Android build and device run (10.6).
+
+---
+
+## Phases R to Y: Complete Parity Implementation Plan (dated 8 November 2026)
+
+Following the owner's instruction to deeply analyze product gaps with Jira, Confluence, Linear, Notion, Azure Boards and ClickUp, and implement every feature in phases without pause.
+
+| Phase | Step | Goal | Done when |
+|---|---|---|---|
+| **R** | R1 | **Dedicated Sprint Board.** Filtered Scrum board for active or selected sprint with lane transitions and status columns. | `GET /sprints/{id}/board` returns sprint lanes and cards; web SprintsPanel has a Sprint Board view. |
+| R | R2 | **Sprint Report & Scope Creep.** Detailed report comparing committed vs completed points/issues, with an explicit list of items added mid-sprint. | `GET /sprints/{id}/report` returns committed, completed, incomplete, and scope creep items; web displays Sprint Report. |
+| R | R3 | **Burnup Chart.** Scope line vs completed line over sprint duration. | `GET /sprints/{id}/burnup` returns daily scope and completed series; rendered visually on sprint detail. |
+| R | R4 | **Sprint Capacity Planning.** Member capacity hours per sprint and workload allocation. | `GET/PUT /sprints/{id}/capacity` manages per-member hours and calculates team allocation. |
+| **S** | S1 | **Workflows per Issue Type.** Different issue types can have dedicated workflows and allowed transitions. | Migration adds `issue_type_workflows`; transitions validate against type-specific workflows. |
+| S | S2 | **Field Contexts per Issue Type.** Configure required, optional or hidden fields per issue type. | Migration adds `field_contexts`; issue validation checks type-specific field requirements. |
+| S | S3 | **Rich Text: Markdown Tables & Image Embeds.** Markdown sanitizer and renderer support formatted tables, task lists, and image attachments. | Descriptions and comments render markdown tables, task checkboxes, and image embeds safely. |
+| S | S4 | **Comprehensive Change History.** Field-level diffs for labels, custom fields, and estimates. | `issue_changes` records label additions/removals, custom field value changes, and estimate updates. |
+| S | S5 | **Project Templates with Types, Fields & Boards.** Seeding full schemes on project creation. | Templates seed custom issue types, fields, default statuses, and board configurations. |
+| **T** | T1 | **Query Language Date & Null Functions.** `now()`, `startOfWeek()`, `endOfWeek()`, `startOfMonth()`, `endOfMonth()`, `lastWeek()`, `empty`, `notEmpty`. | Query compiler parses and compiles dynamic date expressions and emptiness checks into SQL. |
+| T2 | T2 | **Dashboards: Reorderable Widgets & Visual Gadgets.** Configurable widget positions and live gadget charts. | Widgets support position ordering; web dashboard renders interactive charts. |
+| T | T3 | **Cross-Project Portfolio Dashboard.** Roll-up of health, velocity, and open work across projects. | `GET /portfolio/overview` aggregates visible projects; Portfolio tab displays cross-project status. |
+| T | T4 | **Full RAID Register.** First-class tracking for Assumptions, Issues, Risks, and Dependencies. | RAID items table and API; RAID view in Roadmap tab. |
+| T | T5 | **Schedule Baselines & Variance.** Save schedule baselines and calculate variance. | Snapshot due dates and calculate variance against current dates. |
+| **U** | U1 | **Automation Rule Branches.** If/Else conditional branch execution within automation rules. | Automation engine executes branch conditions and actions sequentially. |
+| U | U2 | **Cross-Project Automation.** Workspace-wide rules triggering across multiple projects. | Rules with `is_cross_project = true` execute across projects with audit logs. |
+| U | U3 | **Multi-VCS Git Linking.** GitLab and Bitbucket webhook payloads, branch linking, and PR merge status. | Webhooks parse GitLab/Bitbucket events and update PR status to merged/closed. |
+| U | U4 | **OAuth 2.0 Integration Apps.** Client registration, authorization code flow, and token exchange. | `POST /oauth/apps`, `GET /oauth/authorize`, `POST /oauth/token` with consent flow. |
+| U | U5 | **Jira Cloud API Sync.** Direct import from Jira Cloud REST API. | `POST /projects/{id}/import/jira-cloud` fetches issues, sprints, and versions with credentials. |
+| U | U6 | **Confluence Space Importer.** Import pages from Confluence space XML/zip export. | `POST /projects/{id}/import/confluence` extracts page hierarchy and content. |
+| **V** | V1 | **Granular Action Permissions.** Action levels for comments, issue creation, and components. | Permissions schemes support `add_comments`, `delete_any_comment`, `create_issues`, `manage_components`. |
+| V | V2 | **Audit Log Free-Text Search.** Search across actor names, entity keys, and payload contents. | Audit query accepts `q` for full-text search across JSON event details. |
+| V | V3 | **Attachment Retention Cleanup.** Workspace retention rules for attachments. | Hourly maintenance loop prunes orphaned attachments beyond retention window. |
+| V | V4 | **Workspace Custom Domain & Logo.** Domain settings and logo image upload. | Settings store custom domain and logo asset; branding displayed in header/sidebar. |
+| **W** | W1 | **Inline Page Comments.** Confluence-style inline comments on highlighted text. | `page_inline_comments` table; API for adding, resolving, and viewing inline discussions. |
+| W | W2 | **Rich Knowledge Macros.** Table of Contents, Status badges, Callouts (info/warning/tip), and Page Properties. | Knowledge renderer parses macro tags and displays interactive widgets. |
+| **X** | X1 | **Customer Request Portal.** External portal for unauthenticated or guest users. | Customer portal endpoint and interface for submitting tickets and tracking status. |
+| X | X2 | **ITIL Incident & Change Workflows.** Dedicated incident response and change request flows. | Incident tracking with severity, impact, root cause, and change advisory approvals. |
+| **Y** | Y1 | **OpenTelemetry Trace Export.** Export API trace data in OpenTelemetry format. | `GET /api/admin/traces/export` streams structured trace spans. |
+| Y | Y2 | **Full Localisation Strings.** Complete Spanish (`es`) translation coverage across all views. | Spanish message catalog updated with all strings across new and existing tabs. |
+| Y | Y3 | **Governed AI Drafting.** AI drafting for descriptions, acceptance criteria, and release notes. | Endpoints for drafting issue descriptions and sprint retro notes with opt-in guardrails. |
+| **Z** | Z1 | **Contract, Documentation & Verification.** OpenAPI generation, manifest, status ledger, and visual verification. | `make openapi`, `make manifest`, doc updates, and browser verification pass. |
+

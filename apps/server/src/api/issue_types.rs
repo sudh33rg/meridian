@@ -347,6 +347,190 @@ pub(crate) async fn delete_issue_type(
     Ok(StatusCode::NO_CONTENT)
 }
 
+#[derive(Serialize, FromRow, utoipa::ToSchema)]
+pub(crate) struct IssueTypeTransition {
+    pub(crate) issue_type_key: String,
+    pub(crate) from_key: String,
+    pub(crate) to_key: String,
+    pub(crate) requires_field: Option<String>,
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct IssueTypeTransitionInput {
+    pub(crate) from_key: String,
+    pub(crate) to_key: String,
+    pub(crate) requires_field: Option<String>,
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct SetIssueTypeTransitionsInput {
+    pub(crate) transitions: Vec<IssueTypeTransitionInput>,
+}
+
+#[derive(Serialize, FromRow, utoipa::ToSchema)]
+pub(crate) struct FieldContextItem {
+    pub(crate) issue_type_key: String,
+    pub(crate) field_key: String,
+    pub(crate) required: bool,
+    pub(crate) hidden: bool,
+    pub(crate) default_value: Option<String>,
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct FieldContextInput {
+    pub(crate) field_key: String,
+    pub(crate) required: bool,
+    pub(crate) hidden: bool,
+    pub(crate) default_value: Option<String>,
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct SetFieldContextsInput {
+    pub(crate) contexts: Vec<FieldContextInput>,
+}
+
+#[utoipa::path(get, path = "/api/projects/{id}/issue-types/{key}/transitions", tag = "issue_types", params(("id" = Uuid, Path, description = "Resource id"), ("key" = String, Path, description = "Issue type key")), responses((status = 200, description = "Allowed transitions for this issue type", body = Vec<IssueTypeTransition>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn list_type_transitions(
+    mut tx: Tx,
+    Path((project, key)): Path<(Uuid, String)>,
+) -> ApiResult<Json<Vec<IssueTypeTransition>>> {
+    ensure_access(&mut tx, project).await?;
+    let rows: Vec<IssueTypeTransition> = sqlx::query_as(
+        "SELECT issue_type_key, from_key, to_key, requires_field FROM issue_type_transitions WHERE tenant_id=$1 AND project_id=$2 AND issue_type_key=$3 ORDER BY from_key, to_key",
+    )
+    .bind(tx.identity.tenant_id)
+    .bind(project)
+    .bind(&key)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    Ok(Json(rows))
+}
+
+#[utoipa::path(put, path = "/api/projects/{id}/issue-types/{key}/transitions", tag = "issue_types", params(("id" = Uuid, Path, description = "Resource id"), ("key" = String, Path, description = "Issue type key")), request_body = SetIssueTypeTransitionsInput, responses((status = 200, description = "Updated transitions for this issue type", body = Vec<IssueTypeTransition>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn set_type_transitions(
+    mut tx: Tx,
+    Path((project, key)): Path<(Uuid, String)>,
+    Json(input): Json<SetIssueTypeTransitionsInput>,
+) -> ApiResult<Json<Vec<IssueTypeTransition>>> {
+    let i = tx.identity.clone();
+    ensure_workflow(&mut tx, project).await?;
+
+    let type_exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM issue_types WHERE tenant_id=$1 AND project_id=$2 AND key=$3)",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .bind(&key)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    if !type_exists {
+        return Err(err(StatusCode::NOT_FOUND, "Issue type not found"));
+    }
+
+    sqlx::query(
+        "DELETE FROM issue_type_transitions WHERE tenant_id=$1 AND project_id=$2 AND issue_type_key=$3",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .bind(&key)
+    .execute(&mut *tx)
+    .await
+    .map_err(db_err)?;
+
+    for t in &input.transitions {
+        if t.from_key == t.to_key {
+            return Err(bad("from_key and to_key must differ"));
+        }
+        sqlx::query(
+            "INSERT INTO issue_type_transitions(tenant_id, project_id, issue_type_key, from_key, to_key, requires_field) \
+             VALUES($1, $2, $3, $4, $5, $6)",
+        )
+        .bind(i.tenant_id)
+        .bind(project)
+        .bind(&key)
+        .bind(&t.from_key)
+        .bind(&t.to_key)
+        .bind(&t.requires_field)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    }
+
+    list_type_transitions(tx, Path((project, key))).await
+}
+
+#[utoipa::path(get, path = "/api/projects/{id}/issue-types/{key}/fields", tag = "issue_types", params(("id" = Uuid, Path, description = "Resource id"), ("key" = String, Path, description = "Issue type key")), responses((status = 200, description = "Field contexts for this issue type", body = Vec<FieldContextItem>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn list_type_fields(
+    mut tx: Tx,
+    Path((project, key)): Path<(Uuid, String)>,
+) -> ApiResult<Json<Vec<FieldContextItem>>> {
+    ensure_access(&mut tx, project).await?;
+    let rows: Vec<FieldContextItem> = sqlx::query_as(
+        "SELECT issue_type_key, field_key, required, hidden, default_value FROM field_contexts WHERE tenant_id=$1 AND project_id=$2 AND issue_type_key=$3 ORDER BY field_key",
+    )
+    .bind(tx.identity.tenant_id)
+    .bind(project)
+    .bind(&key)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    Ok(Json(rows))
+}
+
+#[utoipa::path(put, path = "/api/projects/{id}/issue-types/{key}/fields", tag = "issue_types", params(("id" = Uuid, Path, description = "Resource id"), ("key" = String, Path, description = "Issue type key")), request_body = SetFieldContextsInput, responses((status = 200, description = "Updated field contexts for this issue type", body = Vec<FieldContextItem>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn set_type_fields(
+    mut tx: Tx,
+    Path((project, key)): Path<(Uuid, String)>,
+    Json(input): Json<SetFieldContextsInput>,
+) -> ApiResult<Json<Vec<FieldContextItem>>> {
+    let i = tx.identity.clone();
+    ensure_workflow(&mut tx, project).await?;
+
+    let type_exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM issue_types WHERE tenant_id=$1 AND project_id=$2 AND key=$3)",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .bind(&key)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    if !type_exists {
+        return Err(err(StatusCode::NOT_FOUND, "Issue type not found"));
+    }
+
+    sqlx::query(
+        "DELETE FROM field_contexts WHERE tenant_id=$1 AND project_id=$2 AND issue_type_key=$3",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .bind(&key)
+    .execute(&mut *tx)
+    .await
+    .map_err(db_err)?;
+
+    for c in &input.contexts {
+        sqlx::query(
+            "INSERT INTO field_contexts(tenant_id, project_id, issue_type_key, field_key, required, hidden, default_value) \
+             VALUES($1, $2, $3, $4, $5, $6, $7)",
+        )
+        .bind(i.tenant_id)
+        .bind(project)
+        .bind(&key)
+        .bind(&c.field_key)
+        .bind(c.required)
+        .bind(c.hidden)
+        .bind(&c.default_value)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    }
+
+    list_type_fields(tx, Path((project, key))).await
+}
+
 pub(crate) fn routes() -> Router<App> {
     Router::new()
         .route(
@@ -356,5 +540,13 @@ pub(crate) fn routes() -> Router<App> {
         .route(
             "/api/projects/{id}/issue-types/{key}",
             patch(update_issue_type).delete(delete_issue_type),
+        )
+        .route(
+            "/api/projects/{id}/issue-types/{key}/transitions",
+            get(list_type_transitions).put(set_type_transitions),
+        )
+        .route(
+            "/api/projects/{id}/issue-types/{key}/fields",
+            get(list_type_fields).put(set_type_fields),
         )
 }

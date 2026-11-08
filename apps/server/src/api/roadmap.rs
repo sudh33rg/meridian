@@ -927,8 +927,220 @@ pub(crate) async fn baseline_variance(mut tx: Tx, Path(id): Path<Uuid>) -> ApiRe
     Ok(Json(rows))
 }
 
+#[derive(Serialize, FromRow, utoipa::ToSchema)]
+pub(crate) struct PortfolioProjectItem {
+    pub(crate) id: Uuid,
+    pub(crate) name: String,
+    pub(crate) key: String,
+    pub(crate) health: Option<String>,
+    pub(crate) open_issues: i64,
+    pub(crate) done_issues: i64,
+    pub(crate) total_points: i64,
+    pub(crate) active_sprint: Option<String>,
+    pub(crate) next_release: Option<String>,
+}
+
+#[derive(Serialize, utoipa::ToSchema)]
+pub(crate) struct PortfolioOverview {
+    pub(crate) projects: Vec<PortfolioProjectItem>,
+    pub(crate) total_open_issues: i64,
+    pub(crate) total_done_issues: i64,
+}
+
+#[utoipa::path(get, path = "/api/portfolio/overview", tag = "roadmap", responses((status = 200, description = "Cross-project portfolio roll-up", body = PortfolioOverview), (status = 401, description = "Missing or invalid session", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn portfolio_overview(mut tx: Tx) -> ApiResult<Json<PortfolioOverview>> {
+    let i = tx.identity.clone();
+    let done = done_predicate("i");
+    let projects: Vec<PortfolioProjectItem> = sqlx::query_as(&format!(
+        "SELECT p.id, p.name, p.key, \
+         (SELECT pu.health FROM project_updates pu WHERE pu.tenant_id=p.tenant_id AND pu.project_id=p.id ORDER BY pu.created_at DESC LIMIT 1) AS health, \
+         COALESCE((SELECT count(*) FROM issues i WHERE i.tenant_id=p.tenant_id AND i.project_id=p.id AND i.archived_at IS NULL AND i.trashed_at IS NULL AND NOT {done}), 0)::bigint AS open_issues, \
+         COALESCE((SELECT count(*) FROM issues i WHERE i.tenant_id=p.tenant_id AND i.project_id=p.id AND i.archived_at IS NULL AND i.trashed_at IS NULL AND {done}), 0)::bigint AS done_issues, \
+         COALESCE((SELECT sum(COALESCE(i.story_points, 0)) FROM issues i WHERE i.tenant_id=p.tenant_id AND i.project_id=p.id AND i.archived_at IS NULL AND i.trashed_at IS NULL), 0)::bigint AS total_points, \
+         (SELECT s.name FROM sprints s WHERE s.tenant_id=p.tenant_id AND s.project_id=p.id AND s.state='active' LIMIT 1) AS active_sprint, \
+         (SELECT r.name FROM releases r WHERE r.tenant_id=p.tenant_id AND r.project_id=p.id AND r.status='planned' ORDER BY r.release_date ASC NULLS LAST LIMIT 1) AS next_release \
+         FROM projects p \
+         WHERE p.tenant_id=$1 AND project_access(p.id, $2, $3) >= 1 \
+         ORDER BY p.name"
+    ))
+    .bind(i.tenant_id)
+    .bind(i.user_id)
+    .bind(&i.role)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+
+    let total_open_issues = projects.iter().map(|p| p.open_issues).sum();
+    let total_done_issues = projects.iter().map(|p| p.done_issues).sum();
+
+    Ok(Json(PortfolioOverview {
+        projects,
+        total_open_issues,
+        total_done_issues,
+    }))
+}
+
+#[derive(Serialize, FromRow, utoipa::ToSchema)]
+pub(crate) struct RaidItem {
+    pub(crate) id: Uuid,
+    pub(crate) project_id: Uuid,
+    pub(crate) kind: String,
+    pub(crate) title: String,
+    pub(crate) description: String,
+    pub(crate) severity: String,
+    pub(crate) status: String,
+    pub(crate) owner_id: Option<Uuid>,
+    pub(crate) due_date: Option<String>,
+    pub(crate) created_at: DateTime<Utc>,
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct NewRaidItem {
+    pub(crate) kind: String,
+    pub(crate) title: String,
+    pub(crate) description: Option<String>,
+    pub(crate) severity: Option<String>,
+    pub(crate) status: Option<String>,
+    pub(crate) owner_id: Option<Uuid>,
+    pub(crate) due_date: Option<String>,
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct UpdateRaidItem {
+    pub(crate) title: Option<String>,
+    pub(crate) description: Option<String>,
+    pub(crate) severity: Option<String>,
+    pub(crate) status: Option<String>,
+    pub(crate) owner_id: Option<Uuid>,
+    pub(crate) due_date: Option<String>,
+}
+
+#[utoipa::path(get, path = "/api/projects/{id}/raid", tag = "roadmap", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "RAID items for this project", body = Vec<RaidItem>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn list_raid_items(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<RaidItem>>> {
+    ensure_access(&mut tx, project).await?;
+    let rows: Vec<RaidItem> = sqlx::query_as(
+        "SELECT id, project_id, kind, title, description, severity, status, owner_id, to_char(due_date,'YYYY-MM-DD') AS due_date, created_at \
+         FROM raid_items WHERE tenant_id=$1 AND project_id=$2 ORDER BY created_at DESC",
+    )
+    .bind(tx.identity.tenant_id)
+    .bind(project)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    Ok(Json(rows))
+}
+
+#[utoipa::path(post, path = "/api/projects/{id}/raid", tag = "roadmap", params(("id" = Uuid, Path, description = "Resource id")), request_body = NewRaidItem, responses((status = 201, description = "Created", body = RaidItem), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn create_raid_item(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+    Json(input): Json<NewRaidItem>,
+) -> ApiResult<Json<RaidItem>> {
+    ensure_access(&mut tx, project).await?;
+    if !["risk", "assumption", "issue", "dependency"].contains(&input.kind.as_str()) {
+        return Err(bad("kind must be risk, assumption, issue or dependency"));
+    }
+    let title = input.title.trim();
+    if title.is_empty() || title.len() > 200 {
+        return Err(bad("title must be between 1 and 200 characters"));
+    }
+    let severity = input.severity.unwrap_or_else(|| "medium".to_string());
+    if !["low", "medium", "high", "critical"].contains(&severity.as_str()) {
+        return Err(bad("severity must be low, medium, high or critical"));
+    }
+    let status = input.status.unwrap_or_else(|| "open".to_string());
+
+    let row: RaidItem = sqlx::query_as(
+        "INSERT INTO raid_items(tenant_id, project_id, kind, title, description, severity, status, owner_id, due_date) \
+         VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9::date) \
+         RETURNING id, project_id, kind, title, description, severity, status, owner_id, to_char(due_date,'YYYY-MM-DD') AS due_date, created_at",
+    )
+    .bind(tx.identity.tenant_id)
+    .bind(project)
+    .bind(&input.kind)
+    .bind(title)
+    .bind(input.description.unwrap_or_default())
+    .bind(severity)
+    .bind(status)
+    .bind(input.owner_id)
+    .bind(input.due_date)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
+
+    Ok(Json(row))
+}
+
+#[utoipa::path(patch, path = "/api/raid/{id}", tag = "roadmap", params(("id" = Uuid, Path, description = "Resource id")), request_body = UpdateRaidItem, responses((status = 200, description = "Updated", body = RaidItem), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn update_raid_item(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+    Json(input): Json<UpdateRaidItem>,
+) -> ApiResult<Json<RaidItem>> {
+    let i = tx.identity.clone();
+    let project: Uuid = sqlx::query_scalar("SELECT project_id FROM raid_items WHERE tenant_id=$1 AND id=$2")
+        .bind(i.tenant_id)
+        .bind(id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(db_err)?
+        .ok_or_else(|| err(StatusCode::NOT_FOUND, "RAID item not found"))?;
+    ensure_access(&mut tx, project).await?;
+
+    let row: RaidItem = sqlx::query_as(
+        "UPDATE raid_items SET \
+         title = COALESCE($3, title), \
+         description = COALESCE($4, description), \
+         severity = COALESCE($5, severity), \
+         status = COALESCE($6, status), \
+         owner_id = COALESCE($7, owner_id), \
+         due_date = COALESCE($8::date, due_date), \
+         updated_at = now() \
+         WHERE tenant_id=$1 AND id=$2 \
+         RETURNING id, project_id, kind, title, description, severity, status, owner_id, to_char(due_date,'YYYY-MM-DD') AS due_date, created_at",
+    )
+    .bind(i.tenant_id)
+    .bind(id)
+    .bind(input.title)
+    .bind(input.description)
+    .bind(input.severity)
+    .bind(input.status)
+    .bind(input.owner_id)
+    .bind(input.due_date)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
+
+    Ok(Json(row))
+}
+
+#[utoipa::path(delete, path = "/api/raid/{id}", tag = "roadmap", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 204, description = "Deleted"), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn delete_raid_item(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<StatusCode> {
+    let i = tx.identity.clone();
+    let project: Uuid = sqlx::query_scalar("SELECT project_id FROM raid_items WHERE tenant_id=$1 AND id=$2")
+        .bind(i.tenant_id)
+        .bind(id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(db_err)?
+        .ok_or_else(|| err(StatusCode::NOT_FOUND, "RAID item not found"))?;
+    ensure_access(&mut tx, project).await?;
+
+    sqlx::query("DELETE FROM raid_items WHERE tenant_id=$1 AND id=$2")
+        .bind(i.tenant_id)
+        .bind(id)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
 pub(crate) fn routes() -> axum::Router<App> {
     axum::Router::new()
+        .route("/api/portfolio/overview", get(portfolio_overview))
+        .route("/api/projects/{id}/raid", get(list_raid_items).post(create_raid_item))
+        .route("/api/raid/{id}", axum::routing::patch(update_raid_item).delete(delete_raid_item))
         .route("/api/projects/{id}/milestones", get(list_milestones).post(create_milestone))
         .route("/api/milestones/{id}", axum::routing::patch(update_milestone).delete(delete_milestone))
         .route("/api/projects/{id}/timeline", get(timeline))

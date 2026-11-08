@@ -78,6 +78,49 @@ pub(crate) async fn seed_template(db: &mut PgConnection, tenant: Uuid, project: 
         .await
         .map_err(db_err)?;
     }
+
+    let fields: &[(&str, &str, &str, &[&str], bool, i32)] = match template {
+        "bugs" => &[
+            ("severity", "Severity", "select", &["low", "medium", "high", "critical"], false, 0),
+        ],
+        "service" => &[
+            ("impact", "Impact", "select", &["low", "medium", "high", "critical"], false, 0),
+            ("urgency", "Urgency", "select", &["low", "medium", "high"], false, 1),
+        ],
+        "software" => &[
+            ("environment", "Environment", "select", &["development", "staging", "production"], false, 0),
+        ],
+        _ => &[],
+    };
+    for (f_key, f_label, f_type, f_opts, f_req, f_pos) in fields {
+        let opts: Vec<String> = f_opts.iter().map(|s| s.to_string()).collect();
+        let exists: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 AND key=$3)",
+        )
+        .bind(tenant)
+        .bind(project)
+        .bind(f_key)
+        .fetch_one(&mut *db)
+        .await
+        .map_err(db_err)?;
+        if !exists {
+            sqlx::query(
+                "INSERT INTO field_definitions(tenant_id, project_id, key, label, field_type, options, required, position) \
+                 VALUES($1, $2, $3, $4, $5, $6, $7, $8)",
+            )
+            .bind(tenant)
+            .bind(project)
+            .bind(f_key)
+            .bind(f_label)
+            .bind(f_type)
+            .bind(&opts)
+            .bind(f_req)
+            .bind(f_pos)
+            .execute(&mut *db)
+            .await
+            .map_err(db_err)?;
+        }
+    }
     Ok(())
 }
 

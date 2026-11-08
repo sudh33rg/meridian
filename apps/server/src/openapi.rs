@@ -5,7 +5,7 @@ use crate::api::{
     access::*, admin::*, agile::*, collab::*, csv_import::*, fields::*, history::*,
     integrations::*, issue_depth::*, issue_types::*, issues::*, knowledge::*, org::*, personal::*, service::*, issue_security::*, issue_content::*, digest::*, ai::*, chat::*, roles::*, jira_extras::*,
     planning::*, releases::*, reports::*, roadmap::*, security::*, settings::*, statuses::*,
-    transitions::*, work::*,
+    transitions::*, oauth::*, vendor_import::*, work::*,
 };
 use crate::*;
 use utoipa::{
@@ -125,6 +125,10 @@ impl Modify for BearerAuth {
         api::issues::new_issue_comment,
         api::issues::new_issue_link,
         api::knowledge::new_page_comment,
+        api::knowledge::list_inline_comments,
+        api::knowledge::create_inline_comment,
+        api::knowledge::update_inline_comment,
+        api::knowledge::delete_inline_comment,
         api::knowledge::new_relation,
         api::knowledge::page_comments,
         api::knowledge::page_versions,
@@ -161,6 +165,7 @@ impl Modify for BearerAuth {
         api::agile::board,
         api::admin::audit_events,
         api::admin::audit_export,
+        api::admin::export_traces,
         api::personal::add_favourite,
         api::personal::remove_favourite,
         api::personal::record_view,
@@ -171,6 +176,8 @@ impl Modify for BearerAuth {
         api::vendor_import::import_github,
         api::vendor_import::import_linear,
         api::vendor_import::import_asana,
+        api::vendor_import::import_jira_cloud,
+        api::vendor_import::import_confluence,
         api::knowledge::list_page_templates,
         api::knowledge::create_page_template,
         api::knowledge::delete_page_template,
@@ -184,12 +191,20 @@ impl Modify for BearerAuth {
         api::service::delete_request_type,
         api::service::submit_request,
         api::service::sla_report,
+        api::service::get_portal_info,
+        api::service::submit_customer_request,
+        api::service::get_customer_request,
+        api::service::list_incidents,
+        api::service::create_incident,
+        api::service::update_incident,
         api::chat::get_channels,
         api::chat::put_channels,
         api::ai::get_settings,
         api::ai::put_settings,
         api::ai::summary,
         api::ai::triage,
+        api::ai::draft,
+        api::ai::list_drafts,
         api::roles::list_roles,
         api::roles::create_role,
         api::roles::delete_role,
@@ -265,6 +280,11 @@ impl Modify for BearerAuth {
         api::integrations::put_git_secret,
         api::integrations::get_git_secret,
         api::integrations::git_webhook,
+        api::oauth::list_oauth_apps,
+        api::oauth::create_oauth_app,
+        api::oauth::get_authorize,
+        api::oauth::submit_authorize,
+        api::oauth::exchange_token,
         api::integrations::issue_dev_links,
         api::settings::get_settings,
         api::settings::put_settings,
@@ -288,6 +308,11 @@ impl Modify for BearerAuth {
         api::roadmap::list_baselines,
         api::roadmap::create_baseline,
         api::roadmap::baseline_variance,
+        api::roadmap::portfolio_overview,
+        api::roadmap::list_raid_items,
+        api::roadmap::create_raid_item,
+        api::roadmap::update_raid_item,
+        api::roadmap::delete_raid_item,
         api::agile::rank_issue,
         api::agile::set_issue_team,
         api::agile::sprint_detail,
@@ -295,6 +320,11 @@ impl Modify for BearerAuth {
         api::agile::remove_issue_from_sprint,
         api::agile::burndown,
         api::agile::velocity,
+        api::agile::sprint_board,
+        api::agile::sprint_report,
+        api::agile::burnup,
+        api::agile::sprint_capacity,
+        api::agile::update_sprint_capacity,
         api::releases::release_detail,
         api::releases::update_release,
         api::releases::release_scope,
@@ -334,13 +364,17 @@ impl Modify for BearerAuth {
         api::issue_types::create_issue_type,
         api::issue_types::update_issue_type,
         api::issue_types::delete_issue_type,
+        api::issue_types::list_type_transitions,
+        api::issue_types::set_type_transitions,
+        api::issue_types::list_type_fields,
+        api::issue_types::set_type_fields,
         api::work::patch_page,
         api::work::projects,
         auth::login,
         auth::logout,
         auth::signup
     ),
-    components(schemas(ErrorBody, WipLimitInput, CommentEdit, CommentRevision, CommentHistory, TrashedIssue, TransitionAction, NewTransitionAction, BulkIssueInput, BulkItemResult, BulkResult, ProjectStatus, NewStatus, StatusPatch, IssueType, NewIssueType, IssueTypePatch, FieldDefinition, NewField, FieldPatch, TransitionRule, NewTransition, IssueComment, IssueLink, SearchHit, CsvImportReport, CsvRowReport, IssueDetail, Notification, Approval,SavedView, NewSavedView, NotificationPreference, NotificationPreferenceInput, api::knowledge::TitleInput, crate::sso::SsoInput, crate::sso::DomainInput, crate::scim::TokenInput, crate::billing::PlanInput, crate::webhooks::WebhookInput, crate::webhooks::WebhookPatch, api::access::PageAccess, api::access::RestrictionInput, api::access::PageGrantInput, crate::mfa::CodeInput, crate::mfa::DisableInput, crate::mfa::VerifyChallengeInput, crate::mfa::SecurityPolicyInput, ChangePasswordInput, RefreshInput, ForgotInput, ResetInput, VerifyInput, GrantInput, VisibilityInput, AcceptInvitation, ApprovalDecision, ApprovalInput, AuthResponse, AutomationInput, CommentInput, DecisionInput, ExistingInvite, GoalInput, ImportInput, ImportItem, InviteInput, Issue, IssueEdit, JoinTeamInput, LinkInput, Login, MemberRoleInput, NewIssue, NewPage, NewProject, Page, PatchIssue, PatchPage, Project, RelationInput, ReleaseInput, RestoreInput, RiskInput, Signup, SprintInput, SwitchTenant, TeamInput, WorkspaceInput, BacklogItem, RankInput, IssueTeamInput, SprintTotals, Sprint, SprintDetail, SprintIssuesInput, MembershipResult, VelocitySprint, Velocity, SprintSnapshot, Burndown, SprintUpdate, Release, ReleaseTotals, ReleaseDetail, ReleaseScopeItem, ScopeEvent, ReleaseNotes, ReleaseIssuesInput, ReleaseUpdate, FlowRow, CycleReport, CycleItem, Throughput, CreatedResolved, TimeReport, TimeByPerson, TimeByIssue, Dashboard, DashboardView, WidgetView, Widget, DashboardInput, WidgetInput, IssueHistoryEntry, ApiTokenRow, ApiTokenInput, CreatedApiToken, GitSecretInput, GitSecretStatus, DevLink, WorkspaceSettings, WorkspaceSettingsInput, Milestone, MilestoneInput, MilestonePatch, TimelineItem, Dependency, PathItem, CriticalPath, Initiative, InitiativePatch, InitiativeInput, InitiativeEpicsInput, ProjectUpdate, ProjectUpdateInput, GoalProgress, GoalIssuesInput, CapacityRow, CapacityInput, Baseline, BaselineInput, Variance, Component, ComponentInput, ComponentPatch, IssueComponentsInput, Estimates, EstimatesInput, Worklog, WorklogInput, Person, WatchInput, Votes, ChecklistItem, ChecklistInput, ChecklistPatch, ChildIssue, Rollup, SubtaskInput, CloneInput, MoveInput, MoveResult, SimilarIssue, BoardIssue, BoardLane, BoardView, AuditEvent, IssueRef, PageTemplate, NewPageTemplate, PermissionScheme, ServiceQueue, NewServiceQueue, RequestType, NewRequestType, NewRequest, SlaRow, TransitionScreen, RequestFormField, ChatChannels, ChatChannelsInput, AiSettings, AiRequest, AiSummary, AiTriage, ProjectRole, NewProjectRole, ProjectRoleMembers, JiraExtrasReport, SecurityLevel, SecurityLevels, NewSecurityLevel, SecurityLevelMembers, IssueSecurityInput, IssueSecurity, CommentReaction, Reminder, NewReminder, BlogPost, NewBlogPost, HomePage, PageParent, DigestSetting)),
+    components(schemas(ErrorBody, WipLimitInput, CommentEdit, CommentRevision, CommentHistory, TrashedIssue, TransitionAction, NewTransitionAction, BulkIssueInput, BulkItemResult, BulkResult, ProjectStatus, NewStatus, StatusPatch, IssueType, NewIssueType, IssueTypePatch, FieldDefinition, NewField, FieldPatch, TransitionRule, NewTransition, IssueComment, IssueLink, SearchHit, CsvImportReport, CsvRowReport, IssueDetail, Notification, Approval,SavedView, NewSavedView, NotificationPreference, NotificationPreferenceInput, api::knowledge::TitleInput, crate::sso::SsoInput, crate::sso::DomainInput, crate::scim::TokenInput, crate::billing::PlanInput, crate::webhooks::WebhookInput, crate::webhooks::WebhookPatch, api::access::PageAccess, api::access::RestrictionInput, api::access::PageGrantInput, crate::mfa::CodeInput, crate::mfa::DisableInput, crate::mfa::VerifyChallengeInput, crate::mfa::SecurityPolicyInput, ChangePasswordInput, RefreshInput, ForgotInput, ResetInput, VerifyInput, GrantInput, VisibilityInput, AcceptInvitation, ApprovalDecision, ApprovalInput, AuthResponse, AutomationInput, CommentInput, DecisionInput, ExistingInvite, GoalInput, ImportInput, ImportItem, InviteInput, Issue, IssueEdit, JoinTeamInput, LinkInput, Login, MemberRoleInput, NewIssue, NewPage, NewProject, Page, PatchIssue, PatchPage, Project, RelationInput, ReleaseInput, RestoreInput, RiskInput, Signup, SprintInput, SwitchTenant, TeamInput, WorkspaceInput, BacklogItem, RankInput, IssueTeamInput, SprintTotals, Sprint, SprintDetail, SprintIssuesInput, MembershipResult, VelocitySprint, Velocity, SprintSnapshot, Burndown, SprintUpdate, Release, ReleaseTotals, ReleaseDetail, ReleaseScopeItem, ScopeEvent, ReleaseNotes, ReleaseIssuesInput, ReleaseUpdate, FlowRow, CycleReport, CycleItem, Throughput, CreatedResolved, TimeReport, TimeByPerson, TimeByIssue, Dashboard, DashboardView, WidgetView, Widget, DashboardInput, WidgetInput, IssueHistoryEntry, ApiTokenRow, ApiTokenInput, CreatedApiToken, GitSecretInput, GitSecretStatus, DevLink, WorkspaceSettings, WorkspaceSettingsInput, Milestone, MilestoneInput, MilestonePatch, TimelineItem, Dependency, PathItem, CriticalPath, Initiative, InitiativePatch, InitiativeInput, InitiativeEpicsInput, ProjectUpdate, ProjectUpdateInput, GoalProgress, GoalIssuesInput, CapacityRow, CapacityInput, Baseline, BaselineInput, Variance, Component, ComponentInput, ComponentPatch, IssueComponentsInput, Estimates, EstimatesInput, Worklog, WorklogInput, Person, WatchInput, Votes, ChecklistItem, ChecklistInput, ChecklistPatch, ChildIssue, Rollup, SubtaskInput, CloneInput, MoveInput, MoveResult, SimilarIssue, BoardIssue, BoardLane, BoardView, AuditEvent, IssueRef, PageTemplate, NewPageTemplate, PermissionScheme, ServiceQueue, NewServiceQueue, RequestType, NewRequestType, NewRequest, SlaRow, TransitionScreen, RequestFormField, ChatChannels, ChatChannelsInput, AiSettings, AiRequest, AiSummary, AiTriage, ProjectRole, NewProjectRole, ProjectRoleMembers, JiraExtrasReport, SecurityLevel, SecurityLevels, NewSecurityLevel, SecurityLevelMembers, IssueSecurityInput, IssueSecurity, CommentReaction, Reminder, NewReminder, BlogPost, NewBlogPost, HomePage, PageParent, DigestSetting, SprintReportItem, SprintReport, BurnupSnapshot, Burnup, SprintMemberCapacity, SprintCapacityView, MemberCapacityEntry, UpdateSprintCapacityInput, PortfolioProjectItem, PortfolioOverview, RaidItem, NewRaidItem, UpdateRaidItem, OAuthApp, CreatedOAuthApp, NewOAuthApp, AuthorizePrompt, ConsentInput, ConsentResponse, TokenExchangeInput, TokenResponse, PortalInfo, CustomerRequestInput, CustomerRequestStatus, ServiceIncident, NewIncidentInput, UpdateIncidentInput, PageInlineComment, NewInlineComment, UpdateInlineComment, IssueTypeTransition, IssueTypeTransitionInput, SetIssueTypeTransitionsInput, FieldContextItem, FieldContextInput, SetFieldContextsInput, JiraCloudImportInput, JiraCloudImportReport, ConfluenceImportInput, ConfluenceImportReport, OtelSpan, OtelExport, AiDraftInput, AiDraftResult, AiDraftRecord)),
     modifiers(&BearerAuth)
 )]
 pub struct ApiDoc;
@@ -359,7 +393,7 @@ mod tests {
         let paths = doc["paths"].as_object().unwrap();
         let ops: usize = paths.values().map(|p| p.as_object().unwrap().len()).sum();
         assert_eq!(
-            ops, 122,
+            ops, 340,
             "documented operation count changed; update routes and docs together"
         );
         // Only the public auth endpoints may omit the bearer requirement.
@@ -377,6 +411,12 @@ mod tests {
                     "/api/auth/sso/{slug}/start",
                     "/api/auth/sso/callback",
                     "/api/billing/stripe-webhook",
+                    "/api/email/unsubscribe",
+                    "/api/integrations/git/{id}",
+                    "/api/oauth/token",
+                    "/api/portal/projects/{id}",
+                    "/api/portal/projects/{id}/requests",
+                    "/api/portal/requests/{id}",
                 ]
                 .contains(&path.as_str());
                 assert_eq!(op.get("security").is_none(), public, "{method} {path}");

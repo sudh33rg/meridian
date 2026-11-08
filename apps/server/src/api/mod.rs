@@ -32,4 +32,5 @@ pub mod security;
 pub mod settings;
 pub mod statuses;
 pub mod transitions;
+pub mod oauth;
 pub mod work;

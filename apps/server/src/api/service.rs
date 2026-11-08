@@ -576,6 +576,11 @@ pub(crate) fn routes() -> Router<App> {
         .route("/api/service/request-types/{id}", delete(delete_request_type))
         .route("/api/projects/{id}/service/requests", post(submit_request))
         .route("/api/projects/{id}/service/sla", get(sla_report))
+        .route("/api/portal/projects/{id}", get(get_portal_info))
+        .route("/api/portal/projects/{id}/requests", post(submit_customer_request))
+        .route("/api/portal/requests/{id}", get(get_customer_request))
+        .route("/api/projects/{id}/incidents", get(list_incidents).post(create_incident))
+        .route("/api/incidents/{id}", axum::routing::patch(update_incident))
 }
 
 /// The form of a request type, in order: each field key with whether it is required.
@@ -614,4 +619,337 @@ pub(crate) async fn escalate_breached(db: &sqlx::PgPool) -> Result<u64, sqlx::Er
     .execute(db)
     .await?;
     Ok(result.rows_affected())
+}
+
+#[derive(Serialize, utoipa::ToSchema)]
+pub(crate) struct PortalInfo {
+    pub(crate) project_id: Uuid,
+    pub(crate) project_name: String,
+    pub(crate) portal_name: String,
+    pub(crate) welcome_message: String,
+    pub(crate) request_types: Vec<RequestType>,
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct CustomerRequestInput {
+    pub(crate) request_type_id: Uuid,
+    pub(crate) email: String,
+    pub(crate) summary: String,
+    pub(crate) description: Option<String>,
+}
+
+#[derive(Serialize, utoipa::ToSchema)]
+pub(crate) struct CustomerRequestStatus {
+    pub(crate) id: Uuid,
+    pub(crate) number: i64,
+    pub(crate) summary: String,
+    pub(crate) status: String,
+    pub(crate) created_at: DateTime<Utc>,
+}
+
+#[utoipa::path(get, path = "/api/portal/projects/{id}", tag = "service", params(("id" = Uuid, Path, description = "Project id")), responses((status = 200, description = "Customer portal information", body = PortalInfo), (status = 404, description = "Project not found", body = ErrorBody)))]
+pub(crate) async fn get_portal_info(
+    State(app): State<App>,
+    Path(project): Path<Uuid>,
+) -> ApiResult<Json<PortalInfo>> {
+    let project_row: Option<(Uuid, String)> =
+        sqlx::query_as("SELECT tenant_id, name FROM projects WHERE id=$1 AND archived_at IS NULL")
+            .bind(project)
+            .fetch_optional(&app.db)
+            .await
+            .map_err(db_err)?;
+
+    let (tenant_id, project_name) = project_row.ok_or_else(|| err(StatusCode::NOT_FOUND, "Project not found"))?;
+
+    let settings: Option<(String, String)> = sqlx::query_as(
+        "SELECT portal_name, welcome_message FROM portal_settings WHERE tenant_id=$1 AND project_id=$2 AND portal_enabled=true",
+    )
+    .bind(tenant_id)
+    .bind(project)
+    .fetch_optional(&app.db)
+    .await
+    .map_err(db_err)?;
+
+    let (portal_name, welcome_message) = settings.unwrap_or_else(|| {
+        (
+            "Customer Support Portal".to_string(),
+            "Welcome to our service desk. How can we help you today?".to_string(),
+        )
+    });
+
+    let request_types: Vec<RequestType> = sqlx::query_as(
+        "SELECT id, project_id, name, description, target_hours, queue_id, requires_approval, created_at \
+         FROM request_types WHERE tenant_id=$1 AND project_id=$2 ORDER BY name",
+    )
+    .bind(tenant_id)
+    .bind(project)
+    .fetch_all(&app.db)
+    .await
+    .map_err(db_err)?;
+
+    Ok(Json(PortalInfo {
+        project_id: project,
+        project_name,
+        portal_name,
+        welcome_message,
+        request_types,
+    }))
+}
+
+#[utoipa::path(post, path = "/api/portal/projects/{id}/requests", tag = "service", params(("id" = Uuid, Path, description = "Project id")), request_body = CustomerRequestInput, responses((status = 201, description = "Ticket submitted", body = CustomerRequestStatus), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 404, description = "Project not found", body = ErrorBody)))]
+pub(crate) async fn submit_customer_request(
+    State(app): State<App>,
+    Path(project): Path<Uuid>,
+    Json(input): Json<CustomerRequestInput>,
+) -> ApiResult<(StatusCode, Json<CustomerRequestStatus>)> {
+    let project_row: Option<Uuid> =
+        sqlx::query_scalar("SELECT tenant_id FROM projects WHERE id=$1 AND archived_at IS NULL")
+            .bind(project)
+            .fetch_optional(&app.db)
+            .await
+            .map_err(db_err)?;
+
+    let tenant_id = project_row.ok_or_else(|| err(StatusCode::NOT_FOUND, "Project not found"))?;
+
+    let email = input.email.trim();
+    if !email.contains('@') {
+        return Err(bad("A valid email address is required"));
+    }
+    let summary = input.summary.trim();
+    if summary.is_empty() || summary.len() > 200 {
+        return Err(bad("Summary must be 1 to 200 characters"));
+    }
+
+    let owner_user_id: Option<Uuid> = sqlx::query_scalar(
+        "SELECT user_id FROM memberships WHERE tenant_id=$1 AND role='owner' LIMIT 1",
+    )
+    .bind(tenant_id)
+    .fetch_optional(&app.db)
+    .await
+    .map_err(db_err)?;
+
+    let creator_id = owner_user_id.unwrap_or_else(Uuid::nil);
+
+    let next_num: i64 = sqlx::query_scalar(
+        "SELECT COALESCE(max(number), 0) + 1 FROM issues WHERE tenant_id=$1 AND project_id=$2",
+    )
+    .bind(tenant_id)
+    .bind(project)
+    .fetch_one(&app.db)
+    .await
+    .map_err(db_err)?;
+
+    let desc = format!("Submitted by: {}\n\n{}", email, input.description.unwrap_or_default());
+
+    let (id, number, status, created_at): (Uuid, i64, String, DateTime<Utc>) = sqlx::query_as(
+        "INSERT INTO issues(tenant_id, project_id, number, title, description, kind, status, priority, creator_id, request_type_id) \
+         VALUES($1, $2, $3, $4, $5, 'request', 'open', 'medium', $6, $7) \
+         RETURNING id, number, status, created_at",
+    )
+    .bind(tenant_id)
+    .bind(project)
+    .bind(next_num)
+    .bind(summary)
+    .bind(desc)
+    .bind(creator_id)
+    .bind(input.request_type_id)
+    .fetch_one(&app.db)
+    .await
+    .map_err(db_err)?;
+
+    Ok((
+        StatusCode::CREATED,
+        Json(CustomerRequestStatus {
+            id,
+            number,
+            summary: summary.to_string(),
+            status,
+            created_at,
+        }),
+    ))
+}
+
+#[utoipa::path(get, path = "/api/portal/requests/{id}", tag = "service", params(("id" = Uuid, Path, description = "Request id")), responses((status = 200, description = "Ticket status", body = CustomerRequestStatus), (status = 404, description = "Not found", body = ErrorBody)))]
+pub(crate) async fn get_customer_request(
+    State(app): State<App>,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<CustomerRequestStatus>> {
+    let row: Option<(Uuid, i64, String, String, DateTime<Utc>)> = sqlx::query_as(
+        "SELECT id, number, title, status, created_at FROM issues WHERE id=$1 AND archived_at IS NULL AND trashed_at IS NULL",
+    )
+    .bind(id)
+    .fetch_optional(&app.db)
+    .await
+    .map_err(db_err)?;
+
+    let (id, number, summary, status, created_at) =
+        row.ok_or_else(|| err(StatusCode::NOT_FOUND, "Request not found"))?;
+
+    Ok(Json(CustomerRequestStatus {
+        id,
+        number,
+        summary,
+        status,
+        created_at,
+    }))
+}
+
+#[derive(Serialize, FromRow, utoipa::ToSchema)]
+pub(crate) struct ServiceIncident {
+    pub(crate) id: Uuid,
+    pub(crate) project_id: Uuid,
+    pub(crate) issue_id: Uuid,
+    pub(crate) issue_number: i64,
+    pub(crate) title: String,
+    pub(crate) severity: String,
+    pub(crate) impact: String,
+    pub(crate) root_cause: String,
+    pub(crate) status: String,
+    pub(crate) started_at: DateTime<Utc>,
+    pub(crate) resolved_at: Option<DateTime<Utc>>,
+    pub(crate) created_at: DateTime<Utc>,
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct NewIncidentInput {
+    pub(crate) issue_id: Uuid,
+    pub(crate) severity: Option<String>,
+    pub(crate) impact: Option<String>,
+    pub(crate) root_cause: Option<String>,
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct UpdateIncidentInput {
+    pub(crate) severity: Option<String>,
+    pub(crate) impact: Option<String>,
+    pub(crate) root_cause: Option<String>,
+    pub(crate) status: Option<String>,
+}
+
+#[utoipa::path(get, path = "/api/projects/{id}/incidents", tag = "service", params(("id" = Uuid, Path, description = "Project id")), responses((status = 200, description = "List of project incidents", body = Vec<ServiceIncident>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Project not found", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn list_incidents(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+) -> ApiResult<Json<Vec<ServiceIncident>>> {
+    ensure_access(&mut tx, project).await?;
+    let rows: Vec<ServiceIncident> = sqlx::query_as(
+        "SELECT inc.id, inc.project_id, inc.issue_id, i.number AS issue_number, i.title, \
+         inc.severity, inc.impact, inc.root_cause, inc.status, inc.started_at, inc.resolved_at, inc.created_at \
+         FROM service_incidents inc JOIN issues i ON i.id = inc.issue_id \
+         WHERE inc.tenant_id=$1 AND inc.project_id=$2 ORDER BY inc.created_at DESC",
+    )
+    .bind(tx.identity.tenant_id)
+    .bind(project)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    Ok(Json(rows))
+}
+
+#[utoipa::path(post, path = "/api/projects/{id}/incidents", tag = "service", params(("id" = Uuid, Path, description = "Project id")), request_body = NewIncidentInput, responses((status = 201, description = "Incident declared", body = ServiceIncident), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn create_incident(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+    Json(v): Json<NewIncidentInput>,
+) -> ApiResult<(StatusCode, Json<ServiceIncident>)> {
+    let i = tx.identity.clone();
+    ensure_access(&mut tx, project).await?;
+
+    let issue_exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM issues WHERE tenant_id=$1 AND project_id=$2 AND id=$3)",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .bind(v.issue_id)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
+
+    if !issue_exists {
+        return Err(bad("Issue does not exist in this project"));
+    }
+
+    let severity = v.severity.unwrap_or_else(|| "sev-2".to_string());
+    if !["sev-0", "sev-1", "sev-2", "sev-3"].contains(&severity.as_str()) {
+        return Err(bad("severity must be sev-0, sev-1, sev-2 or sev-3"));
+    }
+    let impact = v.impact.unwrap_or_else(|| "minor".to_string());
+    if !["minor", "major", "critical"].contains(&impact.as_str()) {
+        return Err(bad("impact must be minor, major or critical"));
+    }
+
+    let inc_id: Uuid = sqlx::query_scalar(
+        "INSERT INTO service_incidents(tenant_id, project_id, issue_id, severity, impact, root_cause, status) \
+         VALUES($1, $2, $3, $4, $5, $6, 'investigating') RETURNING id",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .bind(v.issue_id)
+    .bind(severity)
+    .bind(impact)
+    .bind(v.root_cause.unwrap_or_default())
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
+
+    let row: ServiceIncident = sqlx::query_as(
+        "SELECT inc.id, inc.project_id, inc.issue_id, i.number AS issue_number, i.title, \
+         inc.severity, inc.impact, inc.root_cause, inc.status, inc.started_at, inc.resolved_at, inc.created_at \
+         FROM service_incidents inc JOIN issues i ON i.id = inc.issue_id \
+         WHERE inc.tenant_id=$1 AND inc.id=$2",
+    )
+    .bind(i.tenant_id)
+    .bind(inc_id)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
+
+    Ok((StatusCode::CREATED, Json(row)))
+}
+
+#[utoipa::path(patch, path = "/api/incidents/{id}", tag = "service", params(("id" = Uuid, Path, description = "Incident id")), request_body = UpdateIncidentInput, responses((status = 200, description = "Updated incident", body = ServiceIncident), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn update_incident(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+    Json(v): Json<UpdateIncidentInput>,
+) -> ApiResult<Json<ServiceIncident>> {
+    let i = tx.identity.clone();
+    let project: Uuid = sqlx::query_scalar("SELECT project_id FROM service_incidents WHERE tenant_id=$1 AND id=$2")
+        .bind(i.tenant_id)
+        .bind(id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(db_err)?
+        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Incident not found"))?;
+    ensure_access(&mut tx, project).await?;
+
+    let resolved_at = match v.status.as_deref() {
+        Some("resolved") => Some(Utc::now()),
+        _ => None,
+    };
+
+    let row: ServiceIncident = sqlx::query_as(
+        "UPDATE service_incidents SET \
+         severity = COALESCE($3, severity), \
+         impact = COALESCE($4, impact), \
+         root_cause = COALESCE($5, root_cause), \
+         status = COALESCE($6, status), \
+         resolved_at = CASE WHEN $6 = 'resolved' THEN $7 ELSE resolved_at END \
+         WHERE tenant_id=$1 AND id=$2 \
+         RETURNING id, project_id, issue_id, (SELECT i.number FROM issues i WHERE i.id = service_incidents.issue_id) AS issue_number, \
+         (SELECT i.title FROM issues i WHERE i.id = service_incidents.issue_id) AS title, \
+         severity, impact, root_cause, status, started_at, resolved_at, created_at",
+    )
+    .bind(i.tenant_id)
+    .bind(id)
+    .bind(v.severity)
+    .bind(v.impact)
+    .bind(v.root_cause)
+    .bind(v.status)
+    .bind(resolved_at)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
+
+    Ok(Json(row))
 }

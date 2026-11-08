@@ -1,11 +1,15 @@
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, ChevronDown, ChevronUp, Play, Square, X } from "lucide-react";
+import { BarChart3, ChevronDown, ChevronUp, Play, Square, X, TrendingUp, FileText, Users, Kanban } from "lucide-react";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { errorMessage, request, send } from "../../lib/api";
 import { downloadCsv } from "../../lib/download";
 import { useToast } from "../shared/Toast";
 import { Burndown } from "./Burndown";
+import { Burnup, type BurnupData } from "./Burnup";
+import { SprintReportView } from "./SprintReportView";
+import { SprintCapacityModal } from "./SprintCapacityModal";
+import { SprintBoardModal } from "./SprintBoardModal";
 import {
   type Burndown as BurndownData,
   type Sprint,
@@ -43,6 +47,10 @@ export function SprintCard({
   const [closing, setClosing] = useState(false);
   const [carryOver, setCarryOver] = useState("backlog");
   const [showBurndown, setShowBurndown] = useState(false);
+  const [showBurnup, setShowBurnup] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [showCapacity, setShowCapacity] = useState(false);
+  const [showBoard, setShowBoard] = useState(false);
   const detail = useQuery({
     queryKey: ["sprint", sprint.id],
     queryFn: () => request<SprintDetail>(session.token, `/sprints/${sprint.id}`),
@@ -52,6 +60,11 @@ export function SprintCard({
     queryKey: ["burndown", sprint.id],
     queryFn: () => request<BurndownData>(session.token, `/sprints/${sprint.id}/burndown`),
     enabled: showBurndown && sprint.state !== "planned",
+  });
+  const burnup = useQuery({
+    queryKey: ["burnup", sprint.id],
+    queryFn: () => request<BurnupData>(session.token, `/sprints/${sprint.id}/burnup`),
+    enabled: showBurnup && sprint.state !== "planned",
   });
   const done = async (message: string) => {
     await invalidatePlanning(qc, projectId);
@@ -136,12 +149,28 @@ export function SprintCard({
             </p>
           )}
           {!compact && sprint.state !== "planned" && (
-            <button className="secondary small-btn" onClick={() => setShowBurndown((v) => !v)} aria-expanded={showBurndown}>
-              <BarChart3 size={14} /> {showBurndown ? "Hide burndown" : "Show burndown"}
-            </button>
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "8px" }}>
+              <button className="secondary small-btn" onClick={() => setShowBurndown((v) => !v)} aria-expanded={showBurndown}>
+                <BarChart3 size={14} /> {showBurndown ? "Hide burndown" : "Burndown"}
+              </button>
+              <button className="secondary small-btn" onClick={() => setShowBurnup((v) => !v)} aria-expanded={showBurnup}>
+                <TrendingUp size={14} /> {showBurnup ? "Hide burnup" : "Burnup"}
+              </button>
+              <button className="secondary small-btn" onClick={() => setShowReport(true)}>
+                <FileText size={14} /> Sprint Report
+              </button>
+              <button className="secondary small-btn" onClick={() => setShowCapacity(true)}>
+                <Users size={14} /> Capacity
+              </button>
+              <button className="secondary small-btn" onClick={() => setShowBoard(true)}>
+                <Kanban size={14} /> Sprint Board
+              </button>
+            </div>
           )}
           {showBurndown && burn.data && <Burndown data={burn.data} />}
           {showBurndown && burn.isLoading && <p className="small muted">Loading burndown…</p>}
+          {showBurnup && burnup.data && <Burnup data={burnup.data} />}
+          {showBurnup && burnup.isLoading && <p className="small muted">Loading burnup…</p>}
           <ul className="sprint-issues" aria-label={`Issues in ${sprint.name}`}>
             {issues.map((issue) => (
               <li key={issue.id} className="sprint-issue">
@@ -236,6 +265,15 @@ export function SprintCard({
             </div>
           )}
         </div>
+      )}
+      {showReport && (
+        <SprintReportView sprintId={sprint.id} projectKey={projectKey} onClose={() => setShowReport(false)} />
+      )}
+      {showCapacity && (
+        <SprintCapacityModal sprintId={sprint.id} sprintName={sprint.name} onClose={() => setShowCapacity(false)} />
+      )}
+      {showBoard && (
+        <SprintBoardModal sprintId={sprint.id} sprintName={sprint.name} projectKey={projectKey} onClose={() => setShowBoard(false)} />
       )}
     </section>
   );

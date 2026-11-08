@@ -5,7 +5,19 @@ import { useWorkspace } from "../workspace/useWorkspace";
 import { errorMessage, request, send } from "../../lib/api";
 import { useToast } from "../shared/Toast";
 
-type Settings = { timezone: string; working_days: number[]; week_start: number; default_sprint_days: number; locale: string; trash_retention_days: number; brand_name?: string | null; brand_color?: string | null };
+type Settings = {
+  timezone: string;
+  working_days: number[];
+  week_start: number;
+  default_sprint_days: number;
+  locale: string;
+  trash_retention_days: number;
+  brand_name?: string | null;
+  brand_color?: string | null;
+  attachment_retention_days?: number | null;
+  custom_domain?: string | null;
+  logo_url?: string | null;
+};
 
 const DAYS = [
   [1, "Mon"],
@@ -64,6 +76,37 @@ export function WorkspaceSettingsPanel() {
             value={current.trash_retention_days}
             disabled={!admin}
             onChange={(e) => setDraft({ ...current, trash_retention_days: Number(e.target.value) })}
+          />
+        </label>
+        <label>
+          Attachment retention (days, 0 = keep forever)
+          <input
+            type="number"
+            min={0}
+            max={3650}
+            value={current.attachment_retention_days ?? 0}
+            disabled={!admin}
+            onChange={(e) => setDraft({ ...current, attachment_retention_days: Number(e.target.value) || null })}
+          />
+        </label>
+        <label>
+          Custom domain
+          <input
+            value={current.custom_domain ?? ""}
+            disabled={!admin}
+            maxLength={120}
+            placeholder="tracker.example.com"
+            onChange={(e) => setDraft({ ...current, custom_domain: e.target.value || null })}
+          />
+        </label>
+        <label>
+          Logo URL
+          <input
+            value={current.logo_url ?? ""}
+            disabled={!admin}
+            maxLength={500}
+            placeholder="https://example.com/logo.png"
+            onChange={(e) => setDraft({ ...current, logo_url: e.target.value || null })}
           />
         </label>
         <label>
@@ -151,6 +194,9 @@ export function WorkspaceSettingsPanel() {
                 ...draft,
                 brand_name: draft.brand_name ?? null,
                 brand_color: draft.brand_color ?? null,
+                attachment_retention_days: draft.attachment_retention_days ?? null,
+                custom_domain: draft.custom_domain ?? null,
+                logo_url: draft.logo_url ?? null,
               });
               setDraft(null);
               await qc.invalidateQueries({ queryKey: ["workspace-settings"] });

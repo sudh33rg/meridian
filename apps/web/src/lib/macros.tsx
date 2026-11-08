@@ -53,7 +53,7 @@ export function splitMacros(content: string): Segment[] {
     if (start > 0) out.push({ kind: "text", text: rest.slice(0, start) });
     const raw = rest.slice(start, end + 2);
     const macro = parseMacro(rest.slice(start + 2, end));
-    const known = macro && ["issues", "table", "chart"].includes(macro.name);
+    const known = macro && ["issues", "table", "chart", "toc", "status", "callout", "properties"].includes(macro.name);
     out.push(known ? { kind: "macro", macro, raw } : { kind: "invalid", raw });
     rest = rest.slice(end + 2);
   }
@@ -63,7 +63,99 @@ export function splitMacros(content: string): Segment[] {
 
 type Issue = { id: string; number: number; title: string; status: string; priority: string };
 
-function MacroBlock({ token, projectId, macro }: { token: string; projectId: string; macro: Macro }) {
+function StaticMacroBlock({ macro }: { macro: Macro }) {
+  if (macro.name === "callout") {
+    const type = macro.args.type ?? "info";
+    const text = macro.args.text ?? "";
+    const colors: Record<string, { bg: string; border: string; color: string }> = {
+      info: { bg: "rgba(59, 130, 246, 0.1)", border: "#3b82f6", color: "#1d4ed8" },
+      warning: { bg: "rgba(245, 158, 11, 0.1)", border: "#f59e0b", color: "#b45309" },
+      tip: { bg: "rgba(16, 185, 129, 0.1)", border: "#10b981", color: "#047857" },
+      note: { bg: "rgba(107, 114, 128, 0.1)", border: "#6b7280", color: "#374151" },
+    };
+    const c = colors[type] ?? colors.info;
+    return (
+      <aside
+        style={{
+          background: c.bg,
+          borderLeft: `4px solid ${c.border}`,
+          color: c.color,
+          padding: "10px 14px",
+          borderRadius: "0 6px 6px 0",
+          margin: "12px 0",
+        }}
+      >
+        <Markdown source={text} />
+      </aside>
+    );
+  }
+
+  if (macro.name === "status") {
+    const title = macro.args.title ?? "STATUS";
+    const color = macro.args.color ?? "blue";
+    const bgMap: Record<string, string> = {
+      green: "#10b981",
+      blue: "#3b82f6",
+      red: "#ef4444",
+      yellow: "#f59e0b",
+      grey: "#6b7280",
+    };
+    const bg = bgMap[color] ?? bgMap.blue;
+    return (
+      <span
+        style={{
+          display: "inline-block",
+          padding: "2px 8px",
+          borderRadius: 4,
+          fontSize: 12,
+          fontWeight: 600,
+          background: bg,
+          color: "#ffffff",
+          margin: "0 4px",
+        }}
+      >
+        {title.toUpperCase()}
+      </span>
+    );
+  }
+
+  if (macro.name === "properties") {
+    const entries = Object.entries(macro.args);
+    return (
+      <div style={{ margin: "12px 0", border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden" }}>
+        <table className="macro-table" style={{ margin: 0 }}>
+          <thead>
+            <tr>
+              <th scope="col" style={{ width: "35%" }}>Property</th>
+              <th scope="col">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map(([k, v]) => (
+              <tr key={k}>
+                <td style={{ fontWeight: 600 }}>{k.replace(/_/g, " ")}</td>
+                <td>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  if (macro.name === "toc") {
+    return (
+      <nav aria-label="Table of contents" style={{ margin: "12px 0", padding: "10px 14px", background: "var(--bg-subtle)", borderRadius: 6 }}>
+        <strong style={{ fontSize: 13 }}>Table of Contents</strong>
+        <p className="muted small" style={{ margin: "4px 0 0" }}>Auto-generated document structure</p>
+      </nav>
+    );
+  }
+
+  return null;
+}
+
+function QueryMacroBlock({ token, projectId, macro }: { token: string; projectId: string; macro: Macro }) {
   const isChart = macro.name === "chart";
   const limit = Math.min(50, Math.max(1, Number(macro.args.limit ?? "20") || 20));
   const query = macro.args.query ?? "";
@@ -140,6 +232,13 @@ function MacroBlock({ token, projectId, macro }: { token: string; projectId: str
       {!issues.length && <li className="muted small">No matching issues.</li>}
     </ul>
   );
+}
+
+function MacroBlock({ token, projectId, macro }: { token: string; projectId: string; macro: Macro }) {
+  if (["callout", "status", "properties", "toc"].includes(macro.name)) {
+    return <StaticMacroBlock macro={macro} />;
+  }
+  return <QueryMacroBlock token={token} projectId={projectId} macro={macro} />;
 }
 
 /** A page's text with its macros rendered. Text is shown as markdown; macros run as searches. */

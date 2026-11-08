@@ -897,6 +897,8 @@ pub(crate) struct BoardQuery {
     pub(crate) group_by: Option<String>,
     /// Only issues owned by this team.
     pub(crate) team_id: Option<Uuid>,
+    /// Only issues in this sprint.
+    pub(crate) sprint_id: Option<Uuid>,
     /// Only issues assigned to this user.
     pub(crate) assignee_id: Option<Uuid>,
     /// Only issues with no assignee.
@@ -940,14 +942,12 @@ pub(crate) struct BoardView {
 
 const BOARD_LIMIT: usize = 2000;
 
-#[utoipa::path(get, path = "/api/projects/{id}/board", tag = "agile", params(("id" = Uuid, Path, description = "Resource id"), BoardQuery), responses((status = 200, description = "Board lanes. Archived and trashed issues are never included", body = BoardView), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn board(
+async fn board_inner(
     mut tx: Tx,
-    Path(project): Path<Uuid>,
-    axum::extract::Query(q): axum::extract::Query<BoardQuery>,
+    project: Uuid,
+    q: BoardQuery,
 ) -> ApiResult<Json<BoardView>> {
     let i = tx.identity.clone();
-    ensure_access(&mut tx, project).await?;
     let group_by = q.group_by.clone().unwrap_or_else(|| "none".to_string());
     if !matches!(group_by.as_str(), "none" | "assignee" | "epic") {
         return Err(bad("group_by must be none, assignee or epic"));
@@ -968,14 +968,16 @@ pub(crate) async fn board(
     let rows: Vec<BoardIssue> = sqlx::query_as(
         "SELECT i.id,i.number,i.title,i.kind,i.status,i.priority,i.assignee_id,i.parent_id,i.updated_at \
          FROM issues i WHERE i.tenant_id=$1 AND i.project_id=$2 AND i.archived_at IS NULL AND i.trashed_at IS NULL \
-         AND ($3::uuid IS NULL OR i.team_id=$3) AND ($4::uuid IS NULL OR i.assignee_id=$4) \
-         AND (NOT $5 OR i.assignee_id IS NULL) AND ($6::text IS NULL OR i.priority=$6) \
-         AND ($7::text IS NULL OR i.title ILIKE $7 ESCAPE '\\') \
-         ORDER BY i.backlog_rank NULLS LAST, i.number LIMIT $8",
+         AND ($3::uuid IS NULL OR i.team_id=$3) AND ($4::uuid IS NULL OR i.sprint_id=$4) \
+         AND ($5::uuid IS NULL OR i.assignee_id=$5) \
+         AND (NOT $6 OR i.assignee_id IS NULL) AND ($7::text IS NULL OR i.priority=$7) \
+         AND ($8::text IS NULL OR i.title ILIKE $8 ESCAPE '\\') \
+         ORDER BY i.backlog_rank NULLS LAST, i.number LIMIT $9",
     )
     .bind(i.tenant_id)
     .bind(project)
     .bind(q.team_id)
+    .bind(q.sprint_id)
     .bind(q.assignee_id)
     .bind(q.unassigned.unwrap_or(false))
     .bind(q.priority.as_deref())
@@ -1054,6 +1056,290 @@ pub(crate) async fn board(
     }))
 }
 
+#[utoipa::path(get, path = "/api/projects/{id}/board", tag = "agile", params(("id" = Uuid, Path, description = "Resource id"), BoardQuery), responses((status = 200, description = "Board lanes. Archived and trashed issues are never included", body = BoardView), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn board(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+    axum::extract::Query(q): axum::extract::Query<BoardQuery>,
+) -> ApiResult<Json<BoardView>> {
+    ensure_access(&mut tx, project).await?;
+    board_inner(tx, project, q).await
+}
+
+#[utoipa::path(get, path = "/api/sprints/{id}/board", tag = "agile", params(("id" = Uuid, Path, description = "Resource id"), BoardQuery), responses((status = 200, description = "Board lanes for this sprint", body = BoardView), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn sprint_board(
+    mut tx: Tx,
+    Path(sprint_id): Path<Uuid>,
+    axum::extract::Query(mut q): axum::extract::Query<BoardQuery>,
+) -> ApiResult<Json<BoardView>> {
+    let i = tx.identity.clone();
+    ensure_entity_access(&mut tx, "sprints", sprint_id).await?;
+    let sprint = load_sprint(&mut tx, i.tenant_id, sprint_id).await?;
+    q.sprint_id = Some(sprint_id);
+    board_inner(tx, sprint.project_id, q).await
+}
+
+#[derive(Serialize, utoipa::ToSchema)]
+pub(crate) struct SprintReportItem {
+    pub(crate) id: Uuid,
+    pub(crate) number: i64,
+    pub(crate) title: String,
+    pub(crate) kind: String,
+    pub(crate) status: String,
+    pub(crate) priority: String,
+    pub(crate) story_points: Option<i32>,
+    pub(crate) assignee_id: Option<Uuid>,
+    pub(crate) is_done: bool,
+    pub(crate) added_mid_sprint: bool,
+}
+
+#[derive(Serialize, utoipa::ToSchema)]
+pub(crate) struct SprintReport {
+    pub(crate) sprint: SprintDetail,
+    pub(crate) committed_count: i32,
+    pub(crate) committed_points: i32,
+    pub(crate) completed_count: i32,
+    pub(crate) completed_points: i32,
+    pub(crate) incomplete_count: i32,
+    pub(crate) incomplete_points: i32,
+    pub(crate) scope_creep_count: i32,
+    pub(crate) scope_creep_points: i32,
+    pub(crate) items: Vec<SprintReportItem>,
+}
+
+#[utoipa::path(get, path = "/api/sprints/{id}/report", tag = "agile", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Sprint report with committed vs completed and items added mid-sprint", body = SprintReport), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn sprint_report(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<SprintReport>> {
+    let i = tx.identity.clone();
+    ensure_entity_access(&mut tx, "sprints", id).await?;
+    let sprint = load_sprint(&mut tx, i.tenant_id, id).await?;
+    let totals = sprint_totals(&mut tx, i.tenant_id, id).await?;
+    let issues: Vec<BacklogItem> = sqlx::query_as(&format!(
+        "SELECT {BACKLOG_COLUMNS} FROM issues WHERE tenant_id=$1 AND sprint_id=$2 AND archived_at IS NULL AND trashed_at IS NULL ORDER BY backlog_rank, number"
+    ))
+    .bind(i.tenant_id)
+    .bind(id)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+
+    let done_keys: std::collections::HashSet<String> = sqlx::query_scalar(
+        "SELECT key FROM project_statuses WHERE tenant_id=$1 AND project_id=$2 AND category='done'"
+    )
+    .bind(i.tenant_id)
+    .bind(sprint.project_id)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?
+    .into_iter()
+    .collect();
+
+    let mid_sprint_ids: std::collections::HashSet<Uuid> = if let Some(starts_at) = sprint.starts_at {
+        let ids: Vec<Uuid> = issues.iter().map(|it| it.id).collect();
+        sqlx::query_scalar::<_, Uuid>(
+            "SELECT i.id FROM issues i WHERE i.tenant_id=$1 AND i.id=ANY($2) AND \
+             (i.created_at > $3 OR EXISTS (SELECT 1 FROM issue_changes c WHERE c.tenant_id=$1 AND c.issue_id=i.id AND c.field='sprint_id' AND c.changed_at > $3))"
+        )
+        .bind(i.tenant_id)
+        .bind(&ids)
+        .bind(starts_at)
+        .fetch_all(&mut *tx)
+        .await
+        .map_err(db_err)?
+        .into_iter()
+        .collect()
+    } else {
+        std::collections::HashSet::new()
+    };
+
+    let mut report_items = Vec::with_capacity(issues.len());
+    let mut scope_creep_count = 0;
+    let mut scope_creep_points = 0;
+
+    for it in &issues {
+        let is_done = done_keys.contains(&it.status);
+        let added_mid_sprint = mid_sprint_ids.contains(&it.id);
+        if added_mid_sprint {
+            scope_creep_count += 1;
+            scope_creep_points += it.story_points.unwrap_or(0);
+        }
+        report_items.push(SprintReportItem {
+            id: it.id,
+            number: it.number,
+            title: it.title.clone(),
+            kind: it.kind.clone(),
+            status: it.status.clone(),
+            priority: it.priority.clone(),
+            story_points: it.story_points,
+            assignee_id: it.assignee_id,
+            is_done,
+            added_mid_sprint,
+        });
+    }
+
+    let committed_count = sprint.started_scope_count.unwrap_or(totals.scope_count);
+    let committed_points = sprint.started_scope_points.unwrap_or(totals.scope_points);
+    let completed_count = totals.done_count;
+    let completed_points = totals.done_points;
+    let incomplete_count = totals.scope_count.saturating_sub(totals.done_count);
+    let incomplete_points = totals.scope_points.saturating_sub(totals.done_points);
+
+    Ok(Json(SprintReport {
+        sprint: SprintDetail {
+            sprint,
+            totals,
+            issues,
+        },
+        committed_count,
+        committed_points,
+        completed_count,
+        completed_points,
+        incomplete_count,
+        incomplete_points,
+        scope_creep_count,
+        scope_creep_points,
+        items: report_items,
+    }))
+}
+
+#[derive(Serialize, FromRow, utoipa::ToSchema)]
+pub(crate) struct BurnupSnapshot {
+    pub(crate) day: String,
+    pub(crate) total_scope_points: i32,
+    pub(crate) completed_points: i32,
+    pub(crate) total_scope_count: i32,
+    pub(crate) completed_count: i32,
+}
+
+#[derive(Serialize, utoipa::ToSchema)]
+pub(crate) struct Burnup {
+    pub(crate) sprint_id: Uuid,
+    pub(crate) state: String,
+    pub(crate) snapshots: Vec<BurnupSnapshot>,
+    pub(crate) current: SprintTotals,
+    pub(crate) today: String,
+}
+
+#[utoipa::path(get, path = "/api/sprints/{id}/burnup", tag = "agile", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Burnup chart points", body = Burnup), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn burnup(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Burnup>> {
+    let i = tx.identity.clone();
+    ensure_entity_access(&mut tx, "sprints", id).await?;
+    let sprint = load_sprint(&mut tx, i.tenant_id, id).await?;
+    let snapshots: Vec<BurnupSnapshot> = sqlx::query_as(
+        "SELECT to_char(day,'YYYY-MM-DD') AS day, scope_points AS total_scope_points, done_points AS completed_points, \
+         scope_count AS total_scope_count, done_count AS completed_count \
+         FROM sprint_daily_snapshots WHERE tenant_id=$1 AND sprint_id=$2 ORDER BY day"
+    )
+    .bind(i.tenant_id)
+    .bind(id)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    let current = sprint_totals(&mut tx, i.tenant_id, id).await?;
+    Ok(Json(Burnup {
+        sprint_id: id,
+        state: sprint.state,
+        snapshots,
+        current,
+        today: Utc::now().format("%Y-%m-%d").to_string(),
+    }))
+}
+
+#[derive(Serialize, FromRow, utoipa::ToSchema)]
+pub(crate) struct SprintMemberCapacity {
+    pub(crate) user_id: Uuid,
+    pub(crate) name: String,
+    pub(crate) email: String,
+    pub(crate) capacity_hours: f64,
+    pub(crate) assigned_points: i32,
+}
+
+#[derive(Serialize, utoipa::ToSchema)]
+pub(crate) struct SprintCapacityView {
+    pub(crate) sprint_id: Uuid,
+    pub(crate) total_capacity_hours: f64,
+    pub(crate) total_assigned_points: i32,
+    pub(crate) members: Vec<SprintMemberCapacity>,
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct MemberCapacityEntry {
+    pub(crate) user_id: Uuid,
+    pub(crate) capacity_hours: f64,
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct UpdateSprintCapacityInput {
+    pub(crate) capacities: Vec<MemberCapacityEntry>,
+}
+
+#[utoipa::path(get, path = "/api/sprints/{id}/capacity", tag = "agile", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Sprint capacity and member allocations", body = SprintCapacityView), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn sprint_capacity(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<SprintCapacityView>> {
+    let i = tx.identity.clone();
+    ensure_entity_access(&mut tx, "sprints", id).await?;
+    let _sprint = load_sprint(&mut tx, i.tenant_id, id).await?;
+
+    let members: Vec<SprintMemberCapacity> = sqlx::query_as(
+        "SELECT u.id AS user_id, \
+         COALESCE(NULLIF(u.display_name,''), split_part(u.email,'@',1)) AS name, \
+         u.email, \
+         COALESCE(sc.capacity_hours, 40.0)::float8 AS capacity_hours, \
+         COALESCE((SELECT SUM(COALESCE(i2.story_points, 0))::int4 FROM issues i2 \
+                   WHERE i2.tenant_id=$1 AND i2.sprint_id=$2 AND i2.assignee_id=u.id \
+                   AND i2.archived_at IS NULL AND i2.trashed_at IS NULL), 0)::int4 AS assigned_points \
+         FROM members m \
+         JOIN users u ON u.id = m.user_id \
+         LEFT JOIN sprint_capacities sc ON sc.tenant_id=$1 AND sc.sprint_id=$2 AND sc.user_id=u.id \
+         WHERE m.tenant_id=$1 ORDER BY name"
+    )
+    .bind(i.tenant_id)
+    .bind(id)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+
+    let total_capacity_hours: f64 = members.iter().map(|m| m.capacity_hours).sum();
+    let total_assigned_points: i32 = members.iter().map(|m| m.assigned_points).sum();
+
+    Ok(Json(SprintCapacityView {
+        sprint_id: id,
+        total_capacity_hours,
+        total_assigned_points,
+        members,
+    }))
+}
+
+#[utoipa::path(put, path = "/api/sprints/{id}/capacity", tag = "agile", params(("id" = Uuid, Path, description = "Resource id")), request_body = UpdateSprintCapacityInput, responses((status = 200, description = "Updated sprint capacity", body = SprintCapacityView), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn update_sprint_capacity(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+    Json(input): Json<UpdateSprintCapacityInput>,
+) -> ApiResult<Json<SprintCapacityView>> {
+    let i = tx.identity.clone();
+    ensure_entity_access(&mut tx, "sprints", id).await?;
+    ensure_action_on(&mut tx, "sprints", id, "manage_sprints").await?;
+    let _sprint = load_sprint(&mut tx, i.tenant_id, id).await?;
+
+    for cap in &input.capacities {
+        if cap.capacity_hours < 0.0 || cap.capacity_hours > 168.0 {
+            return Err(bad("capacity_hours must be between 0 and 168"));
+        }
+        sqlx::query(
+            "INSERT INTO sprint_capacities (tenant_id, sprint_id, user_id, capacity_hours, updated_at) \
+             VALUES ($1, $2, $3, $4, now()) \
+             ON CONFLICT (tenant_id, sprint_id, user_id) DO UPDATE SET capacity_hours=$4, updated_at=now()"
+        )
+        .bind(i.tenant_id)
+        .bind(id)
+        .bind(cap.user_id)
+        .bind(cap.capacity_hours)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    }
+
+    sprint_capacity(tx, Path(id)).await
+}
+
 pub(crate) fn routes() -> axum::Router<App> {
     use axum::routing::get;
     axum::Router::new()
@@ -1062,6 +1348,10 @@ pub(crate) fn routes() -> axum::Router<App> {
         .route("/api/issues/{id}/rank", post(rank_issue))
         .route("/api/issues/{id}/team", put(set_issue_team))
         .route("/api/sprints/{id}", get(sprint_detail).patch(update_sprint))
+        .route("/api/sprints/{id}/board", get(sprint_board))
+        .route("/api/sprints/{id}/report", get(sprint_report))
+        .route("/api/sprints/{id}/burnup", get(burnup))
+        .route("/api/sprints/{id}/capacity", get(sprint_capacity).put(update_sprint_capacity))
         .route("/api/sprints/{id}/issues", post(add_issues_to_sprint))
         .route("/api/sprints/{id}/issues/{issue_id}", delete(remove_issue_from_sprint))
         .route("/api/sprints/{id}/burndown", get(burndown))
