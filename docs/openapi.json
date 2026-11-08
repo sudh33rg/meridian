@@ -26310,12 +26310,17 @@
           "timezone",
           "working_days",
           "week_start",
-          "default_sprint_days"
+          "default_sprint_days",
+          "locale"
         ],
         "properties": {
           "default_sprint_days": {
             "type": "integer",
             "format": "int32"
+          },
+          "locale": {
+            "type": "string",
+            "description": "Interface language: `en` or `es` (Phase K5). Dates and numbers follow it."
           },
           "timezone": {
             "type": "string",
@@ -26348,6 +26353,13 @@
           "default_sprint_days": {
             "type": "integer",
             "format": "int32"
+          },
+          "locale": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`en` or `es`. Omit to keep the current language."
           },
           "timezone": {
             "type": "string"

@@ -13,15 +13,19 @@ pub(crate) struct WorkspaceSettings {
     /// First day of the week, 0 (Sunday) to 6 (Saturday).
     pub(crate) week_start: i16,
     pub(crate) default_sprint_days: i32,
+    /// Interface language: `en` or `es` (Phase K5). Dates and numbers follow it.
+    pub(crate) locale: String,
 }
 
 const DEFAULTS: (&str, &[i16], i16, i32) = ("UTC", &[1, 2, 3, 4, 5], 1, 14);
+/// Languages the interface ships in. A second locale is added here and in the web catalogue.
+pub(crate) const LOCALES: [&str; 2] = ["en", "es"];
 
 #[utoipa::path(get, path = "/api/workspace/settings", tag = "org", responses((status = 200, description = "Success", body = WorkspaceSettings), (status = 401, description = "Missing or invalid session", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn get_settings(mut tx: Tx) -> ApiResult<Json<WorkspaceSettings>> {
     let i = tx.identity.clone();
     let row: Option<WorkspaceSettings> = sqlx::query_as(
-        "SELECT timezone, working_days, week_start, default_sprint_days FROM workspace_settings WHERE tenant_id=$1",
+        "SELECT timezone, working_days, week_start, default_sprint_days, locale FROM workspace_settings WHERE tenant_id=$1",
     )
     .bind(i.tenant_id)
     .fetch_optional(&mut *tx)
@@ -32,6 +36,7 @@ pub(crate) async fn get_settings(mut tx: Tx) -> ApiResult<Json<WorkspaceSettings
         working_days: DEFAULTS.1.to_vec(),
         week_start: DEFAULTS.2,
         default_sprint_days: DEFAULTS.3,
+        locale: "en".into(),
     })))
 }
 
@@ -41,6 +46,8 @@ pub(crate) struct WorkspaceSettingsInput {
     pub(crate) working_days: Vec<i16>,
     pub(crate) week_start: i16,
     pub(crate) default_sprint_days: i32,
+    /// `en` or `es`. Omit to keep the current language.
+    pub(crate) locale: Option<String>,
 }
 
 #[utoipa::path(put, path = "/api/workspace/settings", tag = "org", request_body = WorkspaceSettingsInput, responses((status = 200, description = "Success", body = WorkspaceSettings), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody)), security(("bearer" = [])))]
@@ -67,17 +74,24 @@ pub(crate) async fn put_settings(mut tx: Tx, Json(v): Json<WorkspaceSettingsInpu
     if !(1..=60).contains(&v.default_sprint_days) {
         return Err(bad("default_sprint_days must be between 1 and 60"));
     }
+    if let Some(l) = &v.locale {
+        if !LOCALES.contains(&l.as_str()) {
+            return Err(bad("locale must be en or es"));
+        }
+    }
     let row: WorkspaceSettings = sqlx::query_as(
-        "INSERT INTO workspace_settings(tenant_id,timezone,working_days,week_start,default_sprint_days) VALUES($1,$2,$3,$4,$5) \
+        "INSERT INTO workspace_settings(tenant_id,timezone,working_days,week_start,default_sprint_days,locale) VALUES($1,$2,$3,$4,$5,COALESCE($6,'en')) \
          ON CONFLICT (tenant_id) DO UPDATE SET timezone=EXCLUDED.timezone, working_days=EXCLUDED.working_days, \
-         week_start=EXCLUDED.week_start, default_sprint_days=EXCLUDED.default_sprint_days, updated_at=now() \
-         RETURNING timezone, working_days, week_start, default_sprint_days",
+         week_start=EXCLUDED.week_start, default_sprint_days=EXCLUDED.default_sprint_days, \
+         locale=COALESCE($6, workspace_settings.locale), updated_at=now() \
+         RETURNING timezone, working_days, week_start, default_sprint_days, locale",
     )
     .bind(i.tenant_id)
     .bind(tz)
     .bind(days)
     .bind(v.week_start)
     .bind(v.default_sprint_days)
+    .bind(v.locale.clone())
     .fetch_one(&mut *tx)
     .await
     .map_err(db_err)?;

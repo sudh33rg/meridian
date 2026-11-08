@@ -15,6 +15,7 @@ import { FALLBACK_TYPES, type IssueType } from "../../lib/issue-types";
 import { clearSession, saveSession as persistSession, type Me } from "../../lib/session";
 import type { Issue, Page, Project, Session, WorkspaceSettings } from "../../lib/types";
 import { setWorkspaceTimeZone } from "../../lib/datetime";
+import { setLocale } from "../../lib/i18n";
 import type { ExtraTab } from "../advanced/AdvancedWorkspace";
 import { useToast } from "../shared/Toast";
 
@@ -165,6 +166,7 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
   });
   // Set during render, not in an effect, so the dates rendered with this data use the new zone.
   setWorkspaceTimeZone(settingsQ.data?.timezone);
+  setLocale(settingsQ.data?.locale);
   const issueTypesQ = useQuery({
     queryKey: ["issue-types", selected],
     queryFn: () => api<IssueType[]>(`/projects/${selected}/issue-types`, token),

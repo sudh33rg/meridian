@@ -4,6 +4,8 @@
  * An unknown or unsupported zone falls back to this browser's zone, because the server checks the
  * zone's format but not the list of zones.
  */
+import { currentLocale } from "./i18n";
+
 let zone: string | undefined;
 
 export function setWorkspaceTimeZone(tz: string | undefined | null) {
@@ -25,9 +27,9 @@ export function formatWith(value: string | Date | null | undefined, options: Int
   const dateOnly = typeof value === "string" && CALENDAR_DATE.test(value);
   const timeZone = dateOnly ? "UTC" : zone;
   try {
-    return new Intl.DateTimeFormat(undefined, { ...options, timeZone }).format(d);
+    return new Intl.DateTimeFormat(currentLocale(), { ...options, timeZone }).format(d);
   } catch {
-    return new Intl.DateTimeFormat(undefined, options).format(d);
+    return new Intl.DateTimeFormat(currentLocale(), options).format(d);
   }
 }
 

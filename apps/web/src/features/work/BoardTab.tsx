@@ -4,6 +4,7 @@ import { Plus, Settings2 } from "lucide-react";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { Skeleton } from "../shared/Avatar";
 import { api } from "../../lib/api";
+import { t } from "../../lib/i18n";
 import type { BoardLane, BoardView } from "../../lib/types";
 import { KindIcon, PriorityIcon } from "./meta";
 import { WorkflowEditor } from "./WorkflowEditor";
@@ -208,18 +209,18 @@ export function BoardTab() {
           <span className="project-icon sm">{project?.key.slice(0, 2)}</span> {project?.name}
         </span>
         <span className="muted small hide-sm">
-          Drag cards between columns, or focus a card and press Alt + ← / →
+          {t("board.hint")}
         </span>
         <label className="board-group">
-          <span className="muted small">Swimlanes</span>
+          <span className="muted small">{t("board.swimlanes")}</span>
           <select
             aria-label="Swimlanes"
             value={prefs.group}
             onChange={(e) => changePrefs({ ...prefs, group: e.target.value as Group })}
           >
-            <option value="none">None</option>
-            <option value="assignee">By assignee</option>
-            <option value="epic">By epic</option>
+            <option value="none">{t("board.none")}</option>
+            <option value="assignee">{t("board.byAssignee")}</option>
+            <option value="epic">{t("board.byEpic")}</option>
           </select>
         </label>
         <button
@@ -228,19 +229,19 @@ export function BoardTab() {
           onClick={() => setEditing((v) => !v)}
           disabled={!selected}
         >
-          <Settings2 size={15} /> Workflow
+          <Settings2 size={15} /> {t("board.workflow")}
         </button>
         <button className="secondary" onClick={() => setModal("issue")}>
-          <Plus size={15} /> Add issue
+          <Plus size={15} /> {t("board.addIssue")}
         </button>
       </div>
-      <div className="board-quick" role="group" aria-label="Quick filters">
-        {chip("Mine", prefs.mine, () => changePrefs({ ...prefs, mine: !prefs.mine }))}
-        {chip("Unassigned", prefs.unassigned, () => changePrefs({ ...prefs, unassigned: !prefs.unassigned }))}
-        {chip("High priority", prefs.high, () => changePrefs({ ...prefs, high: !prefs.high }))}
+      <div className="board-quick" role="group" aria-label={t("board.quickFilters")}>
+        {chip(t("board.mine"), prefs.mine, () => changePrefs({ ...prefs, mine: !prefs.mine }))}
+        {chip(t("board.unassigned"), prefs.unassigned, () => changePrefs({ ...prefs, unassigned: !prefs.unassigned }))}
+        {chip(t("board.highPriority"), prefs.high, () => changePrefs({ ...prefs, high: !prefs.high }))}
         {(prefs.mine || prefs.unassigned || prefs.high) && (
           <button type="button" className="link" onClick={() => changePrefs({ ...prefs, mine: false, unassigned: false, high: false })}>
-            Clear quick filters
+            {t("board.clearFilters")}
           </button>
         )}
         {boardQ.data?.truncated && (

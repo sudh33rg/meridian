@@ -4,7 +4,7 @@ import { useWorkspace } from "../workspace/useWorkspace";
 import { errorMessage, request, send } from "../../lib/api";
 import { useToast } from "../shared/Toast";
 
-type Settings = { timezone: string; working_days: number[]; week_start: number; default_sprint_days: number };
+type Settings = { timezone: string; working_days: number[]; week_start: number; default_sprint_days: number; locale: string };
 
 const DAYS = [
   [1, "Mon"],
@@ -41,6 +41,17 @@ export function WorkspaceSettingsPanel() {
             maxLength={64}
             onChange={(e) => setDraft({ ...current, timezone: e.target.value })}
           />
+        </label>
+        <label>
+          Language
+          <select
+            value={current.locale}
+            disabled={!admin}
+            onChange={(e) => setDraft({ ...current, locale: e.target.value })}
+          >
+            <option value="en">English</option>
+            <option value="es">Español</option>
+          </select>
         </label>
         <label>
           Week starts on

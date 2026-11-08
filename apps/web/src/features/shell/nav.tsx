@@ -1,3 +1,4 @@
+import { t } from "../../lib/i18n";
 import React from "react";
 import {
   BarChart3,
@@ -40,15 +41,15 @@ export type NavGroupId = "work" | "plan" | "org";
 
 const s = 17;
 export const NAV_GROUPS: { id: NavGroupId; label: string }[] = [
-  { id: "work", label: "Work" },
-  { id: "plan", label: "Plan & connect" },
-  { id: "org", label: "Organization" },
+  { id: "work", get label() { return t("group.work"); } },
+  { id: "plan", get label() { return t("group.plan"); } },
+  { id: "org", get label() { return t("group.org"); } },
 ];
 
 export const NAV: NavItem[] = [
   {
     id: "overview",
-    label: "Overview",
+    get label() { return t("nav.overview"); },
     icon: <LayoutDashboard size={s} />,
     group: "work",
     key: "o",
@@ -56,7 +57,7 @@ export const NAV: NavItem[] = [
   },
   {
     id: "board",
-    label: "Board",
+    get label() { return t("nav.board"); },
     icon: <KanbanSquare size={s} />,
     group: "work",
     key: "b",
@@ -64,14 +65,14 @@ export const NAV: NavItem[] = [
   },
   {
     id: "backlog",
-    label: "Backlog",
+    get label() { return t("nav.backlog"); },
     icon: <ListOrdered size={s} />,
     group: "work",
     keywords: "product backlog team ranking plan",
   },
   {
     id: "issues",
-    label: "All work",
+    get label() { return t("nav.allWork"); },
     icon: <ListTodo size={s} />,
     group: "work",
     key: "i",
@@ -79,7 +80,7 @@ export const NAV: NavItem[] = [
   },
   {
     id: "knowledge",
-    label: "Knowledge",
+    get label() { return t("nav.knowledge"); },
     icon: <BookOpen size={s} />,
     group: "work",
     key: "k",
@@ -87,7 +88,7 @@ export const NAV: NavItem[] = [
   },
   {
     id: "sprints",
-    label: "Sprints",
+    get label() { return t("nav.sprints"); },
     icon: <Timer size={s} />,
     group: "plan",
     key: "s",
@@ -95,7 +96,7 @@ export const NAV: NavItem[] = [
   },
   {
     id: "releases",
-    label: "Releases",
+    get label() { return t("nav.releases"); },
     icon: <Rocket size={s} />,
     group: "plan",
     key: "r",
@@ -103,37 +104,37 @@ export const NAV: NavItem[] = [
   },
   {
     id: "goals",
-    label: "Goals",
+    get label() { return t("nav.goals"); },
     icon: <Target size={s} />,
     group: "plan",
     key: "g",
     keywords: "okr objectives",
   },
-  { id: "roadmap", label: "Roadmap", icon: <CalendarDays size={s} />, group: "plan", keywords: "timeline milestones initiatives capacity baselines critical path updates" },
-  { id: "reports", label: "Reports", icon: <BarChart3 size={s} />, group: "plan", keywords: "charts flow cycle time dashboards export csv" },
-  { id: "risks", label: "Risks", icon: <TriangleAlert size={s} />, group: "plan" },
-  { id: "decisions", label: "Decisions", icon: <Scale size={s} />, group: "plan", key: "d", keywords: "adr" },
+  { id: "roadmap", get label() { return t("nav.roadmap"); }, icon: <CalendarDays size={s} />, group: "plan", keywords: "timeline milestones initiatives capacity baselines critical path updates" },
+  { id: "reports", get label() { return t("nav.reports"); }, icon: <BarChart3 size={s} />, group: "plan", keywords: "charts flow cycle time dashboards export csv" },
+  { id: "risks", get label() { return t("nav.risks"); }, icon: <TriangleAlert size={s} />, group: "plan" },
+  { id: "decisions", get label() { return t("nav.decisions"); }, icon: <Scale size={s} />, group: "plan", key: "d", keywords: "adr" },
   {
     id: "analytics",
-    label: "Analytics",
+    get label() { return t("nav.analytics"); },
     icon: <BarChart3 size={s} />,
     group: "plan",
     key: "a",
     keywords: "reports metrics",
   },
-  { id: "portfolio", label: "Portfolio", icon: <Briefcase size={s} />, group: "plan", keywords: "workload" },
-  { id: "approvals", label: "Approvals", icon: <Stamp size={s} />, group: "plan" },
+  { id: "portfolio", get label() { return t("nav.portfolio"); }, icon: <Briefcase size={s} />, group: "plan", keywords: "workload" },
+  { id: "approvals", get label() { return t("nav.approvals"); }, icon: <Stamp size={s} />, group: "plan" },
   {
     id: "access",
-    label: "Access",
+    get label() { return t("nav.access"); },
     icon: <KeyRound size={s} />,
     group: "plan",
     keywords: "permissions grants",
   },
-  { id: "search", label: "Search", icon: <Search size={s} />, group: "org", keywords: "find" },
+  { id: "search", get label() { return t("nav.search"); }, icon: <Search size={s} />, group: "org", keywords: "find" },
   {
     id: "inbox",
-    label: "Inbox",
+    get label() { return t("nav.inbox"); },
     icon: <Inbox size={s} />,
     group: "org",
     key: "n",
@@ -141,36 +142,36 @@ export const NAV: NavItem[] = [
   },
   {
     id: "people",
-    label: "People",
+    get label() { return t("nav.people"); },
     icon: <Users size={s} />,
     group: "org",
     key: "p",
     keywords: "members teams invite",
   },
-  { id: "automation", label: "Automations", icon: <Zap size={s} />, group: "org", keywords: "rules" },
-  { id: "integrations", label: "Integrations", icon: <Plug size={s} />, group: "org", keywords: "webhooks" },
+  { id: "automation", get label() { return t("nav.automations"); }, icon: <Zap size={s} />, group: "org", keywords: "rules" },
+  { id: "integrations", get label() { return t("nav.integrations"); }, icon: <Plug size={s} />, group: "org", keywords: "webhooks" },
   {
     id: "security",
-    label: "Security",
+    get label() { return t("nav.security"); },
     icon: <ShieldCheck size={s} />,
     group: "org",
     keywords: "mfa 2fa sessions",
   },
   {
     id: "identity",
-    label: "Identity & SSO",
+    get label() { return t("nav.identity"); },
     icon: <Fingerprint size={s} />,
     group: "org",
     keywords: "oidc scim domains",
   },
   {
     id: "billing",
-    label: "Billing",
+    get label() { return t("nav.billing"); },
     icon: <CreditCard size={s} />,
     group: "org",
     keywords: "plan subscription",
   },
-  { id: "audit", label: "Audit log", icon: <ScrollText size={s} />, group: "org", keywords: "history" },
+  { id: "audit", get label() { return t("nav.audit"); }, icon: <ScrollText size={s} />, group: "org", keywords: "history" },
   {
     id: "appearance",
     label: "Appearance",

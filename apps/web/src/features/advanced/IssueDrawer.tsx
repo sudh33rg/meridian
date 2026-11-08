@@ -12,6 +12,7 @@ import type { Item } from "../../lib/types";
 import { str, day } from "./shared";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { Markdown } from "../../lib/markdown";
+import { t } from "../../lib/i18n";
 import { CommentReactions, Reminders } from "./IssueContent";
 
 type CommentHistory = {
@@ -353,7 +354,7 @@ export function IssueDrawer({
             </div>
             {visibleFields(fieldsQ.data ?? [], levelsQ.data?.can_manage ?? false).length > 0 && (
               <div className="drawer-section">
-                <h3>Fields</h3>
+                <h3>{t("drawer.fields")}</h3>
                 {visibleFields(fieldsQ.data ?? [], levelsQ.data?.can_manage ?? false).map((f) => {
                   const raw = values[f.key];
                   const disabled = !!issue.archived_at;
@@ -414,7 +415,7 @@ export function IssueDrawer({
               )}
             </div>
             <div className="drawer-section">
-              <h3>Connected knowledge</h3>
+              <h3>{t("drawer.connected")}</h3>
               <EntityRelations
                 token={token}
                 sourceType="issue"
@@ -433,7 +434,9 @@ export function IssueDrawer({
             />
             <div className="drawer-section">
               <Reminders token={token} issueId={id} />
-              <h3>Discussion · {comments.length}</h3>
+              <h3>
+                {t("drawer.discussion")} · {comments.length}
+              </h3>
               {comments.map((c) => {
                 const commentId = str(c.id);
                 const mine = !!me && str(c.author_id) === me.user_id;

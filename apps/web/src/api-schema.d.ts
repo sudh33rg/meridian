@@ -5326,6 +5326,8 @@ export interface components {
         WorkspaceSettings: {
             /** Format: int32 */
             default_sprint_days: number;
+            /** @description Interface language: `en` or `es` (Phase K5). Dates and numbers follow it. */
+            locale: string;
             /** @description An IANA name such as `Europe/London`, or `UTC`. */
             timezone: string;
             /**
@@ -5339,6 +5341,8 @@ export interface components {
         WorkspaceSettingsInput: {
             /** Format: int32 */
             default_sprint_days: number;
+            /** @description `en` or `es`. Omit to keep the current language. */
+            locale?: string | null;
             timezone: string;
             /** Format: int32 */
             week_start: number;
