@@ -123,13 +123,26 @@ Per Constitution Article V.2 no automated tests were added or changed.
 
 ## 8. Visual and behavioural check results
 
-**Not run in this change.** The browser check needs PostgreSQL, and Docker Desktop was not running in the session (no local PostgreSQL either), so the API could not be started. What was checked instead:
+Run against a disposable PostgreSQL 17 container and an API instance started from the same build, on localhost ports separate from the developer's own services. The database was empty at start.
 
-- The SQL in A1 to A3 was reviewed by reading. It has **not been executed**. The queries use runtime `sqlx` calls, not compile-checked macros, so `cargo check` does not prove them. This is the main open risk.
-- The 412 path, the replay path (`Idempotent-Replayed`), the 409 path, the `X-Next-Cursor` paging and the web drawer's reload-on-412 are all unexercised at runtime.
-- Migration `0014` has not been applied to a database.
+**API checks: 33 of 33 passed.** Migrations 1 to 14 applied cleanly, including `0014`.
 
-To close these, start Docker Desktop, then run `make up`, `make dev-api` and `make dev-web`, seed with `python3 scripts/seed_demo.py`, and check: a board with more than 200 issues loads fully; a repeated create with one `Idempotency-Key` returns the same issue; an edit with a stale `If-Match` returns 412 and writes nothing; and the drawer recovers from a 412.
+- Paging: 230 issues returned as 200 then 31; `X-Next-Cursor` set on page 1 and absent on the last page; results unique and descending; default size returns all 231 with no cursor.
+- Validation: `limit` 0 and 501, a garbage cursor and an unknown status all return 400.
+- Search: `q=%` and `q=_off` match literally (one row each), so wildcards are escaped.
+- Idempotent create: a repeat with the same key returns the same issue with `Idempotent-Replayed: true`, and only one row exists. The same key with a different body returns 409. A key shorter than 8 characters returns 400. A failed create is not stored, so the same key can then create the issue.
+- Concurrency: details return an `ETag`. An edit with a current `If-Match` returns 200 with a new `ETag`. A stale `If-Match` returns 412 with `precondition_failed` and the title is unchanged. An edit without `If-Match` still applies. A malformed `If-Match` returns 400.
+- Archive: an archived issue disappears from the list.
+
+**Browser checks (web at localhost, proxied to the verification API):**
+
+- Sign-in, the overview (8 demo issues) and the board render with the paged loader.
+- Creating an issue from the New issue dialog creates exactly one row, and it appears in To do.
+- Saving a drawer edit persists the new title.
+- A stale save shows the conflict banner ("This issue changed while you were editing…"), reloads the latest title, and writes nothing (priority stayed at the server's value).
+- With 214 live issues in the project (more than one page of 200), the overview counts all 214 (209 to do, 2 in progress, 1 in review, 2 done). That proves the second page is fetched. It does not show a change from the old 500 cap at this size.
+
+**Not verified:** the 390px mobile layout after this change, Safari and Firefox, screen-reader behaviour, and the Flutter app. The old 500-row cap was not reproduced above 500 issues.
 
 ## 9. Sources
 
