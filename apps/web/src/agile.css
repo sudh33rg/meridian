@@ -748,3 +748,45 @@
   border-radius: var(--radius-sm);
   background: var(--surface-2);
 }
+
+/* Phase F9: board swimlanes and quick filters. */
+.board-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.board-quick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px 12px;
+}
+.board-quick .chip {
+  cursor: pointer;
+  text-transform: none;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.board-quick .chip.on {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.swimlanes {
+  display: grid;
+  gap: 16px;
+}
+.swimlane {
+  min-width: 0;
+}
+.lane-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

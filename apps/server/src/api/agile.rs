@@ -887,10 +887,175 @@ pub(crate) async fn burndown(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json
     }))
 }
 
+/// Query for `GET /api/projects/{id}/board`. Quick filters narrow the issues before they are grouped.
+#[derive(Deserialize, utoipa::IntoParams)]
+pub(crate) struct BoardQuery {
+    /// `none` (one lane), `assignee` or `epic`. Defaults to `none`.
+    pub(crate) group_by: Option<String>,
+    /// Only issues owned by this team.
+    pub(crate) team_id: Option<Uuid>,
+    /// Only issues assigned to this user.
+    pub(crate) assignee_id: Option<Uuid>,
+    /// Only issues with no assignee.
+    pub(crate) unassigned: Option<bool>,
+    /// Only issues with this priority: `low`, `medium`, `high` or `urgent`.
+    pub(crate) priority: Option<String>,
+    /// Case-insensitive title search, up to 200 characters.
+    pub(crate) q: Option<String>,
+}
+
+/// One issue as a board card shows it.
+#[derive(Serialize, FromRow, utoipa::ToSchema)]
+pub(crate) struct BoardIssue {
+    pub(crate) id: Uuid,
+    pub(crate) number: i64,
+    pub(crate) title: String,
+    pub(crate) kind: String,
+    pub(crate) status: String,
+    pub(crate) priority: String,
+    pub(crate) assignee_id: Option<Uuid>,
+    pub(crate) parent_id: Option<Uuid>,
+    pub(crate) updated_at: DateTime<Utc>,
+}
+
+/// A swimlane. Its issues keep the ranking order; the client places them in status columns.
+#[derive(Serialize, utoipa::ToSchema)]
+pub(crate) struct BoardLane {
+    /// Stable key: `all`, a user id, `unassigned`, an epic id or `no-epic`.
+    pub(crate) key: String,
+    pub(crate) label: String,
+    pub(crate) issues: Vec<BoardIssue>,
+}
+
+/// Swimlanes for the board. At most 2,000 issues are returned; `truncated` says when more matched.
+#[derive(Serialize, utoipa::ToSchema)]
+pub(crate) struct BoardView {
+    pub(crate) group_by: String,
+    pub(crate) truncated: bool,
+    pub(crate) lanes: Vec<BoardLane>,
+}
+
+const BOARD_LIMIT: usize = 2000;
+
+#[utoipa::path(get, path = "/api/projects/{id}/board", tag = "agile", params(("id" = Uuid, Path, description = "Resource id"), BoardQuery), responses((status = 200, description = "Board lanes. Archived and trashed issues are never included", body = BoardView), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn board(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+    axum::extract::Query(q): axum::extract::Query<BoardQuery>,
+) -> ApiResult<Json<BoardView>> {
+    let i = tx.identity.clone();
+    ensure_access(&mut tx, project).await?;
+    let group_by = q.group_by.clone().unwrap_or_else(|| "none".to_string());
+    if !matches!(group_by.as_str(), "none" | "assignee" | "epic") {
+        return Err(bad("group_by must be none, assignee or epic"));
+    }
+    if let Some(p) = q.priority.as_deref() {
+        if !matches!(p, "low" | "medium" | "high" | "urgent") {
+            return Err(bad("priority must be low, medium, high or urgent"));
+        }
+    }
+    let search = match q.q.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        None => None,
+        Some(s) if s.chars().count() > 200 => return Err(bad("Search text is limited to 200 characters")),
+        Some(s) => Some(format!(
+            "%{}%",
+            s.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_")
+        )),
+    };
+    let rows: Vec<BoardIssue> = sqlx::query_as(
+        "SELECT i.id,i.number,i.title,i.kind,i.status,i.priority,i.assignee_id,i.parent_id,i.updated_at \
+         FROM issues i WHERE i.tenant_id=$1 AND i.project_id=$2 AND i.archived_at IS NULL AND i.trashed_at IS NULL \
+         AND ($3::uuid IS NULL OR i.team_id=$3) AND ($4::uuid IS NULL OR i.assignee_id=$4) \
+         AND (NOT $5 OR i.assignee_id IS NULL) AND ($6::text IS NULL OR i.priority=$6) \
+         AND ($7::text IS NULL OR i.title ILIKE $7 ESCAPE '\\') \
+         ORDER BY i.backlog_rank NULLS LAST, i.number LIMIT $8",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .bind(q.team_id)
+    .bind(q.assignee_id)
+    .bind(q.unassigned.unwrap_or(false))
+    .bind(q.priority.as_deref())
+    .bind(search)
+    .bind(BOARD_LIMIT as i64 + 1)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    let truncated = rows.len() > BOARD_LIMIT;
+    let rows: Vec<BoardIssue> = rows.into_iter().take(BOARD_LIMIT).collect();
+
+    // Work out each issue's lane key first, then fetch labels only for the keys that appear.
+    let key_of = |r: &BoardIssue| -> String {
+        match group_by.as_str() {
+            "assignee" => r.assignee_id.map_or("unassigned".to_string(), |u| u.to_string()),
+            "epic" => r.parent_id.map_or("no-epic".to_string(), |u| u.to_string()),
+            _ => "all".to_string(),
+        }
+    };
+    let mut labels: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    match group_by.as_str() {
+        "assignee" => {
+            let ids: Vec<Uuid> = rows.iter().filter_map(|r| r.assignee_id).collect();
+            let names: Vec<(Uuid, String)> = sqlx::query_as(
+                "SELECT u.id, u.display_name FROM users u \
+                 JOIN memberships m ON m.user_id=u.id AND m.tenant_id=$1 WHERE u.id = ANY($2)",
+            )
+            .bind(i.tenant_id)
+            .bind(&ids)
+            .fetch_all(&mut *tx)
+            .await
+            .map_err(db_err)?;
+            labels.extend(names.into_iter().map(|(id, name)| (id.to_string(), name)));
+        }
+        "epic" => {
+            let ids: Vec<Uuid> = rows.iter().filter_map(|r| r.parent_id).collect();
+            let titles: Vec<(Uuid, String)> = sqlx::query_as(
+                "SELECT id, title FROM issues WHERE tenant_id=$1 AND project_id=$2 AND id = ANY($3)",
+            )
+            .bind(i.tenant_id)
+            .bind(project)
+            .bind(&ids)
+            .fetch_all(&mut *tx)
+            .await
+            .map_err(db_err)?;
+            labels.extend(titles.into_iter().map(|(id, title)| (id.to_string(), title)));
+        }
+        _ => {}
+    }
+    let mut lanes: Vec<(bool, String, BoardLane)> = Vec::new();
+    let mut index: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for r in rows {
+        let key = key_of(&r);
+        let slot = match index.get(&key) {
+            Some(s) => *s,
+            None => {
+                let (fallback, last) = match key.as_str() {
+                    "unassigned" => ("Unassigned".to_string(), true),
+                    "no-epic" => ("No epic".to_string(), true),
+                    "all" => ("All issues".to_string(), false),
+                    _ => (key.clone(), false),
+                };
+                let label = labels.get(&key).cloned().unwrap_or(fallback);
+                lanes.push((last, label.to_lowercase(), BoardLane { key: key.clone(), label, issues: Vec::new() }));
+                index.insert(key.clone(), lanes.len() - 1);
+                lanes.len() - 1
+            }
+        };
+        lanes[slot].2.issues.push(r);
+    }
+    lanes.sort_by(|a, b| (a.0, &a.1).cmp(&(b.0, &b.1)));
+    Ok(Json(BoardView {
+        group_by,
+        truncated,
+        lanes: lanes.into_iter().map(|(_, _, lane)| lane).collect(),
+    }))
+}
+
 pub(crate) fn routes() -> axum::Router<App> {
     use axum::routing::get;
     axum::Router::new()
         .route("/api/projects/{id}/backlog", get(backlog))
+        .route("/api/projects/{id}/board", get(board))
         .route("/api/issues/{id}/rank", post(rank_issue))
         .route("/api/issues/{id}/team", put(set_issue_team))
         .route("/api/sprints/{id}", get(sprint_detail).patch(update_sprint))

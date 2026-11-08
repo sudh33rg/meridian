@@ -97,7 +97,7 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
         const p = ev.project_id;
         switch (ev.entity_type) {
           case "issue":
-            queue(["issues", p], ["attachments", ev.entity_id]);
+            queue(["issues", p], ["board", p], ["attachments", ev.entity_id]);
             break;
           case "page":
             queue(["pages", p], ["page-access", ev.entity_id], ["attachments", ev.entity_id]);
@@ -110,7 +110,7 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
             queue(["members"], ["teams"]);
             break;
           default:
-            queue(["issues", p], ["pages", p]);
+            queue(["issues", p], ["board", p], ["pages", p]);
         }
       });
       es.onerror = () => {
@@ -264,6 +264,7 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
       );
       setError(errorMessage(e));
     },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["board", selected] }),
   });
   const savePageM = useMutation({
     mutationFn: (p: Page) =>
@@ -300,7 +301,10 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
     qc.clear();
     setSession(null);
   };
-  const refreshIssues = () => qc.invalidateQueries({ queryKey: ["issues", selected] });
+  const refreshIssues = () => {
+    void qc.invalidateQueries({ queryKey: ["board", selected] });
+    return qc.invalidateQueries({ queryKey: ["issues", selected] });
+  };
   const setPages = (projectId: string, p: Page[]) => qc.setQueryData<Page[]>(["pages", projectId], p);
 
   return {

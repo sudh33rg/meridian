@@ -9323,6 +9323,157 @@
         ]
       }
     },
+    "/api/projects/{id}/board": {
+      "get": {
+        "tags": [
+          "agile"
+        ],
+        "operationId": "board",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "group_by",
+            "in": "path",
+            "description": "`none` (one lane), `assignee` or `epic`. Defaults to `none`.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "team_id",
+            "in": "path",
+            "description": "Only issues owned by this team.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "assignee_id",
+            "in": "path",
+            "description": "Only issues assigned to this user.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "unassigned",
+            "in": "path",
+            "description": "Only issues with no assignee.",
+            "required": true,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "priority",
+            "in": "path",
+            "description": "Only issues with this priority: `low`, `medium`, `high` or `urgent`.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "q",
+            "in": "path",
+            "description": "Case-insensitive title search, up to 200 characters.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Board lanes. Archived and trashed issues are never included",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BoardView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/projects/{id}/components": {
       "get": {
         "tags": [
@@ -17724,6 +17875,106 @@
         "properties": {
           "name": {
             "type": "string"
+          }
+        }
+      },
+      "BoardIssue": {
+        "type": "object",
+        "description": "One issue as a board card shows it.",
+        "required": [
+          "id",
+          "number",
+          "title",
+          "kind",
+          "status",
+          "priority",
+          "updated_at"
+        ],
+        "properties": {
+          "assignee_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "parent_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "BoardLane": {
+        "type": "object",
+        "description": "A swimlane. Its issues keep the ranking order; the client places them in status columns.",
+        "required": [
+          "key",
+          "label",
+          "issues"
+        ],
+        "properties": {
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BoardIssue"
+            }
+          },
+          "key": {
+            "type": "string",
+            "description": "Stable key: `all`, a user id, `unassigned`, an epic id or `no-epic`."
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "BoardView": {
+        "type": "object",
+        "description": "Swimlanes for the board. At most 2,000 issues are returned; `truncated` says when more matched.",
+        "required": [
+          "group_by",
+          "truncated",
+          "lanes"
+        ],
+        "properties": {
+          "group_by": {
+            "type": "string"
+          },
+          "lanes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BoardLane"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
           }
         }
       },

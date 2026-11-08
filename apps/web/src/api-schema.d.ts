@@ -1736,6 +1736,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/board": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["board"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}/components": {
         parameters: {
             query?: never;
@@ -3017,6 +3033,36 @@ export interface components {
         };
         BaselineInput: {
             name: string;
+        };
+        /** @description One issue as a board card shows it. */
+        BoardIssue: {
+            /** Format: uuid */
+            assignee_id?: string | null;
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            /** Format: int64 */
+            number: number;
+            /** Format: uuid */
+            parent_id?: string | null;
+            priority: string;
+            status: string;
+            title: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        /** @description A swimlane. Its issues keep the ranking order; the client places them in status columns. */
+        BoardLane: {
+            issues: components["schemas"]["BoardIssue"][];
+            /** @description Stable key: `all`, a user id, `unassigned`, an epic id or `no-epic`. */
+            key: string;
+            label: string;
+        };
+        /** @description Swimlanes for the board. At most 2,000 issues are returned; `truncated` says when more matched. */
+        BoardView: {
+            group_by: string;
+            lanes: components["schemas"]["BoardLane"][];
+            truncated: boolean;
         };
         /**
          * @description Batch change for issues in one project. Each item is checked and reported; the whole batch
@@ -11625,6 +11671,77 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Baseline"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    board: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description `none` (one lane), `assignee` or `epic`. Defaults to `none`. */
+                group_by: string | null;
+                /** @description Only issues owned by this team. */
+                team_id: string | null;
+                /** @description Only issues assigned to this user. */
+                assignee_id: string | null;
+                /** @description Only issues with no assignee. */
+                unassigned: boolean | null;
+                /** @description Only issues with this priority: `low`, `medium`, `high` or `urgent`. */
+                priority: string | null;
+                /** @description Case-insensitive title search, up to 200 characters. */
+                q: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Board lanes. Archived and trashed issues are never included */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BoardView"];
                 };
             };
             /** @description Validation or domain error */
