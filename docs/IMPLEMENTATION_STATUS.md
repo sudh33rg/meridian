@@ -155,6 +155,13 @@ Checks: `cargo check`, `make openapi`, `make manifest`, `npm run build` pass. No
 
 Migrations `0001` to `0025` apply in order to an in-process PostgreSQL-compatible database. The API has not been run against a database for these phases and no new endpoint has been exercised. The web app builds and the changed files lint clean; no page has been viewed in a browser. Phases L, M, N and P are not started, and phases I2, I3, I6, I7, J2, J4, K2 to K5 are open (see the phase sections above and `REMAINING_PLAN.md`). Visual verification waits until the planned work is complete, as the working rules require.
 
+## Verification status for the third build: F8, F9 swimlanes, J3, J5 (8 November 2026)
+
+- **Built and compiled:** `cargo check` for the server; `make openapi` (186 paths) and `make manifest` regenerated; `npm run build` (`tsc -b` and Vite) and eslint on every changed web file pass.
+- **Not run against PostgreSQL.** Docker Desktop was not running and the build sandbox could not start it, so migrations `0026` to `0031` are unapplied and none of the new endpoints (`/board`, `/audit/events`, `/audit/export.csv`, `/favourite`, `/viewed`, `/favourites`, `/recent`) has been called. Check migration `0031` first: it adds `saved_views.shared` and two tables with composite foreign keys to `issues` and `memberships`.
+- **Not viewed in a browser.** No page of this build has been looked at.
+- **Owner action to finish verification:** start Docker Desktop, then run `make up`, `make dev-api` and `make dev-web`. Create a project and check: Board swimlanes (none, assignee, epic) and the Mine, Unassigned and High priority chips; star an issue and open Recent; save a shared view and sign in as a second member to see it; Audit trail filters, Load more and Export CSV; a workspace time zone change shown on issue dates.
+
 ## Verification status for the F3 to F9 build (8 November 2026)
 
 - **Built and compiled:** `cargo check` and `cargo build` for the server; `tsc -b` for the web app; `make openapi` and `make manifest` regenerated.
