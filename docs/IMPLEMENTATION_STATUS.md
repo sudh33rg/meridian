@@ -145,7 +145,7 @@ Migration `0025_workspace_settings.sql`; `apps/server/src/api/settings.rs`; proj
 | J5 workspace settings | Time zone (format-checked, not validated against the IANA database), working days, week start, default sprint length; admins edit them in Appearance. Timestamps render in the workspace time zone (`apps/web/src/lib/datetime.ts`); calendar dates (YYYY-MM-DD) keep their day. An unknown zone falls back to the browser zone. | Branding and custom domain. Components that do not read the workspace context pick up a zone change on their next render. Not yet checked in a browser. |
 | K1 templates | Project creation takes a template that seeds starting statuses: software (default), kanban, bug tracking, service requests. | Fields, boards and automation rules per template. |
 | K2 service management | Not built. | Request types with forms, queues, assignment rules, SLA timers, incident and change flows. |
-| K3 knowledge parity | Not built. | Page templates, blog posts, space home, page tree UI. |
+| K3 knowledge parity | Page templates (migration `0033`): `GET/POST /projects/{id}/page-templates` and `DELETE /page-templates/{id}`. Editors manage templates; members can use them. The page create dialog starts from a template or saves its text as one. Up to 50 per project, 100,000 characters each. | Blog posts, space home, and the page tree UI. Not yet run in a browser. |
 | K4 macros | Not built. | Embedded issue lists and charts in pages. |
 | K5 localisation | Not built (English only). | Message catalogues and locale-aware dates and numbers. |
 

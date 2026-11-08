@@ -5,6 +5,7 @@ import { Plus, X } from "lucide-react";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { useTeams } from "../agile/agile-shared";
 import { defaultTypeKey, typeName } from "../../lib/issue-types";
+import { PageTemplates } from "./PageTemplates";
 
 export function CreateModal() {
   const { error, busy, modal, setModal, draft, setDraft, create, session, issueTypes } = useWorkspace();
@@ -171,6 +172,14 @@ export function CreateModal() {
                       </select>
                     </label>
                   </div>
+                )}
+                {modal === "page" && (
+                  <PageTemplates
+                    token={session.token}
+                    projectId={selected}
+                    content={draft.content}
+                    onApply={(body) => setDraft({ ...draft, content: body })}
+                  />
                 )}
                 <label>
                   {modal === "page" ? "Content" : "Description"}

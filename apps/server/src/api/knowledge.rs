@@ -271,6 +271,130 @@ pub(crate) fn routes() -> Router<App> {
         )
         .route("/api/search", get(search))
         .route("/api/relations", get(relations).post(new_relation))
+        .route(
+            "/api/projects/{id}/page-templates",
+            get(list_page_templates).post(create_page_template),
+        )
+        .route("/api/page-templates/{id}", delete(delete_page_template))
+}
+
+// ---------------------------------------------------------------------------------------------
+// K3. Page templates
+// ---------------------------------------------------------------------------------------------
+
+const TEMPLATE_BODY_MAX: usize = 100_000;
+const TEMPLATES_PER_PROJECT: i64 = 50;
+
+#[derive(Serialize, FromRow, utoipa::ToSchema)]
+pub(crate) struct PageTemplate {
+    pub(crate) id: Uuid,
+    pub(crate) name: String,
+    /// The starting text for a new page.
+    pub(crate) body: String,
+    pub(crate) created_at: DateTime<Utc>,
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct NewPageTemplate {
+    /// 1 to 80 characters; unique per project.
+    pub(crate) name: String,
+    /// Up to 100,000 characters.
+    pub(crate) body: String,
+}
+
+#[utoipa::path(get, path = "/api/projects/{id}/page-templates", tag = "knowledge", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Templates for this project", body = Vec<PageTemplate>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn list_page_templates(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+) -> ApiResult<Json<Vec<PageTemplate>>> {
+    let i = tx.identity.clone();
+    ensure_access(&mut tx, project).await?;
+    let rows: Vec<PageTemplate> = sqlx::query_as(
+        "SELECT id,name,body,created_at FROM page_templates WHERE tenant_id=$1 AND project_id=$2 ORDER BY lower(name)",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    Ok(Json(rows))
+}
+
+#[utoipa::path(post, path = "/api/projects/{id}/page-templates", tag = "knowledge", params(("id" = Uuid, Path, description = "Resource id")), request_body = NewPageTemplate, responses((status = 201, description = "Saved", body = PageTemplate), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 409, description = "A template with this name already exists", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn create_page_template(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+    Json(v): Json<NewPageTemplate>,
+) -> ApiResult<(StatusCode, Json<PageTemplate>)> {
+    let i = tx.identity.clone();
+    ensure_access(&mut tx, project).await?;
+    let name = v.name.trim().to_string();
+    if name.is_empty() || name.chars().count() > 80 {
+        return Err(bad("Template name must be 1 to 80 characters"));
+    }
+    if v.body.len() > TEMPLATE_BODY_MAX {
+        return Err(bad("A template body is limited to 100,000 characters"));
+    }
+    let count: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM page_templates WHERE tenant_id=$1 AND project_id=$2",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    if count >= TEMPLATES_PER_PROJECT {
+        return Err(bad("A project can keep up to 50 page templates"));
+    }
+    let taken: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM page_templates WHERE tenant_id=$1 AND project_id=$2 AND name=$3)",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .bind(&name)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    if taken {
+        return Err(err(StatusCode::CONFLICT, "A template with this name already exists"));
+    }
+    let row: PageTemplate = sqlx::query_as(
+        "INSERT INTO page_templates(tenant_id,project_id,name,body,created_by) VALUES($1,$2,$3,$4,$5) \
+         RETURNING id,name,body,created_at",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .bind(&name)
+    .bind(&v.body)
+    .bind(i.user_id)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    log_event(&mut tx, &i, "page_template_created", "project", project).await?;
+    Ok((StatusCode::CREATED, Json(row)))
+}
+
+#[utoipa::path(delete, path = "/api/page-templates/{id}", tag = "knowledge", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 204, description = "Deleted"), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn delete_page_template(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<StatusCode> {
+    let i = tx.identity.clone();
+    let project: Uuid = sqlx::query_scalar(
+        "SELECT project_id FROM page_templates WHERE tenant_id=$1 AND id=$2",
+    )
+    .bind(i.tenant_id)
+    .bind(id)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(db_err)?
+    .ok_or_else(|| err(StatusCode::NOT_FOUND, "Template not found"))?;
+    ensure_access(&mut tx, project).await?;
+    sqlx::query("DELETE FROM page_templates WHERE tenant_id=$1 AND id=$2")
+        .bind(i.tenant_id)
+        .bind(id)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    log_event(&mut tx, &i, "page_template_deleted", "project", project).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[derive(Deserialize, utoipa::ToSchema)]
