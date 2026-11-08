@@ -10,6 +10,13 @@ import type { ProjectStatus } from "../../lib/statuses";
 import { displayValue, toPayload, type FieldDefinition } from "../../lib/fields";
 import type { Item } from "../../lib/types";
 import { str, day } from "./shared";
+import { useWorkspace } from "../workspace/useWorkspace";
+
+type CommentHistory = {
+  current_body: string;
+  deleted: boolean;
+  revisions: { body: string; author: string; changed_by: string; change: string; changed_at: string }[];
+};
 
 export function IssueDrawer({
   id,
@@ -45,6 +52,10 @@ export function IssueDrawer({
     enabled: !!projectId,
   });
   const teamsQ = useTeams(token);
+  const { me } = useWorkspace();
+  // Comment editing: the comment being edited, its draft text, and the history currently open.
+  const [editing, setEditing] = useState<{ id: string; text: string } | null>(null),
+    [openHistory, setOpenHistory] = useState<{ id: string; data: CommentHistory } | null>(null);
   const reload = useCallback(async () => {
     try {
       const [details, c] = await Promise.all([
@@ -93,10 +104,11 @@ export function IssueDrawer({
       setError((e as Error).message);
     }
   };
-  const archiveToggle = async () => {
-    const archived = !!issue?.archived_at;
+  // Archive hides an issue from the active lists; trash does the same and keeps it restorable for 30 days.
+  const lifecycle = async (action: "archive" | "trash" | "restore") => {
+    if (action === "trash" && !window.confirm("Move this issue to trash? You can restore it for 30 days.")) return;
     try {
-      await request(token, `/issues/${id}/${archived ? "unarchive" : "archive"}`, { method: "POST" });
+      await request(token, `/issues/${id}/${action}`, { method: "POST" });
       await reload();
       onChanged();
       setError("");
@@ -114,6 +126,44 @@ export function IssueDrawer({
       setError((e as Error).message);
     }
   };
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editing) return;
+    try {
+      await request(token, `/issues/${id}/comments/${editing.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ body: editing.text }),
+      });
+      setEditing(null);
+      setOpenHistory(null);
+      await reload();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+  const deleteComment = async (commentId: string) => {
+    if (!window.confirm("Delete this comment? Its text stays in the history for you and admins.")) return;
+    try {
+      await request(token, `/issues/${id}/comments/${commentId}`, { method: "DELETE" });
+      setOpenHistory(null);
+      await reload();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+  const showHistory = async (commentId: string) => {
+    if (openHistory?.id === commentId) {
+      setOpenHistory(null);
+      return;
+    }
+    try {
+      const data = await request<CommentHistory>(token, `/issues/${id}/comments/${commentId}/history`);
+      setOpenHistory({ id: commentId, data });
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+  const isAdmin = me?.role === "admin" || me?.role === "owner";
   return (
     <div
       className="drawer-overlay"
@@ -131,6 +181,11 @@ export function IssueDrawer({
         {error && <div className="error">{error}</div>}
         {issue && (
           <>
+            {issue.trashed_at && (
+              <p className="drawer-description" role="status">
+                In trash. Restore it by {day(issue.purge_after)} to keep it.
+              </p>
+            )}
             {issue.archived_at && (
               <p className="drawer-description" role="status">
                 This issue is archived and hidden from the active lists. Restore it to edit.
@@ -238,9 +293,20 @@ export function IssueDrawer({
               <button className="primary" onClick={save} disabled={!!issue.archived_at}>
                 Save issue
               </button>
-              <button className="secondary" onClick={archiveToggle}>
-                {issue.archived_at ? "Restore issue" : "Archive issue"}
-              </button>
+              {issue.archived_at ? (
+                <button className="secondary" onClick={() => lifecycle("restore")}>
+                  {issue.trashed_at ? "Restore from trash" : "Restore issue"}
+                </button>
+              ) : (
+                <>
+                  <button className="secondary" onClick={() => lifecycle("archive")}>
+                    Archive issue
+                  </button>
+                  <button className="ghost" onClick={() => lifecycle("trash")}>
+                    Move to trash
+                  </button>
+                </>
+              )}
             </div>
             <div className="drawer-section">
               <h3>Connected knowledge</h3>
@@ -262,13 +328,75 @@ export function IssueDrawer({
             />
             <div className="drawer-section">
               <h3>Discussion · {comments.length}</h3>
-              {comments.map((c) => (
-                <div className="comment" key={str(c.id)}>
-                  <b>{str(c.author)}</b>
-                  <small>{day(c.created_at)}</small>
-                  <p>{str(c.body)}</p>
-                </div>
-              ))}
+              {comments.map((c) => {
+                const commentId = str(c.id);
+                const mine = !!me && str(c.author_id) === me.user_id;
+                const isEditing = editing?.id === commentId;
+                const history = openHistory?.id === commentId ? openHistory.data : null;
+                return (
+                  <div className="comment" key={commentId}>
+                    <b>{str(c.author)}</b>
+                    <small>
+                      {day(c.created_at)}
+                      {c.edited_at ? " · edited" : ""}
+                    </small>
+                    {isEditing ? (
+                      <form onSubmit={saveEdit}>
+                        <label>
+                          Edit comment
+                          <textarea
+                            value={editing.text}
+                            onChange={(e) => setEditing({ id: commentId, text: e.target.value })}
+                            rows={3}
+                            required
+                          />
+                        </label>
+                        <button className="secondary">Save</button>{" "}
+                        <button type="button" className="ghost" onClick={() => setEditing(null)}>
+                          Cancel
+                        </button>
+                      </form>
+                    ) : (
+                      <p>{str(c.body)}</p>
+                    )}
+                    {(mine || isAdmin) && !isEditing && (
+                      <div className="row-actions">
+                        {mine && (
+                          <button
+                            type="button"
+                            className="ghost small-btn"
+                            onClick={() => setEditing({ id: commentId, text: str(c.body) })}
+                          >
+                            Edit
+                          </button>
+                        )}
+                        <button type="button" className="ghost small-btn" onClick={() => showHistory(commentId)}>
+                          {history ? "Hide history" : "History"}
+                        </button>
+                        <button type="button" className="ghost small-btn" onClick={() => deleteComment(commentId)}>
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                    {history && (
+                      <ol className="comment-history">
+                        {history.revisions.map((r, n) => (
+                          <li key={n}>
+                            <small>
+                              {day(r.changed_at)} · {r.change === "delete" ? "deleted by" : "changed by"} {r.changed_by}
+                            </small>
+                            <p>{r.body}</p>
+                          </li>
+                        ))}
+                        <li>
+                          <small>{history.deleted ? "Deleted (text above)" : "Current"}</small>
+                          {!history.deleted && <p>{history.current_body}</p>}
+                        </li>
+                      </ol>
+                    )}
+                  </div>
+                );
+              })}
               <form onSubmit={comment}>
                 <label>
                   Add comment

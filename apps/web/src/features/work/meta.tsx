@@ -3,11 +3,15 @@ import {
   ArrowDown,
   ArrowRight,
   ArrowUp,
+  AlertTriangle,
   Bug,
   CheckSquare,
   ChevronsUp,
+  Inbox,
   Layers,
   BookMarked,
+  Sparkles,
+  TrendingUp,
 } from "lucide-react";
 
 export const STATUSES = ["todo", "in_progress", "in_review", "done"] as const;
@@ -26,6 +30,10 @@ export function KindIcon({ kind, size = 14 }: { kind: string; size?: number }) {
     story: <BookMarked size={size} />,
     epic: <Layers size={size} />,
     task: <CheckSquare size={size} />,
+    feature: <Sparkles size={size} />,
+    improvement: <TrendingUp size={size} />,
+    incident: <AlertTriangle size={size} />,
+    request: <Inbox size={size} />,
   };
   return (
     <span className={"kind-chip kind-" + kind} title={kind}>

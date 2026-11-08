@@ -920,6 +920,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/issues/{id}/comments/{comment}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_issue_comment"];
+        options?: never;
+        head?: never;
+        patch: operations["edit_issue_comment"];
+        trace?: never;
+    };
+    "/api/issues/{id}/comments/{comment}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["issue_comment_history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/issues/{id}/components": {
         parameters: {
             query?: never;
@@ -1064,6 +1096,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/issues/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["restore_issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/issues/{id}/rollup": {
         parameters: {
             query?: never;
@@ -1106,6 +1154,22 @@ export interface paths {
         get?: never;
         put: operations["set_issue_team"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/issues/{id}/trash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["trash_issue"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1880,6 +1944,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/issue-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_issue_types"];
+        put?: never;
+        post: operations["create_issue_type"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/issue-types/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_issue_type"];
+        options?: never;
+        head?: never;
+        patch: operations["update_issue_type"];
+        trace?: never;
+    };
     "/api/projects/{id}/issues": {
         parameters: {
             query?: never;
@@ -2179,6 +2275,22 @@ export interface paths {
         put?: never;
         post?: never;
         delete: operations["delete_transition"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/trash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_trash"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2975,10 +3087,30 @@ export interface components {
         CodeInput: {
             code: string;
         };
+        CommentEdit: {
+            /** @description The new text, 1 to 100000 characters. */
+            body: string;
+        };
+        /** @description A comment's current state and its earlier texts, oldest first. */
+        CommentHistory: {
+            current_body: string;
+            deleted: boolean;
+            revisions: components["schemas"]["CommentRevision"][];
+        };
         CommentInput: {
             body: string;
             /** Format: uuid */
             parent_id?: string | null;
+        };
+        /** @description One earlier text of a comment, and who changed it away from that text. */
+        CommentRevision: {
+            author: string;
+            body: string;
+            /** @description `edit` when the text was replaced, `delete` when the comment was deleted. */
+            change: string;
+            /** Format: date-time */
+            changed_at: string;
+            changed_by: string;
         };
         /** @description A component (a named group of work inside a project). */
         Component: {
@@ -3319,6 +3451,11 @@ export interface components {
             body: string;
             /** Format: date-time */
             created_at: string;
+            /**
+             * Format: date-time
+             * @description When the author last changed the text, or null if never edited.
+             */
+            edited_at?: string | null;
             /** Format: uuid */
             id: string;
             /**
@@ -3361,6 +3498,11 @@ export interface components {
             priority: string;
             /** Format: uuid */
             project_id: string;
+            /**
+             * Format: date-time
+             * @description The last moment the issue can be restored from trash, or null.
+             */
+            purge_after?: string | null;
             /** Format: uuid */
             sprint_id?: string | null;
             status: string;
@@ -3371,6 +3513,11 @@ export interface components {
             /** Format: uuid */
             tenant_id: string;
             title: string;
+            /**
+             * Format: date-time
+             * @description When the issue was moved to trash, or null.
+             */
+            trashed_at?: string | null;
             /** Format: date-time */
             updated_at: string;
         };
@@ -3422,6 +3569,26 @@ export interface components {
              * @description The owning team, or `null` to make the issue unassigned to any team.
              */
             team_id?: string | null;
+        };
+        IssueType: {
+            /**
+             * Format: int32
+             * @description 0 for standard work, 1 for epic-level work that groups children.
+             */
+            hierarchy_level: number;
+            /** @description One of the built-in icon names: task, bug, story, epic, feature, improvement, incident, request. */
+            icon: string;
+            key: string;
+            name: string;
+            /**
+             * Format: int32
+             * @description Menu order, from 0.
+             */
+            position: number;
+        };
+        IssueTypePatch: {
+            icon?: string | null;
+            name?: string | null;
         };
         JoinTeamInput: {
             /** Format: uuid */
@@ -3503,6 +3670,19 @@ export interface components {
              */
             team_id?: string | null;
             title: string;
+        };
+        NewIssueType: {
+            /**
+             * Format: int32
+             * @description Optional. 0 (standard, the default) or 1 (epic level).
+             */
+            hierarchy_level?: number | null;
+            /** @description Optional. One of the built-in icon names; defaults to `task`. */
+            icon?: string | null;
+            /** @description Optional. Derived from the name when absent: lowercase letters, digits and underscores. */
+            key?: string | null;
+            /** @description 1 to 40 characters. */
+            name: string;
         };
         NewPage: {
             content?: string | null;
@@ -4099,6 +4279,20 @@ export interface components {
             /** @description A custom field that must hold a value after the change, or null. */
             requires_field?: string | null;
             to: string;
+        };
+        /** @description An issue in a project's trash, with the date it can no longer be restored. */
+        TrashedIssue: {
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            /** Format: int64 */
+            number: number;
+            /** Format: date-time */
+            purge_after: string;
+            status: string;
+            title: string;
+            /** Format: date-time */
+            trashed_at: string;
         };
         /** @description One issue compared with its baseline due date. Positive variance means later than planned. */
         Variance: {
@@ -7489,6 +7683,173 @@ export interface operations {
             };
         };
     };
+    delete_issue_comment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Comment id */
+                comment: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted; the text stays in the history for its author and admins */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Only the author or a workspace admin can delete a comment */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description No such comment */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    edit_issue_comment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Comment id */
+                comment: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentEdit"];
+            };
+        };
+        responses: {
+            /** @description Edited; the previous text is kept in the history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Only the author can edit a comment */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description No such comment */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    issue_comment_history: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Comment id */
+                comment: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current text and earlier versions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommentHistory"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Only the author or a workspace admin can read the history */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description No such comment */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     issue_components: {
         parameters: {
             query?: never;
@@ -8222,6 +8583,63 @@ export interface operations {
             };
         };
     };
+    restore_issue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Back in the active lists */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The issue is neither archived nor in the trash */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     rollup: {
         parameters: {
             query?: never;
@@ -8398,6 +8816,63 @@ export interface operations {
             };
             /** @description Not found in this workspace */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    trash_issue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Moved to trash; restorable for 30 days */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The issue is already in the trash */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12283,6 +12758,225 @@ export interface operations {
             };
         };
     };
+    list_issue_types: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The project's issue types in menu order */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssueType"][];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    create_issue_type: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewIssueType"];
+            };
+        };
+        responses: {
+            /** @description Created at the end of the menu */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssueType"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Project admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The key already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    delete_issue_type: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Issue type key */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Project admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description No such issue type */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Issues still use it, or it is the last standard type */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    update_issue_type: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Issue type key */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueTypePatch"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssueType"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Project admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description No such issue type */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     issues: {
         parameters: {
             query?: never;
@@ -13954,6 +14648,56 @@ export interface operations {
                 };
             };
             /** @description No such rule */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list_trash: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Trashed issues, most recent first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrashedIssue"][];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Editors only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
             404: {
                 headers: {
                     [name: string]: unknown;

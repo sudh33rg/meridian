@@ -2,8 +2,10 @@
 //! `meridian-api --openapi` prints it and `GET /api/openapi.json` serves it.
 //! `docs/openapi.json` is the checked-in copy the web client types are generated from; CI checks it is current.
 use crate::api::{
-    access::*, admin::*, collab::*, issues::*, knowledge::*, org::*, personal::*, planning::*,
-    csv_import::*, fields::*, security::*, transitions::*, statuses::*, work::*, agile::*, releases::*, issue_depth::*, reports::*, history::*, roadmap::*, integrations::*, settings::*,
+    access::*, admin::*, agile::*, collab::*, csv_import::*, fields::*, history::*,
+    integrations::*, issue_depth::*, issue_types::*, issues::*, knowledge::*, org::*, personal::*,
+    planning::*, releases::*, reports::*, roadmap::*, security::*, settings::*, statuses::*,
+    transitions::*, work::*,
 };
 use crate::*;
 use utoipa::{
@@ -103,6 +105,12 @@ impl Modify for BearerAuth {
         api::issues::archive_issue,
         api::issues::edit_issue,
         api::issues::issue_comments,
+        api::issues::edit_issue_comment,
+        api::issues::delete_issue_comment,
+        api::issues::issue_comment_history,
+        api::issues::trash_issue,
+        api::issues::restore_issue,
+        api::issues::list_trash,
         api::issues::issue_details,
         api::issues::issue_links,
         api::issues::new_issue_comment,
@@ -250,13 +258,17 @@ impl Modify for BearerAuth {
         api::statuses::create_status,
         api::statuses::update_status,
         api::statuses::delete_status,
+        api::issue_types::list_issue_types,
+        api::issue_types::create_issue_type,
+        api::issue_types::update_issue_type,
+        api::issue_types::delete_issue_type,
         api::work::patch_page,
         api::work::projects,
         auth::login,
         auth::logout,
         auth::signup
     ),
-    components(schemas(ErrorBody, BulkIssueInput, BulkItemResult, BulkResult, ProjectStatus, NewStatus, StatusPatch, FieldDefinition, NewField, FieldPatch, TransitionRule, NewTransition, IssueComment, IssueLink, SearchHit, CsvImportReport, CsvRowReport, IssueDetail, Notification, Approval,SavedView, NewSavedView, NotificationPreference, NotificationPreferenceInput, api::knowledge::TitleInput, crate::sso::SsoInput, crate::sso::DomainInput, crate::scim::TokenInput, crate::billing::PlanInput, crate::webhooks::WebhookInput, crate::webhooks::WebhookPatch, api::access::PageAccess, api::access::RestrictionInput, api::access::PageGrantInput, crate::mfa::CodeInput, crate::mfa::DisableInput, crate::mfa::VerifyChallengeInput, crate::mfa::SecurityPolicyInput, ChangePasswordInput, RefreshInput, ForgotInput, ResetInput, VerifyInput, GrantInput, VisibilityInput, AcceptInvitation, ApprovalDecision, ApprovalInput, AuthResponse, AutomationInput, CommentInput, DecisionInput, ExistingInvite, GoalInput, ImportInput, ImportItem, InviteInput, Issue, IssueEdit, JoinTeamInput, LinkInput, Login, MemberRoleInput, NewIssue, NewPage, NewProject, Page, PatchIssue, PatchPage, Project, RelationInput, ReleaseInput, RestoreInput, RiskInput, Signup, SprintInput, SwitchTenant, TeamInput, WorkspaceInput, BacklogItem, RankInput, IssueTeamInput, SprintTotals, Sprint, SprintDetail, SprintIssuesInput, MembershipResult, VelocitySprint, Velocity, SprintSnapshot, Burndown, SprintUpdate, Release, ReleaseTotals, ReleaseDetail, ReleaseScopeItem, ScopeEvent, ReleaseNotes, ReleaseIssuesInput, ReleaseUpdate, FlowRow, CycleReport, CycleItem, Throughput, CreatedResolved, TimeReport, TimeByPerson, TimeByIssue, Dashboard, DashboardView, WidgetView, Widget, DashboardInput, WidgetInput, IssueHistoryEntry, ApiTokenRow, ApiTokenInput, CreatedApiToken, GitSecretInput, GitSecretStatus, DevLink, WorkspaceSettings, WorkspaceSettingsInput, Milestone, MilestoneInput, MilestonePatch, TimelineItem, Dependency, PathItem, CriticalPath, Initiative, InitiativePatch, InitiativeInput, InitiativeEpicsInput, ProjectUpdate, ProjectUpdateInput, GoalProgress, GoalIssuesInput, CapacityRow, CapacityInput, Baseline, BaselineInput, Variance, Component, ComponentInput, ComponentPatch, IssueComponentsInput, Estimates, EstimatesInput, Worklog, WorklogInput, Person, WatchInput, Votes, ChecklistItem, ChecklistInput, ChecklistPatch, ChildIssue, Rollup, SubtaskInput, CloneInput, MoveInput, MoveResult, SimilarIssue)),
+    components(schemas(ErrorBody, CommentEdit, CommentRevision, CommentHistory, TrashedIssue, BulkIssueInput, BulkItemResult, BulkResult, ProjectStatus, NewStatus, StatusPatch, IssueType, NewIssueType, IssueTypePatch, FieldDefinition, NewField, FieldPatch, TransitionRule, NewTransition, IssueComment, IssueLink, SearchHit, CsvImportReport, CsvRowReport, IssueDetail, Notification, Approval,SavedView, NewSavedView, NotificationPreference, NotificationPreferenceInput, api::knowledge::TitleInput, crate::sso::SsoInput, crate::sso::DomainInput, crate::scim::TokenInput, crate::billing::PlanInput, crate::webhooks::WebhookInput, crate::webhooks::WebhookPatch, api::access::PageAccess, api::access::RestrictionInput, api::access::PageGrantInput, crate::mfa::CodeInput, crate::mfa::DisableInput, crate::mfa::VerifyChallengeInput, crate::mfa::SecurityPolicyInput, ChangePasswordInput, RefreshInput, ForgotInput, ResetInput, VerifyInput, GrantInput, VisibilityInput, AcceptInvitation, ApprovalDecision, ApprovalInput, AuthResponse, AutomationInput, CommentInput, DecisionInput, ExistingInvite, GoalInput, ImportInput, ImportItem, InviteInput, Issue, IssueEdit, JoinTeamInput, LinkInput, Login, MemberRoleInput, NewIssue, NewPage, NewProject, Page, PatchIssue, PatchPage, Project, RelationInput, ReleaseInput, RestoreInput, RiskInput, Signup, SprintInput, SwitchTenant, TeamInput, WorkspaceInput, BacklogItem, RankInput, IssueTeamInput, SprintTotals, Sprint, SprintDetail, SprintIssuesInput, MembershipResult, VelocitySprint, Velocity, SprintSnapshot, Burndown, SprintUpdate, Release, ReleaseTotals, ReleaseDetail, ReleaseScopeItem, ScopeEvent, ReleaseNotes, ReleaseIssuesInput, ReleaseUpdate, FlowRow, CycleReport, CycleItem, Throughput, CreatedResolved, TimeReport, TimeByPerson, TimeByIssue, Dashboard, DashboardView, WidgetView, Widget, DashboardInput, WidgetInput, IssueHistoryEntry, ApiTokenRow, ApiTokenInput, CreatedApiToken, GitSecretInput, GitSecretStatus, DevLink, WorkspaceSettings, WorkspaceSettingsInput, Milestone, MilestoneInput, MilestonePatch, TimelineItem, Dependency, PathItem, CriticalPath, Initiative, InitiativePatch, InitiativeInput, InitiativeEpicsInput, ProjectUpdate, ProjectUpdateInput, GoalProgress, GoalIssuesInput, CapacityRow, CapacityInput, Baseline, BaselineInput, Variance, Component, ComponentInput, ComponentPatch, IssueComponentsInput, Estimates, EstimatesInput, Worklog, WorklogInput, Person, WatchInput, Votes, ChecklistItem, ChecklistInput, ChecklistPatch, ChildIssue, Rollup, SubtaskInput, CloneInput, MoveInput, MoveResult, SimilarIssue)),
     modifiers(&BearerAuth)
 )]
 pub struct ApiDoc;

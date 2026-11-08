@@ -55,7 +55,10 @@ async fn check_query_term(
     match &term.field {
         Field::Status => {
             if !crate::api::statuses::status_defined(db, tenant, project, &term.value).await? {
-                return Err(bad(&format!("“{}” is not a status in this project", term.value)));
+                return Err(bad(&format!(
+                    "“{}” is not a status in this project",
+                    term.value
+                )));
             }
         }
         Field::Custom(key) => {
@@ -79,14 +82,24 @@ async fn check_query_term(
 
 /// A saved view is stale when it names a status, a custom field or a query term the project no
 /// longer has. Stale views are shown with a warning instead of silently returning nothing.
-async fn view_is_stale(db: &mut PgConnection, tenant: Uuid, project: Uuid, filters: &Value) -> bool {
+async fn view_is_stale(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    project: Uuid,
+    filters: &Value,
+) -> bool {
     if let Some(status) = filters.get("status").and_then(Value::as_str) {
-        if !crate::api::statuses::status_defined(db, tenant, project, status).await.unwrap_or(false) {
+        if !crate::api::statuses::status_defined(db, tenant, project, status)
+            .await
+            .unwrap_or(false)
+        {
             return true;
         }
     }
     if let Some(text) = filters.get("query").and_then(Value::as_str) {
-        let Ok(terms) = crate::api::query::parse(text) else { return true };
+        let Ok(terms) = crate::api::query::parse(text) else {
+            return true;
+        };
         for term in terms {
             if check_query_term(db, tenant, project, &term).await.is_err() {
                 return true;
@@ -102,7 +115,9 @@ async fn normalize_filters(
     project: Uuid,
     raw: &Value,
 ) -> ApiResult<Value> {
-    let obj = raw.as_object().ok_or_else(|| bad("Filters must be an object"))?;
+    let obj = raw
+        .as_object()
+        .ok_or_else(|| bad("Filters must be an object"))?;
     let mut out = Map::new();
     for (key, value) in obj {
         match key.as_str() {
@@ -141,12 +156,16 @@ async fn normalize_filters(
             "kind" => {
                 let k = value
                     .as_str()
-                    .filter(|k| ["task", "bug", "story", "epic"].contains(k))
-                    .ok_or_else(|| bad("Kind must be task, bug, story or epic"))?;
+                    .filter(|k| crate::api::statuses::valid_key(k))
+                    .ok_or_else(|| bad("Kind must be an issue type key"))?;
                 out.insert(key.clone(), json!(k));
             }
             "query" => {
-                let text = value.as_str().map(str::trim).filter(|t| !t.is_empty()).ok_or_else(|| bad("The query must not be empty"))?;
+                let text = value
+                    .as_str()
+                    .map(str::trim)
+                    .filter(|t| !t.is_empty())
+                    .ok_or_else(|| bad("The query must not be empty"))?;
                 if text.chars().count() > 500 {
                     return Err(bad("A saved query is limited to 500 characters"));
                 }
@@ -163,7 +182,10 @@ async fn normalize_filters(
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/views", tag = "views", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Your saved views for this project", body = Vec<SavedView>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_views(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<SavedView>>> {
+pub(crate) async fn list_views(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+) -> ApiResult<Json<Vec<SavedView>>> {
     let i = tx.identity.clone();
     ensure_access(&mut tx, project).await?;
     let mut rows: Vec<SavedView> = sqlx::query_as(
@@ -222,7 +244,10 @@ pub(crate) async fn create_view(
     .await
     .map_err(db_err)?;
     if taken {
-        return Err(err(StatusCode::CONFLICT, "A view with this name already exists"));
+        return Err(err(
+            StatusCode::CONFLICT,
+            "A view with this name already exists",
+        ));
     }
     let row: SavedView = sqlx::query_as(
         "INSERT INTO saved_views(tenant_id,user_id,project_id,name,filters) VALUES($1,$2,$3,$4,$5) \
@@ -310,7 +335,10 @@ pub(crate) async fn set_notification_preference(
 
 pub(crate) fn routes() -> Router<App> {
     Router::new()
-        .route("/api/projects/{id}/views", get(list_views).post(create_view))
+        .route(
+            "/api/projects/{id}/views",
+            get(list_views).post(create_view),
+        )
         .route("/api/views/{id}", delete(delete_view))
         .route(
             "/api/me/notification-preferences",

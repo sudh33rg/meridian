@@ -4,7 +4,8 @@ import { Bookmark, Layers, Plus, RotateCcw, Search, SlidersHorizontal, X } from 
 import { useWorkspace } from "../workspace/useWorkspace";
 import { Skeleton } from "../shared/Avatar";
 import { useToast } from "../shared/Toast";
-import { KindIcon, KINDS, PRIORITIES, PriorityIcon } from "./meta";
+import { KindIcon, PRIORITIES, PriorityIcon } from "./meta";
+import { typeName } from "../../lib/issue-types";
 import { errorMessage, request, send } from "../../lib/api";
 import { loadIssues, type BulkResult, type SavedView } from "../../lib/issues";
 import type { Issue } from "../../lib/types";
@@ -30,6 +31,7 @@ export function IssuesTab() {
     selected,
     statuses,
     statusLabel,
+    issueTypes,
   } = useWorkspace();
   const token = session.token;
   const { toast } = useToast();
@@ -267,7 +269,7 @@ export function IssuesTab() {
             labelOf={statusLabel}
           />
           <Chip label="Priority" value={priority} set={setPriority} options={PRIORITIES} />
-          <Chip label="Type" value={kind} set={setKind} options={KINDS} />
+          <Chip label="Type" value={kind} set={setKind} options={issueTypes.map((t) => t.key)} labelOf={(k) => typeName(issueTypes, k)} />
           {filtering && (
             <button
               className="clear-filters"

@@ -12,8 +12,14 @@ use serde_json::{json, Value};
 /// The ETag of an issue is its `updated_at` timestamp at microsecond precision, quoted. Clients
 /// send it back as `If-Match` so an edit cannot silently overwrite a newer change.
 fn issue_etag(updated_at: &str) -> Option<HeaderValue> {
-    let ts = DateTime::parse_from_rfc3339(updated_at).ok()?.with_timezone(&Utc);
-    HeaderValue::from_str(&format!("\"{}\"", ts.to_rfc3339_opts(SecondsFormat::Micros, true))).ok()
+    let ts = DateTime::parse_from_rfc3339(updated_at)
+        .ok()?
+        .with_timezone(&Utc);
+    HeaderValue::from_str(&format!(
+        "\"{}\"",
+        ts.to_rfc3339_opts(SecondsFormat::Micros, true)
+    ))
+    .ok()
 }
 
 /// Optional `If-Match` precondition holding the `updated_at` the client last saw.
@@ -41,7 +47,7 @@ pub(crate) async fn issue_details(
     ensure_entity_access(&mut tx, "issues", id).await?;
     let row: IssueDetail = sqlx::query_as(
         "SELECT id,tenant_id,project_id,number,title,description,kind,status,priority,assignee_id,created_by,\
-         created_at,updated_at,parent_id,due_at,story_points,labels,custom_fields,archived_at,sprint_id,team_id,backlog_rank \
+         created_at,updated_at,parent_id,due_at,story_points,labels,custom_fields,archived_at,sprint_id,team_id,backlog_rank,trashed_at,purge_after \
          FROM issues WHERE tenant_id=$1 AND id=$2",
     )
     .bind(i.tenant_id)
@@ -50,7 +56,10 @@ pub(crate) async fn issue_details(
     .await
     .map_err(db_err)?;
     let mut headers = HeaderMap::new();
-    let tag = format!("\"{}\"", row.updated_at.to_rfc3339_opts(SecondsFormat::Micros, true));
+    let tag = format!(
+        "\"{}\"",
+        row.updated_at.to_rfc3339_opts(SecondsFormat::Micros, true)
+    );
     if let Ok(v) = HeaderValue::from_str(&tag) {
         headers.insert(ETAG, v);
     }
@@ -82,6 +91,10 @@ pub(crate) struct IssueDetail {
     pub(crate) team_id: Option<Uuid>,
     /// Position in the project's ranking; lower comes first.
     pub(crate) backlog_rank: f64,
+    /// When the issue was moved to trash, or null.
+    pub(crate) trashed_at: Option<DateTime<Utc>>,
+    /// The last moment the issue can be restored from trash, or null.
+    pub(crate) purge_after: Option<DateTime<Utc>>,
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct IssueEdit {
@@ -113,9 +126,7 @@ pub(crate) async fn edit_issue(
         validate_title(s)?;
     }
     if let Some(ref s) = v.kind {
-        if !["task", "bug", "story", "epic"].contains(&s.as_str()) {
-            return Err(bad("Invalid issue type"));
-        }
+        crate::api::issue_types::check_type(&mut tx, i.tenant_id, project, s).await?;
     }
     if let Some(ref s) = v.status {
         if !crate::api::statuses::status_defined(&mut tx, i.tenant_id, project, s).await? {
@@ -144,7 +155,9 @@ pub(crate) async fn edit_issue(
     }
     // A full set of values replaces the stored ones, so it is checked against every definition.
     let custom_fields = match v.custom_fields.clone() {
-        Some(c) => Some(crate::api::fields::validate_values(&mut tx, i.tenant_id, project, &c).await?),
+        Some(c) => {
+            Some(crate::api::fields::validate_values(&mut tx, i.tenant_id, project, &c).await?)
+        }
         None => None,
     };
     if let Some(ref next) = v.status {
@@ -157,7 +170,15 @@ pub(crate) async fn edit_issue(
                 .await
                 .map_err(db_err)?;
         let after = custom_fields.clone().unwrap_or(current);
-        crate::api::transitions::check_transition(&mut tx, i.tenant_id, project, &from, next, &after).await?;
+        crate::api::transitions::check_transition(
+            &mut tx,
+            i.tenant_id,
+            project,
+            &from,
+            next,
+            &after,
+        )
+        .await?;
     }
     if v.parent_id == Some(id) {
         return Err(bad("An issue cannot be its own parent"));
@@ -193,7 +214,15 @@ pub(crate) async fn edit_issue(
             None => err(StatusCode::NOT_FOUND, "Issue not found"),
         });
     };
-    crate::api::history::record_row_changes(&mut tx, i.tenant_id, i.user_id, id, &before_json, &row).await?;
+    crate::api::history::record_row_changes(
+        &mut tx,
+        i.tenant_id,
+        i.user_id,
+        id,
+        &before_json,
+        &row,
+    )
+    .await?;
     run_automations(&mut tx, &i, project, id, "issue_updated").await?;
     log_event(&mut tx, &i, "updated", "issue", id).await?;
     log_outbox(
@@ -208,7 +237,11 @@ pub(crate) async fn edit_issue(
         run_automations(&mut tx, &i, project, id, "issue_status_changed").await?;
     }
     let mut headers = HeaderMap::new();
-    if let Some(tag) = row.get("updated_at").and_then(Value::as_str).and_then(issue_etag) {
+    if let Some(tag) = row
+        .get("updated_at")
+        .and_then(Value::as_str)
+        .and_then(issue_etag)
+    {
         headers.insert(ETAG, tag);
     }
     Ok((headers, Json(row)))
@@ -239,20 +272,22 @@ pub(crate) async fn unarchive_issue(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResu
     require_editor(&i)?;
     ensure_entity_access(&mut tx, "issues", id).await?;
     let project: Uuid = sqlx::query_scalar(
-        "SELECT project_id FROM issues WHERE tenant_id=$1 AND id=$2 AND archived_at IS NOT NULL",
+        "SELECT project_id FROM issues WHERE tenant_id=$1 AND id=$2 AND archived_at IS NOT NULL AND trashed_at IS NULL",
     )
     .bind(i.tenant_id)
     .bind(id)
     .fetch_optional(&mut *tx)
     .await
     .map_err(db_err)?
-    .ok_or_else(|| err(StatusCode::CONFLICT, "Issue is not archived"))?;
-    sqlx::query("UPDATE issues SET archived_at=NULL, updated_at=now() WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .execute(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    .ok_or_else(|| err(StatusCode::CONFLICT, "Issue is not archived, or it is in the trash (restore it from there)"))?;
+    sqlx::query(
+        "UPDATE issues SET archived_at=NULL, updated_at=now() WHERE tenant_id=$1 AND id=$2",
+    )
+    .bind(i.tenant_id)
+    .bind(id)
+    .execute(&mut *tx)
+    .await
+    .map_err(db_err)?;
     log_event(&mut tx, &i, "unarchived", "issue", id).await?;
     log_outbox(
         &mut tx,
@@ -314,7 +349,10 @@ pub(crate) async fn bulk_update_issues(
     }
     let change = match v.action.as_str() {
         "set_status" => {
-            let s = v.value.as_deref().ok_or_else(|| bad("A valid status is required"))?;
+            let s = v
+                .value
+                .as_deref()
+                .ok_or_else(|| bad("A valid status is required"))?;
             if !crate::api::statuses::status_defined(&mut tx, i.tenant_id, project, s).await? {
                 return Err(bad("A valid status is required"));
             }
@@ -366,32 +404,47 @@ pub(crate) async fn bulk_update_issues(
         };
         if let Change::Status(s) = &change {
             // A refused move is reported on its item; the rest of the batch still applies.
-            if let Err(e) =
-                crate::api::transitions::check_transition(&mut tx, i.tenant_id, project, &from, s, &custom).await
+            if let Err(e) = crate::api::transitions::check_transition(
+                &mut tx,
+                i.tenant_id,
+                project,
+                &from,
+                s,
+                &custom,
+            )
+            .await
             {
-                results.push(BulkItemResult { id, ok: false, error: Some(e.to_string()) });
+                results.push(BulkItemResult {
+                    id,
+                    ok: false,
+                    error: Some(e.to_string()),
+                });
                 continue;
             }
         }
         let before_json = crate::api::history::issue_json(&mut tx, i.tenant_id, id).await?;
         match &change {
             Change::Status(s) => {
-                sqlx::query("UPDATE issues SET status=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3")
-                    .bind(s.as_str())
-                    .bind(i.tenant_id)
-                    .bind(id)
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(db_err)?;
+                sqlx::query(
+                    "UPDATE issues SET status=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3",
+                )
+                .bind(s.as_str())
+                .bind(i.tenant_id)
+                .bind(id)
+                .execute(&mut *tx)
+                .await
+                .map_err(db_err)?;
             }
             Change::Priority(p) => {
-                sqlx::query("UPDATE issues SET priority=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3")
-                    .bind(p.as_str())
-                    .bind(i.tenant_id)
-                    .bind(id)
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(db_err)?;
+                sqlx::query(
+                    "UPDATE issues SET priority=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3",
+                )
+                .bind(p.as_str())
+                .bind(i.tenant_id)
+                .bind(id)
+                .execute(&mut *tx)
+                .await
+                .map_err(db_err)?;
             }
             Change::Assignee(a) => {
                 sqlx::query("UPDATE issues SET assignee_id=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3")
@@ -413,12 +466,24 @@ pub(crate) async fn bulk_update_issues(
         )
         .await?;
         let after_json = crate::api::history::issue_json(&mut tx, i.tenant_id, id).await?;
-        crate::api::history::record_row_changes(&mut tx, i.tenant_id, i.user_id, id, &before_json, &after_json).await?;
+        crate::api::history::record_row_changes(
+            &mut tx,
+            i.tenant_id,
+            i.user_id,
+            id,
+            &before_json,
+            &after_json,
+        )
+        .await?;
         if matches!(&change, Change::Status(_)) {
             run_automations(&mut tx, &i, project, id, "issue_status_changed").await?;
         }
         updated += 1;
-        results.push(BulkItemResult { id, ok: true, error: None });
+        results.push(BulkItemResult {
+            id,
+            ok: true,
+            error: None,
+        });
     }
     Ok(Json(BulkResult { updated, results }))
 }
@@ -435,7 +500,7 @@ pub(crate) async fn issue_comments(
     let i = tx.identity.clone();
     // Reading stays open for archived issues, like the details view; posting still needs an active issue.
     ensure_entity_access(&mut tx, "issues", id).await?;
-    let rows: Vec<Value> = sqlx::query_scalar("SELECT jsonb_build_object('id',c.id,'body',c.body,'author_id',c.author_id,'author',u.display_name,'parent_id',c.parent_id,'created_at',c.created_at) FROM issue_comments c JOIN users u ON u.id=c.author_id WHERE c.tenant_id=$1 AND c.issue_id=$2 ORDER BY c.created_at ASC LIMIT 1000")
+    let rows: Vec<Value> = sqlx::query_scalar("SELECT jsonb_build_object('id',c.id,'body',c.body,'author_id',c.author_id,'author',u.display_name,'parent_id',c.parent_id,'created_at',c.created_at,'edited_at',c.edited_at) FROM issue_comments c JOIN users u ON u.id=c.author_id WHERE c.tenant_id=$1 AND c.issue_id=$2 AND c.deleted_at IS NULL ORDER BY c.created_at ASC LIMIT 1000")
         .bind(i.tenant_id).bind(id).fetch_all(&mut *tx).await.map_err(db_err)?;
     Ok(Json(typed_rows(rows)?))
 }
@@ -449,6 +514,8 @@ pub(crate) struct IssueComment {
     /// The comment this one replies to, if any.
     pub(crate) parent_id: Option<Uuid>,
     pub(crate) created_at: DateTime<Utc>,
+    /// When the author last changed the text, or null if never edited.
+    pub(crate) edited_at: Option<DateTime<Utc>>,
 }
 #[utoipa::path(post, path = "/api/issues/{id}/comments", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), request_body = CommentInput, responses((status = 201, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn new_issue_comment(
@@ -470,18 +537,179 @@ pub(crate) async fn new_issue_comment(
     }
     let row:Value=sqlx::query_scalar("INSERT INTO issue_comments(tenant_id,issue_id,parent_id,author_id,body) VALUES($1,$2,$3,$4,$5) RETURNING to_jsonb(issue_comments)")
         .bind(i.tenant_id).bind(id).bind(v.parent_id).bind(i.user_id).bind(v.body).fetch_one(&mut *tx).await.map_err(db_err)?;
-    crate::api::issue_depth::notify_mentions(&mut tx, i.tenant_id, i.user_id, id, &body_text).await?;
+    crate::api::issue_depth::notify_mentions(&mut tx, i.tenant_id, i.user_id, id, &body_text)
+        .await?;
     run_automations(&mut tx, &i, project, id, "comment_added").await?;
     log_event(&mut tx, &i, "commented", "issue", id).await?;
     Ok((StatusCode::CREATED, Json(row)))
 }
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct CommentEdit {
+    /// The new text, 1 to 100000 characters.
+    pub(crate) body: String,
+}
+
+/// The live comment, locked for the rest of the transaction. Deleted comments are not found.
+async fn live_comment(
+    tx: &mut Tx,
+    tenant: Uuid,
+    issue: Uuid,
+    comment: Uuid,
+) -> ApiResult<(Uuid, String)> {
+    sqlx::query_as::<_, (Uuid, String)>(
+        "SELECT author_id, body FROM issue_comments WHERE tenant_id=$1 AND issue_id=$2 AND id=$3 AND deleted_at IS NULL FOR UPDATE",
+    )
+    .bind(tenant)
+    .bind(issue)
+    .bind(comment)
+    .fetch_optional(&mut **tx)
+    .await
+    .map_err(db_err)?
+    .ok_or_else(|| err(StatusCode::NOT_FOUND, "Comment not found"))
+}
+
+/// Keeps the text a change replaces, so the history shows every earlier version.
+async fn keep_revision(
+    tx: &mut Tx,
+    i: &Identity,
+    comment: Uuid,
+    author: Uuid,
+    body: &str,
+    change: &str,
+) -> ApiResult<()> {
+    sqlx::query("INSERT INTO issue_comment_revisions(tenant_id,comment_id,body,author_id,changed_by,change) VALUES($1,$2,$3,$4,$5,$6)")
+        .bind(i.tenant_id)
+        .bind(comment)
+        .bind(body)
+        .bind(author)
+        .bind(i.user_id)
+        .bind(change)
+        .execute(&mut **tx)
+        .await
+        .map_err(db_err)?;
+    Ok(())
+}
+
+#[utoipa::path(patch, path = "/api/issues/{id}/comments/{comment}", tag = "issues", params(("id" = Uuid, Path, description = "Resource id"), ("comment" = Uuid, Path, description = "Comment id")), request_body = CommentEdit, responses((status = 200, description = "Edited; the previous text is kept in the history", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Only the author can edit a comment", body = ErrorBody), (status = 404, description = "No such comment", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn edit_issue_comment(
+    mut tx: Tx,
+    Path((id, comment)): Path<(Uuid, Uuid)>,
+    Json(v): Json<CommentEdit>,
+) -> ApiResult<Json<Value>> {
+    let i = tx.identity.clone();
+    require_editor(&i)?;
+    valid_issue(&mut tx, &i, id).await?;
+    validate_body(&v.body)?;
+    let (author, previous) = live_comment(&mut tx, i.tenant_id, id, comment).await?;
+    if author != i.user_id {
+        return Err(forbidden());
+    }
+    keep_revision(&mut tx, &i, comment, author, &previous, "edit").await?;
+    let row: Value = sqlx::query_scalar(
+        "UPDATE issue_comments SET body=$1, edited_at=now(), updated_at=now() WHERE tenant_id=$2 AND issue_id=$3 AND id=$4 RETURNING to_jsonb(issue_comments)",
+    )
+    .bind(&v.body)
+    .bind(i.tenant_id)
+    .bind(id)
+    .bind(comment)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    log_event(&mut tx, &i, "comment_edited", "issue", id).await?;
+    Ok(Json(row))
+}
+
+#[utoipa::path(delete, path = "/api/issues/{id}/comments/{comment}", tag = "issues", params(("id" = Uuid, Path, description = "Resource id"), ("comment" = Uuid, Path, description = "Comment id")), responses((status = 204, description = "Deleted; the text stays in the history for its author and admins"), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Only the author or a workspace admin can delete a comment", body = ErrorBody), (status = 404, description = "No such comment", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn delete_issue_comment(
+    mut tx: Tx,
+    Path((id, comment)): Path<(Uuid, Uuid)>,
+) -> ApiResult<StatusCode> {
+    let i = tx.identity.clone();
+    require_editor(&i)?;
+    valid_issue(&mut tx, &i, id).await?;
+    let (author, body) = live_comment(&mut tx, i.tenant_id, id, comment).await?;
+    let is_admin = i.role == "admin" || i.role == "owner";
+    if author != i.user_id && !is_admin {
+        return Err(forbidden());
+    }
+    keep_revision(&mut tx, &i, comment, author, &body, "delete").await?;
+    sqlx::query("UPDATE issue_comments SET deleted_at=now(), updated_at=now() WHERE tenant_id=$1 AND issue_id=$2 AND id=$3")
+        .bind(i.tenant_id)
+        .bind(id)
+        .bind(comment)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    log_event(&mut tx, &i, "comment_deleted", "issue", id).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// One earlier text of a comment, and who changed it away from that text.
+#[derive(Serialize, FromRow, utoipa::ToSchema)]
+pub(crate) struct CommentRevision {
+    pub(crate) body: String,
+    pub(crate) author: String,
+    pub(crate) changed_by: String,
+    /// `edit` when the text was replaced, `delete` when the comment was deleted.
+    pub(crate) change: String,
+    pub(crate) changed_at: DateTime<Utc>,
+}
+/// A comment's current state and its earlier texts, oldest first.
+#[derive(Serialize, utoipa::ToSchema)]
+pub(crate) struct CommentHistory {
+    pub(crate) current_body: String,
+    pub(crate) deleted: bool,
+    pub(crate) revisions: Vec<CommentRevision>,
+}
+
+#[utoipa::path(get, path = "/api/issues/{id}/comments/{comment}/history", tag = "issues", params(("id" = Uuid, Path, description = "Resource id"), ("comment" = Uuid, Path, description = "Comment id")), responses((status = 200, description = "Current text and earlier versions", body = CommentHistory), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Only the author or a workspace admin can read the history", body = ErrorBody), (status = 404, description = "No such comment", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn issue_comment_history(
+    mut tx: Tx,
+    Path((id, comment)): Path<(Uuid, Uuid)>,
+) -> ApiResult<Json<CommentHistory>> {
+    let i = tx.identity.clone();
+    ensure_entity_access(&mut tx, "issues", id).await?;
+    let found: Option<(Uuid, String, bool)> = sqlx::query_as(
+        "SELECT c.author_id, c.body, c.deleted_at IS NOT NULL FROM issue_comments c WHERE c.tenant_id=$1 AND c.issue_id=$2 AND c.id=$3",
+    )
+    .bind(i.tenant_id)
+    .bind(id)
+    .bind(comment)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    let (author, current_body, deleted) =
+        found.ok_or_else(|| err(StatusCode::NOT_FOUND, "Comment not found"))?;
+    // Earlier texts of a deleted comment are visible only to its author and admins.
+    let is_admin = i.role == "admin" || i.role == "owner";
+    if author != i.user_id && !is_admin {
+        return Err(forbidden());
+    }
+    let revisions: Vec<CommentRevision> = sqlx::query_as(
+        "SELECT r.body, a.display_name AS author, b.display_name AS changed_by, r.change, r.changed_at          FROM issue_comment_revisions r JOIN users a ON a.id=r.author_id JOIN users b ON b.id=r.changed_by          WHERE r.tenant_id=$1 AND r.comment_id=$2 ORDER BY r.changed_at, r.id",
+    )
+    .bind(i.tenant_id)
+    .bind(comment)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    Ok(Json(CommentHistory {
+        current_body,
+        deleted,
+        revisions,
+    }))
+}
+
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct LinkInput {
     pub(crate) target_id: Uuid,
     pub(crate) relation: String,
 }
 #[utoipa::path(get, path = "/api/issues/{id}/links", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<IssueLink>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn issue_links(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Vec<IssueLink>>> {
+pub(crate) async fn issue_links(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<Vec<IssueLink>>> {
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "issues", id).await?;
     let rows: Vec<Value> = sqlx::query_scalar("SELECT jsonb_build_object('source_id',source_id,'target_id',target_id,'relation',relation) FROM issue_links WHERE tenant_id=$1 AND (source_id=$2 OR target_id=$2) LIMIT 250")
@@ -515,8 +743,115 @@ pub(crate) async fn new_issue_link(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// Where a lifecycle action on an issue finds it: its project, whether it is archived, and whether it is trashed.
+async fn lifecycle_state(tx: &mut Tx, tenant: Uuid, id: Uuid) -> ApiResult<(Uuid, bool, bool)> {
+    let row: Option<(Uuid, bool, bool)> = sqlx::query_as(
+        "SELECT project_id, archived_at IS NOT NULL, trashed_at IS NOT NULL FROM issues WHERE tenant_id=$1 AND id=$2",
+    )
+    .bind(tenant)
+    .bind(id)
+    .fetch_optional(&mut **tx)
+    .await
+    .map_err(db_err)?;
+    row.ok_or_else(|| err(StatusCode::NOT_FOUND, "Issue not found"))
+}
+
+#[utoipa::path(post, path = "/api/issues/{id}/trash", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 204, description = "Moved to trash; restorable for 30 days"), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody), (status = 409, description = "The issue is already in the trash", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn trash_issue(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<StatusCode> {
+    let i = tx.identity.clone();
+    require_editor(&i)?;
+    let (project, _archived, trashed) = lifecycle_state(&mut tx, i.tenant_id, id).await?;
+    ensure_access(&mut tx, project).await?;
+    if trashed {
+        return Err(err(
+            StatusCode::CONFLICT,
+            "The issue is already in the trash",
+        ));
+    }
+    sqlx::query(
+        "UPDATE issues SET archived_at=COALESCE(archived_at, now()), trashed_at=now(), purge_after=now()+interval '30 days', trashed_by=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3",
+    )
+    .bind(i.user_id)
+    .bind(i.tenant_id)
+    .bind(id)
+    .execute(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    log_event(&mut tx, &i, "trashed", "issue", id).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(post, path = "/api/issues/{id}/restore", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 204, description = "Back in the active lists"), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody), (status = 409, description = "The issue is neither archived nor in the trash", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn restore_issue(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<StatusCode> {
+    let i = tx.identity.clone();
+    require_editor(&i)?;
+    let (project, archived, trashed) = lifecycle_state(&mut tx, i.tenant_id, id).await?;
+    ensure_access(&mut tx, project).await?;
+    if !archived && !trashed {
+        return Err(err(
+            StatusCode::CONFLICT,
+            "Issue is neither archived nor in the trash",
+        ));
+    }
+    sqlx::query(
+        "UPDATE issues SET archived_at=NULL, trashed_at=NULL, purge_after=NULL, trashed_by=NULL, updated_at=now() WHERE tenant_id=$1 AND id=$2",
+    )
+    .bind(i.tenant_id)
+    .bind(id)
+    .execute(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    log_event(
+        &mut tx,
+        &i,
+        if trashed {
+            "restored_from_trash"
+        } else {
+            "unarchived"
+        },
+        "issue",
+        id,
+    )
+    .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// An issue in a project's trash, with the date it can no longer be restored.
+#[derive(Serialize, FromRow, utoipa::ToSchema)]
+pub(crate) struct TrashedIssue {
+    pub(crate) id: Uuid,
+    pub(crate) number: i64,
+    pub(crate) title: String,
+    pub(crate) kind: String,
+    pub(crate) status: String,
+    pub(crate) trashed_at: DateTime<Utc>,
+    pub(crate) purge_after: DateTime<Utc>,
+}
+
+#[utoipa::path(get, path = "/api/projects/{id}/trash", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Trashed issues, most recent first", body = Vec<TrashedIssue>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Editors only", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn list_trash(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+) -> ApiResult<Json<Vec<TrashedIssue>>> {
+    let i = tx.identity.clone();
+    require_editor(&i)?;
+    ensure_access(&mut tx, project).await?;
+    let rows: Vec<TrashedIssue> = sqlx::query_as(
+        "SELECT id,number,title,kind,status,trashed_at,purge_after FROM issues WHERE tenant_id=$1 AND project_id=$2 AND trashed_at IS NOT NULL ORDER BY trashed_at DESC LIMIT 500",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    Ok(Json(rows))
+}
+
 pub(crate) fn routes() -> Router<App> {
     Router::new()
+        .route("/api/issues/{id}/trash", post(trash_issue))
+        .route("/api/issues/{id}/restore", post(restore_issue))
+        .route("/api/projects/{id}/trash", get(list_trash))
         .route("/api/issues/{id}/details", get(issue_details))
         .route("/api/issues/{id}/edit", patch(edit_issue))
         .route("/api/issues/{id}/archive", post(archive_issue))
@@ -525,6 +860,14 @@ pub(crate) fn routes() -> Router<App> {
         .route(
             "/api/issues/{id}/comments",
             get(issue_comments).post(new_issue_comment),
+        )
+        .route(
+            "/api/issues/{id}/comments/{comment}",
+            patch(edit_issue_comment).delete(delete_issue_comment),
+        )
+        .route(
+            "/api/issues/{id}/comments/{comment}/history",
+            get(issue_comment_history),
         )
         .route(
             "/api/issues/{id}/links",

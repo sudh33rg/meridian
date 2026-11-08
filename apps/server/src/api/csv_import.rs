@@ -63,7 +63,9 @@ pub(crate) fn parse_csv(text: &str) -> ApiResult<Vec<(usize, Vec<String>)>> {
         }
     }
     if in_quotes {
-        return Err(bad("A quoted field is not closed. Check the file for an unmatched quote"));
+        return Err(bad(
+            "A quoted field is not closed. Check the file for an unmatched quote",
+        ));
     }
     if !field.is_empty() || !row.is_empty() {
         row.push(field);
@@ -101,12 +103,19 @@ fn columns(header: &[String]) -> Columns {
     c
 }
 
-fn map_kind(raw: &str) -> &'static str {
-    match raw.trim().to_ascii_lowercase().as_str() {
-        "bug" => "bug",
-        "story" => "story",
-        "epic" => "epic",
-        _ => "task",
+/// The issue type a file names, as a type key ("Sub-task" becomes "sub_task"). The project decides
+/// later whether it defines that key; when it does not, the project's default type is used.
+fn map_kind(raw: &str) -> String {
+    let key: String = raw
+        .trim()
+        .to_ascii_lowercase()
+        .chars()
+        .map(|c| if c == ' ' || c == '-' { '_' } else { c })
+        .collect();
+    if key.is_empty() {
+        "task".into()
+    } else {
+        key
     }
 }
 
@@ -123,9 +132,15 @@ fn map_priority(raw: &str) -> Result<&'static str, ()> {
 /// Category for a status the file introduces, from its name.
 fn guess_category(name: &str) -> &'static str {
     let n = name.to_ascii_lowercase();
-    if ["done", "closed", "resolved", "complete", "finished"].iter().any(|w| n.contains(w)) {
+    if ["done", "closed", "resolved", "complete", "finished"]
+        .iter()
+        .any(|w| n.contains(w))
+    {
         "done"
-    } else if ["progress", "review", "doing", "testing", "qa", "active"].iter().any(|w| n.contains(w)) {
+    } else if ["progress", "review", "doing", "testing", "qa", "active"]
+        .iter()
+        .any(|w| n.contains(w))
+    {
         "in_progress"
     } else {
         "todo"
@@ -156,7 +171,7 @@ pub(crate) struct CsvImportReport {
 struct Planned {
     title: String,
     description: String,
-    kind: &'static str,
+    kind: String,
     priority: &'static str,
     status: String,
     external_ref: String,
@@ -180,11 +195,18 @@ pub(crate) async fn import_csv(
     let rows = parse_csv(text)?;
     let dry_run = q.dry_run.unwrap_or(true);
     let create_statuses = q.create_statuses.unwrap_or(false);
-    let (_, header) = rows.first().cloned().ok_or_else(|| bad("The file is empty"))?;
+    let (_, header) = rows
+        .first()
+        .cloned()
+        .ok_or_else(|| bad("The file is empty"))?;
     let cols = columns(&header);
     let (title_col, key_col) = match (cols.title, cols.key) {
         (Some(t), Some(k)) => (t, k),
-        _ => return Err(bad("The header needs at least Summary and Issue Key columns")),
+        _ => {
+            return Err(bad(
+                "The header needs at least Summary and Issue Key columns",
+            ))
+        }
     };
     let data = &rows[1..];
     if data.len() > MAX_ROWS {
@@ -229,14 +251,19 @@ pub(crate) async fn import_csv(
     let mut to_skip = 0usize;
     let mut errors = 0usize;
     for (line, row) in data {
-        let cell = |idx: Option<usize>| idx.and_then(|i| row.get(i)).map(|s| s.trim().to_string()).unwrap_or_default();
+        let cell = |idx: Option<usize>| {
+            idx.and_then(|i| row.get(i))
+                .map(|s| s.trim().to_string())
+                .unwrap_or_default()
+        };
         let title = cell(Some(title_col));
         let external = cell(Some(key_col));
         let mut problem: Option<String> = None;
         if title.is_empty() || title.chars().count() > 200 {
             problem = Some("The summary must be 1 to 200 characters".into());
         } else if external.is_empty() || external.chars().count() > 200 {
-            problem = Some("The issue key is required so that repeat imports stay idempotent".into());
+            problem =
+                Some("The issue key is required so that repeat imports stay idempotent".into());
         } else if seen_keys.contains(&external) {
             problem = Some(format!("Issue key {external} appears twice in this file"));
         }
@@ -254,7 +281,9 @@ pub(crate) async fn import_csv(
             let needle = status_name.to_ascii_lowercase();
             let found = statuses
                 .iter()
-                .find(|(k, n, _)| n.to_ascii_lowercase() == needle || *k == needle.replace(' ', "_"))
+                .find(|(k, n, _)| {
+                    n.to_ascii_lowercase() == needle || *k == needle.replace(' ', "_")
+                })
                 .map(|(k, _, _)| k.clone());
             match found {
                 Some(k) => k,
@@ -268,7 +297,9 @@ pub(crate) async fn import_csv(
                         key
                     }
                     Err(_) => {
-                        problem.get_or_insert_with(|| format!("Status “{status_name}” cannot become a status key"));
+                        problem.get_or_insert_with(|| {
+                            format!("Status “{status_name}” cannot become a status key")
+                        });
                         default.clone()
                     }
                 },
@@ -282,12 +313,17 @@ pub(crate) async fn import_csv(
         };
         let description = cell(cols.description);
         if description.chars().count() > 10_000 {
-            problem.get_or_insert_with(|| "The description is longer than 10,000 characters".into());
+            problem
+                .get_or_insert_with(|| "The description is longer than 10,000 characters".into());
         }
         seen_keys.push(external.clone());
         if let Some(message) = problem {
             errors += 1;
-            report_rows.push(CsvRowReport { line: *line, action: "error".into(), message: Some(message) });
+            report_rows.push(CsvRowReport {
+                line: *line,
+                action: "error".into(),
+                message: Some(message),
+            });
             continue;
         }
         if already.contains(&external) {
@@ -300,7 +336,11 @@ pub(crate) async fn import_csv(
             continue;
         }
         let kind = map_kind(&cell(cols.kind));
-        report_rows.push(CsvRowReport { line: *line, action: "create".into(), message: None });
+        report_rows.push(CsvRowReport {
+            line: *line,
+            action: "create".into(),
+            message: None,
+        });
         planned.push(Planned {
             title,
             description,
@@ -312,7 +352,9 @@ pub(crate) async fn import_csv(
     }
 
     // Statuses: the project must stay within its limit.
-    if !new_statuses.is_empty() && existing.len() + new_statuses.len() > MAX_STATUSES_PER_PROJECT as usize {
+    if !new_statuses.is_empty()
+        && existing.len() + new_statuses.len() > MAX_STATUSES_PER_PROJECT as usize
+    {
         errors += 1;
         report_rows.push(CsvRowReport {
             line: 0,
@@ -334,7 +376,10 @@ pub(crate) async fn import_csv(
         report_rows.push(CsvRowReport {
             line: 0,
             action: "error".into(),
-            message: Some("This project has required custom fields, which a CSV import cannot fill yet".into()),
+            message: Some(
+                "This project has required custom fields, which a CSV import cannot fill yet"
+                    .into(),
+            ),
         });
     }
 
@@ -387,6 +432,8 @@ pub(crate) async fn import_csv(
     .await
     .map_err(db_err)?;
     for p in &planned {
+        let kind = crate::api::issue_types::type_or_default(&mut tx, i.tenant_id, project, &p.kind)
+            .await?;
         let id: Uuid = sqlx::query_scalar(
             "INSERT INTO issues(tenant_id,project_id,number,title,description,kind,priority,status,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id",
         )
@@ -395,14 +442,15 @@ pub(crate) async fn import_csv(
         .bind(next)
         .bind(&p.title)
         .bind(&p.description)
-        .bind(p.kind)
+        .bind(kind)
         .bind(p.priority)
         .bind(&p.status)
         .bind(i.user_id)
         .fetch_one(&mut *tx)
         .await
         .map_err(db_err)?;
-        crate::api::history::record_status(&mut tx, i.tenant_id, id, None, &p.status, i.user_id).await?;
+        crate::api::history::record_status(&mut tx, i.tenant_id, id, None, &p.status, i.user_id)
+            .await?;
         sqlx::query("INSERT INTO imported_issue_refs(tenant_id,project_id,external_ref,issue_id) VALUES($1,$2,$3,$4)")
             .bind(i.tenant_id)
             .bind(project)
@@ -419,5 +467,8 @@ pub(crate) async fn import_csv(
 }
 
 pub(crate) fn routes() -> Router<App> {
-    Router::new().route("/api/projects/{id}/import/csv", axum::routing::post(import_csv))
+    Router::new().route(
+        "/api/projects/{id}/import/csv",
+        axum::routing::post(import_csv),
+    )
 }

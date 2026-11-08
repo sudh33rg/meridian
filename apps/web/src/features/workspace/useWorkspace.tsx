@@ -11,6 +11,7 @@ import {
 } from "../../lib/api";
 import { loadIssues } from "../../lib/issues";
 import { fallbackLabel, type ProjectStatus } from "../../lib/statuses";
+import { FALLBACK_TYPES, type IssueType } from "../../lib/issue-types";
 import { clearSession, saveSession as persistSession, type Me } from "../../lib/session";
 import type { Issue, Page, Project, Session } from "../../lib/types";
 import type { ExtraTab } from "../advanced/AdvancedWorkspace";
@@ -156,6 +157,12 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
     enabled: !!selected,
   });
   const statuses = useMemo(() => statusesQ.data ?? [], [statusesQ.data]);
+  const issueTypesQ = useQuery({
+    queryKey: ["issue-types", selected],
+    queryFn: () => api<IssueType[]>(`/projects/${selected}/issue-types`, token),
+    enabled: !!selected,
+  });
+  const issueTypes = useMemo(() => issueTypesQ.data ?? FALLBACK_TYPES, [issueTypesQ.data]);
   const statusLabel = useCallback(
     (key: string) => statuses.find((s) => s.key === key)?.name ?? fallbackLabel(key),
     [statuses],
@@ -310,6 +317,7 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
     issues,
     statuses,
     statusLabel,
+    issueTypes,
     pages,
     filtered,
     project,

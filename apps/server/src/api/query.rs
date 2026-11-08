@@ -18,8 +18,6 @@ use sqlx::{Postgres, QueryBuilder};
 
 const MAX_TERMS: usize = 20;
 const MAX_VALUE_CHARS: usize = 200;
-const ISSUE_KINDS: [&str; 4] = ["task", "bug", "story", "epic"];
-
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Field {
     Status,
@@ -117,13 +115,22 @@ pub(crate) fn parse(query: &str) -> ApiResult<Vec<Term>> {
                 )))
             }
         };
-        terms.push(Term { negate, field, value });
+        terms.push(Term {
+            negate,
+            field,
+            value,
+        });
     }
     Ok(terms)
 }
 
 fn escape_like(s: &str) -> String {
-    format!("%{}%", s.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_"))
+    format!(
+        "%{}%",
+        s.replace('\\', "\\\\")
+            .replace('%', "\\%")
+            .replace('_', "\\_")
+    )
 }
 
 fn is_date(s: &str) -> bool {
@@ -161,7 +168,10 @@ pub(crate) async fn search_issues(
         match &t.field {
             Field::Status => {
                 if !status_defined(&mut tx, i.tenant_id, project, &t.value).await? {
-                    return Err(bad(&format!("“{}” is not a status in this project", t.value)));
+                    return Err(bad(&format!(
+                        "“{}” is not a status in this project",
+                        t.value
+                    )));
                 }
                 qb.push("status = ").push_bind(t.value.clone());
             }
@@ -172,8 +182,14 @@ pub(crate) async fn search_issues(
                 qb.push("priority = ").push_bind(t.value.clone());
             }
             Field::Kind => {
-                if !ISSUE_KINDS.contains(&t.value.as_str()) {
-                    return Err(bad("Kind must be task, bug, story or epic"));
+                if crate::api::issue_types::type_level(&mut tx, i.tenant_id, project, &t.value)
+                    .await?
+                    .is_none()
+                {
+                    return Err(bad(&format!(
+                        "“{}” is not an issue type in this project",
+                        t.value
+                    )));
                 }
                 qb.push("kind = ").push_bind(t.value.clone());
             }
@@ -181,7 +197,8 @@ pub(crate) async fn search_issues(
                 let user = if t.value == "me" {
                     i.user_id
                 } else {
-                    Uuid::parse_str(&t.value).map_err(|_| bad("Assignee must be a user id or me"))?
+                    Uuid::parse_str(&t.value)
+                        .map_err(|_| bad("Assignee must be a user id or me"))?
                 };
                 qb.push("assignee_id = ").push_bind(user);
             }
@@ -194,7 +211,10 @@ pub(crate) async fn search_issues(
                     .push(" ESCAPE '\\'");
             }
             Field::Number => {
-                let n: i64 = t.value.parse().map_err(|_| bad("Number must be a whole number"))?;
+                let n: i64 = t
+                    .value
+                    .parse()
+                    .map_err(|_| bad("Number must be a whole number"))?;
                 qb.push("number = ").push_bind(n);
             }
             Field::Custom(key) => {
@@ -207,10 +227,14 @@ pub(crate) async fn search_issues(
                 .fetch_optional(&mut *tx)
                 .await
                 .map_err(db_err)?;
-                let field_type = field_type.ok_or_else(|| bad(&format!("Unknown custom field “{key}”")))?;
+                let field_type =
+                    field_type.ok_or_else(|| bad(&format!("Unknown custom field “{key}”")))?;
                 match field_type.as_str() {
                     "number" => {
-                        let n: f64 = t.value.parse().map_err(|_| bad("This field takes a number"))?;
+                        let n: f64 = t
+                            .value
+                            .parse()
+                            .map_err(|_| bad("This field takes a number"))?;
                         qb.push("(custom_fields->>")
                             .push_bind(key.clone())
                             .push("::text)::numeric = ")
@@ -245,7 +269,10 @@ pub(crate) async fn search_issues(
                         .await
                         .map_err(db_err)?;
                         if !options.iter().any(|o| o == &t.value) {
-                            return Err(bad(&format!("“{}” is not one of this field's choices", t.value)));
+                            return Err(bad(&format!(
+                                "“{}” is not one of this field's choices",
+                                t.value
+                            )));
                         }
                         qb.push("custom_fields->>")
                             .push_bind(key.clone())
@@ -279,5 +306,8 @@ pub(crate) async fn search_issues(
 }
 
 pub(crate) fn routes() -> Router<App> {
-    Router::new().route("/api/projects/{id}/issues/search", axum::routing::get(search_issues))
+    Router::new().route(
+        "/api/projects/{id}/issues/search",
+        axum::routing::get(search_issues),
+    )
 }

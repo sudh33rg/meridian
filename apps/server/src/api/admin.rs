@@ -78,11 +78,10 @@ pub(crate) async fn import_issues(
                 "Each imported issue needs an external_ref <=200 characters",
             ));
         }
-        if !["task", "bug", "story", "epic"].contains(&item.kind.as_deref().unwrap_or("task"))
-            || !["low", "medium", "high", "urgent"]
-                .contains(&item.priority.as_deref().unwrap_or("medium"))
+        if !["low", "medium", "high", "urgent"]
+            .contains(&item.priority.as_deref().unwrap_or("medium"))
         {
-            return Err(bad("Invalid kind or priority"));
+            return Err(bad("Invalid priority"));
         }
     }
     let present: Option<Uuid> = sqlx::query_scalar(
@@ -116,11 +115,17 @@ pub(crate) async fn import_issues(
             skipped += 1;
             continue;
         }
+        let kind = match item.kind {
+            Some(k) => k,
+            None => crate::api::issue_types::default_type(&mut tx, i.tenant_id, p).await?,
+        };
+        crate::api::issue_types::check_type(&mut tx, i.tenant_id, p, &kind).await?;
         let id:Uuid=sqlx::query_scalar("INSERT INTO issues(tenant_id,project_id,number,title,description,kind,priority,created_by,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id")
             .bind(i.tenant_id).bind(p).bind(next).bind(item.title).bind(item.description.unwrap_or_default())
-            .bind(item.kind.unwrap_or_else(||"task".into())).bind(item.priority.unwrap_or_else(||"medium".into())).bind(i.user_id).bind(&start)
+            .bind(kind).bind(item.priority.unwrap_or_else(||"medium".into())).bind(i.user_id).bind(&start)
             .fetch_one(&mut *tx).await.map_err(db_err)?;
-        crate::api::history::record_status(&mut tx, i.tenant_id, id, None, &start, i.user_id).await?;
+        crate::api::history::record_status(&mut tx, i.tenant_id, id, None, &start, i.user_id)
+            .await?;
         sqlx::query("INSERT INTO imported_issue_refs(tenant_id,project_id,external_ref,issue_id) VALUES($1,$2,$3,$4)")
             .bind(i.tenant_id).bind(p).bind(item.external_ref).bind(id).execute(&mut *tx).await.map_err(db_err)?;
         created += 1;

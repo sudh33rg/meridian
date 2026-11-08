@@ -37,13 +37,15 @@ const COMPONENT_SELECT: &str = "SELECT c.id, c.project_id, c.name, c.description
  FROM components c";
 
 async fn load_component(db: &mut PgConnection, tenant: Uuid, id: Uuid) -> ApiResult<Component> {
-    sqlx::query_as(&format!("{COMPONENT_SELECT} WHERE c.tenant_id=$1 AND c.id=$2"))
-        .bind(tenant)
-        .bind(id)
-        .fetch_optional(&mut *db)
-        .await
-        .map_err(db_err)?
-        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Component not found"))
+    sqlx::query_as(&format!(
+        "{COMPONENT_SELECT} WHERE c.tenant_id=$1 AND c.id=$2"
+    ))
+    .bind(tenant)
+    .bind(id)
+    .fetch_optional(&mut *db)
+    .await
+    .map_err(db_err)?
+    .ok_or_else(|| err(StatusCode::NOT_FOUND, "Component not found"))
 }
 
 async fn active_member(db: &mut PgConnection, tenant: Uuid, user: Uuid) -> ApiResult<bool> {
@@ -56,7 +58,10 @@ async fn active_member(db: &mut PgConnection, tenant: Uuid, user: Uuid) -> ApiRe
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/components", tag = "components", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Component>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_components(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json<Vec<Component>>> {
+pub(crate) async fn list_components(
+    mut tx: Tx,
+    Path(p): Path<Uuid>,
+) -> ApiResult<Json<Vec<Component>>> {
     let i = tx.identity.clone();
     valid_project(&mut tx, &i, p).await?;
     let rows: Vec<Component> = sqlx::query_as(&format!(
@@ -95,7 +100,9 @@ pub(crate) async fn create_component(
     }
     if let Some(user) = v.default_assignee_id {
         if !active_member(&mut tx, i.tenant_id, user).await? {
-            return Err(bad("Default assignee must be an active member of this workspace"));
+            return Err(bad(
+                "Default assignee must be an active member of this workspace",
+            ));
         }
     }
     let id: Uuid = sqlx::query_scalar(
@@ -117,7 +124,10 @@ pub(crate) async fn create_component(
         db_err(e)
     })?;
     log_event(&mut tx, &i, "created", "component", id).await?;
-    Ok((StatusCode::CREATED, Json(load_component(&mut tx, i.tenant_id, id).await?)))
+    Ok((
+        StatusCode::CREATED,
+        Json(load_component(&mut tx, i.tenant_id, id).await?),
+    ))
 }
 
 #[derive(Deserialize, utoipa::ToSchema)]
@@ -146,7 +156,9 @@ pub(crate) async fn update_component(
     }
     if let Some(user) = v.default_assignee_id {
         if !active_member(&mut tx, i.tenant_id, user).await? {
-            return Err(bad("Default assignee must be an active member of this workspace"));
+            return Err(bad(
+                "Default assignee must be an active member of this workspace",
+            ));
         }
     }
     let clear = v.clear_default_assignee.unwrap_or(false);
@@ -166,7 +178,10 @@ pub(crate) async fn update_component(
     .map_err(|e| {
         if let sqlx::Error::Database(ref d) = e {
             if d.code().as_deref() == Some("23505") {
-                return err(StatusCode::CONFLICT, "A component with this name already exists");
+                return err(
+                    StatusCode::CONFLICT,
+                    "A component with this name already exists",
+                );
             }
         }
         db_err(e)
@@ -197,7 +212,10 @@ pub(crate) struct IssueComponentsInput {
 }
 
 #[utoipa::path(get, path = "/api/issues/{id}/components", tag = "components", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Component>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn issue_components(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Vec<Component>>> {
+pub(crate) async fn issue_components(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<Vec<Component>>> {
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "issues", id).await?;
     let rows: Vec<Component> = sqlx::query_as(&format!(
@@ -250,13 +268,15 @@ pub(crate) async fn set_issue_components(
         .await
         .map_err(db_err)?;
     for c in &ids {
-        sqlx::query("INSERT INTO issue_components(tenant_id,issue_id,component_id) VALUES($1,$2,$3)")
-            .bind(i.tenant_id)
-            .bind(id)
-            .bind(c)
-            .execute(&mut *tx)
-            .await
-            .map_err(db_err)?;
+        sqlx::query(
+            "INSERT INTO issue_components(tenant_id,issue_id,component_id) VALUES($1,$2,$3)",
+        )
+        .bind(i.tenant_id)
+        .bind(id)
+        .bind(c)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
     }
     // An unassigned issue takes the default assignee of the first component that has one.
     if let Some(first_default) = ids.iter().copied().next() {
@@ -317,7 +337,11 @@ async fn load_estimates(db: &mut PgConnection, tenant: Uuid, id: Uuid) -> ApiRes
     .await
     .map_err(db_err)?
     .ok_or_else(|| err(StatusCode::NOT_FOUND, "Issue not found"))?;
-    Ok(Estimates { original_minutes: original, remaining_minutes: remaining, logged_minutes: logged })
+    Ok(Estimates {
+        original_minutes: original,
+        remaining_minutes: remaining,
+        logged_minutes: logged,
+    })
 }
 
 #[utoipa::path(get, path = "/api/issues/{id}/estimates", tag = "time", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Estimates), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
@@ -344,7 +368,10 @@ pub(crate) async fn set_estimates(
     let i = tx.identity.clone();
     require_editor(&i)?;
     valid_issue(&mut tx, &i, id).await?;
-    for m in [v.original_minutes, v.remaining_minutes].into_iter().flatten() {
+    for m in [v.original_minutes, v.remaining_minutes]
+        .into_iter()
+        .flatten()
+    {
         if !(0..=MAX_MINUTES).contains(&m) {
             return Err(bad("Estimates must be between 0 and 100000000 minutes"));
         }
@@ -381,7 +408,10 @@ const WORKLOG_SELECT: &str = "SELECT w.id, w.issue_id, w.author_id, u.display_na
  to_char(w.started_on,'YYYY-MM-DD') AS started_on, w.comment, w.created_at FROM worklogs w JOIN users u ON u.id=w.author_id";
 
 #[utoipa::path(get, path = "/api/issues/{id}/worklogs", tag = "time", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Worklog>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_worklogs(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Vec<Worklog>>> {
+pub(crate) async fn list_worklogs(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<Vec<Worklog>>> {
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "issues", id).await?;
     let rows: Vec<Worklog> = sqlx::query_as(&format!(
@@ -417,7 +447,8 @@ pub(crate) async fn add_worklog(
     }
     let day = match v.started_on.as_deref() {
         None | Some("") => Utc::now().date_naive(),
-        Some(raw) => NaiveDate::parse_from_str(raw, "%Y-%m-%d").map_err(|_| bad("started_on must be YYYY-MM-DD"))?,
+        Some(raw) => NaiveDate::parse_from_str(raw, "%Y-%m-%d")
+            .map_err(|_| bad("started_on must be YYYY-MM-DD"))?,
     };
     let comment = v.comment.unwrap_or_default();
     if comment.len() > 2000 {
@@ -436,12 +467,14 @@ pub(crate) async fn add_worklog(
     .await
     .map_err(db_err)?;
     log_event(&mut tx, &i, "logged_time", "issue", id).await?;
-    let row: Worklog = sqlx::query_as(&format!("{WORKLOG_SELECT} WHERE w.tenant_id=$1 AND w.id=$2"))
-        .bind(i.tenant_id)
-        .bind(row_id)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let row: Worklog = sqlx::query_as(&format!(
+        "{WORKLOG_SELECT} WHERE w.tenant_id=$1 AND w.id=$2"
+    ))
+    .bind(i.tenant_id)
+    .bind(row_id)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
     Ok((StatusCode::CREATED, Json(row)))
 }
 
@@ -479,7 +512,10 @@ pub(crate) struct Person {
 }
 
 #[utoipa::path(get, path = "/api/issues/{id}/watchers", tag = "watch", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Person>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_watchers(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Vec<Person>>> {
+pub(crate) async fn list_watchers(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<Vec<Person>>> {
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "issues", id).await?;
     Ok(Json(watchers(&mut tx, i.tenant_id, id).await?))
@@ -620,7 +656,10 @@ pub(crate) struct ChecklistItem {
 }
 
 #[utoipa::path(get, path = "/api/issues/{id}/checklist", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<ChecklistItem>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_checklist(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Vec<ChecklistItem>>> {
+pub(crate) async fn list_checklist(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<Vec<ChecklistItem>>> {
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "issues", id).await?;
     let rows: Vec<ChecklistItem> = sqlx::query_as(
@@ -682,13 +721,14 @@ pub(crate) async fn update_checklist_item(
 ) -> ApiResult<Json<ChecklistItem>> {
     let i = tx.identity.clone();
     require_editor(&i)?;
-    let issue: Uuid = sqlx::query_scalar("SELECT issue_id FROM checklist_items WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(db_err)?
-        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Checklist item not found"))?;
+    let issue: Uuid =
+        sqlx::query_scalar("SELECT issue_id FROM checklist_items WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(db_err)?
+            .ok_or_else(|| err(StatusCode::NOT_FOUND, "Checklist item not found"))?;
     valid_issue(&mut tx, &i, issue).await?;
     if let Some(t) = &v.text {
         let t = t.trim();
@@ -715,16 +755,20 @@ pub(crate) async fn update_checklist_item(
 }
 
 #[utoipa::path(delete, path = "/api/checklist/{id}", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 204, description = "Deleted"), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn delete_checklist_item(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<StatusCode> {
+pub(crate) async fn delete_checklist_item(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<StatusCode> {
     let i = tx.identity.clone();
     require_editor(&i)?;
-    let issue: Uuid = sqlx::query_scalar("SELECT issue_id FROM checklist_items WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(db_err)?
-        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Checklist item not found"))?;
+    let issue: Uuid =
+        sqlx::query_scalar("SELECT issue_id FROM checklist_items WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(db_err)?
+            .ok_or_else(|| err(StatusCode::NOT_FOUND, "Checklist item not found"))?;
     valid_issue(&mut tx, &i, issue).await?;
     sqlx::query("DELETE FROM checklist_items WHERE tenant_id=$1 AND id=$2")
         .bind(i.tenant_id)
@@ -756,7 +800,10 @@ pub(crate) struct ChildIssue {
 }
 
 #[utoipa::path(get, path = "/api/issues/{id}/children", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<ChildIssue>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_children(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Vec<ChildIssue>>> {
+pub(crate) async fn list_children(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<Vec<ChildIssue>>> {
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "issues", id).await?;
     let done = done_predicate("i");
@@ -795,13 +842,19 @@ pub(crate) async fn rollup(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<R
          COALESCE(sum(c.original_estimate_minutes),0)::bigint, COALESCE(sum(c.remaining_estimate_minutes),0)::bigint \
          FROM issues c WHERE c.tenant_id=$1 AND c.parent_id=$2 AND c.archived_at IS NULL"
     );
-    let (children, children_done, points_total, points_done, orig, rem): (i64, i64, i64, i64, i64, i64) =
-        sqlx::query_as(&sql)
-            .bind(i.tenant_id)
-            .bind(id)
-            .fetch_one(&mut *tx)
-            .await
-            .map_err(db_err)?;
+    let (children, children_done, points_total, points_done, orig, rem): (
+        i64,
+        i64,
+        i64,
+        i64,
+        i64,
+        i64,
+    ) = sqlx::query_as(&sql)
+        .bind(i.tenant_id)
+        .bind(id)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(db_err)?;
     let logged: i64 = sqlx::query_scalar(
         "SELECT COALESCE(sum(w.minutes),0)::bigint FROM worklogs w JOIN issues c ON c.tenant_id=w.tenant_id AND c.id=w.issue_id \
          WHERE w.tenant_id=$1 AND (c.id=$2 OR (c.parent_id=$2 AND c.archived_at IS NULL))",
@@ -846,17 +899,23 @@ pub(crate) async fn create_subtask(
     require_editor(&i)?;
     let project = valid_issue(&mut tx, &i, id).await?;
     validate_title(&v.title)?;
-    let kind = v.kind.unwrap_or_else(|| "task".into());
-    if !["task", "bug", "story"].contains(&kind.as_str()) {
-        return Err(bad("A subtask is a task, bug or story"));
+    let kind = match v.kind {
+        Some(k) => k,
+        None => crate::api::issue_types::default_type(&mut tx, i.tenant_id, project).await?,
+    };
+    if crate::api::issue_types::type_level(&mut tx, i.tenant_id, project, &kind).await? != Some(0) {
+        return Err(bad(
+            "A subtask is a standard issue type of this project (not epic level)",
+        ));
     }
     // Subtasks sit one level below their parent; a subtask cannot take its own subtasks.
-    let parent_parent: Option<Uuid> = sqlx::query_scalar("SELECT parent_id FROM issues WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let parent_parent: Option<Uuid> =
+        sqlx::query_scalar("SELECT parent_id FROM issues WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
     if parent_parent.is_some() {
         return Err(bad("Subtasks cannot have subtasks of their own"));
     }
@@ -866,12 +925,14 @@ pub(crate) async fn create_subtask(
         .fetch_optional(&mut *tx)
         .await
         .map_err(db_err)?;
-    let next: i64 = sqlx::query_scalar("SELECT COALESCE(MAX(number),0)+1 FROM issues WHERE tenant_id=$1 AND project_id=$2")
-        .bind(i.tenant_id)
-        .bind(project)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let next: i64 = sqlx::query_scalar(
+        "SELECT COALESCE(MAX(number),0)+1 FROM issues WHERE tenant_id=$1 AND project_id=$2",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
     let status = crate::api::statuses::default_status(&mut tx, i.tenant_id, project).await?;
     let row: crate::api::work::Issue = sqlx::query_as(
         "INSERT INTO issues(tenant_id,project_id,number,title,kind,priority,created_by,status,parent_id) \
@@ -890,8 +951,16 @@ pub(crate) async fn create_subtask(
     .await
     .map_err(db_err)?;
     log_event(&mut tx, &i, "created", "issue", row.id).await?;
-    crate::api::history::record_status(&mut tx, i.tenant_id, row.id, None, &row.status, i.user_id).await?;
-    log_outbox(&mut tx, i.tenant_id, "issue.created", row.id, json!({"project_id":project,"parent_id":id})).await?;
+    crate::api::history::record_status(&mut tx, i.tenant_id, row.id, None, &row.status, i.user_id)
+        .await?;
+    log_outbox(
+        &mut tx,
+        i.tenant_id,
+        "issue.created",
+        row.id,
+        json!({"project_id":project,"parent_id":id}),
+    )
+    .await?;
     Ok((StatusCode::CREATED, Json(row)))
 }
 
@@ -920,12 +989,13 @@ pub(crate) async fn clone_issue(
             t.trim().to_string()
         }
         None => {
-            let original: String = sqlx::query_scalar("SELECT title FROM issues WHERE tenant_id=$1 AND id=$2")
-                .bind(i.tenant_id)
-                .bind(id)
-                .fetch_one(&mut *tx)
-                .await
-                .map_err(db_err)?;
+            let original: String =
+                sqlx::query_scalar("SELECT title FROM issues WHERE tenant_id=$1 AND id=$2")
+                    .bind(i.tenant_id)
+                    .bind(id)
+                    .fetch_one(&mut *tx)
+                    .await
+                    .map_err(db_err)?;
             let copy = format!("Copy of {original}");
             copy.chars().take(250).collect()
         }
@@ -936,12 +1006,14 @@ pub(crate) async fn clone_issue(
         .fetch_optional(&mut *tx)
         .await
         .map_err(db_err)?;
-    let next: i64 = sqlx::query_scalar("SELECT COALESCE(MAX(number),0)+1 FROM issues WHERE tenant_id=$1 AND project_id=$2")
-        .bind(i.tenant_id)
-        .bind(project)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let next: i64 = sqlx::query_scalar(
+        "SELECT COALESCE(MAX(number),0)+1 FROM issues WHERE tenant_id=$1 AND project_id=$2",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
     let status = crate::api::statuses::default_status(&mut tx, i.tenant_id, project).await?;
     // The copy keeps content, classification, estimates and components. It does not keep the
     // assignee, sprint, parent or subtasks, and it starts in the project's first To do status.
@@ -970,8 +1042,16 @@ pub(crate) async fn clone_issue(
     .await
     .map_err(db_err)?;
     log_event(&mut tx, &i, "created", "issue", row.id).await?;
-    crate::api::history::record_status(&mut tx, i.tenant_id, row.id, None, &row.status, i.user_id).await?;
-    log_outbox(&mut tx, i.tenant_id, "issue.created", row.id, json!({"project_id":project,"cloned_from":id})).await?;
+    crate::api::history::record_status(&mut tx, i.tenant_id, row.id, None, &row.status, i.user_id)
+        .await?;
+    log_outbox(
+        &mut tx,
+        i.tenant_id,
+        "issue.created",
+        row.id,
+        json!({"project_id":project,"cloned_from":id}),
+    )
+    .await?;
     Ok((StatusCode::CREATED, Json(row)))
 }
 
@@ -1023,25 +1103,45 @@ pub(crate) async fn move_issue(
         return Err(bad("Move or detach the subtasks before moving this issue"));
     }
     // Keep the current status when the target project has it, otherwise start from its first To do status.
-    let current_status: String = sqlx::query_scalar("SELECT status FROM issues WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let current_status: String =
+        sqlx::query_scalar("SELECT status FROM issues WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
     let previous_status = current_status.clone();
-    let status = if crate::api::statuses::status_defined(&mut tx, i.tenant_id, v.project_id, &current_status).await? {
+    let status = if crate::api::statuses::status_defined(
+        &mut tx,
+        i.tenant_id,
+        v.project_id,
+        &current_status,
+    )
+    .await?
+    {
         current_status
     } else {
         crate::api::statuses::default_status(&mut tx, i.tenant_id, v.project_id).await?
     };
+    // The issue type survives when the target project defines it; otherwise the target's default applies.
+    let current_kind: String =
+        sqlx::query_scalar("SELECT kind FROM issues WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
+    let kind =
+        crate::api::issue_types::type_or_default(&mut tx, i.tenant_id, v.project_id, &current_kind)
+            .await?;
     // Custom fields survive only when the target project defines the same key.
-    let custom: Value = sqlx::query_scalar("SELECT custom_fields FROM issues WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let custom: Value =
+        sqlx::query_scalar("SELECT custom_fields FROM issues WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
     let defined: Vec<String> = sqlx::query_scalar(
         "SELECT key FROM field_definitions WHERE tenant_id=$1 AND project_id=$2",
     )
@@ -1068,14 +1168,16 @@ pub(crate) async fn move_issue(
         .fetch_optional(&mut *tx)
         .await
         .map_err(db_err)?;
-    let next: i64 = sqlx::query_scalar("SELECT COALESCE(MAX(number),0)+1 FROM issues WHERE tenant_id=$1 AND project_id=$2")
-        .bind(i.tenant_id)
-        .bind(v.project_id)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let next: i64 = sqlx::query_scalar(
+        "SELECT COALESCE(MAX(number),0)+1 FROM issues WHERE tenant_id=$1 AND project_id=$2",
+    )
+    .bind(i.tenant_id)
+    .bind(v.project_id)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
     let row: crate::api::work::Issue = sqlx::query_as(
-        "UPDATE issues SET project_id=$1, number=$2, status=$3, custom_fields=$4, sprint_id=NULL, \
+        "UPDATE issues SET project_id=$1, number=$2, status=$3, custom_fields=$4, kind=$7, sprint_id=NULL, \
          backlog_rank=(SELECT COALESCE(MAX(backlog_rank),0)+1 FROM issues WHERE tenant_id=$5 AND project_id=$1), updated_at=now() \
          WHERE tenant_id=$5 AND id=$6 \
          RETURNING id,project_id,number,title,description,kind,status,priority,created_at,updated_at",
@@ -1086,6 +1188,7 @@ pub(crate) async fn move_issue(
     .bind(Value::Object(kept))
     .bind(i.tenant_id)
     .bind(id)
+    .bind(kind)
     .fetch_one(&mut *tx)
     .await
     .map_err(db_err)?;
@@ -1106,18 +1209,20 @@ pub(crate) async fn move_issue(
     .execute(&mut *tx)
     .await
     .map_err(db_err)?;
-    let old_key: String = sqlx::query_scalar("SELECT key FROM projects WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(source)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
-    let new_key: String = sqlx::query_scalar("SELECT key FROM projects WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(v.project_id)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let old_key: String =
+        sqlx::query_scalar("SELECT key FROM projects WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(source)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
+    let new_key: String =
+        sqlx::query_scalar("SELECT key FROM projects WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(v.project_id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
     // A comment records where the issue came from, so the old key still leads to the story.
     sqlx::query(
         "INSERT INTO issue_comments(tenant_id,issue_id,author_id,body) VALUES($1,$2,$3,$4)",
@@ -1125,17 +1230,47 @@ pub(crate) async fn move_issue(
     .bind(i.tenant_id)
     .bind(id)
     .bind(i.user_id)
-    .bind(format!("Moved from {old_key}-{number} to {new_key}-{}", row.number))
+    .bind(format!(
+        "Moved from {old_key}-{number} to {new_key}-{}",
+        row.number
+    ))
     .execute(&mut *tx)
     .await
     .map_err(db_err)?;
     if previous_status != row.status {
-        crate::api::history::record_status(&mut tx, i.tenant_id, id, Some(&previous_status), &row.status, i.user_id).await?;
+        crate::api::history::record_status(
+            &mut tx,
+            i.tenant_id,
+            id,
+            Some(&previous_status),
+            &row.status,
+            i.user_id,
+        )
+        .await?;
     }
-    crate::api::history::record_change(&mut tx, i.tenant_id, id, i.user_id, "project", Some(old_key.clone()), Some(new_key.clone())).await?;
+    crate::api::history::record_change(
+        &mut tx,
+        i.tenant_id,
+        id,
+        i.user_id,
+        "project",
+        Some(old_key.clone()),
+        Some(new_key.clone()),
+    )
+    .await?;
     log_event(&mut tx, &i, "moved", "issue", id).await?;
-    log_outbox(&mut tx, i.tenant_id, "issue.updated", id, json!({"project_id":v.project_id,"moved_from":source})).await?;
-    Ok(Json(MoveResult { issue: row, dropped_fields: dropped }))
+    log_outbox(
+        &mut tx,
+        i.tenant_id,
+        "issue.updated",
+        id,
+        json!({"project_id":v.project_id,"moved_from":source}),
+    )
+    .await?;
+    Ok(Json(MoveResult {
+        issue: row,
+        dropped_fields: dropped,
+    }))
 }
 
 #[derive(Deserialize, utoipa::IntoParams)]
@@ -1183,18 +1318,48 @@ pub(crate) async fn similar_issues(
 
 pub(crate) fn routes() -> axum::Router<App> {
     axum::Router::new()
-        .route("/api/projects/{id}/components", get(list_components).post(create_component))
-        .route("/api/components/{id}", patch(update_component).delete(delete_component))
-        .route("/api/issues/{id}/components", get(issue_components).put(set_issue_components))
-        .route("/api/issues/{id}/estimates", get(get_estimates).put(set_estimates))
-        .route("/api/issues/{id}/worklogs", get(list_worklogs).post(add_worklog))
+        .route(
+            "/api/projects/{id}/components",
+            get(list_components).post(create_component),
+        )
+        .route(
+            "/api/components/{id}",
+            patch(update_component).delete(delete_component),
+        )
+        .route(
+            "/api/issues/{id}/components",
+            get(issue_components).put(set_issue_components),
+        )
+        .route(
+            "/api/issues/{id}/estimates",
+            get(get_estimates).put(set_estimates),
+        )
+        .route(
+            "/api/issues/{id}/worklogs",
+            get(list_worklogs).post(add_worklog),
+        )
         .route("/api/worklogs/{id}", delete(delete_worklog))
-        .route("/api/issues/{id}/watchers", get(list_watchers).post(add_watcher))
-        .route("/api/issues/{id}/watchers/{user_id}", delete(remove_watcher))
+        .route(
+            "/api/issues/{id}/watchers",
+            get(list_watchers).post(add_watcher),
+        )
+        .route(
+            "/api/issues/{id}/watchers/{user_id}",
+            delete(remove_watcher),
+        )
         .route("/api/issues/{id}/votes", get(get_votes))
-        .route("/api/issues/{id}/vote", post(cast_vote).delete(withdraw_vote))
-        .route("/api/issues/{id}/checklist", get(list_checklist).post(add_checklist_item))
-        .route("/api/checklist/{id}", patch(update_checklist_item).delete(delete_checklist_item))
+        .route(
+            "/api/issues/{id}/vote",
+            post(cast_vote).delete(withdraw_vote),
+        )
+        .route(
+            "/api/issues/{id}/checklist",
+            get(list_checklist).post(add_checklist_item),
+        )
+        .route(
+            "/api/checklist/{id}",
+            patch(update_checklist_item).delete(delete_checklist_item),
+        )
         .route("/api/issues/{id}/children", get(list_children))
         .route("/api/issues/{id}/rollup", get(rollup))
         .route("/api/issues/{id}/subtasks", post(create_subtask))
@@ -1213,11 +1378,16 @@ pub(crate) fn mention_handles(body: &str) -> Vec<String> {
         if chars[i] == '@' && (i == 0 || !chars[i - 1].is_alphanumeric()) {
             let start = i + 1;
             let mut end = start;
-            while end < chars.len() && (chars[end].is_ascii_alphanumeric() || "._-".contains(chars[end])) {
+            while end < chars.len()
+                && (chars[end].is_ascii_alphanumeric() || "._-".contains(chars[end]))
+            {
                 end += 1;
             }
             if end > start && end - start <= 64 {
-                let handle: String = chars[start..end].iter().collect::<String>().to_ascii_lowercase();
+                let handle: String = chars[start..end]
+                    .iter()
+                    .collect::<String>()
+                    .to_ascii_lowercase();
                 if !out.contains(&handle) {
                     out.push(handle);
                 }

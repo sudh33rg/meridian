@@ -1,12 +1,13 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { request } from "../../lib/api";
 import { Plus, X } from "lucide-react";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { useTeams } from "../agile/agile-shared";
+import { defaultTypeKey, typeName } from "../../lib/issue-types";
 
 export function CreateModal() {
-  const { error, busy, modal, setModal, draft, setDraft, create, session } = useWorkspace();
+  const { error, busy, modal, setModal, draft, setDraft, create, session, issueTypes } = useWorkspace();
   const teams = useTeams(session.token, modal === "issue");
   const { selected, project, setSelectedIssue } = useWorkspace();
   const titleText = draft.title.trim();
@@ -20,6 +21,13 @@ export function CreateModal() {
     enabled: modal === "issue" && !!selected && titleText.length >= 4,
     staleTime: 10_000,
   });
+  // A draft kind the project does not define (for example "task" in a project without it) moves to its default.
+  useEffect(() => {
+    const keys = issueTypes.map((t) => t.key);
+    if (modal === "issue" && keys.length && !keys.includes(draft.kind)) {
+      setDraft({ ...draft, kind: defaultTypeKey(issueTypes) });
+    }
+  }, [modal, draft, issueTypes, setDraft]);
   return (
     <>
       {modal && (
@@ -133,8 +141,10 @@ export function CreateModal() {
                         value={draft.kind}
                         onChange={(e) => setDraft({ ...draft, kind: e.target.value })}
                       >
-                        {["task", "bug", "story", "epic"].map((x) => (
-                          <option key={x}>{x}</option>
+                        {issueTypes.map((t) => (
+                          <option key={t.key} value={t.key}>
+                            {typeName(issueTypes, t.key)}
+                          </option>
                         ))}
                       </select>
                     </label>

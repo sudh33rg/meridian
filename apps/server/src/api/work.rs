@@ -38,7 +38,9 @@ fn idempotency_key(headers: &HeaderMap) -> ApiResult<Option<String>> {
         .to_str()
         .map_err(|_| bad("Idempotency-Key must be visible ASCII"))?;
     if !(8..=255).contains(&key.len()) || !key.bytes().all(|b| b.is_ascii_graphic()) {
-        return Err(bad("Idempotency-Key must be 8 to 255 visible ASCII characters"));
+        return Err(bad(
+            "Idempotency-Key must be 8 to 255 visible ASCII characters",
+        ));
     }
     Ok(Some(key.to_string()))
 }
@@ -124,6 +126,7 @@ pub(crate) async fn create_project(
         return Err(bad("Unknown project template"));
     }
     crate::api::statuses::seed_template(&mut tx, i.tenant_id, id, &template).await?;
+    crate::api::issue_types::seed_defaults(&mut tx, i.tenant_id, id).await?;
     if visibility == "private" {
         // The creator must not lock themselves out of their own private project.
         sqlx::query("INSERT INTO relation_tuples(tenant_id,object_type,object_id,relation,subject_type,subject_id,created_by) VALUES($1,'project',$2,'admin','user',$3,$3)")
@@ -203,7 +206,10 @@ pub(crate) async fn issues(
             return Err(bad("Invalid status filter"));
         }
     }
-    if p.priority.as_deref().is_some_and(|s| !ISSUE_PRIORITIES.contains(&s)) {
+    if p.priority
+        .as_deref()
+        .is_some_and(|s| !ISSUE_PRIORITIES.contains(&s))
+    {
         return Err(bad("Invalid priority filter"));
     }
     // Escape LIKE wildcards so the search text is matched literally.
@@ -214,7 +220,9 @@ pub(crate) async fn issues(
         }
         Some(s) => Some(format!(
             "%{}%",
-            s.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_")
+            s.replace('\\', "\\\\")
+                .replace('%', "\\%")
+                .replace('_', "\\_")
         )),
     };
     let exists: bool =
@@ -275,13 +283,18 @@ pub(crate) async fn create_issue(
     if v.title.trim().is_empty() {
         return Err(bad("Title is required"));
     }
-    let kind = v.kind.unwrap_or_else(|| "task".into());
     let priority = v.priority.unwrap_or_else(|| "medium".into());
-    if !["task", "bug", "story", "epic"].contains(&kind.as_str())
-        || !["low", "medium", "high", "urgent"].contains(&priority.as_str())
-    {
-        return Err(bad("Unsupported issue kind or priority"));
+    if !["low", "medium", "high", "urgent"].contains(&priority.as_str()) {
+        return Err(bad("Unsupported priority"));
     }
+    // The kind must be one of the project's issue types; without one, the project's default applies.
+    let kind = match v.kind {
+        Some(k) => {
+            crate::api::issue_types::check_type(&mut tx, i.tenant_id, project, &k).await?;
+            k
+        }
+        None => crate::api::issue_types::default_type(&mut tx, i.tenant_id, project).await?,
+    };
     let present = sqlx::query_scalar::<_, Uuid>(
         "SELECT id FROM projects WHERE tenant_id=$1 AND id=$2 FOR UPDATE",
     )
@@ -295,7 +308,9 @@ pub(crate) async fn create_issue(
         &mut tx,
         i.tenant_id,
         project,
-        &v.custom_fields.clone().unwrap_or_else(|| serde_json::json!({})),
+        &v.custom_fields
+            .clone()
+            .unwrap_or_else(|| serde_json::json!({})),
     )
     .await?;
     if present.is_none() {
@@ -303,12 +318,13 @@ pub(crate) async fn create_issue(
     }
     let team = v.team_id;
     if let Some(t) = team {
-        let ok: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM teams WHERE tenant_id=$1 AND id=$2)")
-            .bind(i.tenant_id)
-            .bind(t)
-            .fetch_one(&mut *tx)
-            .await
-            .map_err(db_err)?;
+        let ok: bool =
+            sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM teams WHERE tenant_id=$1 AND id=$2)")
+                .bind(i.tenant_id)
+                .bind(t)
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(db_err)?;
         if !ok {
             return Err(bad("Team not found in this workspace"));
         }
@@ -349,11 +365,7 @@ pub(crate) async fn create_issue(
                 ));
             }
             let status = StatusCode::from_u16(status as u16).unwrap_or(StatusCode::CREATED);
-            return Ok((
-                [("idempotent-replayed", "true")],
-                (status, Json(body)),
-            )
-                .into_response());
+            return Ok(([("idempotent-replayed", "true")], (status, Json(body))).into_response());
         }
     }
     let next: i64 = sqlx::query_scalar(
@@ -369,7 +381,8 @@ pub(crate) async fn create_issue(
     let row:Issue=sqlx::query_as("INSERT INTO issues(tenant_id,project_id,number,title,description,kind,priority,created_by,status,custom_fields,team_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id,project_id,number,title,description,kind,status,priority,created_at,updated_at")
  .bind(i.tenant_id).bind(project).bind(next).bind(v.title.trim()).bind(v.description.unwrap_or_default()).bind(kind).bind(priority).bind(i.user_id).bind(status).bind(custom).bind(team).fetch_one(&mut *tx).await.map_err(db_err)?;
     log_event(&mut tx, &i, "created", "issue", row.id).await?;
-    crate::api::history::record_status(&mut tx, i.tenant_id, row.id, None, &row.status, i.user_id).await?;
+    crate::api::history::record_status(&mut tx, i.tenant_id, row.id, None, &row.status, i.user_id)
+        .await?;
     log_outbox(
         &mut tx,
         i.tenant_id,
@@ -421,7 +434,15 @@ pub(crate) async fn patch_issue(
     if !crate::api::statuses::status_defined(&mut tx, i.tenant_id, project, &v.status).await? {
         return Err(bad("Unknown status"));
     }
-    crate::api::transitions::check_transition(&mut tx, i.tenant_id, project, &from, &v.status, &custom).await?;
+    crate::api::transitions::check_transition(
+        &mut tx,
+        i.tenant_id,
+        project,
+        &from,
+        &v.status,
+        &custom,
+    )
+    .await?;
     let row:Issue=sqlx::query_as("UPDATE issues SET status=$1,updated_at=now() WHERE tenant_id=$2 AND id=$3 RETURNING id,project_id,number,title,description,kind,status,priority,created_at,updated_at")
  .bind(v.status).bind(i.tenant_id).bind(issue).fetch_optional(&mut *tx).await.map_err(db_err)?.ok_or_else(||err(StatusCode::NOT_FOUND,"Issue not found"))?;
     log_event(&mut tx, &i, "updated", "issue", issue).await?;
@@ -434,7 +455,15 @@ pub(crate) async fn patch_issue(
     )
     .await?;
     if from != row.status {
-        crate::api::history::record_status(&mut tx, i.tenant_id, issue, Some(&from), &row.status, i.user_id).await?;
+        crate::api::history::record_status(
+            &mut tx,
+            i.tenant_id,
+            issue,
+            Some(&from),
+            &row.status,
+            i.user_id,
+        )
+        .await?;
     }
     run_automations(&mut tx, &i, row.project_id, issue, "issue_status_changed").await?;
     Ok(Json(row))
