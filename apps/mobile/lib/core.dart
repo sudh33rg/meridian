@@ -115,6 +115,21 @@ class Api {
     return _decode(await _call(path, token: token, method: method, data: data, headers: headers));
   }
 
+  /// Reads every page of a list endpoint, following `X-Next-Cursor` (at most 50 pages).
+  static Future<List<dynamic>> requestAllPages(String path, {required String token, int pageSize = 200}) async {
+    final all = <dynamic>[];
+    String? cursor;
+    for (var page = 0; page < 50; page++) {
+      final separator = path.contains('?') ? '&' : '?';
+      final cursorPart = cursor == null ? '' : '&cursor=${Uri.encodeQueryComponent(cursor)}';
+      final response = await _call('$path$separator' 'limit=$pageSize$cursorPart', token: token);
+      all.addAll(_decode(response) as List<dynamic>);
+      cursor = response.headers['x-next-cursor'];
+      if (cursor == null || cursor.isEmpty) break;
+    }
+    return all;
+  }
+
   /// Like [request] for GET, and also returns the response ETag. An issue's ETag is the `If-Match`
   /// value an edit must send, so a stale save is refused instead of overwriting newer changes.
   static Future<({dynamic body, String? etag})> requestWithEtag(String path, {required String token}) async {
