@@ -90,6 +90,11 @@ export function ReportsPanel() {
     queryFn: () => request<TimeReport>(session.token, `/projects/${selected}/reports/time?${range}`),
     enabled: active,
   });
+  const statuses = useQuery({
+    queryKey: ["statuses", selected],
+    queryFn: () => request<{ key: string; name: string }[]>(session.token, `/projects/${selected}/statuses`),
+    enabled: active,
+  });
   const dashboards = useQuery({
     queryKey: ["dashboards", selected],
     queryFn: () => request<Dashboard[]>(session.token, `/projects/${selected}/dashboards`),
@@ -103,6 +108,7 @@ export function ReportsPanel() {
   if (!active) return null;
 
   const key = project?.key ?? "";
+  const statusName = (k: string) => statuses.data?.find((x) => x.key === k)?.name ?? k;
   const lastDay = (flow.data ?? []).length ? flow.data![flow.data!.length - 1].day : "";
   const latest = (flow.data ?? []).filter((r) => r.day === lastDay);
   const issueRange = (cr.data ?? []).reduce(
@@ -155,7 +161,7 @@ export function ReportsPanel() {
           <h3>Status now</h3>
           <Bars
             label="Issues by status on the last day"
-            rows={latest.map((r) => ({ label: r.status, value: r.count }))}
+            rows={latest.map((r) => ({ label: statusName(r.status), value: r.count }))}
           />
         </article>
         <article className="panel report-card">

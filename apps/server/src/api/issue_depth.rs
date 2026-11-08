@@ -804,7 +804,7 @@ pub(crate) async fn rollup(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<R
             .map_err(db_err)?;
     let logged: i64 = sqlx::query_scalar(
         "SELECT COALESCE(sum(w.minutes),0)::bigint FROM worklogs w JOIN issues c ON c.tenant_id=w.tenant_id AND c.id=w.issue_id \
-         WHERE w.tenant_id=$1 AND c.parent_id=$2 AND c.archived_at IS NULL",
+         WHERE w.tenant_id=$1 AND (c.id=$2 OR (c.parent_id=$2 AND c.archived_at IS NULL))",
     )
     .bind(i.tenant_id)
     .bind(id)
