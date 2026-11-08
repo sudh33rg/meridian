@@ -39,6 +39,8 @@ pub(crate) async fn record_status(
     .execute(&mut *db)
     .await
     .map_err(db_err)?;
+    // The chat message for this change is queued in the same transaction (Phase I3).
+    crate::api::chat::queue_change(db, tenant, issue, from, to, actor).await?;
     Ok(())
 }
 

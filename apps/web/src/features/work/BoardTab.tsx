@@ -12,6 +12,7 @@ import { FieldEditor } from "./FieldEditor";
 import { TransitionEditor } from "./TransitionEditor";
 import { SecurityLevels } from "./SecurityLevels";
 import { PermissionScheme } from "./PermissionScheme";
+import { ChatChannels } from "./ChatChannels";
 
 type Group = "none" | "assignee" | "epic";
 
@@ -257,6 +258,7 @@ export function BoardTab() {
           <TransitionEditor token={session.token} projectId={selected} statuses={statuses} />
           <SecurityLevels token={session.token} projectId={selected} />
           <PermissionScheme token={session.token} projectId={selected} />
+          <ChatChannels token={session.token} projectId={selected} />
         </>
       )}
       <div className="swimlanes">

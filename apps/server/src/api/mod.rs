@@ -23,6 +23,8 @@ pub mod issue_security;
 pub mod issue_content;
 pub mod macros;
 pub mod digest;
+pub mod chat;
+pub mod ai;
 pub mod security;
 pub mod settings;
 pub mod statuses;

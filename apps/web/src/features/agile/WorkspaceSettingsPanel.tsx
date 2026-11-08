@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { AiSettingsCard } from "./AiSettingsCard";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { errorMessage, request, send } from "../../lib/api";
@@ -32,6 +33,7 @@ export function WorkspaceSettingsPanel() {
   return (
     <section className="panel integrations" aria-labelledby="ws-title">
       <h3 id="ws-title">Workspace settings</h3>
+      <AiSettingsCard token={session.token} admin={admin} />
       <div className="form-row">
         <label>
           Time zone

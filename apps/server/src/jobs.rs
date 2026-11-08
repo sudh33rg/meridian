@@ -128,6 +128,7 @@ async fn handle(ctx: &Ctx, job: &Job) -> Result<(), String> {
         "email.auth_token" => email_auth_token(ctx, &job.payload).await,
         "email.invite" => email_invite(ctx, &job.payload).await,
         "email.digest" => email_digest(ctx, &job.payload).await,
+        "chat.notify" => crate::api::chat::deliver(&ctx.db, &ctx.cfg, &job.payload).await,
         "attachment.scan" => {
             let id = payload_id(&job.payload, "attachment_id")?;
             crate::attachments::scan_job(&ctx.db, &ctx.cfg, &ctx.store, id).await

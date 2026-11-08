@@ -60,6 +60,31 @@ export function IssueDrawer({
     enabled: !!projectId,
   });
   const teamsQ = useTeams(token);
+  // AI assistance (opt-in per workspace): summaries and a priority suggestion, shown here and not stored.
+  const aiQ = useQuery({
+    queryKey: ["ai-settings"],
+    queryFn: () => request<{ enabled: boolean; configured: boolean }>(token, "/workspace/ai"),
+    retry: false,
+  });
+  const [aiResult, setAiResult] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+  const runAi = async (kind: "summary" | "triage") => {
+    setAiBusy(true);
+    setAiResult("");
+    try {
+      if (kind === "summary") {
+        const r = await send<{ text: string }>(`/projects/${projectId}/ai/summary`, token, "POST", { issue_id: id });
+        setAiResult(r.text);
+      } else {
+        const r = await send<{ priority: string; reason: string }>(`/projects/${projectId}/ai/triage`, token, "POST", { issue_id: id });
+        setAiResult(`Suggested priority: ${r.priority}. ${r.reason}`);
+      }
+    } catch (e) {
+      setAiResult((e as Error).message);
+    } finally {
+      setAiBusy(false);
+    }
+  };
   // Security level: who may see this issue. Project admins change it; everyone sees its name.
   const levelsQ = useQuery({
     queryKey: ["security-levels", projectId],
@@ -269,6 +294,21 @@ export function IssueDrawer({
                 onChange={(e) => setTitle(e.target.value)}
               />
             </label>
+            {aiQ.data?.enabled && (
+              <div className="row-actions" aria-label="AI assistance">
+                <button type="button" className="secondary small-btn" disabled={aiBusy} onClick={() => runAi("summary")}>
+                  Summarise with AI
+                </button>
+                <button type="button" className="secondary small-btn" disabled={aiBusy} onClick={() => runAi("triage")}>
+                  Suggest priority
+                </button>
+              </div>
+            )}
+            {aiResult && (
+              <p className="drawer-description" role="status">
+                {aiResult}
+              </p>
+            )}
             {str(issue.description) ? (
               <div className="drawer-description">
                 <Markdown source={str(issue.description)} />
