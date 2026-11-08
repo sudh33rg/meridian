@@ -20,4 +20,5 @@ pub mod query;
 pub mod statuses;
 pub mod transitions;
 pub mod security;
+pub mod settings;
 pub mod work;

@@ -2648,6 +2648,22 @@ export interface paths {
         patch: operations["set_workspace_security"];
         trace?: never;
     };
+    "/api/workspace/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_settings"];
+        put: operations["put_settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspace/sso": {
         parameters: {
             query?: never;
@@ -3498,6 +3514,8 @@ export interface components {
             description?: string | null;
             key: string;
             name: string;
+            /** @description Starting statuses: `software` (default), `kanban`, `bugs` or `service`. */
+            template?: string | null;
             visibility?: string | null;
         };
         NewSavedView: {
@@ -4220,6 +4238,27 @@ export interface components {
         WorkspaceInput: {
             name: string;
             slug: string;
+        };
+        WorkspaceSettings: {
+            /** Format: int32 */
+            default_sprint_days: number;
+            /** @description An IANA name such as `Europe/London`, or `UTC`. */
+            timezone: string;
+            /**
+             * Format: int32
+             * @description First day of the week, 0 (Sunday) to 6 (Saturday).
+             */
+            week_start: number;
+            /** @description Working days, 1 (Monday) to 7 (Sunday). */
+            working_days: number[];
+        };
+        WorkspaceSettingsInput: {
+            /** Format: int32 */
+            default_sprint_days: number;
+            timezone: string;
+            /** Format: int32 */
+            week_start: number;
+            working_days: number[];
         };
     };
     responses: never;
@@ -15966,6 +16005,86 @@ export interface operations {
                 };
             };
             /** @description Admin required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    get_settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceSettings"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    put_settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceSettings"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
             403: {
                 headers: {
                     [name: string]: unknown;

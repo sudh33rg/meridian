@@ -21,6 +21,7 @@ export type Modal = "project" | "issue" | "page" | null;
 
 const emptyDraft = {
   visibility: "workspace",
+  template: "software",
   name: "",
   key: "",
   description: "",
@@ -186,6 +187,7 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
         key: draft.key.toUpperCase(),
         description: draft.description,
         visibility: draft.visibility,
+        template: draft.template,
       }),
     onSuccess: async (p) => {
       await qc.invalidateQueries({ queryKey: ["projects"] });

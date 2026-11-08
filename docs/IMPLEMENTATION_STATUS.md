@@ -129,3 +129,22 @@ Migration `0024_integrations.sql`; API in `apps/server/src/api/integrations.rs` 
 | I7 marketplace | Not started. Owner decision: whether third-party apps are hosted at all. | — |
 
 Checks: `cargo check`, `make openapi` (222 operations), `make manifest`, `npm run build` pass. No tests added. Token authentication has not been exercised against a running API.
+
+## Phases J and K (partial, 8 November 2026)
+
+Migration `0025_workspace_settings.sql`; `apps/server/src/api/settings.rs`; project templates in `statuses.rs`.
+
+| Step | What exists in source | Still open |
+|---|---|---|
+| J1 permissions and groups | Teams already work as groups for project grants (from earlier phases). | Permission schemes that map actions to roles per project; custom roles. Not built: each handler checks the four fixed roles. |
+| J2 issue security and field security | Not built. | Security levels on issues and restricted fields, filtered before results. Needs a design pass with the query language, per Constitution III.2. |
+| J3 audit log | Audit rows exist and are listed (earlier phases). | Search, filters and CSV export on the audit log. |
+| J4 retention | Not built. Audit rows are immutable for the application role (Constitution, SECURITY.md), so retention needs an owner decision on what may be deleted and when. | Retention settings and deletion jobs, after that decision. |
+| J5 workspace settings | Time zone (format-checked, not validated against the IANA database), working days, week start, default sprint length; admins edit them in Appearance. | Branding and custom domain. Dates are not yet rendered in the workspace time zone. |
+| K1 templates | Project creation takes a template that seeds starting statuses: software (default), kanban, bug tracking, service requests. | Fields, boards and automation rules per template. |
+| K2 service management | Not built. | Request types with forms, queues, assignment rules, SLA timers, incident and change flows. |
+| K3 knowledge parity | Not built. | Page templates, blog posts, space home, page tree UI. |
+| K4 macros | Not built. | Embedded issue lists and charts in pages. |
+| K5 localisation | Not built (English only). | Message catalogues and locale-aware dates and numbers. |
+
+Checks: `cargo check`, `make openapi`, `make manifest`, `npm run build` pass. No tests added.

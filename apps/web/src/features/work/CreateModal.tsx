@@ -77,6 +77,17 @@ export function CreateModal() {
                     placeholder="What is this project for?"
                   />
                 </label>
+                {modal === "project" && (
+                  <label>
+                    Starting template
+                    <select value={draft.template} onChange={(e) => setDraft({ ...draft, template: e.target.value })}>
+                      <option value="software">Software (To do, In progress, In review, Done)</option>
+                      <option value="kanban">Kanban (To do, In progress, Done)</option>
+                      <option value="bugs">Bug tracking (New, Triage, Fixing, Verified, Closed)</option>
+                      <option value="service">Service requests (Open, Waiting, Resolved)</option>
+                    </select>
+                  </label>
+                )}
                 <label>
                   Who can see it
                   <select

@@ -61,6 +61,8 @@ pub(crate) struct NewProject {
     pub(crate) key: String,
     pub(crate) description: Option<String>,
     pub(crate) visibility: Option<String>,
+    /// Starting statuses: `software` (default), `kanban`, `bugs` or `service`.
+    pub(crate) template: Option<String>,
 }
 pub(crate) const PROJECT_COLS: &str = "p.id,p.name,p.key,p.description,p.created_at,p.visibility,\
  CASE project_access(p.id,$2,$3) WHEN 3 THEN 'admin' WHEN 2 THEN 'editor' ELSE 'viewer' END AS access";
@@ -117,7 +119,11 @@ pub(crate) async fn create_project(
     .fetch_one(&mut *tx)
     .await
     .map_err(|_| bad("Project key may already exist"))?;
-    crate::api::statuses::seed_defaults(&mut tx, i.tenant_id, id).await?;
+    let template = v.template.clone().unwrap_or_else(|| "software".into());
+    if !crate::api::statuses::PROJECT_TEMPLATES.contains(&template.as_str()) {
+        return Err(bad("Unknown project template"));
+    }
+    crate::api::statuses::seed_template(&mut tx, i.tenant_id, id, &template).await?;
     if visibility == "private" {
         // The creator must not lock themselves out of their own private project.
         sqlx::query("INSERT INTO relation_tuples(tenant_id,object_type,object_id,relation,subject_type,subject_id,created_by) VALUES($1,'project',$2,'admin','user',$3,$3)")

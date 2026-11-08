@@ -15725,6 +15725,104 @@
         ]
       }
     },
+    "/api/workspace/settings": {
+      "get": {
+        "tags": [
+          "org"
+        ],
+        "operationId": "get_settings",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceSettings"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "org"
+        ],
+        "operationId": "put_settings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceSettingsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/workspace/sso": {
       "get": {
         "tags": [
@@ -18552,6 +18650,13 @@
           "name": {
             "type": "string"
           },
+          "template": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Starting statuses: `software` (default), `kanban`, `bugs` or `service`."
+          },
           "visibility": {
             "type": [
               "string",
@@ -20730,6 +20835,67 @@
           },
           "slug": {
             "type": "string"
+          }
+        }
+      },
+      "WorkspaceSettings": {
+        "type": "object",
+        "required": [
+          "timezone",
+          "working_days",
+          "week_start",
+          "default_sprint_days"
+        ],
+        "properties": {
+          "default_sprint_days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "An IANA name such as `Europe/London`, or `UTC`."
+          },
+          "week_start": {
+            "type": "integer",
+            "format": "int32",
+            "description": "First day of the week, 0 (Sunday) to 6 (Saturday)."
+          },
+          "working_days": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Working days, 1 (Monday) to 7 (Sunday)."
+          }
+        }
+      },
+      "WorkspaceSettingsInput": {
+        "type": "object",
+        "required": [
+          "timezone",
+          "working_days",
+          "week_start",
+          "default_sprint_days"
+        ],
+        "properties": {
+          "default_sprint_days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "week_start": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "working_days": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
           }
         }
       }

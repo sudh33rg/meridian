@@ -35,13 +35,29 @@ pub(crate) struct StatusPatch {
 }
 
 /// The statuses every new project starts with, which match what all projects had before this.
-pub(crate) async fn seed_defaults(db: &mut PgConnection, tenant: Uuid, project: Uuid) -> ApiResult<()> {
-    for (key, name, category, position) in [
-        ("todo", "To do", "todo", 0),
-        ("in_progress", "In progress", "in_progress", 1),
-        ("in_review", "In review", "in_progress", 2),
-        ("done", "Done", "done", 3),
-    ] {
+/// Project templates (Phase K1). Each names the statuses a new project starts with. Templates only
+/// seed statuses: fields, boards and rules stay as the project defines them.
+pub(crate) const PROJECT_TEMPLATES: [&str; 4] = ["software", "kanban", "bugs", "service"];
+
+pub(crate) async fn seed_template(db: &mut PgConnection, tenant: Uuid, project: Uuid, template: &str) -> ApiResult<()> {
+    let statuses: &[(&str, &str, &str, i32)] = match template {
+        "kanban" => &[("todo", "To do", "todo", 0), ("in_progress", "In progress", "in_progress", 1), ("done", "Done", "done", 2)],
+        "bugs" => &[
+            ("new", "New", "todo", 0),
+            ("triage", "Triage", "todo", 1),
+            ("fixing", "Fixing", "in_progress", 2),
+            ("verified", "Verified", "in_progress", 3),
+            ("closed", "Closed", "done", 4),
+        ],
+        "service" => &[("open", "Open", "todo", 0), ("waiting", "Waiting", "in_progress", 1), ("resolved", "Resolved", "done", 2)],
+        _ => &[
+            ("todo", "To do", "todo", 0),
+            ("in_progress", "In progress", "in_progress", 1),
+            ("in_review", "In review", "in_progress", 2),
+            ("done", "Done", "done", 3),
+        ],
+    };
+    for (key, name, category, position) in statuses.iter().copied() {
         sqlx::query(
             "INSERT INTO project_statuses(tenant_id,project_id,key,name,category,position) VALUES($1,$2,$3,$4,$5,$6)",
         )

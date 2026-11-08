@@ -20,6 +20,7 @@ import { SprintsPanel } from "../agile/SprintsPanel";
 import { ReleasesPanel } from "../agile/ReleasesPanel";
 import { ReportsPanel } from "../agile/ReportsPanel";
 import { ApiTokensPanel, GitLinkPanel } from "../agile/IntegrationsPanels";
+import { WorkspaceSettingsPanel } from "../agile/WorkspaceSettingsPanel";
 import { RoadmapPanel } from "../agile/RoadmapPanel";
 
 export function Content() {
@@ -147,6 +148,7 @@ export function Content() {
       {tab === "integrations" && <GitLinkPanel />}
       {tab === "access" && project && <AccessPanel />}
       {tab === "appearance" && <AppearancePanel />}
+      {tab === "appearance" && <WorkspaceSettingsPanel />}
       {![
         "overview",
         "board",
