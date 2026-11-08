@@ -417,6 +417,8 @@ export function IssueDepth({
         )}
       </div>
 
+      <IssueHistory token={token} issueId={id} />
+
       {!archived && (
         <div className="drawer-section" aria-label="Clone and move">
           <h3>Copy or move</h3>
@@ -469,4 +471,51 @@ export function IssueDepth({
       )}
     </>
   );
+}
+
+/** The issue timeline: status moves and tracked field changes, newest first. */
+function IssueHistory({ token, issueId }: { token: string; issueId: string }) {
+  const history = useQuery({
+    queryKey: ["history", issueId],
+    queryFn: () =>
+      request<
+        {
+          kind: string;
+          field?: string | null;
+          old_value?: string | null;
+          new_value?: string | null;
+          actor_name: string;
+          changed_at: string;
+        }[]
+      >(token, `/issues/${issueId}/history`),
+  });
+  const rows = history.data ?? [];
+  return (
+    <div className="drawer-section" aria-label="History">
+      <h3>History · {rows.length}</h3>
+      <ul className="plain-list history-list">
+        {rows.slice(0, 40).map((h, n) => (
+          <li key={`${h.changed_at}-${n}`} className="small">
+            <span className="muted">{new Date(h.changed_at).toLocaleString()}</span> {h.actor_name}{" "}
+            {h.kind === "status" ? (
+              <>
+                moved status {h.old_value ? <b>{h.old_value}</b> : "from nothing"} → <b>{h.new_value}</b>
+              </>
+            ) : (
+              <>
+                changed {h.field?.replaceAll("_", " ")}
+                {h.old_value ? <> from <b>{trimValue(h.old_value)}</b></> : null}
+                {h.new_value ? <> to <b>{trimValue(h.new_value)}</b></> : " (cleared)"}
+              </>
+            )}
+          </li>
+        ))}
+      </ul>
+      {!history.isLoading && rows.length === 0 && <p className="muted small">No changes recorded yet.</p>}
+    </div>
+  );
+}
+
+function trimValue(v: string) {
+  return v.length > 60 ? `${v.slice(0, 57)}…` : v;
 }

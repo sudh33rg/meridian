@@ -1,6 +1,7 @@
 pub mod access;
 pub mod agile;
 pub mod fields;
+pub mod history;
 pub mod admin;
 pub mod collab;
 pub mod common;
@@ -11,6 +12,7 @@ pub mod knowledge;
 pub mod org;
 pub mod personal;
 pub mod planning;
+pub mod reports;
 pub mod releases;
 pub mod query;
 pub mod statuses;

@@ -120,6 +120,7 @@ pub(crate) async fn import_issues(
             .bind(i.tenant_id).bind(p).bind(next).bind(item.title).bind(item.description.unwrap_or_default())
             .bind(item.kind.unwrap_or_else(||"task".into())).bind(item.priority.unwrap_or_else(||"medium".into())).bind(i.user_id).bind(&start)
             .fetch_one(&mut *tx).await.map_err(db_err)?;
+        crate::api::history::record_status(&mut tx, i.tenant_id, id, None, &start, i.user_id).await?;
         sqlx::query("INSERT INTO imported_issue_refs(tenant_id,project_id,external_ref,issue_id) VALUES($1,$2,$3,$4)")
             .bind(i.tenant_id).bind(p).bind(item.external_ref).bind(id).execute(&mut *tx).await.map_err(db_err)?;
         created += 1;

@@ -16,7 +16,7 @@ import type { Issue, Page, Project, Session } from "../../lib/types";
 import type { ExtraTab } from "../advanced/AdvancedWorkspace";
 import { useToast } from "../shared/Toast";
 
-export type Tab = "overview" | "board" | "backlog" | "issues" | "knowledge" | "appearance" | ExtraTab;
+export type Tab = "overview" | "board" | "backlog" | "reports" | "issues" | "knowledge" | "appearance" | ExtraTab;
 export type Modal = "project" | "issue" | "page" | null;
 
 const emptyDraft = {

@@ -108,6 +108,7 @@ export const NAV: NavItem[] = [
     key: "g",
     keywords: "okr objectives",
   },
+  { id: "reports", label: "Reports", icon: <BarChart3 size={s} />, group: "plan", keywords: "charts flow cycle time dashboards export csv" },
   { id: "risks", label: "Risks", icon: <TriangleAlert size={s} />, group: "plan" },
   { id: "decisions", label: "Decisions", icon: <Scale size={s} />, group: "plan", key: "d", keywords: "adr" },
   {

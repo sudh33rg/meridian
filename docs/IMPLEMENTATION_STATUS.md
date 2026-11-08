@@ -84,3 +84,17 @@ Migration `0020_issue_depth.sql`; API in `apps/server/src/api/issue_depth.rs`; w
 | F9 boards | Not started. | Swimlanes, WIP limits, quick filters. |
 
 Checks: `cargo check` and `npm run build` (type-check and Vite build) pass. `make openapi` regenerated; `make manifest` regenerated. No tests added. Not yet run against PostgreSQL or in a browser (see the verification step at the end of the plan).
+
+## Phase G — history and reports (8 November 2026)
+
+Migrations `0021_history_and_reports.sql` and `0022_dashboards.sql`; API in `apps/server/src/api/history.rs` and `reports.rs`; web in `apps/web/src/features/agile/ReportsPanel.tsx` and the issue drawer's History section.
+
+| Step | What exists in source | Still open |
+|---|---|---|
+| G1 status history | `issue_status_history` written in the same transaction as every status change: create (CSV import, admin import, API create, clone, subtask), PATCH, edit, bulk, board moves (through PATCH), and project moves. Existing issues start with one row at their creation state. | Moves made before migration 0021 are not reconstructed. |
+| G2 reports | `GET /projects/{id}/reports/flow` (issues per status per day), `cycle-time` (lead and cycle time, median and average, control-chart points, throughput per ISO week), `created-resolved` (per day), `time` (logged time by person and issue). Date ranges are inclusive and capped at 366 days. Web Reports tab shows them. | Filters beyond date range (team, assignee, label) are not yet in the reports. |
+| G3 change history | `issue_changes` rows for title, description, kind, priority, assignee, sprint, parent, story points, due date, team and project moves. `GET /issues/{id}/history` merges status and field changes. Drawer shows the timeline. | Labels, custom fields and estimates are not yet tracked in the change log. |
+| G4 dashboards | Dashboards are per project, private unless shared, with widgets for status, priority, assignee counts, time by person, cycle summary and velocity. Widget data is computed on read. | Flow and time-series widgets are not drawn as charts on dashboards; drag-to-arrange is not built. |
+| G5 CSV export | `GET /projects/{id}/export.csv` (active issues, at most 10,000 rows). Cells starting with `=`, `+`, `-`, `@`, tab or carriage return are neutralised. Web Export CSV button. | Sprint and release exports, and an export of history. |
+
+Checks: `cargo check`, `make openapi`, `make manifest`, `npm run build` pass. No tests added. Not yet run against PostgreSQL or in a browser.

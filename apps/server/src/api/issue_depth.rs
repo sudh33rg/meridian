@@ -890,6 +890,7 @@ pub(crate) async fn create_subtask(
     .await
     .map_err(db_err)?;
     log_event(&mut tx, &i, "created", "issue", row.id).await?;
+    crate::api::history::record_status(&mut tx, i.tenant_id, row.id, None, &row.status, i.user_id).await?;
     log_outbox(&mut tx, i.tenant_id, "issue.created", row.id, json!({"project_id":project,"parent_id":id})).await?;
     Ok((StatusCode::CREATED, Json(row)))
 }
@@ -969,6 +970,7 @@ pub(crate) async fn clone_issue(
     .await
     .map_err(db_err)?;
     log_event(&mut tx, &i, "created", "issue", row.id).await?;
+    crate::api::history::record_status(&mut tx, i.tenant_id, row.id, None, &row.status, i.user_id).await?;
     log_outbox(&mut tx, i.tenant_id, "issue.created", row.id, json!({"project_id":project,"cloned_from":id})).await?;
     Ok((StatusCode::CREATED, Json(row)))
 }
@@ -1027,6 +1029,7 @@ pub(crate) async fn move_issue(
         .fetch_one(&mut *tx)
         .await
         .map_err(db_err)?;
+    let previous_status = current_status.clone();
     let status = if crate::api::statuses::status_defined(&mut tx, i.tenant_id, v.project_id, &current_status).await? {
         current_status
     } else {
@@ -1126,6 +1129,10 @@ pub(crate) async fn move_issue(
     .execute(&mut *tx)
     .await
     .map_err(db_err)?;
+    if previous_status != row.status {
+        crate::api::history::record_status(&mut tx, i.tenant_id, id, Some(&previous_status), &row.status, i.user_id).await?;
+    }
+    crate::api::history::record_change(&mut tx, i.tenant_id, id, i.user_id, "project", Some(old_key.clone()), Some(new_key.clone())).await?;
     log_event(&mut tx, &i, "moved", "issue", id).await?;
     log_outbox(&mut tx, i.tenant_id, "issue.updated", id, json!({"project_id":v.project_id,"moved_from":source})).await?;
     Ok(Json(MoveResult { issue: row, dropped_fields: dropped }))

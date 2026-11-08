@@ -176,6 +176,7 @@ pub(crate) async fn edit_issue(
             return Err(bad("Parent must be in the same project"));
         }
     }
+    let before_json = crate::api::history::issue_json(&mut tx, i.tenant_id, id).await?;
     // Nullable attributes are intentionally unchanged when omitted. Explicit clearing is a separate operation.
     let row: Option<Value> = sqlx::query_scalar("UPDATE issues SET title=COALESCE($1,title),description=COALESCE($2,description),kind=COALESCE($3,kind),priority=COALESCE($4,priority),status=COALESCE($5,status),assignee_id=COALESCE($6,assignee_id),sprint_id=COALESCE($7,sprint_id),parent_id=COALESCE($8,parent_id),story_points=COALESCE($9,story_points),due_at=COALESCE($10,due_at),labels=COALESCE($11,labels),custom_fields=COALESCE($12,custom_fields),updated_at=now() WHERE tenant_id=$13 AND id=$14 AND archived_at IS NULL AND ($15::timestamptz IS NULL OR updated_at=$15) RETURNING to_jsonb(issues)")
         .bind(v.title).bind(v.description).bind(v.kind).bind(v.priority).bind(v.status.clone()).bind(v.assignee_id)
@@ -192,6 +193,7 @@ pub(crate) async fn edit_issue(
             None => err(StatusCode::NOT_FOUND, "Issue not found"),
         });
     };
+    crate::api::history::record_row_changes(&mut tx, i.tenant_id, i.user_id, id, &before_json, &row).await?;
     log_event(&mut tx, &i, "updated", "issue", id).await?;
     log_outbox(
         &mut tx,
@@ -370,6 +372,7 @@ pub(crate) async fn bulk_update_issues(
                 continue;
             }
         }
+        let before_json = crate::api::history::issue_json(&mut tx, i.tenant_id, id).await?;
         match &change {
             Change::Status(s) => {
                 sqlx::query("UPDATE issues SET status=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3")
@@ -408,6 +411,8 @@ pub(crate) async fn bulk_update_issues(
             json!({"issue_id":id,"project_id":project}),
         )
         .await?;
+        let after_json = crate::api::history::issue_json(&mut tx, i.tenant_id, id).await?;
+        crate::api::history::record_row_changes(&mut tx, i.tenant_id, i.user_id, id, &before_json, &after_json).await?;
         if matches!(&change, Change::Status(_)) {
             run_automations(&mut tx, &i, project, id, "issue_status_changed").await?;
         }

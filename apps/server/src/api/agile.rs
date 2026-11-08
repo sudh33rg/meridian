@@ -300,6 +300,12 @@ pub(crate) async fn set_issue_team(
     if blocked {
         return Err(bad("Remove the issue from its team's sprint before changing its team"));
     }
+    let before_team: Option<Uuid> = sqlx::query_scalar("SELECT team_id FROM issues WHERE tenant_id=$1 AND id=$2")
+        .bind(i.tenant_id)
+        .bind(id)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(db_err)?;
     let row: BacklogItem = sqlx::query_as(&format!(
         "UPDATE issues SET team_id=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3 AND archived_at IS NULL RETURNING {BACKLOG_COLUMNS}"
     ))
@@ -310,6 +316,16 @@ pub(crate) async fn set_issue_team(
     .await
     .map_err(db_err)?
     .ok_or_else(|| err(StatusCode::NOT_FOUND, "Issue not found"))?;
+    crate::api::history::record_change(
+        &mut tx,
+        i.tenant_id,
+        id,
+        i.user_id,
+        "team_id",
+        before_team.map(|t| t.to_string()),
+        v.team_id.map(|t| t.to_string()),
+    )
+    .await?;
     log_event(&mut tx, &i, "updated", "issue", id).await?;
     Ok(Json(row))
 }
@@ -477,6 +493,7 @@ pub(crate) async fn add_issues_to_sprint(
         .fetch_optional(&mut *tx)
         .await
         .map_err(db_err)?;
+        let prev_sprint = row.and_then(|r| r.3);
         let reason = match row {
             None => Some("Issue not found".to_string()),
             Some((project, _, _, _)) if project != sprint.project_id => Some("Issue is in another project".into()),
@@ -514,6 +531,16 @@ pub(crate) async fn add_issues_to_sprint(
                     .await
                     .map_err(db_err)?;
                 log_event(&mut tx, &i, "updated", "issue", issue).await?;
+                crate::api::history::record_change(
+                    &mut tx,
+                    i.tenant_id,
+                    issue,
+                    i.user_id,
+                    "sprint_id",
+                    prev_sprint.map(|s| s.to_string()),
+                    Some(id.to_string()),
+                )
+                .await?;
                 changed += 1;
                 results.push(crate::api::issues::BulkItemResult { id: issue, ok: true, error: None });
             }
@@ -544,6 +571,16 @@ pub(crate) async fn remove_issue_from_sprint(
     .await
     .map_err(db_err)?
     .ok_or_else(|| err(StatusCode::NOT_FOUND, "Issue is not in this sprint"))?;
+    crate::api::history::record_change(
+        &mut tx,
+        i.tenant_id,
+        issue,
+        i.user_id,
+        "sprint_id",
+        Some(id.to_string()),
+        None,
+    )
+    .await?;
     log_event(&mut tx, &i, "updated", "issue", issue).await?;
     Ok(Json(row))
 }

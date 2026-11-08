@@ -402,6 +402,7 @@ pub(crate) async fn import_csv(
         .fetch_one(&mut *tx)
         .await
         .map_err(db_err)?;
+        crate::api::history::record_status(&mut tx, i.tenant_id, id, None, &p.status, i.user_id).await?;
         sqlx::query("INSERT INTO imported_issue_refs(tenant_id,project_id,external_ref,issue_id) VALUES($1,$2,$3,$4)")
             .bind(i.tenant_id)
             .bind(project)
