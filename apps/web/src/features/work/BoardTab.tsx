@@ -4,6 +4,7 @@ import { useWorkspace } from "../workspace/useWorkspace";
 import { Skeleton } from "../shared/Avatar";
 import { KindIcon, PriorityIcon } from "./meta";
 import { WorkflowEditor } from "./WorkflowEditor";
+import { FieldEditor } from "./FieldEditor";
 
 export function BoardTab() {
   const { issues, project, tab, setModal, setSelectedIssue, move, loading, statuses, statusLabel, session, selected } =
@@ -35,7 +36,12 @@ export function BoardTab() {
           <Plus size={15} /> Add issue
         </button>
       </div>
-      {editing && <WorkflowEditor token={session.token} projectId={selected} statuses={statuses} />}
+      {editing && (
+        <>
+          <WorkflowEditor token={session.token} projectId={selected} statuses={statuses} />
+          <FieldEditor token={session.token} projectId={selected} />
+        </>
+      )}
       <div className="columns">
         {statuses.map((status, index) => {
           const list = issues.filter((i) => i.status === status.key);

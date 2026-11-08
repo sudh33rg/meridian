@@ -139,6 +139,11 @@ pub(crate) async fn edit_issue(
     {
         return Err(bad("Custom fields must be a small JSON object"));
     }
+    // A full set of values replaces the stored ones, so it is checked against every definition.
+    let custom_fields = match v.custom_fields.clone() {
+        Some(c) => Some(crate::api::fields::validate_values(&mut tx, i.tenant_id, project, &c).await?),
+        None => None,
+    };
     if v.parent_id == Some(id) {
         return Err(bad("An issue cannot be its own parent"));
     }
@@ -159,7 +164,7 @@ pub(crate) async fn edit_issue(
     // Nullable attributes are intentionally unchanged when omitted. Explicit clearing is a separate operation.
     let row: Option<Value> = sqlx::query_scalar("UPDATE issues SET title=COALESCE($1,title),description=COALESCE($2,description),kind=COALESCE($3,kind),priority=COALESCE($4,priority),status=COALESCE($5,status),assignee_id=COALESCE($6,assignee_id),sprint_id=COALESCE($7,sprint_id),parent_id=COALESCE($8,parent_id),story_points=COALESCE($9,story_points),due_at=COALESCE($10,due_at),labels=COALESCE($11,labels),custom_fields=COALESCE($12,custom_fields),updated_at=now() WHERE tenant_id=$13 AND id=$14 AND archived_at IS NULL AND ($15::timestamptz IS NULL OR updated_at=$15) RETURNING to_jsonb(issues)")
         .bind(v.title).bind(v.description).bind(v.kind).bind(v.priority).bind(v.status.clone()).bind(v.assignee_id)
-        .bind(v.sprint_id).bind(v.parent_id).bind(v.story_points).bind(v.due_at).bind(v.labels).bind(v.custom_fields)
+        .bind(v.sprint_id).bind(v.parent_id).bind(v.story_points).bind(v.due_at).bind(v.labels).bind(custom_fields)
         .bind(i.tenant_id).bind(id).bind(expected).fetch_optional(&mut *tx).await.map_err(db_err)?;
     // Nothing matched: either the If-Match precondition failed or the issue was archived meanwhile.
     // No write has happened yet, so the transaction rolls back cleanly.

@@ -5526,6 +5526,304 @@
         ]
       }
     },
+    "/api/projects/{id}/fields": {
+      "get": {
+        "tags": [
+          "fields"
+        ],
+        "operationId": "list_fields",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The project's custom fields in form order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FieldDefinition"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "fields"
+        ],
+        "operationId": "create_field",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewField"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created at the end of the form",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldDefinition"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Project admins only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The key already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/projects/{id}/fields/{key}": {
+      "delete": {
+        "tags": [
+          "fields"
+        ],
+        "operationId": "delete_field",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "description": "Field key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted; its values are removed from every issue"
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Project admins only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such field",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "fields"
+        ],
+        "operationId": "update_field",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "description": "Field key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FieldPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldDefinition"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Project admins only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such field",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Issues hold values the new options would remove",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/projects/{id}/goals": {
       "get": {
         "tags": [
@@ -9390,6 +9688,70 @@
           }
         }
       },
+      "FieldDefinition": {
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "field_type",
+          "options",
+          "required",
+          "position"
+        ],
+        "properties": {
+          "field_type": {
+            "type": "string",
+            "description": "`text`, `number`, `date`, `boolean` or `select`."
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Allowed values for a `select` field; empty otherwise."
+          },
+          "position": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FieldPatch": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "options": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Replaces the select options. Refused while an issue holds a value they would remove."
+          },
+          "required": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
+        }
+      },
       "ForgotInput": {
         "type": "object",
         "required": [
@@ -9826,12 +10188,54 @@
           }
         }
       },
+      "NewField": {
+        "type": "object",
+        "required": [
+          "label",
+          "field_type"
+        ],
+        "properties": {
+          "field_type": {
+            "type": "string"
+          },
+          "key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional. Derived from the label when absent."
+          },
+          "label": {
+            "type": "string",
+            "description": "1 to 60 characters."
+          },
+          "options": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Required for `select` (1 to 50 values); not allowed otherwise."
+          },
+          "required": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
+        }
+      },
       "NewIssue": {
         "type": "object",
         "required": [
           "title"
         ],
         "properties": {
+          "custom_fields": {
+            "description": "Values for the project's custom fields. Required fields must be present."
+          },
           "description": {
             "type": [
               "string",

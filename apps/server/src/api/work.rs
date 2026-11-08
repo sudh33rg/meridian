@@ -162,6 +162,8 @@ pub(crate) struct NewIssue {
     pub(crate) description: Option<String>,
     pub(crate) kind: Option<String>,
     pub(crate) priority: Option<String>,
+    /// Values for the project's custom fields. Required fields must be present.
+    pub(crate) custom_fields: Option<serde_json::Value>,
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct PatchIssue {
@@ -280,6 +282,14 @@ pub(crate) async fn create_issue(
     .fetch_optional(&mut *tx)
     .await
     .map_err(db_err)?;
+    // Values are checked before the idempotency lookup, so a replay cannot skip validation.
+    let custom = crate::api::fields::validate_values(
+        &mut tx,
+        i.tenant_id,
+        project,
+        &v.custom_fields.clone().unwrap_or_else(|| serde_json::json!({})),
+    )
+    .await?;
     if present.is_none() {
         return Err(err(StatusCode::NOT_FOUND, "Project not found"));
     }
@@ -294,6 +304,7 @@ pub(crate) async fn create_issue(
             "description": v.description.clone().unwrap_or_default(),
             "kind": &kind,
             "priority": &priority,
+            "custom_fields": &custom,
         })
         .to_string(),
     ));
@@ -334,8 +345,8 @@ pub(crate) async fn create_issue(
     .map_err(db_err)?;
     // New issues start in the project's first To do status (the workflow decides which that is).
     let status = crate::api::statuses::default_status(&mut tx, i.tenant_id, project).await?;
-    let row:Issue=sqlx::query_as("INSERT INTO issues(tenant_id,project_id,number,title,description,kind,priority,created_by,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id,project_id,number,title,description,kind,status,priority,created_at,updated_at")
- .bind(i.tenant_id).bind(project).bind(next).bind(v.title.trim()).bind(v.description.unwrap_or_default()).bind(kind).bind(priority).bind(i.user_id).bind(status).fetch_one(&mut *tx).await.map_err(db_err)?;
+    let row:Issue=sqlx::query_as("INSERT INTO issues(tenant_id,project_id,number,title,description,kind,priority,created_by,status,custom_fields) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id,project_id,number,title,description,kind,status,priority,created_at,updated_at")
+ .bind(i.tenant_id).bind(project).bind(next).bind(v.title.trim()).bind(v.description.unwrap_or_default()).bind(kind).bind(priority).bind(i.user_id).bind(status).bind(custom).fetch_one(&mut *tx).await.map_err(db_err)?;
     log_event(&mut tx, &i, "created", "issue", row.id).await?;
     log_outbox(
         &mut tx,

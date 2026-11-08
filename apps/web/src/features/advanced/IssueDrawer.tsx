@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { ApiError, request, requestWithHeaders } from "../../lib/api";
 import type { ProjectStatus } from "../../lib/statuses";
+import { displayValue, toPayload, type FieldDefinition } from "../../lib/fields";
 import type { Item } from "../../lib/types";
 import { str, day } from "./shared";
 
@@ -25,7 +26,8 @@ export function IssueDrawer({
     [title, setTitle] = useState(""),
     [priority, setPriority] = useState("medium"),
     [status, setStatus] = useState("todo"),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [values, setValues] = useState<Record<string, unknown>>({});
   // The ETag of the issue as last loaded; sent back as If-Match so a stale save is refused.
   const etag = useRef<string | null>(null);
   // The issue's project defines which statuses it can take.
@@ -33,6 +35,11 @@ export function IssueDrawer({
   const statusesQ = useQuery({
     queryKey: ["statuses", projectId],
     queryFn: () => request<ProjectStatus[]>(token, `/projects/${projectId}/statuses`),
+    enabled: !!projectId,
+  });
+  const fieldsQ = useQuery({
+    queryKey: ["fields", projectId],
+    queryFn: () => request<FieldDefinition[]>(token, `/projects/${projectId}/fields`),
     enabled: !!projectId,
   });
   const reload = useCallback(async () => {
@@ -47,6 +54,7 @@ export function IssueDrawer({
       setTitle(str(i.title));
       setPriority(str(i.priority));
       setStatus(str(i.status));
+      setValues((i.custom_fields ?? {}) as Record<string, unknown>);
       setComments(c);
     } catch (e) {
       setError((e as Error).message);
@@ -60,7 +68,14 @@ export function IssueDrawer({
       await request(token, `/issues/${id}/edit`, {
         method: "PATCH",
         headers: etag.current ? { "If-Match": etag.current } : {},
-        body: JSON.stringify({ title, priority, status }),
+        // Field values are sent only once the project's definitions have loaded: an empty set would
+        // clear every stored value.
+        body: JSON.stringify({
+          title,
+          priority,
+          status,
+          ...(fieldsQ.isSuccess ? { custom_fields: toPayload(fieldsQ.data ?? [], values) } : {}),
+        }),
       });
       await reload();
       onChanged();
@@ -147,6 +162,49 @@ export function IssueDrawer({
                 </select>
               </label>
             </div>
+            {(fieldsQ.data ?? []).length > 0 && (
+              <div className="drawer-section">
+                <h3>Fields</h3>
+                {(fieldsQ.data ?? []).map((f) => {
+                  const raw = values[f.key];
+                  const disabled = !!issue.archived_at;
+                  return (
+                    <label key={f.key} className={f.field_type === "boolean" ? "check-row" : undefined}>
+                      {f.label}
+                      {f.required ? " *" : ""}
+                      {f.field_type === "boolean" ? (
+                        <input
+                          type="checkbox"
+                          checked={raw === true}
+                          disabled={disabled}
+                          onChange={(e) => setValues({ ...values, [f.key]: e.target.checked })}
+                        />
+                      ) : f.field_type === "select" ? (
+                        <select
+                          value={displayValue(raw)}
+                          disabled={disabled}
+                          onChange={(e) => setValues({ ...values, [f.key]: e.target.value || null })}
+                        >
+                          <option value="">—</option>
+                          {f.options.map((o) => (
+                            <option key={o} value={o}>
+                              {o}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type={f.field_type === "number" ? "number" : f.field_type === "date" ? "date" : "text"}
+                          value={displayValue(raw)}
+                          disabled={disabled}
+                          onChange={(e) => setValues({ ...values, [f.key]: e.target.value })}
+                        />
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+            )}
             <div className="drawer-actions">
               <button className="primary" onClick={save} disabled={!!issue.archived_at}>
                 Save issue

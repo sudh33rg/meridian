@@ -1140,6 +1140,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_fields"];
+        put?: never;
+        post: operations["create_field"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/fields/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_field"];
+        options?: never;
+        head?: never;
+        patch: operations["update_field"];
+        trace?: never;
+    };
     "/api/projects/{id}/goals": {
         parameters: {
             query?: never;
@@ -1775,6 +1807,23 @@ export interface components {
         ExistingInvite: {
             token: string;
         };
+        FieldDefinition: {
+            /** @description `text`, `number`, `date`, `boolean` or `select`. */
+            field_type: string;
+            key: string;
+            label: string;
+            /** @description Allowed values for a `select` field; empty otherwise. */
+            options: string[];
+            /** Format: int32 */
+            position: number;
+            required: boolean;
+        };
+        FieldPatch: {
+            label?: string | null;
+            /** @description Replaces the select options. Refused while an issue holds a value they would remove. */
+            options?: string[] | null;
+            required?: boolean | null;
+        };
         ForgotInput: {
             email: string;
         };
@@ -1898,7 +1947,19 @@ export interface components {
         MemberRoleInput: {
             role: string;
         };
+        NewField: {
+            field_type: string;
+            /** @description Optional. Derived from the label when absent. */
+            key?: string | null;
+            /** @description 1 to 60 characters. */
+            label: string;
+            /** @description Required for `select` (1 to 50 values); not allowed otherwise. */
+            options?: string[] | null;
+            required?: boolean | null;
+        };
         NewIssue: {
+            /** @description Values for the project's custom fields. Required fields must be present. */
+            custom_fields?: unknown;
             description?: string | null;
             kind?: string | null;
             priority?: string | null;
@@ -6464,6 +6525,216 @@ export interface operations {
             };
             /** @description Not found in this workspace */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list_fields: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The project's custom fields in form order */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldDefinition"][];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    create_field: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewField"];
+            };
+        };
+        responses: {
+            /** @description Created at the end of the form */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldDefinition"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Project admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The key already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    delete_field: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Field key */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted; its values are removed from every issue */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Project admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description No such field */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    update_field: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Field key */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FieldPatch"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldDefinition"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Project admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description No such field */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Issues hold values the new options would remove */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -1,4 +1,5 @@
 pub mod access;
+pub mod fields;
 pub mod admin;
 pub mod collab;
 pub mod common;

@@ -89,7 +89,7 @@ pub(crate) async fn default_status(db: &mut PgConnection, tenant: Uuid, project:
     .ok_or_else(|| ApiError::Internal("The project has no To do status".into()))
 }
 
-fn valid_key(key: &str) -> bool {
+pub(crate) fn valid_key(key: &str) -> bool {
     let b = key.as_bytes();
     !b.is_empty()
         && b.len() <= 32
@@ -97,7 +97,7 @@ fn valid_key(key: &str) -> bool {
         && b.iter().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == b'_')
 }
 
-fn slug(name: &str) -> ApiResult<String> {
+pub(crate) fn slug(name: &str) -> ApiResult<String> {
     let mut out = String::new();
     for c in name.trim().to_ascii_lowercase().chars() {
         if c.is_ascii_alphanumeric() {
