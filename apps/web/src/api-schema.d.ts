@@ -708,6 +708,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/issues/{id}/rank": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["rank_issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/issues/{id}/team": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["set_issue_team"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/issues/{id}/unarchive": {
         parameters: {
             query?: never;
@@ -1108,6 +1140,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/backlog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["backlog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}/decisions": {
         parameters: {
             query?: never;
@@ -1412,6 +1460,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/velocity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["velocity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}/views": {
         parameters: {
             query?: never;
@@ -1438,6 +1502,86 @@ export interface paths {
         get: operations["relations"];
         put?: never;
         post: operations["new_relation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/releases/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["release_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["update_release"];
+        trace?: never;
+    };
+    "/api/releases/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["release_history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/releases/{id}/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["release_scope"];
+        put?: never;
+        post: operations["add_release_issues"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/releases/{id}/issues/{issue_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["remove_release_issue"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/releases/{id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["release_notes"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1515,13 +1659,61 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["sprint_detail"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch: operations["update_sprint"];
+        trace?: never;
+    };
+    "/api/sprints/{id}/burndown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["burndown"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sprints/{id}/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["add_issues_to_sprint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sprints/{id}/issues/{issue_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["remove_issue_from_sprint"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/sync/stream": {
@@ -1816,6 +2008,34 @@ export interface components {
             name: string;
             trigger_event: string;
         };
+        /** @description One issue as the backlog, a sprint or a release scope shows it. */
+        BacklogItem: {
+            /** Format: uuid */
+            assignee_id?: string | null;
+            /**
+             * Format: double
+             * @description Position in the project's ranking. Lower ranks come first.
+             */
+            backlog_rank: number;
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            /** Format: int64 */
+            number: number;
+            priority: string;
+            /** Format: uuid */
+            project_id: string;
+            /** Format: uuid */
+            sprint_id?: string | null;
+            status: string;
+            /** Format: int32 */
+            story_points?: number | null;
+            /** Format: uuid */
+            team_id?: string | null;
+            title: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
         /**
          * @description Batch change for issues in one project. Each item is checked and reported; the whole batch
          *     commits or rolls back together.
@@ -1839,6 +2059,17 @@ export interface components {
             results: components["schemas"]["BulkItemResult"][];
             /** Format: int64 */
             updated: number;
+        };
+        Burndown: {
+            /** @description The sprint's totals right now, read live. Not stored until the next capture. */
+            current: components["schemas"]["SprintTotals"];
+            /** @description Stored days, oldest first. Days before the first capture are not shown. */
+            snapshots: components["schemas"]["SprintSnapshot"][];
+            /** Format: uuid */
+            sprint_id: string;
+            state: string;
+            /** @description The UTC day that `current` belongs to. */
+            today: string;
         };
         ChangePasswordInput: {
             current_password: string;
@@ -1979,6 +2210,11 @@ export interface components {
             archived_at?: string | null;
             /** Format: uuid */
             assignee_id?: string | null;
+            /**
+             * Format: double
+             * @description Position in the project's ranking; lower comes first.
+             */
+            backlog_rank: number;
             /** Format: date-time */
             created_at: string;
             /** Format: uuid */
@@ -2003,6 +2239,8 @@ export interface components {
             status: string;
             /** Format: int32 */
             story_points?: number | null;
+            /** Format: uuid */
+            team_id?: string | null;
             /** Format: uuid */
             tenant_id: string;
             title: string;
@@ -2036,6 +2274,14 @@ export interface components {
             /** Format: uuid */
             target_id: string;
         };
+        /** @description Team ownership of one issue. */
+        IssueTeamInput: {
+            /**
+             * Format: uuid
+             * @description The owning team, or `null` to make the issue unassigned to any team.
+             */
+            team_id?: string | null;
+        };
         JoinTeamInput: {
             /** Format: uuid */
             user_id: string;
@@ -2053,6 +2299,12 @@ export interface components {
         MemberRoleInput: {
             role: string;
         };
+        /** @description Result of a membership change. Each id is reported; a refused one carries the reason. */
+        MembershipResult: {
+            /** Format: int64 */
+            changed: number;
+            results: components["schemas"]["BulkItemResult"][];
+        };
         NewField: {
             field_type: string;
             /** @description Optional. Derived from the label when absent. */
@@ -2069,6 +2321,11 @@ export interface components {
             description?: string | null;
             kind?: string | null;
             priority?: string | null;
+            /**
+             * Format: uuid
+             * @description Owning team. Must exist in this workspace.
+             */
+            team_id?: string | null;
             title: string;
         };
         NewPage: {
@@ -2205,6 +2462,16 @@ export interface components {
              */
             position: number;
         };
+        /** @description Where to put an item in the ranking. */
+        RankInput: {
+            /**
+             * Format: uuid
+             * @description The item to place this one next to. Required for `before` and `after`; must be in the same project.
+             */
+            anchor_id?: string | null;
+            /** @description `top`, `bottom`, `before` or `after`. */
+            placement: string;
+        };
         RefreshInput: {
             /** @description API clients send the refresh token here; browsers rely on the HttpOnly cookie. */
             refresh_token?: string | null;
@@ -2218,9 +2485,114 @@ export interface components {
             target_id: string;
             target_type: string;
         };
+        /** @description A release as stored. */
+        Release: {
+            /** Format: date-time */
+            created_at: string;
+            description: string;
+            /**
+             * Format: date-time
+             * @description When scope was frozen. Later additions and removals are flagged.
+             */
+            frozen_at?: string | null;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: uuid */
+            project_id: string;
+            /** Format: date-time */
+            released_at?: string | null;
+            /** @description `planned`, `released` or `cancelled`. */
+            status: string;
+            /** Format: date-time */
+            target_at?: string | null;
+            /** Format: uuid */
+            tenant_id: string;
+        };
+        ReleaseDetail: {
+            release: components["schemas"]["Release"];
+            totals: components["schemas"]["ReleaseTotals"];
+        };
         ReleaseInput: {
             description?: string | null;
             name: string;
+            /** Format: date-time */
+            target_at?: string | null;
+        };
+        ReleaseIssuesInput: {
+            issue_ids: string[];
+        };
+        ReleaseNotes: {
+            generated_at: string;
+            /** @description Markdown: done bugs, other done work, and scope that did not ship. */
+            markdown: string;
+            name: string;
+            /** Format: uuid */
+            release_id: string;
+            status: string;
+        };
+        /** @description One issue in a release's active scope. */
+        ReleaseScopeItem: {
+            added_after_freeze: boolean;
+            /** Format: date-time */
+            added_at: string;
+            /** Format: uuid */
+            assignee_id?: string | null;
+            /** Format: double */
+            backlog_rank: number;
+            done: boolean;
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            /** Format: int64 */
+            number: number;
+            priority: string;
+            /** Format: uuid */
+            project_id: string;
+            /** Format: uuid */
+            sprint_id?: string | null;
+            status: string;
+            /** Format: int32 */
+            story_points?: number | null;
+            /** Format: uuid */
+            team_id?: string | null;
+            title: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        /** @description Progress of a release's active scope. */
+        ReleaseTotals: {
+            /**
+             * Format: int64
+             * @description Issues that joined the scope after the freeze, still in scope.
+             */
+            added_after_freeze: number;
+            /** Format: int32 */
+            done_count: number;
+            /** Format: int32 */
+            done_points: number;
+            /**
+             * Format: int64
+             * @description Issues that were ever removed from the scope.
+             */
+            removed_count: number;
+            /** Format: int32 */
+            scope_count: number;
+            /** Format: int32 */
+            scope_points: number;
+        };
+        ReleaseUpdate: {
+            description?: string | null;
+            /** @description `true` freezes the scope (only while planned). Once frozen it stays frozen. */
+            freeze?: boolean | null;
+            /**
+             * @description Only with `status: released`. `backlog` (the default) removes unfinished work from the scope;
+             *     a release id moves it to another planned release in the same project.
+             */
+            move_unfinished_to?: string | null;
+            name?: string | null;
+            /** @description `released` ships the release; `cancelled` drops it. Only a planned release can change status. */
+            status?: string | null;
             /** Format: date-time */
             target_at?: string | null;
         };
@@ -2260,6 +2632,22 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        /** @description One entry in a release's scope history. */
+        ScopeEvent: {
+            /** @description `added` or `removed`. */
+            action: string;
+            /** @description Whether the change happened after the scope freeze. */
+            after_freeze: boolean;
+            /** Format: date-time */
+            at: string;
+            /** Format: uuid */
+            by: string;
+            /** Format: uuid */
+            issue_id: string;
+            /** Format: int64 */
+            number: number;
+            title: string;
+        };
         /** @description One search result: an issue or a page, with a short preview. */
         SearchHit: {
             /** Format: uuid */
@@ -2282,6 +2670,48 @@ export interface components {
             password: string;
             slug: string;
         };
+        /** @description A sprint as stored, including its opening and closing record. */
+        Sprint: {
+            /** Format: int32 */
+            carried_over_count?: number | null;
+            /** Format: date-time */
+            closed_at?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            ends_at?: string | null;
+            /** Format: int32 */
+            final_done_count?: number | null;
+            /** Format: int32 */
+            final_done_points?: number | null;
+            /** Format: int32 */
+            final_scope_count?: number | null;
+            /** Format: int32 */
+            final_scope_points?: number | null;
+            goal: string;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: uuid */
+            project_id: string;
+            /** Format: int32 */
+            started_scope_count?: number | null;
+            /** Format: int32 */
+            started_scope_points?: number | null;
+            /** Format: date-time */
+            starts_at?: string | null;
+            state: string;
+            /** Format: uuid */
+            team_id?: string | null;
+            /** Format: uuid */
+            tenant_id: string;
+        };
+        SprintDetail: {
+            /** @description Active issues in the sprint, in rank order. */
+            issues: components["schemas"]["BacklogItem"][];
+            sprint: components["schemas"]["Sprint"];
+            totals: components["schemas"]["SprintTotals"];
+        };
         SprintInput: {
             /** Format: date-time */
             ends_at?: string | null;
@@ -2289,9 +2719,55 @@ export interface components {
             name: string;
             /** Format: date-time */
             starts_at?: string | null;
+            /**
+             * Format: uuid
+             * @description Owning team. Omit for a project-level sprint that any team's unassigned work can join.
+             */
+            team_id?: string | null;
         };
+        /** @description Issue ids to add to or remove from a sprint. At most 100 distinct ids. */
+        SprintIssuesInput: {
+            issue_ids: string[];
+        };
+        /** @description One day of a sprint's burndown. */
+        SprintSnapshot: {
+            /** @description Calendar day in UTC, `YYYY-MM-DD`. */
+            day: string;
+            /** Format: int32 */
+            done_count: number;
+            /** Format: int32 */
+            done_points: number;
+            /** Format: int32 */
+            scope_count: number;
+            /** Format: int32 */
+            scope_points: number;
+        };
+        /** @description Totals of a sprint's active issues. Done means the issue's status is in the `done` category. */
+        SprintTotals: {
+            /** Format: int32 */
+            done_count: number;
+            /** Format: int32 */
+            done_points: number;
+            /** Format: int32 */
+            scope_count: number;
+            /** Format: int32 */
+            scope_points: number;
+        };
+        /** @description Fields a sprint can change. Only the fields that are present are changed. */
         SprintUpdate: {
-            state: string;
+            /**
+             * @description Only with `state: completed`. `backlog` (the default) or the id of a planned or active sprint
+             *     with the same team, where unfinished issues go.
+             */
+            carry_over_to?: string | null;
+            /** Format: date-time */
+            ends_at?: string | null;
+            goal?: string | null;
+            name?: string | null;
+            /** Format: date-time */
+            starts_at?: string | null;
+            /** @description `active` starts a planned sprint; `completed` closes an active one. */
+            state?: string | null;
         };
         SsoInput: {
             client_id: string;
@@ -2332,6 +2808,41 @@ export interface components {
             /** @description A custom field that must hold a value after the change, or null. */
             requires_field?: string | null;
             to: string;
+        };
+        Velocity: {
+            /**
+             * Format: double
+             * @description Mean completed points over the sprints listed. 0 when none are closed yet.
+             */
+            average_done_points: number;
+            /**
+             * Format: double
+             * @description Mean committed points at start over the sprints listed.
+             */
+            average_started_points: number;
+            sprints: components["schemas"]["VelocitySprint"][];
+            /** Format: uuid */
+            team_id?: string | null;
+            /** Format: int64 */
+            window: number;
+        };
+        /** @description Points and counts for velocity, per completed sprint. */
+        VelocitySprint: {
+            /** Format: int32 */
+            carried_over_count?: number | null;
+            /** Format: date-time */
+            closed_at?: string | null;
+            /** Format: int32 */
+            final_done_points?: number | null;
+            /** Format: int32 */
+            final_scope_points?: number | null;
+            name: string;
+            /** Format: uuid */
+            sprint_id: string;
+            /** Format: int32 */
+            started_scope_points?: number | null;
+            /** Format: uuid */
+            team_id?: string | null;
         };
         VerifyChallengeInput: {
             challenge: string;
@@ -4679,6 +5190,132 @@ export interface operations {
             };
         };
     };
+    rank_issue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RankInput"];
+            };
+        };
+        responses: {
+            /** @description Ranked. Returns the item */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BacklogItem"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    set_issue_team: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueTeamInput"];
+            };
+        };
+        responses: {
+            /** @description Team set. Returns the item */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BacklogItem"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     unarchive_issue: {
         parameters: {
             query?: never;
@@ -6444,6 +7081,77 @@ export interface operations {
                 };
                 content: {
                     "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    backlog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Only issues owned by this team. Omit to see every team and unassigned work. */
+                team_id: string | null;
+                /** @description Only issues assigned to this user. */
+                assignee_id: string | null;
+                /** @description Case-insensitive title search, up to 200 characters. */
+                q: string | null;
+                /** @description Include issues whose status is in the `done` category (default `false`). */
+                include_done: boolean | null;
+                /** @description Page size, 1 to 500 (default 200). */
+                limit: number | null;
+                /** @description Offset returned in `X-Next-Cursor` by the previous page. */
+                cursor: string | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ranked backlog. X-Next-Cursor is present when another page exists */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BacklogItem"][];
                 };
             };
             /** @description Validation or domain error */
@@ -8315,6 +9023,69 @@ export interface operations {
             };
         };
     };
+    velocity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Only sprints of this team. Omit for every sprint in the project. */
+                team_id: string | null;
+                /** @description How many of the most recent completed sprints to average (1 to 20, default 5). */
+                sprints: number | null;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Velocity"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     list_views: {
         parameters: {
             query?: never;
@@ -8538,6 +9309,456 @@ export interface operations {
             };
         };
     };
+    release_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseDetail"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    update_release: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReleaseUpdate"];
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Release"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The release is not in a state that allows this change */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    release_history: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Additions and removals, oldest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScopeEvent"][];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    release_scope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Active scope in rank order */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseScopeItem"][];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    add_release_issues: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReleaseIssuesInput"];
+            };
+        };
+        responses: {
+            /** @description Applied; per-item results name any refused issue */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MembershipResult"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The release is shipped or cancelled */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    remove_release_issue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Issue id */
+                issue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed from scope; the removal is recorded in the history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MembershipResult"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The release is shipped or cancelled */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    release_notes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseNotes"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     search: {
         parameters: {
             query?: never;
@@ -8694,6 +9915,65 @@ export interface operations {
             };
         };
     };
+    sprint_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SprintDetail"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     update_sprint: {
         parameters: {
             query?: never;
@@ -8716,7 +9996,199 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["Sprint"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid transition, or another sprint is already active */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    burndown: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Burndown"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    add_issues_to_sprint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SprintIssuesInput"];
+            };
+        };
+        responses: {
+            /** @description Applied; per-item results name any refused issue */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MembershipResult"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    remove_issue_from_sprint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Issue id */
+                issue_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed from the sprint. Returns the item, now in the backlog */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BacklogItem"];
                 };
             };
             /** @description Validation or domain error */

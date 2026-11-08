@@ -164,6 +164,8 @@ pub(crate) struct NewIssue {
     pub(crate) priority: Option<String>,
     /// Values for the project's custom fields. Required fields must be present.
     pub(crate) custom_fields: Option<serde_json::Value>,
+    /// Owning team. Must exist in this workspace.
+    pub(crate) team_id: Option<Uuid>,
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct PatchIssue {
@@ -293,6 +295,18 @@ pub(crate) async fn create_issue(
     if present.is_none() {
         return Err(err(StatusCode::NOT_FOUND, "Project not found"));
     }
+    let team = v.team_id;
+    if let Some(t) = team {
+        let ok: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM teams WHERE tenant_id=$1 AND id=$2)")
+            .bind(i.tenant_id)
+            .bind(t)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
+        if !ok {
+            return Err(bad("Team not found in this workspace"));
+        }
+    }
     // The project row lock above serializes creates in this project. A retry that waited for an
     // earlier request with the same key therefore sees that request's stored response below.
     let idem = idempotency_key(&headers)?;
@@ -305,6 +319,7 @@ pub(crate) async fn create_issue(
             "kind": &kind,
             "priority": &priority,
             "custom_fields": &custom,
+            "team_id": team,
         })
         .to_string(),
     ));
@@ -345,8 +360,8 @@ pub(crate) async fn create_issue(
     .map_err(db_err)?;
     // New issues start in the project's first To do status (the workflow decides which that is).
     let status = crate::api::statuses::default_status(&mut tx, i.tenant_id, project).await?;
-    let row:Issue=sqlx::query_as("INSERT INTO issues(tenant_id,project_id,number,title,description,kind,priority,created_by,status,custom_fields) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id,project_id,number,title,description,kind,status,priority,created_at,updated_at")
- .bind(i.tenant_id).bind(project).bind(next).bind(v.title.trim()).bind(v.description.unwrap_or_default()).bind(kind).bind(priority).bind(i.user_id).bind(status).bind(custom).fetch_one(&mut *tx).await.map_err(db_err)?;
+    let row:Issue=sqlx::query_as("INSERT INTO issues(tenant_id,project_id,number,title,description,kind,priority,created_by,status,custom_fields,team_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id,project_id,number,title,description,kind,status,priority,created_at,updated_at")
+ .bind(i.tenant_id).bind(project).bind(next).bind(v.title.trim()).bind(v.description.unwrap_or_default()).bind(kind).bind(priority).bind(i.user_id).bind(status).bind(custom).bind(team).fetch_one(&mut *tx).await.map_err(db_err)?;
     log_event(&mut tx, &i, "created", "issue", row.id).await?;
     log_outbox(
         &mut tx,

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useTeams } from "../agile/agile-shared";
 import { EntityRelations } from "./EntityRelations";
 import { Attachments } from "../shared/Attachments";
 import { X } from "lucide-react";
@@ -42,6 +43,7 @@ export function IssueDrawer({
     queryFn: () => request<FieldDefinition[]>(token, `/projects/${projectId}/fields`),
     enabled: !!projectId,
   });
+  const teamsQ = useTeams(token);
   const reload = useCallback(async () => {
     try {
       const [details, c] = await Promise.all([
@@ -158,6 +160,32 @@ export function IssueDrawer({
                 <select value={priority} onChange={(e) => setPriority(e.target.value)}>
                   {["low", "medium", "high", "urgent"].map((x) => (
                     <option key={x}>{x}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Team
+                <select
+                  value={str(issue.team_id)}
+                  disabled={!!issue.archived_at}
+                  onChange={async (e) => {
+                    try {
+                      await request(token, `/issues/${id}/team`, {
+                        method: "PUT",
+                        body: JSON.stringify({ team_id: e.target.value || null }),
+                      });
+                      await reload();
+                      onChanged();
+                    } catch (err) {
+                      setError((err as Error).message);
+                    }
+                  }}
+                >
+                  <option value="">No team (product backlog)</option>
+                  {(teamsQ.data ?? []).map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
                   ))}
                 </select>
               </label>

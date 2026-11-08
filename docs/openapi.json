@@ -2909,6 +2909,180 @@
         ]
       }
     },
+    "/api/issues/{id}/rank": {
+      "post": {
+        "tags": [
+          "agile"
+        ],
+        "operationId": "rank_issue",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RankInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Ranked. Returns the item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BacklogItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/issues/{id}/team": {
+      "put": {
+        "tags": [
+          "agile"
+        ],
+        "operationId": "set_issue_team",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueTeamInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Team set. Returns the item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BacklogItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/issues/{id}/unarchive": {
       "post": {
         "tags": [
@@ -5232,6 +5406,161 @@
               "application/json": {
                 "schema": {
                   "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/projects/{id}/backlog": {
+      "get": {
+        "tags": [
+          "agile"
+        ],
+        "operationId": "backlog",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "team_id",
+            "in": "path",
+            "description": "Only issues owned by this team. Omit to see every team and unassigned work.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "assignee_id",
+            "in": "path",
+            "description": "Only issues assigned to this user.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "q",
+            "in": "path",
+            "description": "Case-insensitive title search, up to 200 characters.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "include_done",
+            "in": "path",
+            "description": "Include issues whose status is in the `done` category (default `false`).",
+            "required": true,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "path",
+            "description": "Page size, 1 to 500 (default 200).",
+            "required": true,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "path",
+            "description": "Offset returned in `X-Next-Cursor` by the previous page.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ranked backlog. X-Next-Cursor is present when another page exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BacklogItem"
+                  }
                 }
               }
             }
@@ -7908,6 +8237,109 @@
         ]
       }
     },
+    "/api/projects/{id}/velocity": {
+      "get": {
+        "tags": [
+          "agile"
+        ],
+        "operationId": "velocity",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "team_id",
+            "in": "path",
+            "description": "Only sprints of this team. Omit for every sprint in the project.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sprints",
+            "in": "path",
+            "description": "How many of the most recent completed sprints to average (1 to 20, default 5).",
+            "required": true,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Velocity"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/projects/{id}/views": {
       "get": {
         "tags": [
@@ -8213,6 +8645,607 @@
         ]
       }
     },
+    "/api/releases/{id}": {
+      "get": {
+        "tags": [
+          "releases"
+        ],
+        "operationId": "release_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "releases"
+        ],
+        "operationId": "update_release",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Release"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The release is not in a state that allows this change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/releases/{id}/history": {
+      "get": {
+        "tags": [
+          "releases"
+        ],
+        "operationId": "release_history",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Additions and removals, oldest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScopeEvent"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/releases/{id}/issues": {
+      "get": {
+        "tags": [
+          "releases"
+        ],
+        "operationId": "release_scope",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active scope in rank order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReleaseScopeItem"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "releases"
+        ],
+        "operationId": "add_release_issues",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseIssuesInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Applied; per-item results name any refused issue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembershipResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The release is shipped or cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/releases/{id}/issues/{issue_id}": {
+      "delete": {
+        "tags": [
+          "releases"
+        ],
+        "operationId": "remove_release_issue",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "issue_id",
+            "in": "path",
+            "description": "Issue id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Removed from scope; the removal is recorded in the history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembershipResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The release is shipped or cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/releases/{id}/notes": {
+      "get": {
+        "tags": [
+          "releases"
+        ],
+        "operationId": "release_notes",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseNotes"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/search": {
       "get": {
         "tags": [
@@ -8427,9 +9460,84 @@
       }
     },
     "/api/sprints/{id}": {
+      "get": {
+        "tags": [
+          "agile"
+        ],
+        "operationId": "sprint_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SprintDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
       "patch": {
         "tags": [
-          "planning"
+          "agile"
         ],
         "operationId": "update_sprint",
         "parameters": [
@@ -8460,7 +9568,268 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/Sprint"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Invalid transition, or another sprint is already active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/sprints/{id}/burndown": {
+      "get": {
+        "tags": [
+          "agile"
+        ],
+        "operationId": "burndown",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Burndown"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/sprints/{id}/issues": {
+      "post": {
+        "tags": [
+          "agile"
+        ],
+        "operationId": "add_issues_to_sprint",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SprintIssuesInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Applied; per-item results name any refused issue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembershipResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/sprints/{id}/issues/{issue_id}": {
+      "delete": {
+        "tags": [
+          "agile"
+        ],
+        "operationId": "remove_issue_from_sprint",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "issue_id",
+            "in": "path",
+            "description": "Issue id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Removed from the sprint. Returns the item, now in the backlog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BacklogItem"
                 }
               }
             }
@@ -9915,6 +11284,84 @@
           }
         }
       },
+      "BacklogItem": {
+        "type": "object",
+        "description": "One issue as the backlog, a sprint or a release scope shows it.",
+        "required": [
+          "id",
+          "project_id",
+          "number",
+          "title",
+          "kind",
+          "status",
+          "priority",
+          "backlog_rank",
+          "updated_at"
+        ],
+        "properties": {
+          "assignee_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "backlog_rank": {
+            "type": "number",
+            "format": "double",
+            "description": "Position in the project's ranking. Lower ranks come first."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sprint_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          },
+          "story_points": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "team_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "BulkIssueInput": {
         "type": "object",
         "description": "Batch change for issues in one project. Each item is checked and reported; the whole batch\ncommits or rolls back together.",
@@ -9983,6 +11430,40 @@
           "updated": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "Burndown": {
+        "type": "object",
+        "required": [
+          "sprint_id",
+          "state",
+          "snapshots",
+          "current",
+          "today"
+        ],
+        "properties": {
+          "current": {
+            "$ref": "#/components/schemas/SprintTotals",
+            "description": "The sprint's totals right now, read live. Not stored until the next capture."
+          },
+          "snapshots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SprintSnapshot"
+            },
+            "description": "Stored days, oldest first. Days before the first capture are not shown."
+          },
+          "sprint_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string"
+          },
+          "today": {
+            "type": "string",
+            "description": "The UTC day that `current` belongs to."
           }
         }
       },
@@ -10479,7 +11960,8 @@
           "created_at",
           "updated_at",
           "labels",
-          "custom_fields"
+          "custom_fields",
+          "backlog_rank"
         ],
         "properties": {
           "archived_at": {
@@ -10495,6 +11977,11 @@
               "null"
             ],
             "format": "uuid"
+          },
+          "backlog_rank": {
+            "type": "number",
+            "format": "double",
+            "description": "Position in the project's ranking; lower comes first."
           },
           "created_at": {
             "type": "string",
@@ -10562,6 +12049,13 @@
               "null"
             ],
             "format": "int32"
+          },
+          "team_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
           },
           "tenant_id": {
             "type": "string",
@@ -10678,6 +12172,20 @@
           }
         }
       },
+      "IssueTeamInput": {
+        "type": "object",
+        "description": "Team ownership of one issue.",
+        "properties": {
+          "team_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The owning team, or `null` to make the issue unassigned to any team."
+          }
+        }
+      },
       "JoinTeamInput": {
         "type": "object",
         "required": [
@@ -10733,6 +12241,26 @@
         "properties": {
           "role": {
             "type": "string"
+          }
+        }
+      },
+      "MembershipResult": {
+        "type": "object",
+        "description": "Result of a membership change. Each id is reported; a refused one carries the reason.",
+        "required": [
+          "changed",
+          "results"
+        ],
+        "properties": {
+          "changed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkItemResult"
+            }
           }
         }
       },
@@ -10801,6 +12329,14 @@
               "string",
               "null"
             ]
+          },
+          "team_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Owning team. Must exist in this workspace."
           },
           "title": {
             "type": "string"
@@ -11218,6 +12754,27 @@
           }
         }
       },
+      "RankInput": {
+        "type": "object",
+        "description": "Where to put an item in the ranking.",
+        "required": [
+          "placement"
+        ],
+        "properties": {
+          "anchor_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The item to place this one next to. Required for `before` and `after`; must be in the same project."
+          },
+          "placement": {
+            "type": "string",
+            "description": "`top`, `bottom`, `before` or `after`."
+          }
+        }
+      },
       "RefreshInput": {
         "type": "object",
         "properties": {
@@ -11259,6 +12816,84 @@
           }
         }
       },
+      "Release": {
+        "type": "object",
+        "description": "A release as stored.",
+        "required": [
+          "id",
+          "tenant_id",
+          "project_id",
+          "name",
+          "description",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "description": {
+            "type": "string"
+          },
+          "frozen_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When scope was frozen. Later additions and removals are flagged."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "released_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "description": "`planned`, `released` or `cancelled`."
+          },
+          "target_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ReleaseDetail": {
+        "type": "object",
+        "required": [
+          "release",
+          "totals"
+        ],
+        "properties": {
+          "release": {
+            "$ref": "#/components/schemas/Release"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/ReleaseTotals"
+          }
+        }
+      },
       "ReleaseInput": {
         "type": "object",
         "required": [
@@ -11273,6 +12908,225 @@
           },
           "name": {
             "type": "string"
+          },
+          "target_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ReleaseIssuesInput": {
+        "type": "object",
+        "required": [
+          "issue_ids"
+        ],
+        "properties": {
+          "issue_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "ReleaseNotes": {
+        "type": "object",
+        "required": [
+          "release_id",
+          "name",
+          "status",
+          "generated_at",
+          "markdown"
+        ],
+        "properties": {
+          "generated_at": {
+            "type": "string"
+          },
+          "markdown": {
+            "type": "string",
+            "description": "Markdown: done bugs, other done work, and scope that did not ship."
+          },
+          "name": {
+            "type": "string"
+          },
+          "release_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "ReleaseScopeItem": {
+        "type": "object",
+        "description": "One issue in a release's active scope.",
+        "required": [
+          "id",
+          "project_id",
+          "number",
+          "title",
+          "kind",
+          "status",
+          "priority",
+          "backlog_rank",
+          "updated_at",
+          "added_at",
+          "added_after_freeze",
+          "done"
+        ],
+        "properties": {
+          "added_after_freeze": {
+            "type": "boolean"
+          },
+          "added_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "assignee_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "backlog_rank": {
+            "type": "number",
+            "format": "double"
+          },
+          "done": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sprint_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          },
+          "story_points": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "team_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ReleaseTotals": {
+        "type": "object",
+        "description": "Progress of a release's active scope.",
+        "required": [
+          "scope_count",
+          "done_count",
+          "scope_points",
+          "done_points",
+          "added_after_freeze",
+          "removed_count"
+        ],
+        "properties": {
+          "added_after_freeze": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Issues that joined the scope after the freeze, still in scope."
+          },
+          "done_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "done_points": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "removed_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Issues that were ever removed from the scope."
+          },
+          "scope_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scope_points": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ReleaseUpdate": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "freeze": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "`true` freezes the scope (only while planned). Once frozen it stays frozen."
+          },
+          "move_unfinished_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Only with `status: released`. `backlog` (the default) removes unfinished work from the scope;\na release id moves it to another planned release in the same project."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`released` ships the release; `cancelled` drops it. Only a planned release can change status."
           },
           "target_at": {
             "type": [
@@ -11397,6 +13251,48 @@
           }
         }
       },
+      "ScopeEvent": {
+        "type": "object",
+        "description": "One entry in a release's scope history.",
+        "required": [
+          "issue_id",
+          "number",
+          "title",
+          "action",
+          "at",
+          "by",
+          "after_freeze"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "`added` or `removed`."
+          },
+          "after_freeze": {
+            "type": "boolean",
+            "description": "Whether the change happened after the scope freeze."
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "by": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "issue_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
       "SearchHit": {
         "type": "object",
         "description": "One search result: an issue or a page, with a short preview.",
@@ -11467,6 +13363,146 @@
           }
         }
       },
+      "Sprint": {
+        "type": "object",
+        "description": "A sprint as stored, including its opening and closing record.",
+        "required": [
+          "id",
+          "tenant_id",
+          "project_id",
+          "name",
+          "goal",
+          "state",
+          "created_at"
+        ],
+        "properties": {
+          "carried_over_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "closed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ends_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "final_done_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "final_done_points": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "final_scope_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "final_scope_points": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "goal": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "started_scope_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "started_scope_points": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "starts_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "state": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "SprintDetail": {
+        "type": "object",
+        "required": [
+          "sprint",
+          "totals",
+          "issues"
+        ],
+        "properties": {
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BacklogItem"
+            },
+            "description": "Active issues in the sprint, in rank order."
+          },
+          "sprint": {
+            "$ref": "#/components/schemas/Sprint"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/SprintTotals"
+          }
+        }
+      },
       "SprintInput": {
         "type": "object",
         "required": [
@@ -11495,17 +13531,137 @@
               "null"
             ],
             "format": "date-time"
+          },
+          "team_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Owning team. Omit for a project-level sprint that any team's unassigned work can join."
+          }
+        }
+      },
+      "SprintIssuesInput": {
+        "type": "object",
+        "description": "Issue ids to add to or remove from a sprint. At most 100 distinct ids.",
+        "required": [
+          "issue_ids"
+        ],
+        "properties": {
+          "issue_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "SprintSnapshot": {
+        "type": "object",
+        "description": "One day of a sprint's burndown.",
+        "required": [
+          "day",
+          "scope_count",
+          "done_count",
+          "scope_points",
+          "done_points"
+        ],
+        "properties": {
+          "day": {
+            "type": "string",
+            "description": "Calendar day in UTC, `YYYY-MM-DD`."
+          },
+          "done_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "done_points": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scope_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scope_points": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SprintTotals": {
+        "type": "object",
+        "description": "Totals of a sprint's active issues. Done means the issue's status is in the `done` category.",
+        "required": [
+          "scope_count",
+          "done_count",
+          "scope_points",
+          "done_points"
+        ],
+        "properties": {
+          "done_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "done_points": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scope_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scope_points": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
       "SprintUpdate": {
         "type": "object",
-        "required": [
-          "state"
-        ],
+        "description": "Fields a sprint can change. Only the fields that are present are changed.",
         "properties": {
+          "carry_over_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Only with `state: completed`. `backlog` (the default) or the id of a planned or active sprint\nwith the same team, where unfinished issues go."
+          },
+          "ends_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "goal": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "starts_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
           "state": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`active` starts a planned sprint; `completed` closes an active one."
           }
         }
       },
@@ -11643,6 +13799,103 @@
           },
           "to": {
             "type": "string"
+          }
+        }
+      },
+      "Velocity": {
+        "type": "object",
+        "required": [
+          "window",
+          "average_done_points",
+          "average_started_points",
+          "sprints"
+        ],
+        "properties": {
+          "average_done_points": {
+            "type": "number",
+            "format": "double",
+            "description": "Mean completed points over the sprints listed. 0 when none are closed yet."
+          },
+          "average_started_points": {
+            "type": "number",
+            "format": "double",
+            "description": "Mean committed points at start over the sprints listed."
+          },
+          "sprints": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VelocitySprint"
+            }
+          },
+          "team_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "window": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "VelocitySprint": {
+        "type": "object",
+        "description": "Points and counts for velocity, per completed sprint.",
+        "required": [
+          "sprint_id",
+          "name"
+        ],
+        "properties": {
+          "carried_over_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "closed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "final_done_points": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "final_scope_points": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sprint_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "started_scope_points": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "team_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
           }
         }
       },

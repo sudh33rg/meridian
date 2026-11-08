@@ -17,6 +17,7 @@ import "./tokens.css";
 import "./style.css";
 import "./advanced.css";
 import "./ui.css";
+import "./agile.css";
 import { ThemeProvider } from "./lib/theme";
 import { ToastProvider } from "./features/shared/Toast";
 

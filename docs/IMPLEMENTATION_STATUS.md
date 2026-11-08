@@ -50,3 +50,19 @@ This document explicitly distinguishes source code that exists from planned pari
 5. Passkeys (WebAuthn), Android builds, and an external security review.
 6. Finish complete Agile/Confluence feature families, migration tools, real-time search and optional governed AI.
 7. Run multi-device E2E, destructive failure testing, DR restore, load soak and accessibility audit before any enterprise GA declaration.
+
+## Phase E — backlogs, team scope, sprint execution, release scope (8 November 2026)
+
+Source of the requirement: `PARITY_GAP_REGISTER.md` sections 1 and 2. Built as migration `0019_backlogs_and_release_scope.sql` plus `apps/server/src/api/agile.rs`, `apps/server/src/api/releases.rs`, and the web planning views in `apps/web/src/features/agile/`.
+
+| Step | What exists in source | Still open or not verified |
+|---|---|---|
+| E1 product backlog | Fractional project-wide rank on every issue (trigger on every insert path, backfill for existing rows). `GET /projects/{id}/backlog` (rank order, team, assignee, search, paged with `X-Next-Cursor`). `POST /issues/{id}/rank` with top, bottom, before or after an anchor; one renumbering pass when float precision runs out. | Ranks are not rebalanced in the background. Board and list views do not yet sort by rank. |
+| E2 team backlogs | `issues.team_id` and `sprints.team_id`, with composite foreign keys. `PUT /issues/{id}/team` (refused while the issue sits in another team's sprint). Team picker in create and in the issue drawer. One active sprint per team and per project scope (partial unique index). | Team-level permissions and team capacity are in phase H. |
+| E3 sprint execution | `POST /sprints/{id}/issues` and `DELETE /sprints/{id}/issues/{issue}` report a reason for each refused item. `GET /sprints/{id}` returns the sprint, totals and issues. `PATCH /sprints/{id}` edits name, goal and dates, starts a sprint (recording committed scope) and completes it with `carry_over_to` (backlog or another open sprint for the same team). Completed sprints refuse membership changes. | Sprint capacity is not modelled. |
+| E4 release scope | `release_issues` holds membership with add and remove times, so history is kept. Scope freeze (`freeze`, one-way); additions and removals after the freeze are flagged. `PATCH /releases/{id}` releases (moving unfinished work to the backlog or another planned release) or cancels. `GET /releases/{id}` totals; `GET /releases/{id}/issues`; `GET /releases/{id}/history`; `GET /releases/{id}/notes` (markdown: bugs fixed, changes, not shipped). | Releases are not yet linked to versions on issues or to deployments. |
+| E5 burndown and velocity | `sprint_daily_snapshots`, written at start, at close and by the hourly maintenance loop (`capture_active_sprints`). `GET /sprints/{id}/burndown` returns stored days plus a live point for today. `GET /projects/{id}/velocity` averages completed points of the last N closed sprints for a team or the project. | Snapshots begin when this build runs; earlier days are not reconstructed. Scope-creep figures use the committed scope recorded at start. |
+| E6 web | Backlog tab (team filter, search, drag to rank, Alt+↑/↓ to rank, “To sprint” menu, open sprint cards that accept drops). Sprints tab (create, start, close with carry-over, remove issues, burndown, velocity). Releases tab (create, scope, freeze, release, cancel, history, notes with copy). | Browser checks not yet run. Drag and drop has no touch fallback beyond the menu. |
+| E7 contract | `make openapi` (157 operations), `make manifest`, `npm run build` (type-check and Vite build) and eslint on the changed files: all pass. | The API has not been run against PostgreSQL in this phase; migration 0019 and the new queries are checked at the visual-verification step. |
+
+No automated tests were added or changed (Constitution Article V.2). Verification is recorded at the end of the parity plan (see `REMAINING_PLAN.md`).

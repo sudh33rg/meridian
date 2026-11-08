@@ -21,6 +21,8 @@ pub(crate) struct SprintInput {
     pub(crate) goal: Option<String>,
     pub(crate) starts_at: Option<DateTime<Utc>>,
     pub(crate) ends_at: Option<DateTime<Utc>>,
+    /// Owning team. Omit for a project-level sprint that any team's unassigned work can join.
+    pub(crate) team_id: Option<Uuid>,
 }
 #[utoipa::path(get, path = "/api/projects/{id}/sprints", tag = "planning", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn sprints(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json<Vec<Value>>> {
@@ -47,36 +49,27 @@ pub(crate) async fn new_sprint(
     {
         return Err(bad("Sprint end must follow start"));
     }
-    let rec:Value=sqlx::query_scalar("INSERT INTO sprints(tenant_id,project_id,name,goal,starts_at,ends_at) VALUES($1,$2,$3,$4,$5,$6) RETURNING to_jsonb(sprints)")
-        .bind(i.tenant_id).bind(p).bind(v.name.trim()).bind(v.goal.unwrap_or_default()).bind(v.starts_at).bind(v.ends_at).fetch_one(&mut *tx).await.map_err(db_err)?;
-    Ok((StatusCode::CREATED, Json(rec)))
-}
-#[derive(Deserialize, utoipa::ToSchema)]
-pub(crate) struct SprintUpdate {
-    pub(crate) state: String,
-}
-#[utoipa::path(patch, path = "/api/sprints/{id}", tag = "planning", params(("id" = Uuid, Path, description = "Resource id")), request_body = SprintUpdate, responses((status = 200, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn update_sprint(
-    mut tx: Tx,
-    Path(id): Path<Uuid>,
-    Json(v): Json<SprintUpdate>,
-) -> ApiResult<Json<Value>> {
-    let i = tx.identity.clone();
-    ensure_entity_access(&mut tx, "sprints", id).await?;
-    require_editor(&i)?;
-    if !["active", "completed"].contains(&v.state.as_str()) {
-        return Err(bad("Only active or completed transitions are supported"));
+    if let Some(team) = v.team_id {
+        let ok: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM teams WHERE tenant_id=$1 AND id=$2)")
+            .bind(i.tenant_id)
+            .bind(team)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
+        if !ok {
+            return Err(bad("Team not found in this workspace"));
+        }
     }
-    let changed:Option<Value>=sqlx::query_scalar("UPDATE sprints SET state=$1 WHERE tenant_id=$2 AND id=$3 AND ((state='planned' AND $1='active') OR (state='active' AND $1='completed')) RETURNING to_jsonb(sprints)")
-        .bind(v.state).bind(i.tenant_id).bind(id).fetch_optional(&mut *tx).await.map_err(|e|{
-            if let sqlx::Error::Database(ref d)=e {if d.code().as_deref()==Some("23505"){return err(StatusCode::CONFLICT,"Another sprint is active");}} db_err(e)
+    let rec:Value=sqlx::query_scalar("INSERT INTO sprints(tenant_id,project_id,name,goal,starts_at,ends_at,team_id) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING to_jsonb(sprints)")
+        .bind(i.tenant_id).bind(p).bind(v.name.trim()).bind(v.goal.unwrap_or_default()).bind(v.starts_at).bind(v.ends_at).bind(v.team_id).fetch_one(&mut *tx).await.map_err(|e| {
+            if let sqlx::Error::Database(ref d) = e {
+                if d.code().as_deref() == Some("23505") {
+                    return err(StatusCode::CONFLICT, "A sprint for this team is already active in this project");
+                }
+            }
+            db_err(e)
         })?;
-    Ok(Json(changed.ok_or_else(|| {
-        err(
-            StatusCode::CONFLICT,
-            "Sprint not found or invalid transition",
-        )
-    })?))
+    Ok((StatusCode::CREATED, Json(rec)))
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct ReleaseInput {
@@ -222,7 +215,6 @@ pub(crate) fn routes() -> Router<App> {
     Router::new()
         .route("/api/projects/{id}/overview", get(project_overview))
         .route("/api/projects/{id}/sprints", get(sprints).post(new_sprint))
-        .route("/api/sprints/{id}", patch(update_sprint))
         .route(
             "/api/projects/{id}/releases",
             get(releases).post(new_release),

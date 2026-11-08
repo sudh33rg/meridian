@@ -3,7 +3,7 @@
 //! `docs/openapi.json` is the checked-in copy the web client types are generated from; CI checks it is current.
 use crate::api::{
     access::*, admin::*, collab::*, issues::*, knowledge::*, org::*, personal::*, planning::*,
-    csv_import::*, fields::*, security::*, transitions::*, statuses::*, work::*,
+    csv_import::*, fields::*, security::*, transitions::*, statuses::*, work::*, agile::*, releases::*,
 };
 use crate::*;
 use utoipa::{
@@ -140,7 +140,22 @@ impl Modify for BearerAuth {
         api::planning::releases,
         api::planning::risks,
         api::planning::sprints,
-        api::planning::update_sprint,
+        api::agile::update_sprint,
+        api::agile::backlog,
+        api::agile::rank_issue,
+        api::agile::set_issue_team,
+        api::agile::sprint_detail,
+        api::agile::add_issues_to_sprint,
+        api::agile::remove_issue_from_sprint,
+        api::agile::burndown,
+        api::agile::velocity,
+        api::releases::release_detail,
+        api::releases::update_release,
+        api::releases::release_scope,
+        api::releases::add_release_issues,
+        api::releases::remove_release_issue,
+        api::releases::release_history,
+        api::releases::release_notes,
         api::planning::workload,
         api::work::create_issue,
         api::work::create_page,
@@ -174,7 +189,7 @@ impl Modify for BearerAuth {
         auth::logout,
         auth::signup
     ),
-    components(schemas(ErrorBody, BulkIssueInput, BulkItemResult, BulkResult, ProjectStatus, NewStatus, StatusPatch, FieldDefinition, NewField, FieldPatch, TransitionRule, NewTransition, IssueComment, IssueLink, SearchHit, CsvImportReport, CsvRowReport, IssueDetail, Notification, Approval,SavedView, NewSavedView, NotificationPreference, NotificationPreferenceInput, api::knowledge::TitleInput, crate::sso::SsoInput, crate::sso::DomainInput, crate::scim::TokenInput, crate::billing::PlanInput, crate::webhooks::WebhookInput, crate::webhooks::WebhookPatch, api::access::PageAccess, api::access::RestrictionInput, api::access::PageGrantInput, crate::mfa::CodeInput, crate::mfa::DisableInput, crate::mfa::VerifyChallengeInput, crate::mfa::SecurityPolicyInput, ChangePasswordInput, RefreshInput, ForgotInput, ResetInput, VerifyInput, GrantInput, VisibilityInput, AcceptInvitation, ApprovalDecision, ApprovalInput, AuthResponse, AutomationInput, CommentInput, DecisionInput, ExistingInvite, GoalInput, ImportInput, ImportItem, InviteInput, Issue, IssueEdit, JoinTeamInput, LinkInput, Login, MemberRoleInput, NewIssue, NewPage, NewProject, Page, PatchIssue, PatchPage, Project, RelationInput, ReleaseInput, RestoreInput, RiskInput, Signup, SprintInput, SprintUpdate, SwitchTenant, TeamInput, WorkspaceInput)),
+    components(schemas(ErrorBody, BulkIssueInput, BulkItemResult, BulkResult, ProjectStatus, NewStatus, StatusPatch, FieldDefinition, NewField, FieldPatch, TransitionRule, NewTransition, IssueComment, IssueLink, SearchHit, CsvImportReport, CsvRowReport, IssueDetail, Notification, Approval,SavedView, NewSavedView, NotificationPreference, NotificationPreferenceInput, api::knowledge::TitleInput, crate::sso::SsoInput, crate::sso::DomainInput, crate::scim::TokenInput, crate::billing::PlanInput, crate::webhooks::WebhookInput, crate::webhooks::WebhookPatch, api::access::PageAccess, api::access::RestrictionInput, api::access::PageGrantInput, crate::mfa::CodeInput, crate::mfa::DisableInput, crate::mfa::VerifyChallengeInput, crate::mfa::SecurityPolicyInput, ChangePasswordInput, RefreshInput, ForgotInput, ResetInput, VerifyInput, GrantInput, VisibilityInput, AcceptInvitation, ApprovalDecision, ApprovalInput, AuthResponse, AutomationInput, CommentInput, DecisionInput, ExistingInvite, GoalInput, ImportInput, ImportItem, InviteInput, Issue, IssueEdit, JoinTeamInput, LinkInput, Login, MemberRoleInput, NewIssue, NewPage, NewProject, Page, PatchIssue, PatchPage, Project, RelationInput, ReleaseInput, RestoreInput, RiskInput, Signup, SprintInput, SwitchTenant, TeamInput, WorkspaceInput, BacklogItem, RankInput, IssueTeamInput, SprintTotals, Sprint, SprintDetail, SprintIssuesInput, MembershipResult, VelocitySprint, Velocity, SprintSnapshot, Burndown, SprintUpdate, Release, ReleaseTotals, ReleaseDetail, ReleaseScopeItem, ScopeEvent, ReleaseNotes, ReleaseIssuesInput, ReleaseUpdate)),
     modifiers(&BearerAuth)
 )]
 pub struct ApiDoc;

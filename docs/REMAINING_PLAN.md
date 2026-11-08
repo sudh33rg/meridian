@@ -49,3 +49,73 @@ API checks on the final build: `verify_api` 33/33, `verify_phase_b` 41/41, `veri
 One Phase B check changed. "Unknown filter key → 400" used `kind` as the unknown key. D8 made `kind` a valid saved-view filter, so the check now uses `bogus`. The behaviour is correct; the check was out of date.
 
 Not verified: a browser re-check of D1, D3 and D8 on the final build; behaviour on a physical device or in the simulator beyond the sign-in screen; offline and draft-resend paths on a device; a screen-reader pass; a full keyboard walk; non-admin edge cases beyond D9.
+
+---
+
+## Follow-on plan: parity phases E to P (dated 8 November 2026)
+
+Source: `PARITY_GAP_REGISTER.md`. The owner asked for every feature a Jira-class product needs, in phases, without pausing between them. Each phase is committed to `main` when its own build checks pass. Visual verification runs once, after all planned phases are built (Constitution V.4). Anything that needs an owner decision is marked as such and is not guessed. No automated tests are added (Constitution V.2).
+
+| Phase | Step | Goal | Done when |
+|---|---|---|---|
+| **E** | E1 | **Ranked product backlog.** Every issue has a fractional rank per project. The backlog lists unsprinted, unarchived, not-done work in rank order. Items move to top, bottom, before or after another item. New issues take the bottom rank. | `GET /projects/{id}/backlog` returns rank order with a typed row; `POST /issues/{id}/rank` moves an item and refuses cross-project anchors; a trigger assigns ranks on every insert path; rank changes do not change `updated_at`. |
+| E | E2 | **Team backlogs and team sprints.** Issues and sprints can belong to a team. A team has its own active sprint, and the project allows one active sprint per team (and one for unassigned work). | Migration adds `issues.team_id` and `sprints.team_id`; `PUT /issues/{id}/team` sets the team and refuses a change that would strand the issue in another team's sprint; the backlog filters by team; sprint creation takes a team. |
+| E | E3 | **Sprint execution.** Bulk add and remove issues to and from a sprint. Sprint detail shows its issues and goal. Completing a sprint carries unfinished work to the backlog or to a named sprint, and records a closing summary. | `POST /sprints/{id}/issues`, `DELETE /sprints/{id}/issues/{issue}`, `GET /sprints/{id}`; `PATCH /sprints/{id}` accepts `carry_over_to`; completed sprints refuse further membership changes; activation records the committed scope. |
+| E | E4 | **Release scope.** A release has scope (issues), a scope freeze, a history of additions and removals, a release action that moves unfinished work, and generated release notes. | Migration adds `release_issues` and release freeze and release dates; `GET/POST/DELETE /releases/{id}/issues`, `GET /releases/{id}`, `GET /releases/{id}/history`, `GET /releases/{id}/notes`; `PATCH /releases/{id}` takes `status` and `freeze`; additions after freeze are flagged. |
+| E | E5 | **Burndown, burnup, velocity and scope creep.** A snapshot of each active sprint is stored every hour and at start and close. Velocity uses the closing summaries of the last completed sprints for a team. | `sprint_daily_snapshots` table written by the maintenance loop; `GET /sprints/{id}/burndown` returns stored days plus a live point for today; `GET /projects/{id}/velocity?team_id=&sprints=` returns the rolling average and per-sprint committed and completed points. |
+| E | E6 | **Web: backlog, sprint planning, release scope.** A Backlog tab with a team filter and drag-to-rank; a sprint panel with burndown and carryover on close; a release panel with scope, freeze, release action and notes. Team picker in the create dialog and the drawer. | Backlog reorders by drag and by keyboard; sprint and release panels load the new endpoints; the web builds with `tsc -b` and `vite build`. |
+| E | E7 | **Contract and docs.** OpenAPI regenerated, manifest regenerated, status ledger and gap register updated. | `make openapi` and `make manifest` run; `IMPLEMENTATION_STATUS.md` names E1 to E7 with their evidence. |
+| **F** | F1 | **Components.** Project components with an optional default assignee, filters and roll-ups. | Components CRUD; issues carry components; default assignee applies on create. |
+| F | F2 | **Epic and subtask depth.** Epic progress from child issues; child issue views; subtask creation from the drawer. | Epic summary endpoint returns child counts and points; drawer lists children. |
+| F | F3 | **Issue type schemes.** Configurable issue types per project (name, icon, hierarchy level, default workflow), with field contexts per type. | Migration replaces the fixed `kind` check with a per-project type table; existing issues migrate to the default types; create and edit validate against it. |
+| F | F4 | **Estimates, worklogs, watchers, votes.** Original estimate, remaining estimate, time logged; watchers receive notifications; votes counted. | Worklog CRUD; estimate fields on issues; watcher and vote endpoints; time reports read the worklog table. |
+| F | F5 | **Issue content.** Rich text description and comments (markdown subset), comment edit and delete with history, checklists, mentions that notify, dependency view, reminders. | Description stored as markdown with a server-side sanitiser; checklist items CRUD; mention notifications create inbox rows; reminders run from the maintenance loop. |
+| F | F6 | **Issue lifecycle.** Clone, move between projects with field mapping, trash with a recovery window, duplicate suggestions when creating. | Clone and move endpoints; trash table with restore; duplicate suggestion query on title trigram-free search. |
+| F | F7 | **Transition validators and post-functions, screens.** Validators (fields required, permission), post-functions (set field, notify, create subtask), and per-transition screens. | Post-functions run inside the transition transaction; screens list fields shown per action. |
+| F | F8 | **Query language and filters.** Functions (`currentUser()`, `openSprints()`), OR and grouping, ORDER BY; shared saved filters; favourites and recent items. | Parser extended with tests-free fixtures checked by the verification scripts; filters have an owner and a share scope. |
+| F | F9 | **Boards.** Swimlanes by assignee, epic or query; WIP limits per column; quick filters; sprint board filter. | Board API returns swimlanes; WIP limit blocks a move with a reason; quick filters persist as saved views. |
+| **G** | G1 | **Status history.** Every status change (any write path) appends a row with from, to, actor and time, in the same transaction. | `issue_status_history` table written by one helper used by PATCH, edit, bulk, board, import and transitions; backfill records the creation status. |
+| G | G2 | **Flow reports.** Cumulative flow, cycle and lead time, throughput, control chart, created versus resolved, time reports. | Report endpoints compute from status history and worklogs with explicit date ranges. |
+| G | G3 | **Change history.** Field-level changelog per issue with actor and time. | `issue_changes` rows written from the edit path and the bulk path; shown in the drawer. |
+| G | G4 | **Dashboards.** Dashboards with widgets (filter results, pie and bar charts, sprint and flow gadgets); shareable. | Dashboard and widget tables with validated widget config; read endpoints scoped by project access. |
+| G | G5 | **CSV export.** Issues and sprints exported as CSV with formula-injection protection. | Export endpoint streams bounded CSV; cells beginning with `=`, `+`, `-`, `@` are quoted. |
+| **H** | H1 | **Timeline and milestones.** Roadmap view of epics, releases and milestones by date. | Milestone table; timeline endpoint returns items with dates and parent links. |
+| H | H2 | **Initiatives and portfolio.** Initiative level above epics; cross-project portfolio. | Initiative table linked to epics via relations; portfolio endpoint covers projects the caller can see. |
+| H | H3 | **Goals and updates.** Goal progress rolled up from linked work; project updates with health; RAID linked to initiatives. | Progress computed from linked issues; update records with health enumeration. |
+| H | H4 | **Capacity.** Capacity per person per week, allocation across projects, overload warnings. | Capacity table and allocation endpoints; workload reads them. |
+| H | H5 | **Dependencies and critical path.** Dependency lines from issue links; critical path over dated items. | Critical path endpoint over blocks links with a cycle check. |
+| H | H6 | **Baselines.** Save a baseline of dates; compare current to baseline. | Baseline snapshots table; comparison endpoint. |
+| **I** | I1 | **Automation engine.** Rules with triggers, conditions, branches, actions and schedules, with a run log and a dry-run. | Rule schema validated; runs logged; scheduled rules run from the maintenance loop; the two fixed rules become presets. |
+| I | I2 | **Email and digests.** Outbound email through the job queue, with preferences, unsubscribe and digest schedule. Waits on the Constitution III.7 gates; the gates already exist for webhooks and are reused. | Email jobs send through the queue; digests run on a schedule; unsubscribe link signed. |
+| I | I3 | **Chat notifications.** Slack and Teams incoming webhooks through the safe HTTP client. | Per-project channel config; signed or secret-bearing URLs stored sealed. |
+| I | I4 | **Git linking.** Issue keys in branch names, commits and pull requests create links. | Inbound webhook with signature check maps keys to issues; links shown in the drawer. |
+| I | I5 | **Personal API tokens and OAuth apps.** Scoped tokens stored hashed, shown once; OAuth client registration with consent. | Token table with scopes; OAuth authorize and token endpoints. |
+| I | I6 | **Importers.** Jira JSON or Cloud API with changelog, sprints and versions; Confluence space export; Linear, GitHub and Trello. | Each importer runs as a resumable job with a dry run and a count reconciliation. |
+| I | I7 | **Marketplace.** Owner decision required (see below). | Not started. |
+| **J** | J1 | **Permission schemes and groups.** Per-project schemes mapping actions to roles and groups; custom roles; user groups. | Scheme tables; checks read the scheme; the existing four roles map to default schemes. |
+| J | J2 | **Issue security and field security.** Security levels on issues; restricted fields. | Level tables; search and list filters apply levels before results. |
+| J | J3 | **Audit log.** Search, filter and export of audit events. | Filtered and paged audit endpoint; CSV export; UI tab. |
+| J | J4 | **Retention.** Configurable retention for audit and attachments, with deletion jobs. | Retention settings; job deletes expired rows in batches. |
+| J | J5 | **Workspace settings.** Time zone, working days, language, default sprint length, branding. | Settings table and endpoints; dates render in the workspace time zone. |
+| **K** | K1 | **Project types and templates.** Scrum, Kanban, bug tracking and service project templates seed statuses, types, fields and boards. | Template catalogue; project creation takes a template. |
+| K | K2 | **Service management.** Request types with forms, queues, assignment rules, SLAs with timers, incident and change flows. | Request type and queue tables; SLA timers computed from status history. |
+| K | K3 | **Knowledge parity.** Page tree UI, page templates, blog posts, space home. | Templates table; tree UI. |
+| K | K4 | **Macros and embeds.** Embedded issue lists, charts and tables in pages. | Macro blocks rendered from stored definitions. |
+| K | K5 | **Localisation.** Message catalogues and locale-aware dates and numbers. | Strings extracted; a second locale ships as a proof. |
+| **L** | L1 | **Mobile parity.** Backlog, sprint and release views; Android build; a device run. | `dart analyze` clean; Android and iOS builds attempted and recorded. |
+| L | L2 | **Offline sync.** Conflict review and background sync for issues and comments. | Sync protocol documented; conflicts shown to the user. |
+| L | L3 | **Push.** Push notifications through the job queue. Waits on the owner's choice of push provider. | Not started until the provider is chosen. |
+| **M** | M1 | **AI assistance.** Summaries, triage, drafting. Blocked on the owner's data-policy and provider decisions (Constitution V.5). | Not started. |
+| **N** | N1 | **Owner-run gates.** First CI run on GitHub, SSO and Stripe exercised against real providers, shared rate limits, tracing export, external security review. | Recorded in `IMPLEMENTATION_STATUS.md` as owner actions. |
+| **P** | P1 | **Accessibility.** Screen-reader pass, full keyboard walk, WCAG 2.2 AA checks across the new phases. | Findings and remaining gaps recorded. |
+
+### Owner decisions needed (not guessed)
+
+1. **Marketplace (I7):** whether Meridian should host third-party apps at all.
+2. **AI (M1):** data policy and model provider.
+3. **Push provider (L3):** which provider and which data may leave the workspace.
+4. **Email sender domain (I2):** which domain sends mail for workspaces.
+
+### Results
+
+Recorded per phase as each one lands. Phase E results are in `IMPLEMENTATION_STATUS.md`.

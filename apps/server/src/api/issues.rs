@@ -41,7 +41,7 @@ pub(crate) async fn issue_details(
     ensure_entity_access(&mut tx, "issues", id).await?;
     let row: IssueDetail = sqlx::query_as(
         "SELECT id,tenant_id,project_id,number,title,description,kind,status,priority,assignee_id,created_by,\
-         created_at,updated_at,parent_id,due_at,story_points,labels,custom_fields,archived_at,sprint_id \
+         created_at,updated_at,parent_id,due_at,story_points,labels,custom_fields,archived_at,sprint_id,team_id,backlog_rank \
          FROM issues WHERE tenant_id=$1 AND id=$2",
     )
     .bind(i.tenant_id)
@@ -79,6 +79,9 @@ pub(crate) struct IssueDetail {
     pub(crate) custom_fields: Value,
     pub(crate) archived_at: Option<DateTime<Utc>>,
     pub(crate) sprint_id: Option<Uuid>,
+    pub(crate) team_id: Option<Uuid>,
+    /// Position in the project's ranking; lower comes first.
+    pub(crate) backlog_rank: f64,
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct IssueEdit {

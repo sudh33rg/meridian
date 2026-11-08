@@ -1,9 +1,11 @@
 import React from "react";
 import { Plus, X } from "lucide-react";
 import { useWorkspace } from "../workspace/useWorkspace";
+import { useTeams } from "../agile/agile-shared";
 
 export function CreateModal() {
-  const { error, busy, modal, setModal, draft, setDraft, create } = useWorkspace();
+  const { error, busy, modal, setModal, draft, setDraft, create, session } = useWorkspace();
+  const teams = useTeams(session.token, modal === "issue");
   return (
     <>
       {modal && (
@@ -104,6 +106,17 @@ export function CreateModal() {
                       >
                         {["low", "medium", "high", "urgent"].map((x) => (
                           <option key={x}>{x}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Team
+                      <select value={draft.teamId} onChange={(e) => setDraft({ ...draft, teamId: e.target.value })}>
+                        <option value="">No team (product backlog)</option>
+                        {(teams.data ?? []).map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name}
+                          </option>
                         ))}
                       </select>
                     </label>

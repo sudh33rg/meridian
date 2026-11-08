@@ -210,6 +210,12 @@ pub(crate) fn spawn_maintenance(db: PgPool) {
     tokio::spawn(async move {
         loop {
             prune_idempotency_keys(&db).await;
+            // Burndown: one row per active sprint per day (Phase E5).
+            match crate::api::agile::capture_active_sprints(&db).await {
+                Ok(n) if n > 0 => tracing::debug!(sprints = n, "captured sprint burndown"),
+                Ok(_) => {}
+                Err(e) => tracing::error!(error=%e, "sprint burndown capture failed"),
+            }
             tokio::time::sleep(Duration::from_secs(3600)).await;
         }
     });

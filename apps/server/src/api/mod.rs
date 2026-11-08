@@ -1,4 +1,5 @@
 pub mod access;
+pub mod agile;
 pub mod fields;
 pub mod admin;
 pub mod collab;
@@ -9,6 +10,7 @@ pub mod knowledge;
 pub mod org;
 pub mod personal;
 pub mod planning;
+pub mod releases;
 pub mod query;
 pub mod statuses;
 pub mod transitions;

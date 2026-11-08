@@ -15,6 +15,9 @@ import { OverviewTab } from "./OverviewTab";
 import { BoardTab } from "./BoardTab";
 import { IssuesTab } from "./IssuesTab";
 import { KnowledgeTab } from "./KnowledgeTab";
+import { BacklogTab } from "../agile/BacklogTab";
+import { SprintsPanel } from "../agile/SprintsPanel";
+import { ReleasesPanel } from "../agile/ReleasesPanel";
 
 export function Content() {
   const {
@@ -39,6 +42,7 @@ export function Content() {
   const needsProject = [
     "overview",
     "board",
+    "backlog",
     "issues",
     "knowledge",
     "sprints",
@@ -121,6 +125,9 @@ export function Content() {
         <>
           <OverviewTab />
           <BoardTab />
+          <BacklogTab />
+          <SprintsPanel />
+          <ReleasesPanel />
           <IssuesTab />
           <KnowledgeTab />
         </>
@@ -134,6 +141,9 @@ export function Content() {
       {![
         "overview",
         "board",
+        "backlog",
+        "sprints",
+        "releases",
         "issues",
         "knowledge",
         "security",

@@ -16,7 +16,7 @@ import type { Issue, Page, Project, Session } from "../../lib/types";
 import type { ExtraTab } from "../advanced/AdvancedWorkspace";
 import { useToast } from "../shared/Toast";
 
-export type Tab = "overview" | "board" | "issues" | "knowledge" | "appearance" | ExtraTab;
+export type Tab = "overview" | "board" | "backlog" | "issues" | "knowledge" | "appearance" | ExtraTab;
 export type Modal = "project" | "issue" | "page" | null;
 
 const emptyDraft = {
@@ -28,6 +28,7 @@ const emptyDraft = {
   content: "",
   kind: "task",
   priority: "medium",
+  teamId: "",
 };
 
 function useWorkspaceState(session: Session, setSession: (s: Session | null) => void) {
@@ -206,6 +207,7 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
           description: draft.description,
           kind: draft.kind,
           priority: draft.priority,
+          team_id: draft.teamId || null,
         }),
       });
     },

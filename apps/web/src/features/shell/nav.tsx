@@ -10,6 +10,7 @@ import {
   KeyRound,
   LayoutDashboard,
   ListTodo,
+  ListOrdered,
   Palette,
   Plug,
   Rocket,
@@ -59,6 +60,13 @@ export const NAV: NavItem[] = [
     group: "work",
     key: "b",
     keywords: "kanban",
+  },
+  {
+    id: "backlog",
+    label: "Backlog",
+    icon: <ListOrdered size={s} />,
+    group: "work",
+    keywords: "product backlog team ranking plan",
   },
   {
     id: "issues",
