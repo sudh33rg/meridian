@@ -148,3 +148,7 @@ Migration `0025_workspace_settings.sql`; `apps/server/src/api/settings.rs`; proj
 | K5 localisation | Not built (English only). | Message catalogues and locale-aware dates and numbers. |
 
 Checks: `cargo check`, `make openapi`, `make manifest`, `npm run build` pass. No tests added.
+
+## Verification status for Phases E to K (8 November 2026)
+
+Migrations `0001` to `0025` apply in order to an in-process PostgreSQL-compatible database. The API has not been run against a database for these phases and no new endpoint has been exercised. The web app builds and the changed files lint clean; no page has been viewed in a browser. Phases L, M, N and P are not started, and phases I2, I3, I6, I7, J2, J4, K2 to K5 are open (see the phase sections above and `REMAINING_PLAN.md`). Visual verification waits until the planned work is complete, as the working rules require.

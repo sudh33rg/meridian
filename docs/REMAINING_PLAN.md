@@ -119,3 +119,10 @@ Source: `PARITY_GAP_REGISTER.md`. The owner asked for every feature a Jira-class
 ### Results
 
 Recorded per phase as each one lands. Phase E results are in `IMPLEMENTATION_STATUS.md`.
+
+### Verification status after the E to K build (8 November 2026)
+
+- **Migrations:** `0001` to `0025` apply in order to an in-process PostgreSQL-compatible database (PGlite with pgcrypto), with the sqlx bookkeeping table stubbed. This shows the SQL in the migrations is valid in order. It does not show the production database behaves the same.
+- **API:** not run against a database in this build. Starting a local database listener for the API was refused by the environment's automation policy, so no request was made to any new endpoint. Every new endpoint compiles and is in the OpenAPI document (222 operations), but none has been exercised.
+- **Browser:** not run. The web app builds (`tsc -b`, Vite, eslint on changed files), but no page has been looked at.
+- **Owner action to finish verification:** start Docker Desktop, run `make up`, then `make dev-api` and `make dev-web`. Sign up a workspace, create a project and check the Backlog, Sprints, Releases, Reports, Roadmap and Integrations tabs, then the issue drawer.
