@@ -137,6 +137,7 @@ pub(crate) fn build_router_with(
         .merge(api::chat::routes())
         .merge(api::ai::routes())
         .merge(api::roles::routes())
+        .merge(api::jira_extras::routes())
         .merge(api::collab::routes())
         .merge(api::admin::routes())
         .merge(api::security::routes())

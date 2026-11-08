@@ -2275,6 +2275,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/import/jira/extras": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["import_extras"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}/issue-types": {
         parameters: {
             query?: never;
@@ -4394,6 +4410,19 @@ export interface components {
         IssueTypePatch: {
             icon?: string | null;
             name?: string | null;
+        };
+        JiraExtrasReport: {
+            dry_run: boolean;
+            issues_found: number;
+            issues_in_releases: number;
+            issues_in_sprints: number;
+            /** @description Issues in the file that are not imported yet (no matching key). They are skipped. */
+            issues_not_found: number;
+            releases_to_create: number;
+            sprints_to_create: number;
+            /** @description Status changes whose status name matches no status of the project. They are skipped. */
+            status_changes_skipped: number;
+            status_changes_to_add: number;
         };
         JoinTeamInput: {
             /** Format: uuid */
@@ -15269,6 +15298,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CsvImportReport"];
+                };
+            };
+            /** @description The file cannot be read */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Workspace admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    import_extras: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Default true: report only. Send false to write. */
+                dry_run: boolean | null;
+            };
+            cookie?: never;
+        };
+        /** @description The same Jira issues JSON as the issue import */
+        requestBody: {
+            content: {
+                "application/json": string;
+            };
+        };
+        responses: {
+            /** @description Report. Dry run unless dry_run=false */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JiraExtrasReport"];
                 };
             };
             /** @description The file cannot be read */

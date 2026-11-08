@@ -26,6 +26,7 @@ pub mod digest;
 pub mod chat;
 pub mod ai;
 pub mod roles;
+pub mod jira_extras;
 pub mod security;
 pub mod settings;
 pub mod statuses;

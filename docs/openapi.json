@@ -13110,6 +13110,106 @@
         ]
       }
     },
+    "/api/projects/{id}/import/jira/extras": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "import_extras",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "dry_run",
+            "in": "path",
+            "description": "Default true: report only. Send false to write.",
+            "required": true,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The same Jira issues JSON as the issue import",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Report. Dry run unless dry_run=false",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JiraExtrasReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The file cannot be read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admins only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/projects/{id}/issue-types": {
       "get": {
         "tags": [
@@ -24021,6 +24121,59 @@
               "string",
               "null"
             ]
+          }
+        }
+      },
+      "JiraExtrasReport": {
+        "type": "object",
+        "required": [
+          "dry_run",
+          "issues_found",
+          "issues_not_found",
+          "sprints_to_create",
+          "issues_in_sprints",
+          "releases_to_create",
+          "issues_in_releases",
+          "status_changes_to_add",
+          "status_changes_skipped"
+        ],
+        "properties": {
+          "dry_run": {
+            "type": "boolean"
+          },
+          "issues_found": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "issues_in_releases": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "issues_in_sprints": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "issues_not_found": {
+            "type": "integer",
+            "description": "Issues in the file that are not imported yet (no matching key). They are skipped.",
+            "minimum": 0
+          },
+          "releases_to_create": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sprints_to_create": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "status_changes_skipped": {
+            "type": "integer",
+            "description": "Status changes whose status name matches no status of the project. They are skipped.",
+            "minimum": 0
+          },
+          "status_changes_to_add": {
+            "type": "integer",
+            "minimum": 0
           }
         }
       },
