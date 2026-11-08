@@ -21,6 +21,7 @@ import { request } from "../../lib/api";
 import type { Item, Session, ProjectRef } from "../../lib/types";
 import { str, count, day, Empty, Analytics } from "./shared";
 import { NotificationPreferences } from "./NotificationPreferences";
+import { AutomationBuilder } from "./AutomationBuilder";
 import { AuditPanel } from "./AuditPanel";
 
 export type ExtraTab =
@@ -308,6 +309,9 @@ export function AdvancedWorkspace({
       } as Record<string, string>
     )[tab];
   const rows = Array.isArray(data) ? data : [];
+  if (tab === "automation" && project) {
+    return <AutomationBuilder project={project} session={session} onError={onError} />;
+  }
   return (
     <section className="extended">
       <div className="ext-title">

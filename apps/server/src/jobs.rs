@@ -270,6 +270,25 @@ pub(crate) fn spawn_maintenance(db: PgPool, email_on: bool) {
                 Ok(_) => {}
                 Err(e) => tracing::error!(error=%e, "trash purge failed"),
             }
+            // Scheduled automation rules that are due run on their issues (Phase I1).
+            match crate::api::collab::run_due_scheduled_rules(&db).await {
+                Ok(n) if n > 0 => tracing::info!(runs = n, "ran scheduled automation rules"),
+                Ok(_) => {}
+                Err(e) => tracing::error!(error=%e, "scheduled automation failed"),
+            }
+            // Saved views with a subscriber who is due get a notification (Phase I2).
+            match crate::api::personal::run_due_view_subscriptions(&db).await {
+                Ok(n) if n > 0 => tracing::info!(notifications = n, "sent saved-view subscriptions"),
+                Ok(_) => {}
+                Err(e) => tracing::error!(error=%e, "saved-view subscriptions failed"),
+            }
+            // Shared rate-limit counters older than an hour are not needed (Phase N).
+            if let Err(e) = sqlx::query("DELETE FROM rate_limit_windows WHERE window_start < now() - interval '1 hour'")
+                .execute(&db)
+                .await
+            {
+                tracing::error!(error=%e, "rate limit cleanup failed");
+            }
             tokio::time::sleep(Duration::from_secs(3600)).await;
         }
     });

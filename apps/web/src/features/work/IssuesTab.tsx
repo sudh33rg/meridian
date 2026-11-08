@@ -11,6 +11,7 @@ import { errorMessage, request, send } from "../../lib/api";
 import { loadIssues, type BulkResult, type SavedView } from "../../lib/issues";
 import type { Issue, IssueRef } from "../../lib/types";
 import { ImportPanel } from "./ImportPanel";
+import { type Release, type Sprint, isOpenSprint, useTeams } from "../agile/agile-shared";
 
 type Sort = "updated" | "priority" | "number";
 type Group = "none" | "status" | "priority";
@@ -77,6 +78,25 @@ export function IssuesTab() {
     enabled: !!selected,
   });
 
+  const bulkOpen = picked.size > 0 && !showArchived;
+  const bulkTeams = useTeams(token, bulkOpen);
+  const bulkSprints = useQuery({
+    queryKey: ["sprints", selected],
+    queryFn: () => request<Sprint[]>(token, `/projects/${selected}/sprints`),
+    enabled: bulkOpen,
+  });
+  const bulkReleases = useQuery({
+    queryKey: ["releases", selected],
+    queryFn: () => request<Release[]>(token, `/projects/${selected}/releases`),
+    enabled: bulkOpen,
+  });
+  const bulkMembers = useQuery({
+    queryKey: ["members"],
+    queryFn: () => request<{ id: string; name: string }[]>(token, "/members"),
+    enabled: bulkOpen,
+  });
+  const [bulkLabel, setBulkLabel] = useState("");
+
   const bulk = useMutation({
     mutationFn: (change: { action: string; value: string }) =>
       send<BulkResult>(`/projects/${selected}/issues/bulk`, token, "POST", {
@@ -85,8 +105,12 @@ export function IssuesTab() {
         value: change.value,
       }),
     onSuccess: (r) => {
-      const skipped = r.results.filter((x) => !x.ok).length;
-      toast(`${r.updated} updated${skipped ? `, ${skipped} skipped (archived or not in this project)` : ""}`);
+      const refused = r.results.filter((x) => !x.ok);
+      const reason = refused[0]?.error ? `: ${refused[0].error}` : "";
+      toast(`${r.updated} updated${refused.length ? `, ${refused.length} skipped${reason}` : ""}`);
+      void qc.invalidateQueries({ queryKey: ["backlog", selected] });
+      void qc.invalidateQueries({ queryKey: ["sprints", selected] });
+      void qc.invalidateQueries({ queryKey: ["releases", selected] });
       setPicked(new Set());
       void qc.invalidateQueries({ queryKey: ["issues", selected] });
     },
@@ -345,6 +369,7 @@ export function IssuesTab() {
               </span>
             )}
           </label>
+          {viewId && <ViewSubscribe token={token} viewId={viewId} />}
           {viewId && views.find((v) => v.id === viewId)?.owner_id === me?.user_id && (
             <button className="secondary" onClick={() => removeView.mutate(viewId)}>
               Delete view
@@ -452,6 +477,89 @@ export function IssuesTab() {
               </option>
             ))}
           </select>
+          <select
+            aria-label="Move selected issues to team"
+            value=""
+            disabled={bulk.isPending}
+            onChange={(e) => e.target.value && bulk.mutate({ action: "set_team", value: e.target.value })}
+          >
+            <option value="">Set team…</option>
+            <option value="none">No team</option>
+            {(bulkTeams.data ?? []).map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Move selected issues to sprint"
+            value=""
+            disabled={bulk.isPending}
+            onChange={(e) => e.target.value && bulk.mutate({ action: "set_sprint", value: e.target.value })}
+          >
+            <option value="">Set sprint…</option>
+            <option value="none">No sprint</option>
+            {(bulkSprints.data ?? []).filter(isOpenSprint).map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Add selected issues to release"
+            value=""
+            disabled={bulk.isPending}
+            onChange={(e) => e.target.value && bulk.mutate({ action: "set_release", value: e.target.value })}
+          >
+            <option value="">Add to release…</option>
+            {(bulkReleases.data ?? [])
+              .filter((r) => r.status === "planned")
+              .map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+          </select>
+          <select
+            aria-label="Add a watcher to selected issues"
+            value=""
+            disabled={bulk.isPending}
+            onChange={(e) => e.target.value && bulk.mutate({ action: "add_watcher", value: e.target.value })}
+          >
+            <option value="">Add watcher…</option>
+            {(bulkMembers.data ?? []).map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+          <form
+            className="bulk-label"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const v = bulkLabel.trim();
+              if (v) bulk.mutate({ action: "add_label", value: v });
+            }}
+          >
+            <input
+              aria-label="Label for selected issues"
+              value={bulkLabel}
+              maxLength={40}
+              placeholder="Label"
+              onChange={(e) => setBulkLabel(e.target.value)}
+            />
+            <button className="secondary" type="submit" disabled={bulk.isPending || !bulkLabel.trim()}>
+              Add label
+            </button>
+            <button
+              className="secondary"
+              type="button"
+              disabled={bulk.isPending || !bulkLabel.trim()}
+              onClick={() => bulk.mutate({ action: "remove_label", value: bulkLabel.trim() })}
+            >
+              Remove label
+            </button>
+          </form>
           <button className="secondary" onClick={() => setPicked(new Set())}>
             Clear selection
           </button>
@@ -580,3 +688,37 @@ export function IssuesTab() {
     </div>
   );
 }
+
+/** Subscribe to a saved view: a daily or weekly inbox notification with the matching issues (Phase I2). */
+function ViewSubscribe({ token, viewId }: { token: string; viewId: string }) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const sub = useQuery({
+    queryKey: ["view-subscription", viewId],
+    queryFn: () => request<{ cadence: string; next_run_at: string; last_sent_at?: string | null } | null>(token, `/views/${viewId}/subscription`),
+  });
+  const change = useMutation({
+    mutationFn: (cadence: string) => send(`/views/${viewId}/subscription`, token, "PUT", { cadence }),
+    onSuccess: (_r, cadence) => {
+      toast(cadence === "off" ? "Subscription removed" : `Subscribed: ${cadence} update`);
+      void qc.invalidateQueries({ queryKey: ["view-subscription", viewId] });
+    },
+    onError: (e) => toast(errorMessage(e), { kind: "error" }),
+  });
+  return (
+    <label className="small">
+      Updates
+      <select
+        aria-label="Subscribe to this view"
+        value={sub.data?.cadence ?? "off"}
+        disabled={sub.isLoading || change.isPending}
+        onChange={(e) => change.mutate(e.target.value)}
+      >
+        <option value="off">Not subscribed</option>
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+      </select>
+    </label>
+  );
+}
+

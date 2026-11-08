@@ -349,9 +349,12 @@ pub(crate) async fn unarchive_issue(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResu
 pub(crate) struct BulkIssueInput {
     /// Issue ids in this project: 1 to 100 values; duplicates are ignored.
     pub(crate) ids: Vec<Uuid>,
-    /// `set_status`, `set_priority` or `set_assignee`.
+    /// `set_status`, `set_priority`, `set_assignee`, `set_team`, `set_sprint`, `set_release`,
+    /// `add_label`, `remove_label` or `add_watcher`.
     pub(crate) action: String,
-    /// The new status or priority, or a user id for `set_assignee`. Null clears the assignee.
+    /// The new status or priority; a user id for `set_assignee` or `add_watcher`; a team or sprint id
+    /// (or `none`) for `set_team` and `set_sprint`; a planned release id for `set_release`; the label
+    /// text for `add_label` and `remove_label`. Null clears the assignee.
     pub(crate) value: Option<String>,
 }
 #[derive(Serialize, utoipa::ToSchema)]
@@ -389,6 +392,14 @@ pub(crate) async fn bulk_update_issues(
         Status(String),
         Priority(String),
         Assignee(Option<Uuid>),
+        Team(Option<Uuid>),
+        /// Sprint id, or `None` to take the issue out of its sprint.
+        Sprint(Option<Uuid>),
+        /// Release id and whether the scope is frozen (additions are then flagged).
+        Release(Uuid, bool),
+        AddLabel(String),
+        RemoveLabel(String),
+        AddWatcher(Uuid),
     }
     let change = match v.action.as_str() {
         "set_status" => {
@@ -423,6 +434,80 @@ pub(crate) async fn bulk_update_issues(
                 Change::Assignee(Some(user))
             }
         },
+        "set_team" => match v.value.as_deref() {
+            None | Some("none") => Change::Team(None),
+            Some(raw) => {
+                let team = Uuid::parse_str(raw).map_err(|_| bad("Team must be a team id, or none"))?;
+                let ok: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM teams WHERE tenant_id=$1 AND id=$2)")
+                    .bind(i.tenant_id)
+                    .bind(team)
+                    .fetch_one(&mut *tx)
+                    .await
+                    .map_err(db_err)?;
+                if !ok {
+                    return Err(bad("Team not found in this workspace"));
+                }
+                Change::Team(Some(team))
+            }
+        },
+        "set_sprint" => match v.value.as_deref() {
+            None | Some("none") => Change::Sprint(None),
+            Some(raw) => {
+                let sprint = Uuid::parse_str(raw).map_err(|_| bad("Sprint must be a sprint id, or none"))?;
+                let ok: bool = sqlx::query_scalar(
+                    "SELECT EXISTS(SELECT 1 FROM sprints WHERE tenant_id=$1 AND id=$2 AND project_id=$3 AND state<>'completed')",
+                )
+                .bind(i.tenant_id)
+                .bind(sprint)
+                .bind(project)
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(db_err)?;
+                if !ok {
+                    return Err(bad("Choose a planned or active sprint in this project"));
+                }
+                Change::Sprint(Some(sprint))
+            }
+        },
+        "set_release" => {
+            let raw = v.value.as_deref().ok_or_else(|| bad("A release id is required"))?;
+            let release = Uuid::parse_str(raw).map_err(|_| bad("Release must be a release id"))?;
+            let frozen: Option<Option<chrono::DateTime<chrono::Utc>>> = sqlx::query_scalar(
+                "SELECT frozen_at FROM releases WHERE tenant_id=$1 AND id=$2 AND project_id=$3 AND status='planned'",
+            )
+            .bind(i.tenant_id)
+            .bind(release)
+            .bind(project)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(db_err)?;
+            match frozen {
+                Some(f) => Change::Release(release, f.is_some()),
+                None => return Err(bad("Choose a planned release in this project")),
+            }
+        }
+        "add_label" | "remove_label" => {
+            let label = v
+                .value
+                .as_deref()
+                .map(str::trim)
+                .filter(|s| !s.is_empty() && s.chars().count() <= 40)
+                .ok_or_else(|| bad("A label of 1 to 40 characters is required"))?
+                .to_string();
+            if v.action == "add_label" {
+                Change::AddLabel(label)
+            } else {
+                Change::RemoveLabel(label)
+            }
+        }
+        "add_watcher" => {
+            let raw = v.value.as_deref().ok_or_else(|| bad("A member id is required"))?;
+            let user = Uuid::parse_str(raw).map_err(|_| bad("Watcher must be a member id"))?;
+            if !crate::api::issue_depth::active_member(&mut tx, i.tenant_id, user).await? {
+                return Err(bad("Watcher must be an active member of this workspace"));
+            }
+            Change::AddWatcher(user)
+        }
         _ => return Err(bad("Unknown bulk action")),
     };
     let mut results = Vec::with_capacity(ids.len());
@@ -466,8 +551,145 @@ pub(crate) async fn bulk_update_issues(
                 continue;
             }
         }
+        // Checks for the newer actions. A refused item is reported and the rest of the batch still applies.
+        let refusal: Option<&str> = match &change {
+            Change::Team(team) => {
+                // An issue inside another team's sprint cannot change team until it leaves that sprint.
+                let blocked: bool = sqlx::query_scalar(
+                    "SELECT EXISTS(SELECT 1 FROM issues i JOIN sprints s ON s.tenant_id=i.tenant_id AND s.id=i.sprint_id \
+                     WHERE i.tenant_id=$1 AND i.id=$2 AND s.team_id IS NOT NULL AND s.team_id IS DISTINCT FROM $3)",
+                )
+                .bind(i.tenant_id)
+                .bind(id)
+                .bind(*team)
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(db_err)?;
+                blocked.then_some("Remove the issue from its team's sprint before changing its team")
+            }
+            Change::Sprint(target) => {
+                let closed: bool = sqlx::query_scalar(
+                    "SELECT EXISTS(SELECT 1 FROM issues i JOIN sprints s ON s.tenant_id=i.tenant_id AND s.id=i.sprint_id \
+                     WHERE i.tenant_id=$1 AND i.id=$2 AND s.state='completed')",
+                )
+                .bind(i.tenant_id)
+                .bind(id)
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(db_err)?;
+                if closed {
+                    Some("Issue is in a closed sprint")
+                } else if let Some(sp) = target {
+                    let sprint_team: Option<Uuid> =
+                        sqlx::query_scalar("SELECT team_id FROM sprints WHERE tenant_id=$1 AND id=$2")
+                            .bind(i.tenant_id)
+                            .bind(*sp)
+                            .fetch_one(&mut *tx)
+                            .await
+                            .map_err(db_err)?;
+                    let issue_team: Option<Uuid> =
+                        sqlx::query_scalar("SELECT team_id FROM issues WHERE tenant_id=$1 AND id=$2")
+                            .bind(i.tenant_id)
+                            .bind(id)
+                            .fetch_one(&mut *tx)
+                            .await
+                            .map_err(db_err)?;
+                    if sprint_team.is_some() && issue_team != sprint_team {
+                        Some("Issue belongs to another team; assign it to this team first")
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            }
+            Change::Release(release, _) => {
+                let in_scope: bool = sqlx::query_scalar(
+                    "SELECT EXISTS(SELECT 1 FROM release_issues WHERE tenant_id=$1 AND release_id=$2 AND issue_id=$3 AND removed_at IS NULL)",
+                )
+                .bind(i.tenant_id)
+                .bind(*release)
+                .bind(id)
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(db_err)?;
+                in_scope.then_some("Already in this release")
+            }
+            _ => None,
+        };
+        if let Some(reason) = refusal {
+            results.push(BulkItemResult {
+                id,
+                ok: false,
+                error: Some(reason.to_string()),
+            });
+            continue;
+        }
         let before_json = crate::api::history::issue_json(&mut tx, i.tenant_id, id).await?;
         match &change {
+            Change::Team(team) => {
+                sqlx::query("UPDATE issues SET team_id=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3")
+                    .bind(*team)
+                    .bind(i.tenant_id)
+                    .bind(id)
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(db_err)?;
+            }
+            Change::Sprint(sprint) => {
+                sqlx::query("UPDATE issues SET sprint_id=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3")
+                    .bind(*sprint)
+                    .bind(i.tenant_id)
+                    .bind(id)
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(db_err)?;
+            }
+            Change::Release(release, frozen) => {
+                sqlx::query(
+                    "INSERT INTO release_issues(tenant_id,release_id,issue_id,added_by,added_after_freeze) VALUES($1,$2,$3,$4,$5)",
+                )
+                .bind(i.tenant_id)
+                .bind(*release)
+                .bind(id)
+                .bind(i.user_id)
+                .bind(*frozen)
+                .execute(&mut *tx)
+                .await
+                .map_err(db_err)?;
+            }
+            Change::AddLabel(label) => {
+                sqlx::query(
+                    "UPDATE issues SET labels=CASE WHEN $1 = ANY(labels) THEN labels ELSE array_append(labels,$1) END, updated_at=now() \
+                     WHERE tenant_id=$2 AND id=$3",
+                )
+                .bind(label.as_str())
+                .bind(i.tenant_id)
+                .bind(id)
+                .execute(&mut *tx)
+                .await
+                .map_err(db_err)?;
+            }
+            Change::RemoveLabel(label) => {
+                sqlx::query("UPDATE issues SET labels=array_remove(labels,$1), updated_at=now() WHERE tenant_id=$2 AND id=$3")
+                    .bind(label.as_str())
+                    .bind(i.tenant_id)
+                    .bind(id)
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(db_err)?;
+            }
+            Change::AddWatcher(user) => {
+                sqlx::query(
+                    "INSERT INTO issue_watchers(tenant_id,issue_id,user_id) VALUES($1,$2,$3) ON CONFLICT DO NOTHING",
+                )
+                .bind(i.tenant_id)
+                .bind(id)
+                .bind(*user)
+                .execute(&mut *tx)
+                .await
+                .map_err(db_err)?;
+            }
             Change::Status(s) => {
                 sqlx::query(
                     "UPDATE issues SET status=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3",
@@ -813,6 +1035,7 @@ pub(crate) async fn trash_issue(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<S
     require_editor(&i)?;
     let (project, _archived, trashed) = lifecycle_state(&mut tx, i.tenant_id, id).await?;
     ensure_access(&mut tx, project).await?;
+    ensure_action(&mut tx, project, "delete_issues").await?;
     if trashed {
         return Err(err(
             StatusCode::CONFLICT,

@@ -346,6 +346,197 @@ pub(crate) async fn set_notification_preference(
     Ok(Json(load_preferences(&mut tx, &i).await?))
 }
 
+#[derive(Serialize, sqlx::FromRow, utoipa::ToSchema)]
+pub(crate) struct ViewSubscription {
+    /// `daily` or `weekly`.
+    pub(crate) cadence: String,
+    pub(crate) next_run_at: DateTime<Utc>,
+    pub(crate) last_sent_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct ViewSubscriptionInput {
+    /// `daily`, `weekly` or `off` (removes the subscription).
+    pub(crate) cadence: String,
+}
+
+/// The saved view must be one the caller owns or one shared with the project, in a project they can open.
+async fn subscribable_view(tx: &mut Tx, i: &Identity, view: Uuid) -> ApiResult<Uuid> {
+    let project: Uuid = sqlx::query_scalar(
+        "SELECT project_id FROM saved_views WHERE tenant_id=$1 AND id=$2 AND (user_id=$3 OR shared)",
+    )
+    .bind(i.tenant_id)
+    .bind(view)
+    .bind(i.user_id)
+    .fetch_optional(&mut **tx)
+    .await
+    .map_err(db_err)?
+    .ok_or_else(|| err(StatusCode::NOT_FOUND, "View not found"))?;
+    valid_project(tx, i, project).await?;
+    Ok(project)
+}
+
+#[utoipa::path(get, path = "/api/views/{id}/subscription", tag = "views", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Your subscription to this view, or null", body = Option<ViewSubscription>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn get_view_subscription(mut tx: Tx, Path(view): Path<Uuid>) -> ApiResult<Json<Option<ViewSubscription>>> {
+    let i = tx.identity.clone();
+    subscribable_view(&mut tx, &i, view).await?;
+    let row: Option<ViewSubscription> = sqlx::query_as(
+        "SELECT cadence, next_run_at, last_sent_at FROM view_subscriptions WHERE tenant_id=$1 AND user_id=$2 AND view_id=$3",
+    )
+    .bind(i.tenant_id)
+    .bind(i.user_id)
+    .bind(view)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    Ok(Json(row))
+}
+
+#[utoipa::path(put, path = "/api/views/{id}/subscription", tag = "views", params(("id" = Uuid, Path, description = "Resource id")), request_body = ViewSubscriptionInput, responses((status = 200, description = "The subscription after the change, or null when it was turned off", body = Option<ViewSubscription>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn put_view_subscription(
+    mut tx: Tx,
+    Path(view): Path<Uuid>,
+    Json(v): Json<ViewSubscriptionInput>,
+) -> ApiResult<Json<Option<ViewSubscription>>> {
+    let i = tx.identity.clone();
+    subscribable_view(&mut tx, &i, view).await?;
+    match v.cadence.as_str() {
+        "off" => {
+            sqlx::query("DELETE FROM view_subscriptions WHERE tenant_id=$1 AND user_id=$2 AND view_id=$3")
+                .bind(i.tenant_id)
+                .bind(i.user_id)
+                .bind(view)
+                .execute(&mut *tx)
+                .await
+                .map_err(db_err)?;
+            Ok(Json(None))
+        }
+        "daily" | "weekly" => {
+            let row: ViewSubscription = sqlx::query_as(
+                "INSERT INTO view_subscriptions(tenant_id,user_id,view_id,cadence,next_run_at) \
+                 VALUES($1,$2,$3,$4, now() + CASE WHEN $4='weekly' THEN interval '7 days' ELSE interval '1 day' END) \
+                 ON CONFLICT (tenant_id,user_id,view_id) DO UPDATE SET \
+                   next_run_at = CASE WHEN view_subscriptions.cadence = EXCLUDED.cadence THEN view_subscriptions.next_run_at \
+                                      ELSE EXCLUDED.next_run_at END, \
+                   cadence = EXCLUDED.cadence \
+                 RETURNING cadence, next_run_at, last_sent_at",
+            )
+            .bind(i.tenant_id)
+            .bind(i.user_id)
+            .bind(view)
+            .bind(&v.cadence)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
+            Ok(Json(Some(row)))
+        }
+        _ => Err(bad("Cadence must be daily, weekly or off")),
+    }
+}
+
+/// A subscription that is due: tenant, member, view, cadence and the last time it was sent.
+type DueSubscription = (Uuid, Uuid, Uuid, String, Option<DateTime<Utc>>);
+
+/// Runs the saved views that subscribers are due for (Phase I2). Each run compiles the view's query
+/// with the subscriber's own identity, so visibility and restricted-field rules apply, and adds one
+/// inbox notification. A view that is gone or no longer visible ends the subscription.
+pub(crate) async fn run_due_view_subscriptions(db: &sqlx::PgPool) -> Result<u64, String> {
+    let due: Vec<DueSubscription> = sqlx::query_as(
+        "SELECT tenant_id, user_id, view_id, cadence, last_sent_at FROM view_subscriptions \
+         WHERE next_run_at <= now() ORDER BY next_run_at LIMIT 50",
+    )
+    .fetch_all(db)
+    .await
+    .map_err(|e| e.to_string())?;
+    let mut sent = 0u64;
+    for (tenant, user, view, cadence, last_sent) in due {
+        let mut tx = crate::db::tenant_tx(db, tenant)
+            .await
+            .map_err(|_| "could not open a tenant transaction".to_string())?;
+        let role: Option<String> = sqlx::query_scalar(
+            "SELECT role FROM memberships WHERE tenant_id=$1 AND user_id=$2 AND disabled_at IS NULL",
+        )
+        .bind(tenant)
+        .bind(user)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
+        let view_row: Option<(String, Uuid, String)> = sqlx::query_as(
+            "SELECT name, project_id, COALESCE(filters->>'query','') FROM saved_views \
+             WHERE tenant_id=$1 AND id=$2 AND (user_id=$3 OR shared)",
+        )
+        .bind(tenant)
+        .bind(view)
+        .bind(user)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
+        match (role, view_row) {
+            (Some(role), Some((name, project, query))) if !query.is_empty() => {
+                let identity = Identity {
+                    tenant_id: tenant,
+                    user_id: user,
+                    role,
+                };
+                let (mut qb, _order) = crate::api::query::build_search(&mut tx, &identity, project, &query)
+                    .await
+                    .map_err(|_| "a subscribed view could not run".to_string())?;
+                qb.push(" ORDER BY updated_at DESC LIMIT 200");
+                let rows: Vec<crate::api::work::Issue> = qb
+                    .build_query_as::<crate::api::work::Issue>()
+                    .fetch_all(&mut *tx)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                let changed = rows
+                    .iter()
+                    .filter(|r| last_sent.is_none_or(|l| r.updated_at > l))
+                    .count();
+                let sample: Vec<String> = rows.iter().take(5).map(|r| r.title.clone()).collect();
+                let title = format!(
+                    "“{name}”: {} matching, {changed} changed since your last update",
+                    rows.len()
+                );
+                sqlx::query(
+                    "INSERT INTO notifications(tenant_id,recipient_id,actor_id,kind,title,body,entity_type,entity_id) \
+                     VALUES($1,$2,$2,'view_subscription',$3,$4,'view',$5)",
+                )
+                .bind(tenant)
+                .bind(user)
+                .bind(title)
+                .bind(sample.join("\n"))
+                .bind(view)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| e.to_string())?;
+                sent += 1;
+                let step = if cadence == "weekly" { "7 days" } else { "1 day" };
+                sqlx::query(
+                    "UPDATE view_subscriptions SET last_sent_at=now(), next_run_at=now() + $1::interval \
+                     WHERE tenant_id=$2 AND user_id=$3 AND view_id=$4",
+                )
+                .bind(step)
+                .bind(tenant)
+                .bind(user)
+                .bind(view)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| e.to_string())?;
+            }
+            _ => {
+                sqlx::query("DELETE FROM view_subscriptions WHERE tenant_id=$1 AND user_id=$2 AND view_id=$3")
+                    .bind(tenant)
+                    .bind(user)
+                    .bind(view)
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(|e| e.to_string())?;
+            }
+        }
+        tx.commit().await.map_err(|e| e.to_string())?;
+    }
+    Ok(sent)
+}
+
 pub(crate) fn routes() -> Router<App> {
     Router::new()
         .route(
@@ -353,6 +544,10 @@ pub(crate) fn routes() -> Router<App> {
             get(list_views).post(create_view),
         )
         .route("/api/views/{id}", delete(delete_view))
+        .route(
+            "/api/views/{id}/subscription",
+            get(get_view_subscription).put(put_view_subscription),
+        )
         .route(
             "/api/issues/{id}/favourite",
             put(add_favourite).delete(remove_favourite),

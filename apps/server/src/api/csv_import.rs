@@ -512,7 +512,7 @@ fn jira_name(v: Option<&Value>) -> String {
 }
 
 /// One CSV cell, always quoted so commas, quotes and line breaks in the text stay in the cell.
-fn quoted(cell: &str) -> String {
+pub(crate) fn quoted(cell: &str) -> String {
     format!("\"{}\"", cell.replace('"', "\"\""))
 }
 

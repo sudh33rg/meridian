@@ -40,6 +40,7 @@ pub(crate) async fn new_sprint(
 ) -> ApiResult<(StatusCode, Json<Value>)> {
     let i = tx.identity.clone();
     require_editor(&i)?;
+    ensure_action(&mut tx, p, "manage_sprints").await?;
     valid_project(&mut tx, &i, p).await?;
     validate_title(&v.name)?;
     if v.starts_at
@@ -92,6 +93,7 @@ pub(crate) async fn new_release(
 ) -> ApiResult<(StatusCode, Json<Value>)> {
     let i = tx.identity.clone();
     require_editor(&i)?;
+    ensure_action(&mut tx, p, "manage_releases").await?;
     valid_project(&mut tx, &i, p).await?;
     validate_title(&v.name)?;
     let row=sqlx::query_scalar("INSERT INTO releases(tenant_id,project_id,name,description,target_at) VALUES($1,$2,$3,$4,$5) RETURNING to_jsonb(releases)")

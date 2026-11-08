@@ -62,3 +62,7 @@ Capture p50/p95/p99 HTTP latency by route, status/error counts, DB pool waits, S
 - UI bundles should be split by route, not render all advanced modules at once; board lists require virtual scrolling above ~1000 issues.
 - Add paginated APIs for issue, page, audit and export datasets; current bounded result sets are deliberately initial limits.
 - Capacity models should use database connection budgets and automated load test baselines, especially in multi-instance deployments.
+
+## Shared rate limits (Phase Q)
+
+By default each API process limits requests in memory. Set `RATE_LIMIT_SHARED=true` to count requests per client address per minute in PostgreSQL (`rate_limit_windows`, migration `0048`), so every replica shares one limit. The counter adds one small write per request; a database error lets the request through and is logged. Counters older than an hour are removed by the maintenance loop.

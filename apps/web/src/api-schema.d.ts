@@ -532,6 +532,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/automations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_automation"];
+        options?: never;
+        head?: never;
+        patch: operations["update_automation"];
+        trace?: never;
+    };
+    "/api/automations/{id}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["automation_runs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/baselines/{id}/variance": {
         parameters: {
             query?: never;
@@ -1948,6 +1980,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/automations/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["automation_preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}/baselines": {
         parameters: {
             query?: never;
@@ -2204,6 +2252,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/history.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["history_export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}/home-page": {
         parameters: {
             query?: never;
@@ -2220,6 +2284,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/import/asana": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["import_asana"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}/import/csv": {
         parameters: {
             query?: never;
@@ -2230,6 +2310,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["import_csv"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/import/github": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["import_github"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2285,6 +2381,38 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["import_extras"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/import/linear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["import_linear"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/import/trello": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["import_trello"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2931,6 +3059,22 @@ export interface paths {
         patch: operations["update_release"];
         trace?: never;
     };
+    "/api/releases/{id}/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["release_export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/releases/{id}/history": {
         parameters: {
             query?: never;
@@ -3203,6 +3347,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sprints/{id}/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["sprint_export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sprints/{id}/issues": {
         parameters: {
             query?: never;
@@ -3294,6 +3454,22 @@ export interface paths {
         put?: never;
         post?: never;
         delete: operations["delete_view"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/views/{id}/subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_view_subscription"];
+        put: operations["put_view_subscription"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3643,7 +3819,32 @@ export interface components {
             /** @description Each condition: `{"field": "priority|kind|status|label|team_id|assignee_id", "op": "eq|neq", "value": "..."}`. All must hold. */
             conditions?: unknown[] | null;
             name: string;
+            /** @description Only with `trigger_event: scheduled`: `hourly`, `daily` or `weekly`. The first run is soon after creation. */
+            schedule?: string | null;
             trigger_event: string;
+        };
+        AutomationPatch: {
+            /** @description Turn the rule on or off. A disabled rule keeps its history and does not run. */
+            enabled?: boolean | null;
+            name?: string | null;
+        };
+        AutomationPreview: {
+            /**
+             * Format: int64
+             * @description Open issues checked (at most 300, newest first).
+             */
+            checked: number;
+            /**
+             * Format: int64
+             * @description Issues whose current values satisfy every condition.
+             */
+            matching: number;
+            /** @description Up to ten matching issues, as keys and titles. */
+            sample: unknown[];
+        };
+        AutomationPreviewInput: {
+            /** @description The conditions to test, in the same shape as a rule's conditions. */
+            conditions: unknown[];
         };
         /** @description One issue as the backlog, a sprint or a release scope shows it. */
         BacklogItem: {
@@ -3729,11 +3930,18 @@ export interface components {
          *     commits or rolls back together.
          */
         BulkIssueInput: {
-            /** @description `set_status`, `set_priority` or `set_assignee`. */
+            /**
+             * @description `set_status`, `set_priority`, `set_assignee`, `set_team`, `set_sprint`, `set_release`,
+             *     `add_label`, `remove_label` or `add_watcher`.
+             */
             action: string;
             /** @description Issue ids in this project: 1 to 100 values; duplicates are ignored. */
             ids: string[];
-            /** @description The new status or priority, or a user id for `set_assignee`. Null clears the assignee. */
+            /**
+             * @description The new status or priority; a user id for `set_assignee` or `add_watcher`; a team or sprint id
+             *     (or `none`) for `set_team` and `set_sprint`; a planned release id for `set_release`; the label
+             *     text for `add_label` and `remove_label`. Null clears the assignee.
+             */
             value?: string | null;
         };
         BulkItemResult: {
@@ -4752,6 +4960,13 @@ export interface components {
          */
         PermissionScheme: {
             /**
+             * @description Per-action levels (2 or 3) for `manage_sprints`, `manage_releases` and `delete_issues`. An action
+             *     not listed uses `edit_min`. Replaces the saved map on every save.
+             */
+            actions?: {
+                [key: string]: number;
+            };
+            /**
              * Format: int32
              * @description The level needed to create, edit, comment on and move issues: 2 (member) or 3 (admin).
              */
@@ -5455,6 +5670,18 @@ export interface components {
         VerifyInput: {
             token: string;
         };
+        ViewSubscription: {
+            /** @description `daily` or `weekly`. */
+            cadence: string;
+            /** Format: date-time */
+            last_sent_at?: string | null;
+            /** Format: date-time */
+            next_run_at: string;
+        };
+        ViewSubscriptionInput: {
+            /** @description `daily`, `weekly` or `off` (removes the subscription). */
+            cadence: string;
+        };
         VisibilityInput: {
             /** @description `workspace` or `private`. */
             visibility: string;
@@ -5547,6 +5774,10 @@ export interface components {
             slug: string;
         };
         WorkspaceSettings: {
+            /** @description Accent colour as `#rrggbb`. Null when not set. */
+            brand_color?: string | null;
+            /** @description Display name shown in place of the workspace name (Phase J5). Null when not set. */
+            brand_name?: string | null;
             /** Format: int32 */
             default_sprint_days: number;
             /** @description Interface language: `en` or `es` (Phase K5). Dates and numbers follow it. */
@@ -5567,6 +5798,10 @@ export interface components {
             working_days: number[];
         };
         WorkspaceSettingsInput: {
+            /** @description Accent colour as `#rrggbb`; an empty string clears it. Omit to keep it. */
+            brand_color?: string | null;
+            /** @description Display name; an empty string clears it. Omit to keep it. */
+            brand_name?: string | null;
             /** Format: int32 */
             default_sprint_days: number;
             /** @description `en` or `es`. Omit to keep the current language. */
@@ -7135,6 +7370,167 @@ export interface operations {
             };
             /** @description Invalid or expired token */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    delete_automation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted with its run log */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Workspace admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    update_automation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationPatch"];
+            };
+        };
+        responses: {
+            /** @description The rule after the change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Workspace admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    automation_runs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The last 50 runs, newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>[];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Workspace admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -13539,6 +13935,69 @@ export interface operations {
             };
         };
     };
+    automation_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationPreviewInput"];
+            };
+        };
+        responses: {
+            /** @description What a rule with these conditions would match now. Nothing is changed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationPreview"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Workspace admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     list_baselines: {
         parameters: {
             query?: never;
@@ -15035,6 +15494,65 @@ export interface operations {
             };
         };
     };
+    history_export: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Status and field changes of the project's issues as CSV (at most 10000 rows, newest first) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     get_home_page: {
         parameters: {
             query?: never;
@@ -15139,6 +15657,74 @@ export interface operations {
             };
         };
     };
+    import_asana: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Default true: report only. Send false to create the issues. */
+                dry_run: boolean | null;
+                /** @description Create statuses that the file names but the project lacks. Default false. */
+                create_statuses: boolean | null;
+            };
+            cookie?: never;
+        };
+        /** @description An Asana project CSV export. Reads Task ID, Name, Section/Column, Notes, Tags, Completed */
+        requestBody: {
+            content: {
+                "text/csv": string;
+            };
+        };
+        responses: {
+            /** @description Report. Check committed and errors */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CsvImportReport"];
+                };
+            };
+            /** @description The file cannot be read */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Workspace admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     import_csv: {
         parameters: {
             query?: never;
@@ -15157,6 +15743,74 @@ export interface operations {
         requestBody: {
             content: {
                 "text/csv": string;
+            };
+        };
+        responses: {
+            /** @description Report. Check committed and errors */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CsvImportReport"];
+                };
+            };
+            /** @description The file cannot be read */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Workspace admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    import_github: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Default true: report only. Send false to create the issues. */
+                dry_run: boolean | null;
+                /** @description Create statuses that the file names but the project lacks. Default false. */
+                create_statuses: boolean | null;
+            };
+            cookie?: never;
+        };
+        /** @description GitHub issues as a JSON array (from the issues API). Pull requests are skipped. Reads number, title, body, state, labels */
+        requestBody: {
+            content: {
+                "application/json": string;
             };
         };
         responses: {
@@ -15364,6 +16018,142 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JiraExtrasReport"];
+                };
+            };
+            /** @description The file cannot be read */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Workspace admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    import_linear: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Default true: report only. Send false to create the issues. */
+                dry_run: boolean | null;
+                /** @description Create statuses that the file names but the project lacks. Default false. */
+                create_statuses: boolean | null;
+            };
+            cookie?: never;
+        };
+        /** @description A Linear issues CSV export. Reads ID, Title, Description, Status, Priority, Labels */
+        requestBody: {
+            content: {
+                "text/csv": string;
+            };
+        };
+        responses: {
+            /** @description Report. Check committed and errors */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CsvImportReport"];
+                };
+            };
+            /** @description The file cannot be read */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Workspace admins only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    import_trello: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+                /** @description Default true: report only. Send false to create the issues. */
+                dry_run: boolean | null;
+                /** @description Create statuses that the file names but the project lacks. Default false. */
+                create_statuses: boolean | null;
+            };
+            cookie?: never;
+        };
+        /** @description A Trello board export (JSON): reads name, lists, and cards (name, desc, idList, labels, closed, id) */
+        requestBody: {
+            content: {
+                "application/json": string;
+            };
+        };
+        responses: {
+            /** @description Report. Check committed and errors */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CsvImportReport"];
                 };
             };
             /** @description The file cannot be read */
@@ -19005,6 +19795,56 @@ export interface operations {
             };
         };
     };
+    release_export: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Active release scope as CSV (at most 10000 rows) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     release_history: {
         parameters: {
             query?: never;
@@ -20041,6 +20881,56 @@ export interface operations {
             };
         };
     };
+    sprint_export: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Issues in the sprint as CSV (at most 10000 rows) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Insufficient permissions */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     add_issues_to_sprint: {
         parameters: {
             query?: never;
@@ -20412,6 +21302,101 @@ export interface operations {
                 };
             };
             /** @description Not found for you */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    get_view_subscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Your subscription to this view, or null */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": null | components["schemas"]["ViewSubscription"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    put_view_subscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ViewSubscriptionInput"];
+            };
+        };
+        responses: {
+            /** @description The subscription after the change, or null when it was turned off */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": null | components["schemas"]["ViewSubscription"];
+                };
+            };
+            /** @description Validation or domain error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
             404: {
                 headers: {
                     [name: string]: unknown;

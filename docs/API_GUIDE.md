@@ -200,3 +200,14 @@ Rows are idempotent by `Issue Key`, so a repeat import skips rows already import
 Issue comments and links, saved views, search results, notifications and approvals return fixed schemas, listed in the OpenAPI document. Saved views also report `stale: true` when a status, field or query term they use no longer exists in the project, instead of silently returning nothing. Saved views accept `query` and `kind` as filters, in addition to the filters in the table above.
 
 This is a route guide, **not** a complete generated or audited OpenAPI schema. Formal OpenAPI + typed client generation is an M8/M10 release task.
+
+## Phase Q additions
+
+- Bulk issue actions: `set_team`, `set_sprint`, `set_release`, `add_label`, `remove_label`, `add_watcher` on `POST /api/projects/{id}/issues/bulk`.
+- Exports: `GET /api/sprints/{id}/export.csv`, `GET /api/releases/{id}/export.csv`, `GET /api/projects/{id}/history.csv`.
+- Query: parentheses and nested `OR`/`AND`, and `-(...)` for a negated group, on `GET /api/projects/{id}/issues/search?query=`.
+- Automation rules: `trigger_event: scheduled` with `schedule` (`hourly`, `daily`, `weekly`); `PATCH` and `DELETE /api/automations/{id}`; `GET /api/automations/{id}/runs`; `POST /api/projects/{id}/automations/preview`.
+- Saved-view subscriptions: `GET` and `PUT /api/views/{id}/subscription` with `cadence` `daily`, `weekly` or `off`.
+- Imports: `POST /api/projects/{id}/import/trello`, `/import/github` (JSON), `/import/linear`, `/import/asana` (CSV). All accept `dry_run` (default true) and `create_statuses`.
+- Permission scheme: `actions` map on `GET` and `PUT /api/projects/{id}/permission-scheme` (`manage_sprints`, `manage_releases`, `delete_issues`; level 2 or 3).
+- Workspace settings: `brand_name` and `brand_color` (`#rrggbb`; an empty string clears) on `PUT /api/workspace/settings`.

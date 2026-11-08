@@ -134,3 +134,28 @@ Recorded per phase as each one lands. Phase E results are in `IMPLEMENTATION_STA
 - **API:** not run against a database in this build. Starting a local database listener for the API was refused by the environment's automation policy, so no request was made to any new endpoint. Every new endpoint compiles and is in the OpenAPI document (222 operations), but none has been exercised.
 - **Browser:** not run. The web app builds (`tsc -b`, Vite, eslint on changed files), but no page has been looked at.
 - **Owner action to finish verification:** start Docker Desktop, run `make up`, then `make dev-api` and `make dev-web`. Sign up a workspace, create a project and check the Backlog, Sprints, Releases, Reports, Roadmap and Integrations tabs, then the issue drawer.
+
+---
+
+## Phase Q: gap closure after the parity build (8 November 2026)
+
+Source: the register in `PARITY_GAP_REGISTER.md`, rechecked against source after the E to P build. The owner asked for the gaps to be closed in phases without pausing. Each step below was built, type-checked and committed to `main`. Verification is build checks only (see the results). No automated tests were added (Constitution V.2).
+
+| Step | Goal | Done when | Result |
+|---|---|---|---|
+| Q1 | Make backlogs, team backlogs, team sprints and release scope visible on first run | The demo seed creates two teams, a team sprint started with committed issues, and a release with scope | Done in `scripts/seed_demo.py`. Not run against a live API in this build |
+| Q2 | Bulk edit for sprint, team, release, labels and watchers | `POST /projects/{id}/issues/bulk` takes `set_team`, `set_sprint`, `set_release`, `add_label`, `remove_label`, `add_watcher`, with a refusal reason per issue; the issues table bulk bar has selects for each | Done. Refusals match the single-issue rules (cross-team sprint, closed sprint, shipped or cancelled release) |
+| Q3 | CSV export for sprint scope, release scope and status and field history | `GET /sprints/{id}/export.csv`, `GET /releases/{id}/export.csv` (with added-after-freeze), `GET /projects/{id}/history.csv`; buttons in the sprint card, release panel and reports | Done. History export excludes custom fields, so restricted values do not leak |
+| Q4 | Query with nested groups and parentheses | `(status:todo OR status:done) priority:high`, `-(label:a OR label:b)`, up to four levels; legacy precedence kept | Done. The compiler is shared with saved-view checks (`build_search`) |
+| Q5 | Scheduled automation rules and a rule builder | Trigger `scheduled` with hourly, daily or weekly cadence; run by the hourly loop with the creator's authority; enable, disable, delete, run log, and a dry-run preview | Done. Cross-project rules and branches are not built |
+| Q6 | Saved-view subscriptions | `GET/PUT /views/{id}/subscription` (daily, weekly, off); the due run adds one inbox notification per subscription with matches and changes | Done. Email follows the existing digest setting |
+| Q7 | Shared rate limits | `RATE_LIMIT_SHARED=true` counts requests per client per minute in PostgreSQL; cleanup hourly | Done, opt-in. Off by default |
+| Q8 | Importers for Trello, GitHub Issues, Linear and Asana | Four endpoints convert to the CSV importer's columns and share its dry run and idempotency; the import panel has a source selector | Done. Field mapping is fixed, not user-configured |
+| Q9 | Per-action permission levels | Scheme `actions` for `manage_sprints`, `manage_releases` and `delete_issues`; unset actions use the edit level; enforced on sprint, release and trash handlers; editor in the workflow section | Done for three actions. Comments, issue creation and components still use the existing rules |
+| Q10 | Workspace branding | Brand name and `#rrggbb` accent in workspace settings; the sidebar shows the brand name | Done for name and colour. Custom domain and logo upload are not built |
+| Q11 | Contract and docs | `make openapi`, `make manifest`, register, ledger, API guide, operations notes | Done in the same commit as this section |
+| Q12 | Visual verification of everything built | Run the stack, look at the changed screens in the browser and phone width | See `IMPLEMENTATION_STATUS.md` (Phase Q verification) |
+
+### Still open after Phase Q
+
+Listed in `PARITY_GAP_REGISTER.md` section 0. The largest items: cross-project automation rules and branches (6.3, 6.1); OAuth 2.0 apps (6.10); Jira Cloud pull and Confluence import (6.12, 6.13); rich text tables and images (2.21); field contexts and per-type workflows (2.10, 2.4); the sprint report and burnup (1.8, 1.10); screen-reader and keyboard pass (10.4); most strings in the catalogue (10.5); OpenTelemetry export (10.9); Android build and device run (10.6).

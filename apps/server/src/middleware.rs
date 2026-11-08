@@ -55,14 +55,41 @@ fn client_key(req: &Request, trust_proxy: bool) -> String {
         .unwrap_or_else(|| "unknown".into())
 }
 
+/// Counts one request for this client in the current minute, in PostgreSQL, so every replica shares
+/// the limit. A database error lets the request through: the in-process limit still applies, and the
+/// error is logged.
+async fn shared_allows(db: &sqlx::PgPool, scope: &str, client: &str, per_min: u32) -> bool {
+    let client: String = client.chars().take(64).collect();
+    let hits: Result<i32, sqlx::Error> = sqlx::query_scalar(
+        "INSERT INTO rate_limit_windows(scope,client,window_start,hits) VALUES($1,$2,date_trunc('minute', now()),1) \
+         ON CONFLICT (scope,client,window_start) DO UPDATE SET hits = rate_limit_windows.hits + 1 RETURNING hits",
+    )
+    .bind(scope)
+    .bind(client)
+    .fetch_one(db)
+    .await;
+    match hits {
+        Ok(n) => i64::from(n) <= i64::from(per_min),
+        Err(e) => {
+            tracing::error!(error = %e, "shared rate limit unavailable; using the in-process limit");
+            true
+        }
+    }
+}
+
 pub(crate) async fn rate_limit(State(app): State<App>, req: Request, next: Next) -> Response {
     let path = req.uri().path();
     if path == "/health" || path == "/ready" {
         return next.run(req).await;
     }
     let key = client_key(&req, app.cfg.trust_proxy);
-    let limited = app.limits.global.check_key(&key).is_err()
+    let mut limited = app.limits.global.check_key(&key).is_err()
         || (path.starts_with("/api/auth/") && app.limits.auth.check_key(&key).is_err());
+    if !limited && app.cfg.shared_rate_limit {
+        limited = !shared_allows(&app.db, "global", &key, app.cfg.global_per_min).await
+            || (path.starts_with("/api/auth/")
+                && !shared_allows(&app.db, "auth", &key, app.cfg.auth_per_min).await);
+    }
     if limited {
         metrics::counter!("meridian_rate_limited_total").increment(1);
         let mut res =

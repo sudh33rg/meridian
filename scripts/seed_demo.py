@@ -43,9 +43,26 @@ items=[
   ('Create security review checklist','task','high','done'),
   ('Add knowledge relationship navigation','story','medium','todo'),
 ]
+# Two teams, so the team backlog and team sprints have something to show.
+platform_team=req('/teams',{'name':'Platform','description':'API, data and infrastructure'})
+web_team=req('/teams',{'name':'Web','description':'Browser and mobile experience'})
+TEAM_FOR_TITLE={'Build cross-team roadmap':platform_team,'Prepare API contract':platform_team,
+  'Create security review checklist':platform_team,'Fix search query filter':platform_team,
+  'Design unified onboarding':web_team,'Improve mobile issue details':web_team,
+  'Add knowledge relationship navigation':web_team,'Add project notification settings':web_team}
+issue_ids={}
 for title,kind,priority,status in items:
     issue=req(f'/projects/{pid}/issues',{'title':title,'kind':kind,'priority':priority,'description':'Demonstration work item for the Meridian workspace.'})
+    issue_ids[title]=issue['id']
+    req(f"/issues/{issue['id']}/team",{'team_id':TEAM_FOR_TITLE[title]['id']},method='PUT')
     if status != 'todo':req(f"/issues/{issue['id']}",{'status':status},method='PATCH')
+# A team sprint that is active (team Platform), with its committed issues.
+platform_sprint=req(f'/projects/{pid}/sprints',{'name':'Platform sprint 01','goal':'Harden the API contract','team_id':platform_team['id']})
+req(f"/sprints/{platform_sprint['id']}/issues",{'issue_ids':[issue_ids['Prepare API contract'],issue_ids['Fix search query filter'],issue_ids['Create security review checklist']]},method='POST')
+req(f"/sprints/{platform_sprint['id']}",{'state':'active'},method='PATCH')
+# A release with scope: two issues shipped in it, one still planned.
+release=req(f'/projects/{pid}/releases',{'name':'0.2 internal pilot','description':'First build for the pilot team.'})
+req(f"/releases/{release['id']}/issues",{'issue_ids':[issue_ids['Design unified onboarding'],issue_ids['Fix search query filter'],issue_ids['Prepare API contract']]},method='POST')
 for title,content in [
   ('Product vision','Meridian connects work, knowledge, people, and decisions into one unified workspace.\n\n## Core principles\n- Clarity\n- Trust\n- Speed'),
   ('Engineering handbook','Use small, reviewable changes. Verify permissions and tenant boundaries. Capture architecture decisions with context and evidence.'),

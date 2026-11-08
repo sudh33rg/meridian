@@ -9,7 +9,9 @@ import {
   Search,
   X,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useWorkspace } from "../workspace/useWorkspace";
+import { request } from "../../lib/api";
 import { Avatar } from "../shared/Avatar";
 import { NAV, NAV_GROUPS, type NavGroupId } from "./nav";
 
@@ -39,6 +41,12 @@ export function Sidebar() {
     setPaletteOpen,
     me,
   } = useWorkspace();
+  // Workspace branding (Phase J5): a brand name replaces the organization name in the sidebar.
+  const brandQ = useQuery({
+    queryKey: ["workspace-brand"],
+    queryFn: () => request<{ brand_name?: string | null; brand_color?: string | null }>(session.token, "/workspace/settings"),
+    staleTime: 60_000,
+  });
   const [folded, setFolded] = useState<Record<string, boolean>>(loadFolded);
   const toggle = (g: NavGroupId) =>
     setFolded((f) => {
@@ -86,9 +94,9 @@ export function Sidebar() {
         </div>
 
         <button className="workspace" onClick={() => go("people")} title={session.organization}>
-          <Avatar name={session.organization} size={30} square />
+          <Avatar name={brandQ.data?.brand_name || session.organization} size={30} square />
           <span className="ws-text">
-            <b>{session.organization}</b>
+            <b>{brandQ.data?.brand_name || session.organization}</b>
             <small>Workspace</small>
           </span>
         </button>

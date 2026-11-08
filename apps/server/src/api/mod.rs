@@ -4,6 +4,7 @@ pub mod agile;
 pub mod collab;
 pub mod common;
 pub mod csv_import;
+pub mod vendor_import;
 pub mod fields;
 pub mod history;
 pub mod integrations;

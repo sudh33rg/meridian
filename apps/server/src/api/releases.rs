@@ -161,6 +161,7 @@ pub(crate) async fn update_release(
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "releases", id).await?;
     require_editor(&i)?;
+    ensure_action_on(&mut tx, "releases", id, "manage_releases").await?;
     let current = load_release(&mut tx, i.tenant_id, id).await?;
     if v.name.is_none()
         && v.description.is_none()
@@ -372,6 +373,7 @@ pub(crate) async fn add_release_issues(
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "releases", id).await?;
     require_editor(&i)?;
+    ensure_action_on(&mut tx, "releases", id, "manage_releases").await?;
     let mut ids: Vec<Uuid> = Vec::new();
     for issue in &v.issue_ids {
         if !ids.contains(issue) {
@@ -447,6 +449,7 @@ pub(crate) async fn remove_release_issue(
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "releases", id).await?;
     require_editor(&i)?;
+    ensure_action_on(&mut tx, "releases", id, "manage_releases").await?;
     let release = load_release(&mut tx, i.tenant_id, id).await?;
     if release.status != "planned" {
         return Err(err(StatusCode::CONFLICT, "Scope can change only while the release is planned"));

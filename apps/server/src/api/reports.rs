@@ -708,6 +708,148 @@ pub(crate) async fn export_csv(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<axu
         .into_response())
 }
 
+/// Columns shared by the sprint and release exports: key, title, type, status, priority, assignee,
+/// team, story points, labels, last updated.
+type ScopeExportRow = (i64, String, String, String, String, Option<String>, Option<String>, Option<i32>, String, String);
+
+fn scope_csv(key: &str, rows: Vec<ScopeExportRow>, extra_header: bool, extra: Vec<String>) -> String {
+    let mut out = String::from("key,title,type,status,priority,assignee,team,story_points,labels,updated");
+    if extra_header {
+        out.push_str(",added_after_freeze");
+    }
+    out.push('\n');
+    for (idx, (number, title, kind, status, priority, assignee, team, points, labels, updated)) in rows.into_iter().enumerate() {
+        let mut cells = vec![
+            format!("{key}-{number}"),
+            title,
+            kind,
+            status,
+            priority,
+            assignee.unwrap_or_default(),
+            team.unwrap_or_default(),
+            points.map(|n| n.to_string()).unwrap_or_default(),
+            labels,
+            updated,
+        ];
+        if extra_header {
+            cells.push(extra.get(idx).cloned().unwrap_or_default());
+        }
+        out.push_str(&cells.iter().map(|c| csv_cell(c)).collect::<Vec<_>>().join(","));
+        out.push('\n');
+    }
+    out
+}
+
+fn csv_response(filename: String, body: String) -> axum::response::Response {
+    (
+        [
+            (CONTENT_TYPE, "text/csv; charset=utf-8".to_string()),
+            (CONTENT_DISPOSITION, format!("attachment; filename=\"{filename}\"")),
+        ],
+        body,
+    )
+        .into_response()
+}
+
+async fn project_key_for(tx: &mut Tx, tenant: Uuid, project: Uuid) -> ApiResult<String> {
+    sqlx::query_scalar("SELECT key FROM projects WHERE tenant_id=$1 AND id=$2")
+        .bind(tenant)
+        .bind(project)
+        .fetch_one(&mut **tx)
+        .await
+        .map_err(db_err)
+}
+
+#[utoipa::path(get, path = "/api/sprints/{id}/export.csv", tag = "reports", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Issues in the sprint as CSV (at most 10000 rows)", content_type = "text/csv", body = String), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn sprint_export(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<axum::response::Response> {
+    let i = tx.identity.clone();
+    let project: Uuid = sqlx::query_scalar("SELECT project_id FROM sprints WHERE tenant_id=$1 AND id=$2")
+        .bind(i.tenant_id)
+        .bind(id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(db_err)?
+        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Sprint not found"))?;
+    valid_project(&mut tx, &i, project).await?;
+    let key = project_key_for(&mut tx, i.tenant_id, project).await?;
+    let rows: Vec<ScopeExportRow> = sqlx::query_as(
+        "SELECT i.number, i.title, i.kind, i.status, i.priority, u.display_name, t.name, i.story_points, \
+         array_to_string(i.labels, ' '), to_char(i.updated_at AT TIME ZONE 'UTC','YYYY-MM-DD HH24:MI') \
+         FROM issues i LEFT JOIN users u ON u.id=i.assignee_id LEFT JOIN teams t ON t.tenant_id=i.tenant_id AND t.id=i.team_id \
+         WHERE i.tenant_id=$1 AND i.sprint_id=$2 AND i.archived_at IS NULL AND i.trashed_at IS NULL ORDER BY i.number LIMIT 10000",
+    )
+    .bind(i.tenant_id)
+    .bind(id)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    Ok(csv_response(format!("{key}-sprint-issues.csv"), scope_csv(&key, rows, false, Vec::new())))
+}
+
+#[utoipa::path(get, path = "/api/releases/{id}/export.csv", tag = "reports", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Active release scope as CSV (at most 10000 rows)", content_type = "text/csv", body = String), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn release_export(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<axum::response::Response> {
+    let i = tx.identity.clone();
+    let project: Uuid = sqlx::query_scalar("SELECT project_id FROM releases WHERE tenant_id=$1 AND id=$2")
+        .bind(i.tenant_id)
+        .bind(id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(db_err)?
+        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Release not found"))?;
+    valid_project(&mut tx, &i, project).await?;
+    let key = project_key_for(&mut tx, i.tenant_id, project).await?;
+    let rows: Vec<(i64, String, String, String, String, Option<String>, Option<String>, Option<i32>, String, String, bool)> = sqlx::query_as(
+        "SELECT i.number, i.title, i.kind, i.status, i.priority, u.display_name, t.name, i.story_points, \
+         array_to_string(i.labels, ' '), to_char(i.updated_at AT TIME ZONE 'UTC','YYYY-MM-DD HH24:MI'), ri.added_after_freeze \
+         FROM release_issues ri JOIN issues i ON i.tenant_id=ri.tenant_id AND i.id=ri.issue_id \
+         LEFT JOIN users u ON u.id=i.assignee_id LEFT JOIN teams t ON t.tenant_id=i.tenant_id AND t.id=i.team_id \
+         WHERE ri.tenant_id=$1 AND ri.release_id=$2 AND ri.removed_at IS NULL ORDER BY i.number LIMIT 10000",
+    )
+    .bind(i.tenant_id)
+    .bind(id)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    let mut flags = Vec::with_capacity(rows.len());
+    let mut scope = Vec::with_capacity(rows.len());
+    for (number, title, kind, status, priority, assignee, team, points, labels, updated, after) in rows {
+        flags.push(if after { "yes".to_string() } else { "no".to_string() });
+        scope.push((number, title, kind, status, priority, assignee, team, points, labels, updated));
+    }
+    Ok(csv_response(format!("{key}-release-scope.csv"), scope_csv(&key, scope, true, flags)))
+}
+
+#[utoipa::path(get, path = "/api/projects/{id}/history.csv", tag = "reports", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Status and field changes of the project's issues as CSV (at most 10000 rows, newest first)", content_type = "text/csv", body = String), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn history_export(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<axum::response::Response> {
+    let i = tx.identity.clone();
+    valid_project(&mut tx, &i, p).await?;
+    let key = project_key_for(&mut tx, i.tenant_id, p).await?;
+    // Custom fields are not in the change log, so restricted field values cannot leak through it.
+    let rows: Vec<(i64, String, Option<String>, Option<String>, String, String)> = sqlx::query_as(
+        "SELECT * FROM (\
+           SELECT i.number, 'status', h.from_status, h.to_status, u.display_name, to_char(h.changed_at AT TIME ZONE 'UTC','YYYY-MM-DD HH24:MI:SS') \
+           FROM issue_status_history h JOIN issues i ON i.tenant_id=h.tenant_id AND i.id=h.issue_id \
+           JOIN users u ON u.id=h.actor_id WHERE h.tenant_id=$1 AND i.project_id=$2 \
+           UNION ALL \
+           SELECT i.number, c.field, c.old_value, c.new_value, u.display_name, to_char(c.changed_at AT TIME ZONE 'UTC','YYYY-MM-DD HH24:MI:SS') \
+           FROM issue_changes c JOIN issues i ON i.tenant_id=c.tenant_id AND i.id=c.issue_id \
+           JOIN users u ON u.id=c.actor_id WHERE c.tenant_id=$1 AND i.project_id=$2\
+         ) changes ORDER BY 6 DESC LIMIT 10000",
+    )
+    .bind(i.tenant_id)
+    .bind(p)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    let mut out = String::from("key,field,from,to,by,at\n");
+    for (number, field, from, to, by, at) in rows {
+        let cells = [format!("{key}-{number}"), field, from.unwrap_or_default(), to.unwrap_or_default(), by, at];
+        out.push_str(&cells.iter().map(|c| csv_cell(c)).collect::<Vec<_>>().join(","));
+        out.push('\n');
+    }
+    Ok(csv_response(format!("{key}-history.csv"), out))
+}
+
 pub(crate) fn routes() -> axum::Router<App> {
     axum::Router::new()
         .route("/api/projects/{id}/reports/flow", get(flow_report))
@@ -719,4 +861,7 @@ pub(crate) fn routes() -> axum::Router<App> {
         .route("/api/dashboards/{id}/widgets", axum::routing::post(add_widget))
         .route("/api/dashboards/{id}/widgets/{widget_id}", delete(delete_widget))
         .route("/api/projects/{id}/export.csv", get(export_csv))
+        .route("/api/projects/{id}/history.csv", get(history_export))
+        .route("/api/sprints/{id}/export.csv", get(sprint_export))
+        .route("/api/releases/{id}/export.csv", get(release_export))
 }

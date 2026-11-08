@@ -48,7 +48,7 @@ async fn load_component(db: &mut PgConnection, tenant: Uuid, id: Uuid) -> ApiRes
     .ok_or_else(|| err(StatusCode::NOT_FOUND, "Component not found"))
 }
 
-async fn active_member(db: &mut PgConnection, tenant: Uuid, user: Uuid) -> ApiResult<bool> {
+pub(crate) async fn active_member(db: &mut PgConnection, tenant: Uuid, user: Uuid) -> ApiResult<bool> {
     sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM memberships WHERE tenant_id=$1 AND user_id=$2 AND disabled_at IS NULL)")
         .bind(tenant)
         .bind(user)

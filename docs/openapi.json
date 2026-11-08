@@ -2080,6 +2080,221 @@
         }
       }
     },
+    "/api/automations/{id}": {
+      "delete": {
+        "tags": [
+          "collab"
+        ],
+        "operationId": "delete_automation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted with its run log"
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admins only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "collab"
+        ],
+        "operationId": "update_automation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The rule after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admins only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/automations/{id}/runs": {
+      "get": {
+        "tags": [
+          "collab"
+        ],
+        "operationId": "automation_runs",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The last 50 runs, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admins only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/baselines/{id}/variance": {
       "get": {
         "tags": [
@@ -10569,6 +10784,93 @@
         ]
       }
     },
+    "/api/projects/{id}/automations/preview": {
+      "post": {
+        "tags": [
+          "collab"
+        ],
+        "operationId": "automation_preview",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationPreviewInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "What a rule with these conditions would match now. Nothing is changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationPreview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admins only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/projects/{id}/baselines": {
       "get": {
         "tags": [
@@ -12656,6 +12958,83 @@
         ]
       }
     },
+    "/api/projects/{id}/history.csv": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "operationId": "history_export",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Status and field changes of the project's issues as CSV (at most 10000 rows, newest first)",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/projects/{id}/home-page": {
       "get": {
         "tags": [
@@ -12798,6 +13177,118 @@
         ]
       }
     },
+    "/api/projects/{id}/import/asana": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "import_asana",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "dry_run",
+            "in": "path",
+            "description": "Default true: report only. Send false to create the issues.",
+            "required": true,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "create_statuses",
+            "in": "path",
+            "description": "Create statuses that the file names but the project lacks. Default false.",
+            "required": true,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "An Asana project CSV export. Reads Task ID, Name, Section/Column, Notes, Tags, Completed",
+          "content": {
+            "text/csv": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Report. Check committed and errors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CsvImportReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The file cannot be read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admins only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/projects/{id}/import/csv": {
       "post": {
         "tags": [
@@ -12844,6 +13335,118 @@
           "description": "CSV with a header row. Columns: Summary (required), Issue Key (required), Issue Type, Priority, Status, Description",
           "content": {
             "text/csv": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Report. Check committed and errors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CsvImportReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The file cannot be read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admins only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/projects/{id}/import/github": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "import_github",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "dry_run",
+            "in": "path",
+            "description": "Default true: report only. Send false to create the issues.",
+            "required": true,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "create_statuses",
+            "in": "path",
+            "description": "Create statuses that the file names but the project lacks. Default false.",
+            "required": true,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "GitHub issues as a JSON array (from the issues API). Pull requests are skipped. Reads number, title, body, state, labels",
+          "content": {
+            "application/json": {
               "schema": {
                 "type": "string"
               }
@@ -13158,6 +13761,230 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/JiraExtrasReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The file cannot be read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admins only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/projects/{id}/import/linear": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "import_linear",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "dry_run",
+            "in": "path",
+            "description": "Default true: report only. Send false to create the issues.",
+            "required": true,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "create_statuses",
+            "in": "path",
+            "description": "Create statuses that the file names but the project lacks. Default false.",
+            "required": true,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "A Linear issues CSV export. Reads ID, Title, Description, Status, Priority, Labels",
+          "content": {
+            "text/csv": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Report. Check committed and errors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CsvImportReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The file cannot be read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace admins only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/projects/{id}/import/trello": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "operationId": "import_trello",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "dry_run",
+            "in": "path",
+            "description": "Default true: report only. Send false to create the issues.",
+            "required": true,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "create_statuses",
+            "in": "path",
+            "description": "Create statuses that the file names but the project lacks. Default false.",
+            "required": true,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "A Trello board export (JSON): reads name, lists, and cards (name, desc, idList, labels, closed, id)",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Report. Check committed and errors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CsvImportReport"
                 }
               }
             }
@@ -18411,6 +19238,73 @@
         ]
       }
     },
+    "/api/releases/{id}/export.csv": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "operationId": "release_export",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active release scope as CSV (at most 10000 rows)",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/releases/{id}/history": {
       "get": {
         "tags": [
@@ -19772,6 +20666,73 @@
         ]
       }
     },
+    "/api/sprints/{id}/export.csv": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "operationId": "sprint_export",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Issues in the sprint as CSV (at most 10000 rows)",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/sprints/{id}/issues": {
       "post": {
         "tags": [
@@ -20254,6 +21215,152 @@
           },
           "404": {
             "description": "Not found for you",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/views/{id}/subscription": {
+      "get": {
+        "tags": [
+          "views"
+        ],
+        "operationId": "get_view_subscription",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Your subscription to this view, or null",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ViewSubscription"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "views"
+        ],
+        "operationId": "put_view_subscription",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ViewSubscriptionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The subscription after the change, or null when it was turned off",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ViewSubscription"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation or domain error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
             "content": {
               "application/json": {
                 "schema": {
@@ -21794,8 +22901,71 @@
           "name": {
             "type": "string"
           },
+          "schedule": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Only with `trigger_event: scheduled`: `hourly`, `daily` or `weekly`. The first run is soon after creation."
+          },
           "trigger_event": {
             "type": "string"
+          }
+        }
+      },
+      "AutomationPatch": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Turn the rule on or off. A disabled rule keeps its history and does not run."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "AutomationPreview": {
+        "type": "object",
+        "required": [
+          "checked",
+          "matching",
+          "sample"
+        ],
+        "properties": {
+          "checked": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Open issues checked (at most 300, newest first)."
+          },
+          "matching": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Issues whose current values satisfy every condition."
+          },
+          "sample": {
+            "type": "array",
+            "items": {},
+            "description": "Up to ten matching issues, as keys and titles."
+          }
+        }
+      },
+      "AutomationPreviewInput": {
+        "type": "object",
+        "required": [
+          "conditions"
+        ],
+        "properties": {
+          "conditions": {
+            "type": "array",
+            "items": {},
+            "description": "The conditions to test, in the same shape as a rule's conditions."
           }
         }
       },
@@ -22050,7 +23220,7 @@
         "properties": {
           "action": {
             "type": "string",
-            "description": "`set_status`, `set_priority` or `set_assignee`."
+            "description": "`set_status`, `set_priority`, `set_assignee`, `set_team`, `set_sprint`, `set_release`,\n`add_label`, `remove_label` or `add_watcher`."
           },
           "ids": {
             "type": "array",
@@ -22065,7 +23235,7 @@
               "string",
               "null"
             ],
-            "description": "The new status or priority, or a user id for `set_assignee`. Null clears the assignee."
+            "description": "The new status or priority; a user id for `set_assignee` or `add_watcher`; a team or sprint id\n(or `none`) for `set_team` and `set_sprint`; a planned release id for `set_release`; the label\ntext for `add_label` and `remove_label`. Null clears the assignee."
           }
         }
       },
@@ -25130,6 +26300,17 @@
           "workflow_min"
         ],
         "properties": {
+          "actions": {
+            "type": "object",
+            "description": "Per-action levels (2 or 3) for `manage_sprints`, `manage_releases` and `delete_issues`. An action\nnot listed uses `edit_min`. Replaces the saved map on every save.",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
           "edit_min": {
             "type": "integer",
             "format": "int32",
@@ -27178,6 +28359,42 @@
           }
         }
       },
+      "ViewSubscription": {
+        "type": "object",
+        "required": [
+          "cadence",
+          "next_run_at"
+        ],
+        "properties": {
+          "cadence": {
+            "type": "string",
+            "description": "`daily` or `weekly`."
+          },
+          "last_sent_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "next_run_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ViewSubscriptionInput": {
+        "type": "object",
+        "required": [
+          "cadence"
+        ],
+        "properties": {
+          "cadence": {
+            "type": "string",
+            "description": "`daily`, `weekly` or `off` (removes the subscription)."
+          }
+        }
+      },
       "VisibilityInput": {
         "type": "object",
         "required": [
@@ -27464,6 +28681,20 @@
           "trash_retention_days"
         ],
         "properties": {
+          "brand_color": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Accent colour as `#rrggbb`. Null when not set."
+          },
+          "brand_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Display name shown in place of the workspace name (Phase J5). Null when not set."
+          },
           "default_sprint_days": {
             "type": "integer",
             "format": "int32"
@@ -27505,6 +28736,20 @@
           "default_sprint_days"
         ],
         "properties": {
+          "brand_color": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Accent colour as `#rrggbb`; an empty string clears it. Omit to keep it."
+          },
+          "brand_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Display name; an empty string clears it. Omit to keep it."
+          },
           "default_sprint_days": {
             "type": "integer",
             "format": "int32"

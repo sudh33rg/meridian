@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Copy, Flag, Lock, Plus, X } from "lucide-react";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { errorMessage, request, send } from "../../lib/api";
+import { downloadCsv } from "../../lib/download";
 import type { Issue } from "../../lib/types";
 import { useToast } from "../shared/Toast";
 import {
@@ -167,6 +168,16 @@ export function ReleasesPanel() {
               </div>
             )}
             <div className="release-actions">
+              <button
+                className="secondary"
+                onClick={() =>
+                  downloadCsv(`/releases/${releaseId}/export.csv`, session.token, `${current.name}-scope.csv`).catch((e) =>
+                    setError(errorMessage(e)),
+                  )
+                }
+              >
+                Export scope CSV
+              </button>
               {open && !current.frozen_at && (
                 <button className="secondary" onClick={() => run(() => send(`/releases/${releaseId}`, session.token, "PATCH", { freeze: true }), "Scope frozen")}>
                   <Lock size={14} /> Freeze scope

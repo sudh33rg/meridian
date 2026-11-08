@@ -39,6 +39,8 @@ pub(crate) struct AutomationInput {
     /// Up to five actions for `custom` rules, each `{"type": ..., "value": ...}`. Types: set_priority, set_status,
     /// set_assignee (a member id, "me" or null), add_label, comment, notify_admins.
     pub(crate) actions: Option<Vec<Value>>,
+    /// Only with `trigger_event: scheduled`: `hourly`, `daily` or `weekly`. The first run is soon after creation.
+    pub(crate) schedule: Option<String>,
 }
 #[utoipa::path(get, path = "/api/projects/{id}/automations", tag = "collab", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Object>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn automations(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json<Vec<Value>>> {
@@ -62,10 +64,22 @@ pub(crate) async fn new_automation(
         "issue_status_changed",
         "issue_updated",
         "comment_added",
+        "scheduled",
     ]
     .contains(&v.trigger_event.as_str())
     {
         return Err(bad("Unsupported automation trigger"));
+    }
+    let scheduled = v.trigger_event == "scheduled";
+    if scheduled {
+        if !matches!(v.schedule.as_deref(), Some("hourly") | Some("daily") | Some("weekly")) {
+            return Err(bad("A scheduled rule needs a schedule: hourly, daily or weekly"));
+        }
+        if v.action_type != "custom" {
+            return Err(bad("Only custom rules can be scheduled"));
+        }
+    } else if v.schedule.is_some() {
+        return Err(bad("A schedule applies only to scheduled rules"));
     }
     let conditions = v.conditions.clone().unwrap_or_default();
     let actions = v.actions.clone().unwrap_or_default();
@@ -79,31 +93,7 @@ pub(crate) async fn new_automation(
             if actions.is_empty() || actions.len() > 5 {
                 return Err(bad("A custom rule needs between 1 and 5 actions"));
             }
-            if conditions.len() > 10 {
-                return Err(bad("A rule can have at most 10 conditions"));
-            }
-            for c in &conditions {
-                let field = c.get("field").and_then(Value::as_str).unwrap_or("");
-                let op = c.get("op").and_then(Value::as_str).unwrap_or("");
-                let value = c.get("value").and_then(Value::as_str).unwrap_or("");
-                if ![
-                    "priority",
-                    "kind",
-                    "status",
-                    "label",
-                    "team_id",
-                    "assignee_id",
-                ]
-                .contains(&field)
-                    || !["eq", "neq"].contains(&op)
-                    || value.is_empty()
-                    || value.len() > 200
-                {
-                    return Err(bad(
-                        "Each condition needs a known field, op eq or neq, and a value",
-                    ));
-                }
-            }
+            validate_conditions(&conditions)?;
             for a in &actions {
                 let kind = a.get("type").and_then(Value::as_str).unwrap_or("");
                 let value = a.get("value");
@@ -128,11 +118,32 @@ pub(crate) async fn new_automation(
         }
         _ => return Err(bad("Unsupported automation action")),
     }
-    let rule = sqlx::query_scalar("INSERT INTO automation_rules(tenant_id,project_id,name,trigger_event,action_type,created_by,conditions,actions) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING to_jsonb(automation_rules)")
+    let rule = sqlx::query_scalar("INSERT INTO automation_rules(tenant_id,project_id,name,trigger_event,action_type,created_by,conditions,actions,schedule,next_run_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,CASE WHEN $10 THEN now() ELSE NULL END) RETURNING to_jsonb(automation_rules)")
         .bind(i.tenant_id).bind(p).bind(v.name.trim()).bind(v.trigger_event).bind(v.action_type).bind(i.user_id)
-        .bind(Value::Array(conditions)).bind(Value::Array(actions)).fetch_one(&mut *tx).await.map_err(db_err)?;
+        .bind(Value::Array(conditions)).bind(Value::Array(actions)).bind(v.schedule).bind(scheduled)
+        .fetch_one(&mut *tx).await.map_err(db_err)?;
     Ok((StatusCode::CREATED, Json(rule)))
 }
+/// Checks rule conditions: at most ten, each with a known field, op `eq` or `neq`, and a value.
+fn validate_conditions(conditions: &[Value]) -> ApiResult<()> {
+    if conditions.len() > 10 {
+        return Err(bad("A rule can have at most 10 conditions"));
+    }
+    for c in conditions {
+        let field = c.get("field").and_then(Value::as_str).unwrap_or("");
+        let op = c.get("op").and_then(Value::as_str).unwrap_or("");
+        let value = c.get("value").and_then(Value::as_str).unwrap_or("");
+        if !["priority", "kind", "status", "label", "team_id", "assignee_id"].contains(&field)
+            || !["eq", "neq"].contains(&op)
+            || value.is_empty()
+            || value.len() > 200
+        {
+            return Err(bad("Each condition needs a known field, op eq or neq, and a value"));
+        }
+    }
+    Ok(())
+}
+
 /// Runs the enabled rules for one event on one issue. Actions write directly and never fire other
 /// rules, so a rule cannot start a chain. Every change an action makes is recorded in the history.
 pub(crate) async fn run_automations(
@@ -147,33 +158,37 @@ pub(crate) async fn run_automations(
     )
     .bind(i.tenant_id).bind(project).bind(event).fetch_all(&mut *db).await.map_err(db_err)?;
     for (rule, action, conditions, actions) in rules {
-        if action == "custom" {
-            if !conditions_hold(db, i.tenant_id, entity, &conditions).await? {
-                continue;
-            }
-            let before = crate::api::history::issue_json(db, i.tenant_id, entity).await?;
-            for a in actions
-                .as_array()
-                .cloned()
-                .unwrap_or_default()
-                .iter()
-                .take(5)
-            {
-                run_action(db, i, project, entity, a).await?;
-            }
-            let after = crate::api::history::issue_json(db, i.tenant_id, entity).await?;
-            crate::api::history::record_row_changes(
-                db,
-                i.tenant_id,
-                i.user_id,
-                entity,
-                &before,
-                &after,
-            )
-            .await?;
-        } else {
+        apply_rule(db, i, project, entity, rule, &action, &conditions, &actions).await?;
+    }
+    Ok(())
+}
+
+/// Runs one enabled rule on one issue. Returns whether the rule ran (its conditions held).
+#[allow(clippy::too_many_arguments)]
+pub(crate) async fn apply_rule(
+    db: &mut PgConnection,
+    i: &Identity,
+    project: Uuid,
+    entity: Uuid,
+    rule: Uuid,
+    action: &str,
+    conditions: &Value,
+    actions: &Value,
+) -> ApiResult<bool> {
+    if action == "custom" {
+        if !conditions_hold(db, i.tenant_id, entity, conditions).await? {
+            return Ok(false);
+        }
+        let before = crate::api::history::issue_json(db, i.tenant_id, entity).await?;
+        for a in actions.as_array().cloned().unwrap_or_default().iter().take(5) {
+            run_action(db, i, project, entity, a).await?;
+        }
+        let after = crate::api::history::issue_json(db, i.tenant_id, entity).await?;
+        crate::api::history::record_row_changes(db, i.tenant_id, i.user_id, entity, &before, &after).await?;
+    } else {
+        {
             // Only allowlisted, non-recursive presets.
-            match action.as_str() {
+            match action {
                 "set_priority_high" => {
                     sqlx::query("UPDATE issues SET priority='high',updated_at=now() WHERE tenant_id=$1 AND id=$2 AND priority IN ('low','medium')")
                         .bind(i.tenant_id).bind(entity).execute(&mut *db).await.map_err(db_err)?;
@@ -185,17 +200,83 @@ pub(crate) async fn run_automations(
                 _ => {}
             }
         }
-        sqlx::query(
-            "INSERT INTO automation_runs(tenant_id,rule_id,entity_id,result) VALUES($1,$2,$3,'ok')",
-        )
+    }
+    sqlx::query("INSERT INTO automation_runs(tenant_id,rule_id,entity_id,result) VALUES($1,$2,$3,'ok')")
         .bind(i.tenant_id)
         .bind(rule)
         .bind(entity)
         .execute(&mut *db)
         .await
         .map_err(db_err)?;
+    Ok(true)
+}
+
+/// Scheduled rules (Phase I1). Each enabled scheduled rule runs its conditions over up to 200 open
+/// issues of its project, with its creator's authority: it is skipped while the creator is no longer
+/// an owner or admin. Then its next run moves forward by its schedule. Returns the issues it ran on.
+pub(crate) async fn run_due_scheduled_rules(db: &sqlx::PgPool) -> Result<u64, String> {
+    let due: Vec<(Uuid, Uuid, Uuid, Uuid, String, Value, Value)> = sqlx::query_as(
+        "SELECT id, tenant_id, project_id, created_by, schedule, conditions, actions FROM automation_rules \
+         WHERE trigger_event='scheduled' AND enabled=true AND next_run_at IS NOT NULL AND next_run_at <= now() \
+         ORDER BY next_run_at LIMIT 20",
+    )
+    .fetch_all(db)
+    .await
+    .map_err(|e| e.to_string())?;
+    let mut ran = 0u64;
+    for (rule, tenant, project, creator, schedule, conditions, actions) in due {
+        let step = match schedule.as_str() {
+            "hourly" => "1 hour",
+            "weekly" => "7 days",
+            _ => "1 day",
+        };
+        let mut tx = crate::db::tenant_tx(db, tenant)
+            .await
+            .map_err(|_| "could not open a tenant transaction".to_string())?;
+        let role: Option<String> = sqlx::query_scalar(
+            "SELECT role FROM memberships WHERE tenant_id=$1 AND user_id=$2 AND disabled_at IS NULL",
+        )
+        .bind(tenant)
+        .bind(creator)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
+        if matches!(role.as_deref(), Some("owner") | Some("admin")) {
+            let identity = Identity {
+                tenant_id: tenant,
+                user_id: creator,
+                role: role.clone().unwrap_or_default(),
+            };
+            let issues: Vec<Uuid> = sqlx::query_scalar(
+                "SELECT id FROM issues WHERE tenant_id=$1 AND project_id=$2 AND archived_at IS NULL AND trashed_at IS NULL \
+                 ORDER BY updated_at DESC LIMIT 200",
+            )
+            .bind(tenant)
+            .bind(project)
+            .fetch_all(&mut *tx)
+            .await
+            .map_err(|e| e.to_string())?;
+            for issue in issues {
+                let held = apply_rule(&mut tx, &identity, project, issue, rule, "custom", &conditions, &actions)
+                    .await
+                    .map_err(|_| "a scheduled rule failed on an issue".to_string())?;
+                if held {
+                    ran += 1;
+                }
+            }
+        }
+        sqlx::query(
+            "UPDATE automation_rules SET last_run_at=now(), next_run_at=now() + $1::interval WHERE tenant_id=$2 AND id=$3",
+        )
+        .bind(step)
+        .bind(tenant)
+        .bind(rule)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
+        tx.commit().await.map_err(|e| e.to_string())?;
     }
-    Ok(())
+    Ok(ran)
 }
 
 /// True when every condition holds for the issue's current values.
@@ -482,6 +563,138 @@ pub(crate) async fn decide_approval(
     })?))
 }
 
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct AutomationPatch {
+    /// Turn the rule on or off. A disabled rule keeps its history and does not run.
+    pub(crate) enabled: Option<bool>,
+    pub(crate) name: Option<String>,
+}
+
+#[utoipa::path(patch, path = "/api/automations/{id}", tag = "collab", params(("id" = Uuid, Path, description = "Resource id")), request_body = AutomationPatch, responses((status = 200, description = "The rule after the change", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Workspace admins only", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn update_automation(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+    Json(v): Json<AutomationPatch>,
+) -> ApiResult<Json<Value>> {
+    let i = tx.identity.clone();
+    require_admin(&i)?;
+    if let Some(name) = &v.name {
+        validate_title(name)?;
+    }
+    let rule: Option<Value> = sqlx::query_scalar(
+        "UPDATE automation_rules SET enabled=COALESCE($1,enabled), name=COALESCE($2,name) \
+         WHERE tenant_id=$3 AND id=$4 RETURNING to_jsonb(automation_rules)",
+    )
+    .bind(v.enabled)
+    .bind(v.name.as_ref().map(|n| n.trim().to_string()))
+    .bind(i.tenant_id)
+    .bind(id)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    let rule = rule.ok_or_else(|| err(StatusCode::NOT_FOUND, "Rule not found"))?;
+    Ok(Json(rule))
+}
+
+#[utoipa::path(delete, path = "/api/automations/{id}", tag = "collab", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 204, description = "Deleted with its run log"), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Workspace admins only", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn delete_automation(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<StatusCode> {
+    let i = tx.identity.clone();
+    require_admin(&i)?;
+    sqlx::query("DELETE FROM automation_runs WHERE tenant_id=$1 AND rule_id=$2")
+        .bind(i.tenant_id)
+        .bind(id)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    let removed = sqlx::query("DELETE FROM automation_rules WHERE tenant_id=$1 AND id=$2")
+        .bind(i.tenant_id)
+        .bind(id)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    if removed.rows_affected() == 0 {
+        return Err(err(StatusCode::NOT_FOUND, "Rule not found"));
+    }
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(get, path = "/api/automations/{id}/runs", tag = "collab", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "The last 50 runs, newest first", body = Vec<Object>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Workspace admins only", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn automation_runs(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Vec<Value>>> {
+    let i = tx.identity.clone();
+    require_admin(&i)?;
+    let rows: Vec<Value> = sqlx::query_scalar(
+        "SELECT jsonb_build_object('id',r.id,'issue_number',i.number,'issue_title',i.title,'result',r.result,'at',r.created_at) \
+         FROM automation_runs r LEFT JOIN issues i ON i.tenant_id=r.tenant_id AND i.id=r.entity_id \
+         WHERE r.tenant_id=$1 AND r.rule_id=$2 ORDER BY r.id DESC LIMIT 50",
+    )
+    .bind(i.tenant_id)
+    .bind(id)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    Ok(Json(rows))
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub(crate) struct AutomationPreviewInput {
+    /// The conditions to test, in the same shape as a rule's conditions.
+    pub(crate) conditions: Vec<Value>,
+}
+
+#[derive(Serialize, utoipa::ToSchema)]
+pub(crate) struct AutomationPreview {
+    /// Open issues checked (at most 300, newest first).
+    pub(crate) checked: i64,
+    /// Issues whose current values satisfy every condition.
+    pub(crate) matching: i64,
+    /// Up to ten matching issues, as keys and titles.
+    pub(crate) sample: Vec<Value>,
+}
+
+#[utoipa::path(post, path = "/api/projects/{id}/automations/preview", tag = "collab", params(("id" = Uuid, Path, description = "Resource id")), request_body = AutomationPreviewInput, responses((status = 200, description = "What a rule with these conditions would match now. Nothing is changed", body = AutomationPreview), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Workspace admins only", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn automation_preview(
+    mut tx: Tx,
+    Path(p): Path<Uuid>,
+    Json(v): Json<AutomationPreviewInput>,
+) -> ApiResult<Json<AutomationPreview>> {
+    let i = tx.identity.clone();
+    require_admin(&i)?;
+    valid_project(&mut tx, &i, p).await?;
+    validate_conditions(&v.conditions)?;
+    let conditions = Value::Array(v.conditions);
+    let issues: Vec<(Uuid, i64, String)> = sqlx::query_as(
+        "SELECT id, number, title FROM issues WHERE tenant_id=$1 AND project_id=$2 AND archived_at IS NULL AND trashed_at IS NULL \
+         ORDER BY updated_at DESC LIMIT 300",
+    )
+    .bind(i.tenant_id)
+    .bind(p)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    let key: String = sqlx::query_scalar("SELECT key FROM projects WHERE tenant_id=$1 AND id=$2")
+        .bind(i.tenant_id)
+        .bind(p)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    let checked = issues.len() as i64;
+    let mut matching = 0i64;
+    let mut sample = Vec::new();
+    for (id, number, title) in issues {
+        if conditions_hold(&mut tx, i.tenant_id, id, &conditions).await? {
+            matching += 1;
+            if sample.len() < 10 {
+                sample.push(json!({"key": format!("{key}-{number}"), "title": title}));
+            }
+        }
+    }
+    Ok(Json(AutomationPreview {
+        checked,
+        matching,
+        sample,
+    }))
+}
+
 pub(crate) fn routes() -> Router<App> {
     Router::new()
         .route("/api/projects/{id}/activity", get(activity))
@@ -490,6 +703,15 @@ pub(crate) fn routes() -> Router<App> {
             "/api/projects/{id}/automations",
             get(automations).post(new_automation),
         )
+        .route(
+            "/api/projects/{id}/automations/preview",
+            post(automation_preview),
+        )
+        .route(
+            "/api/automations/{id}",
+            patch(update_automation).delete(delete_automation),
+        )
+        .route("/api/automations/{id}/runs", get(automation_runs))
         .route("/api/notifications", get(inbox))
         .route("/api/notifications/{id}/read", post(mark_read))
         .route(

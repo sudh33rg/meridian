@@ -3,7 +3,19 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { errorMessage, request, send } from "../../lib/api";
 import { useToast } from "../shared/Toast";
 
-type Scheme = { member_level: number; edit_min: number; workflow_min: number };
+type Scheme = {
+  member_level: number;
+  edit_min: number;
+  workflow_min: number;
+  actions?: Record<string, number>;
+};
+
+/** Actions that can need their own level. A level that is not set uses "changing issues". */
+const ACTION_LABELS: [string, string][] = [
+  ["manage_sprints", "Planning sprints (create, add, remove, edit, start, complete)"],
+  ["manage_releases", "Planning releases (create, scope, freeze, release, cancel)"],
+  ["delete_issues", "Moving issues to the trash"],
+];
 
 /** The project's permission scheme: what members may change. Project admins change it. */
 export function PermissionScheme({ token, projectId }: { token: string; projectId: string }) {
@@ -16,7 +28,7 @@ export function PermissionScheme({ token, projectId }: { token: string; projectI
     enabled: !!projectId,
   });
   const save = useMutation({
-    mutationFn: (next: Scheme) => send<Scheme>(`/projects/${projectId}/permission-scheme`, token, "PUT", next),
+    mutationFn: (next: Scheme) => send<Scheme>(`/projects/${projectId}/permission-scheme`, token, "PUT", { actions: {}, ...next }),
     onSuccess: () => {
       setDraft(null);
       toast("Permission scheme saved");
@@ -62,6 +74,26 @@ export function PermissionScheme({ token, projectId }: { token: string; projectI
             <option value={3}>Admin</option>
           </select>
         </label>
+        {ACTION_LABELS.map(([action, label]) => (
+          <label key={action}>
+            <span className="muted small">{label} needs</span>
+            <select
+              aria-label={`${label} needs`}
+              value={current.actions?.[action] ?? 0}
+              onChange={(e) => {
+                const level = Number(e.target.value);
+                const actions = { ...(current.actions ?? {}) };
+                if (level === 0) delete actions[action];
+                else actions[action] = level;
+                setDraft({ ...current, actions });
+              }}
+            >
+              <option value={0}>Same as changing issues</option>
+              <option value={2}>Member</option>
+              <option value={3}>Admin</option>
+            </select>
+          </label>
+        ))}
         {draft && (
           <button className="primary" disabled={save.isPending} onClick={() => save.mutate(draft)}>
             Save permissions

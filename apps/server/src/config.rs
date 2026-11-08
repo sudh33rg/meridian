@@ -44,6 +44,9 @@ pub(crate) struct Config {
     pub(crate) scan_required: bool,
     pub(crate) auth_per_min: u32,
     pub(crate) global_per_min: u32,
+    /// Count requests per client in PostgreSQL, so every replica shares one limit (Phase N, Constitution IV).
+    /// Off by default: the in-process limiter is used alone, which is cheaper and fine for one instance.
+    pub(crate) shared_rate_limit: bool,
 }
 
 fn env_num<T: std::str::FromStr>(key: &str, default: T) -> T {
@@ -123,6 +126,7 @@ impl Config {
                 .unwrap_or(production),
             auth_per_min: env_num("RATE_LIMIT_AUTH_PER_MIN", 30),
             global_per_min: env_num("RATE_LIMIT_GLOBAL_PER_MIN", 1200),
+            shared_rate_limit: env_bool("RATE_LIMIT_SHARED"),
         }
     }
 }

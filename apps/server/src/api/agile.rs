@@ -476,6 +476,7 @@ pub(crate) async fn add_issues_to_sprint(
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "sprints", id).await?;
     require_editor(&i)?;
+    ensure_action_on(&mut tx, "sprints", id, "manage_sprints").await?;
     let ids = distinct_ids(&v.issue_ids)?;
     let sprint = load_sprint(&mut tx, i.tenant_id, id).await?;
     if sprint.state == "completed" {
@@ -557,6 +558,7 @@ pub(crate) async fn remove_issue_from_sprint(
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "sprints", id).await?;
     require_editor(&i)?;
+    ensure_action_on(&mut tx, "sprints", id, "manage_sprints").await?;
     let sprint = load_sprint(&mut tx, i.tenant_id, id).await?;
     if sprint.state == "completed" {
         return Err(bad("Completed sprints are closed"));
@@ -621,6 +623,7 @@ pub(crate) async fn update_sprint(
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "sprints", id).await?;
     require_editor(&i)?;
+    ensure_action_on(&mut tx, "sprints", id, "manage_sprints").await?;
     let current = load_sprint(&mut tx, i.tenant_id, id).await?;
     let meta_change = v.name.is_some() || v.goal.is_some() || v.starts_at.is_some() || v.ends_at.is_some();
     if v.state.is_none() && !meta_change {

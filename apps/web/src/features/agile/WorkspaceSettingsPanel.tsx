@@ -5,7 +5,7 @@ import { useWorkspace } from "../workspace/useWorkspace";
 import { errorMessage, request, send } from "../../lib/api";
 import { useToast } from "../shared/Toast";
 
-type Settings = { timezone: string; working_days: number[]; week_start: number; default_sprint_days: number; locale: string; trash_retention_days: number };
+type Settings = { timezone: string; working_days: number[]; week_start: number; default_sprint_days: number; locale: string; trash_retention_days: number; brand_name?: string | null; brand_color?: string | null };
 
 const DAYS = [
   [1, "Mon"],
@@ -67,6 +67,34 @@ export function WorkspaceSettingsPanel() {
           />
         </label>
         <label>
+          Brand name (shown instead of the workspace name)
+          <input
+            value={current.brand_name ?? ""}
+            disabled={!admin}
+            maxLength={60}
+            placeholder="Workspace name"
+            onChange={(e) => setDraft({ ...current, brand_name: e.target.value })}
+          />
+        </label>
+        <label>
+          Accent colour
+          <input
+            type="color"
+            value={current.brand_color || "#3b5bdb"}
+            disabled={!admin}
+            onChange={(e) => setDraft({ ...current, brand_color: e.target.value })}
+          />
+          {current.brand_color && admin && (
+            <button
+              type="button"
+              className="secondary small-btn"
+              onClick={() => setDraft({ ...current, brand_color: "" })}
+            >
+              Use the default colour
+            </button>
+          )}
+        </label>
+        <label>
           Week starts on
           <select
             value={current.week_start}
@@ -118,9 +146,15 @@ export function WorkspaceSettingsPanel() {
           onClick={async () => {
             if (!draft) return;
             try {
-              await send("/workspace/settings", session.token, "PUT", draft);
+              // An empty brand name or colour clears it; the draft keeps the other settings as they are.
+              await send("/workspace/settings", session.token, "PUT", {
+                ...draft,
+                brand_name: draft.brand_name ?? null,
+                brand_color: draft.brand_color ?? null,
+              });
               setDraft(null);
               await qc.invalidateQueries({ queryKey: ["workspace-settings"] });
+              await qc.invalidateQueries({ queryKey: ["workspace-brand"] });
               toast("Workspace settings saved");
             } catch (e) {
               setError(errorMessage(e));

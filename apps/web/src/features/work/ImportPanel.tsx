@@ -27,12 +27,23 @@ type JiraExtras = {
 
 /** Imports issues from a CSV export, or from a Jira issues JSON file (with sprints, versions and history). The file is checked first (a dry run); the import button appears
  * only when the check finds no problems. Workspace admins only; the server refuses other members. */
+const SOURCE_ENDPOINTS: Record<string, string> = {
+  csv: "import/csv",
+  jira: "import/jira",
+  trello: "import/trello",
+  github: "import/github",
+  linear: "import/linear",
+  asana: "import/asana",
+};
+const SOURCE_JSON = new Set(["jira", "trello", "github"]);
+
 export function ImportPanel({ token, projectId }: { token: string; projectId: string }) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [text, setText] = useState<string | null>(null);
   const [fileName, setFileName] = useState("");
   const [createStatuses, setCreateStatuses] = useState(false);
+  const [source, setSource] = useState("auto");
   const [report, setReport] = useState<ImportReport | null>(null);
   const [extras, setExtras] = useState<JiraExtras | null>(null);
   const [busy, setBusy] = useState(false);
@@ -42,19 +53,19 @@ export function ImportPanel({ token, projectId }: { token: string; projectId: st
     if (text === null) return;
     setBusy(true);
     try {
-      const r = isJson
-        ? await api<ImportReport>(`/projects/${projectId}/import/jira?dry_run=${dryRun}&create_statuses=${createStatuses}`, token, {
-            method: "POST",
-            body: text,
-            headers: { "Content-Type": "application/json" },
-          })
-        : await api<ImportReport>(`/projects/${projectId}/import/csv?dry_run=${dryRun}&create_statuses=${createStatuses}`, token, {
-            method: "POST",
-            body: text,
-            headers: { "Content-Type": "text/csv" },
-          });
+      const target = source === "auto" ? (isJson ? "jira" : "csv") : source;
+      const endpoint = SOURCE_ENDPOINTS[target] ?? "import/csv";
+      const r = await api<ImportReport>(
+        `/projects/${projectId}/${endpoint}?dry_run=${dryRun}&create_statuses=${createStatuses}`,
+        token,
+        {
+          method: "POST",
+          body: text,
+          headers: { "Content-Type": SOURCE_JSON.has(target) ? "application/json" : "text/csv" },
+        },
+      );
       setReport(r);
-      if (isJson) {
+      if (target === "jira") {
         // Sprints, versions and status history come after the issues exist. The same dry run applies.
         const x = await api<JiraExtras>(`/projects/${projectId}/import/jira/extras?dry_run=${dryRun}`, token, {
           method: "POST",
@@ -80,13 +91,26 @@ export function ImportPanel({ token, projectId }: { token: string; projectId: st
   return (
     <section className="workflow" aria-label="Import issues from CSV">
       <div className="workflow-head">
-        <b>Import from CSV</b>
+        <b>Import issues</b>
         <span className="muted small">
           Needs Summary and Issue Key columns. Optional: Issue Type, Priority, Status, Description. Repeat imports skip
-          issues they already created.
+          issues they already created. Other trackers: Jira (JSON), Trello (board JSON), GitHub (issues JSON), Linear and
+          Asana (CSV export).
         </span>
       </div>
       <div className="workflow-add">
+        <label className="small">
+          Source
+          <select aria-label="Import source" value={source} onChange={(e) => setSource(e.target.value)}>
+            <option value="auto">Meridian CSV or Jira JSON (by file type)</option>
+            <option value="csv">Meridian CSV</option>
+            <option value="jira">Jira JSON</option>
+            <option value="trello">Trello board JSON</option>
+            <option value="github">GitHub issues JSON</option>
+            <option value="linear">Linear CSV</option>
+            <option value="asana">Asana CSV</option>
+          </select>
+        </label>
         <input
           type="file"
           accept=".csv,.json,text/csv,application/json"

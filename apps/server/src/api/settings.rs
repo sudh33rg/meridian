@@ -17,6 +17,10 @@ pub(crate) struct WorkspaceSettings {
     pub(crate) locale: String,
     /// Days a trashed issue waits before it is purged, 7 to 365 (Phase J4). Audit records are kept.
     pub(crate) trash_retention_days: i32,
+    /// Display name shown in place of the workspace name (Phase J5). Null when not set.
+    pub(crate) brand_name: Option<String>,
+    /// Accent colour as `#rrggbb`. Null when not set.
+    pub(crate) brand_color: Option<String>,
 }
 
 const DEFAULTS: (&str, &[i16], i16, i32) = ("UTC", &[1, 2, 3, 4, 5], 1, 14);
@@ -27,7 +31,7 @@ pub(crate) const LOCALES: [&str; 2] = ["en", "es"];
 pub(crate) async fn get_settings(mut tx: Tx) -> ApiResult<Json<WorkspaceSettings>> {
     let i = tx.identity.clone();
     let row: Option<WorkspaceSettings> = sqlx::query_as(
-        "SELECT timezone, working_days, week_start, default_sprint_days, locale, trash_retention_days FROM workspace_settings WHERE tenant_id=$1",
+        "SELECT timezone, working_days, week_start, default_sprint_days, locale, trash_retention_days, brand_name, brand_color FROM workspace_settings WHERE tenant_id=$1",
     )
     .bind(i.tenant_id)
     .fetch_optional(&mut *tx)
@@ -40,6 +44,8 @@ pub(crate) async fn get_settings(mut tx: Tx) -> ApiResult<Json<WorkspaceSettings
         default_sprint_days: DEFAULTS.3,
         locale: "en".into(),
         trash_retention_days: 30,
+        brand_name: None,
+        brand_color: None,
     })))
 }
 
@@ -53,6 +59,10 @@ pub(crate) struct WorkspaceSettingsInput {
     pub(crate) locale: Option<String>,
     /// Days a trashed issue waits before purge, 7 to 365. Omit to keep the current setting.
     pub(crate) trash_retention_days: Option<i32>,
+    /// Display name; an empty string clears it. Omit to keep it.
+    pub(crate) brand_name: Option<String>,
+    /// Accent colour as `#rrggbb`; an empty string clears it. Omit to keep it.
+    pub(crate) brand_color: Option<String>,
 }
 
 #[utoipa::path(put, path = "/api/workspace/settings", tag = "org", request_body = WorkspaceSettingsInput, responses((status = 200, description = "Success", body = WorkspaceSettings), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody)), security(("bearer" = [])))]
@@ -84,17 +94,33 @@ pub(crate) async fn put_settings(mut tx: Tx, Json(v): Json<WorkspaceSettingsInpu
             return Err(bad("trash_retention_days must be between 7 and 365"));
         }
     }
+    if let Some(name) = v.brand_name.as_deref().map(str::trim).filter(|n| !n.is_empty()) {
+        if name.chars().count() > 60 {
+            return Err(bad("The brand name is at most 60 characters"));
+        }
+    }
+    if let Some(color) = v.brand_color.as_deref().filter(|c| !c.is_empty()) {
+        let hex = color.len() == 7
+            && color.starts_with('#')
+            && color[1..].chars().all(|c| c.is_ascii_hexdigit());
+        if !hex {
+            return Err(bad("The brand colour is #rrggbb"));
+        }
+    }
     if let Some(l) = &v.locale {
         if !LOCALES.contains(&l.as_str()) {
             return Err(bad("locale must be en or es"));
         }
     }
     let row: WorkspaceSettings = sqlx::query_as(
-        "INSERT INTO workspace_settings(tenant_id,timezone,working_days,week_start,default_sprint_days,locale,trash_retention_days) VALUES($1,$2,$3,$4,$5,COALESCE($6,'en'),COALESCE($7,30)) \
+        "INSERT INTO workspace_settings(tenant_id,timezone,working_days,week_start,default_sprint_days,locale,trash_retention_days,brand_name,brand_color) \
+         VALUES($1,$2,$3,$4,$5,COALESCE($6,'en'),COALESCE($7,30),NULLIF($8,''),NULLIF($9,'')) \
          ON CONFLICT (tenant_id) DO UPDATE SET timezone=EXCLUDED.timezone, working_days=EXCLUDED.working_days, \
          week_start=EXCLUDED.week_start, default_sprint_days=EXCLUDED.default_sprint_days, \
-         locale=COALESCE($6, workspace_settings.locale), trash_retention_days=COALESCE($7, workspace_settings.trash_retention_days), updated_at=now() \
-         RETURNING timezone, working_days, week_start, default_sprint_days, locale, trash_retention_days",
+         locale=COALESCE($6, workspace_settings.locale), trash_retention_days=COALESCE($7, workspace_settings.trash_retention_days), \
+         brand_name=CASE WHEN $8::text IS NULL THEN workspace_settings.brand_name ELSE NULLIF($8,'') END, \
+         brand_color=CASE WHEN $9::text IS NULL THEN workspace_settings.brand_color ELSE NULLIF($9,'') END, updated_at=now() \
+         RETURNING timezone, working_days, week_start, default_sprint_days, locale, trash_retention_days, brand_name, brand_color",
     )
     .bind(i.tenant_id)
     .bind(tz)
@@ -103,6 +129,8 @@ pub(crate) async fn put_settings(mut tx: Tx, Json(v): Json<WorkspaceSettingsInpu
     .bind(v.default_sprint_days)
     .bind(v.locale.clone())
     .bind(v.trash_retention_days)
+    .bind(v.brand_name.clone())
+    .bind(v.brand_color.clone())
     .fetch_one(&mut *tx)
     .await
     .map_err(db_err)?;

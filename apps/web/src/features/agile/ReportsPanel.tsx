@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Plus } from "lucide-react";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { apiResponse, errorMessage, request, send } from "../../lib/api";
+import { downloadCsv } from "../../lib/download";
 import { useToast } from "../shared/Toast";
 import { formatMinutes } from "./IssueDepth";
 
@@ -133,6 +134,16 @@ export function ReportsPanel() {
           To
           <input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} />
         </label>
+        <button
+          className="secondary"
+          onClick={() =>
+            downloadCsv(`/projects/${selected}/history.csv`, session.token, `${key}-history.csv`).catch((e) =>
+              setError(errorMessage(e)),
+            )
+          }
+        >
+          <Download size={14} /> History CSV
+        </button>
         <a
           className="secondary export-link"
           href={`/api/projects/${selected}/export.csv`}

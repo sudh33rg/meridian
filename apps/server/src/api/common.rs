@@ -98,6 +98,48 @@ pub(crate) async fn scheme_of(db: &mut PgConnection, tenant: Uuid, project: Uuid
     })
 }
 
+/// Actions a project scheme can give their own level (Phase J1). Others use the edit level.
+pub(crate) const SCHEME_ACTIONS: [&str; 3] = ["manage_sprints", "manage_releases", "delete_issues"];
+
+/// Requires the level the project's scheme sets for `action`, falling back to the edit level. Viewers
+/// and members below it are refused with 403; a caller who cannot see the project gets 404.
+pub(crate) async fn ensure_action(tx: &mut Tx, project: Uuid, action: &str) -> ApiResult<()> {
+    let i = tx.identity.clone();
+    let row: Option<(i16, Option<i16>)> = sqlx::query_as(
+        "SELECT edit_min, (action_levels->>$3)::smallint FROM project_permission_schemes WHERE tenant_id=$1 AND project_id=$2",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .bind(action)
+    .fetch_optional(&mut **tx)
+    .await
+    .map_err(db_err)?;
+    let need = match row {
+        Some((_, Some(level))) => i32::from(level),
+        Some((edit, None)) => i32::from(edit),
+        None => DEFAULT_SCHEME.edit_min,
+    };
+    match project_level(tx, &i, project).await? {
+        Some(l) if l >= need => Ok(()),
+        Some(l) if l >= 1 => Err(forbidden()),
+        _ => Err(err(StatusCode::NOT_FOUND, "Project not found")),
+    }
+}
+
+/// `ensure_action` for an entity that belongs to a project (`sprints` or `releases`), found by id.
+pub(crate) async fn ensure_action_on(tx: &mut Tx, table: &'static str, id: Uuid, action: &str) -> ApiResult<()> {
+    let i = tx.identity.clone();
+    let sql = format!("SELECT project_id FROM {table} WHERE tenant_id=$1 AND id=$2");
+    let project: Uuid = sqlx::query_scalar(&sql)
+        .bind(i.tenant_id)
+        .bind(id)
+        .fetch_optional(&mut **tx)
+        .await
+        .map_err(db_err)?
+        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Not found"))?;
+    ensure_action(tx, project, action).await
+}
+
 /// Changing the workflow, custom fields and issue types needs the scheme's workflow level. Viewers and
 /// members who are below it are refused with 403; a caller who cannot see the project gets 404.
 pub(crate) async fn ensure_workflow(tx: &mut Tx, project: Uuid) -> ApiResult<()> {

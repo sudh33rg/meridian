@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BarChart3, ChevronDown, ChevronUp, Play, Square, X } from "lucide-react";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { errorMessage, request, send } from "../../lib/api";
+import { downloadCsv } from "../../lib/download";
 import { useToast } from "../shared/Toast";
 import { Burndown } from "./Burndown";
 import {
@@ -186,6 +187,16 @@ export function SprintCard({
               <Play size={14} /> Start sprint
             </button>
           )}
+          <button
+            className="secondary small-btn"
+            onClick={() =>
+              downloadCsv(`/sprints/${sprint.id}/export.csv`, session.token, `${sprint.name}.csv`).catch((e) =>
+                setError(errorMessage(e)),
+              )
+            }
+          >
+            Export CSV
+          </button>
           {sprint.state === "active" && !closing && (
             <button className="secondary small-btn" onClick={() => setClosing(true)}>
               <Square size={14} /> Complete sprint
