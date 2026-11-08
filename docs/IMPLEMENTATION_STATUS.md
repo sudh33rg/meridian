@@ -155,6 +155,12 @@ Checks: `cargo check`, `make openapi`, `make manifest`, `npm run build` pass. No
 
 Migrations `0001` to `0025` apply in order to an in-process PostgreSQL-compatible database. The API has not been run against a database for these phases and no new endpoint has been exercised. The web app builds and the changed files lint clean; no page has been viewed in a browser. Phases L, M, N and P are not started, and phases I2, I3, I6, I7, J2, J4, K2 to K5 are open (see the phase sections above and `REMAINING_PLAN.md`). Visual verification waits until the planned work is complete, as the working rules require.
 
+## Verification status for the fourth build: I6, F7 post-functions, K3 templates (8 November 2026)
+
+- **Built and compiled:** `cargo check`; `make openapi` and `make manifest` regenerated; `npm run build` and eslint on changed files pass.
+- **Not run against PostgreSQL.** Migrations `0026` to `0033` are unapplied. Check `0032` first: it drops the CHECK constraints on `transition_actions` by lookup and adds a new shape constraint. Then `0033`.
+- **Not viewed in a browser.** The post-function editor, the Jira JSON import (through the API only) and the page template picker are unchecked.
+
 ## Verification status for the third build: F8, F9 swimlanes, J3, J5 (8 November 2026)
 
 - **Built and compiled:** `cargo check` for the server; `make openapi` (186 paths) and `make manifest` regenerated; `npm run build` (`tsc -b` and Vite) and eslint on every changed web file pass.
