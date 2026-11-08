@@ -52,7 +52,9 @@ function refreshSession(): Promise<boolean> {
   return refreshing;
 }
 
-export async function api<T>(path: string, token?: string, init?: RequestInit): Promise<T> {
+/** One authenticated call with CSRF echo, a single transparent refresh and typed errors. Returns
+ * the successful response so callers can read headers such as `X-Next-Cursor` and `ETag`. */
+export async function apiResponse(path: string, token?: string, init?: RequestInit): Promise<Response> {
   const cookieMode = !token;
   const send = () => {
     const csrf = cookieMode && !isSafe(init?.method) ? csrfToken() : undefined;
@@ -83,10 +85,33 @@ export async function api<T>(path: string, token?: string, init?: RequestInit): 
       body.code || "unknown",
     );
   }
+  return response;
+}
+
+export async function api<T>(path: string, token?: string, init?: RequestInit): Promise<T> {
+  const response = await apiResponse(path, token, init);
   if (response.status === 204) return undefined as T;
   // 202 and friends may legitimately carry no body.
   const text = await response.text();
   return (text ? JSON.parse(text) : undefined) as T;
+}
+
+/** `request` that also returns the response headers. */
+export async function requestWithHeaders<T>(
+  token: string,
+  path: string,
+  init?: RequestInit,
+): Promise<{ data: T; headers: Headers }> {
+  const response = await apiResponse(path, token, init);
+  const text = response.status === 204 ? "" : await response.text();
+  return { data: (text ? JSON.parse(text) : undefined) as T, headers: response.headers };
+}
+
+/** A fresh `Idempotency-Key`. `randomUUID` needs a secure context, so fall back to random hex on
+ * plain-HTTP origins such as a LAN address. */
+export function newIdempotencyKey(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 export const send = <T>(path: string, token: string, method: string, body?: unknown) =>

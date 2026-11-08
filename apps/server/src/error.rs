@@ -31,6 +31,8 @@ pub enum ApiError {
     #[error("{0}")]
     Conflict(String),
     #[error("{0}")]
+    PreconditionFailed(String),
+    #[error("{0}")]
     Gone(String),
     #[error("{0}")]
     TooManyRequests(String),
@@ -50,6 +52,7 @@ impl ApiError {
             }
             Self::NotFound(_) => StatusCode::NOT_FOUND,
             Self::Conflict(_) => StatusCode::CONFLICT,
+            Self::PreconditionFailed(_) => StatusCode::PRECONDITION_FAILED,
             Self::Gone(_) => StatusCode::GONE,
             Self::TooManyRequests(_) => StatusCode::TOO_MANY_REQUESTS,
             Self::PlanLimit(_) => StatusCode::PAYMENT_REQUIRED,
@@ -67,6 +70,7 @@ impl ApiError {
             Self::PlanLimit(_) => "plan_limit",
             Self::NotFound(_) => "not_found",
             Self::Conflict(_) => "conflict",
+            Self::PreconditionFailed(_) => "precondition_failed",
             Self::Gone(_) => "gone",
             Self::TooManyRequests(_) => "rate_limited",
             Self::Database(_) | Self::Internal(_) => "internal",
@@ -104,6 +108,7 @@ pub fn err(status: StatusCode, msg: &str) -> ApiError {
         StatusCode::FORBIDDEN => ApiError::Forbidden,
         StatusCode::NOT_FOUND => ApiError::NotFound(m),
         StatusCode::CONFLICT => ApiError::Conflict(m),
+        StatusCode::PRECONDITION_FAILED => ApiError::PreconditionFailed(m),
         StatusCode::GONE => ApiError::Gone(m),
         StatusCode::TOO_MANY_REQUESTS => ApiError::TooManyRequests(m),
         _ => ApiError::Internal(m),

@@ -2,11 +2,39 @@
 use crate::api::collab::run_automations;
 use crate::api::common::*;
 use crate::*;
+use axum::http::header::{ETAG, IF_MATCH};
+use axum::http::HeaderValue;
 use axum::routing::{delete, patch};
+use chrono::SecondsFormat;
 use serde_json::{json, Value};
 
+/// The ETag of an issue is its `updated_at` timestamp at microsecond precision, quoted. Clients
+/// send it back as `If-Match` so an edit cannot silently overwrite a newer change.
+fn issue_etag(updated_at: &str) -> Option<HeaderValue> {
+    let ts = DateTime::parse_from_rfc3339(updated_at).ok()?.with_timezone(&Utc);
+    HeaderValue::from_str(&format!("\"{}\"", ts.to_rfc3339_opts(SecondsFormat::Micros, true))).ok()
+}
+
+/// Optional `If-Match` precondition holding the `updated_at` the client last saw.
+fn if_match(headers: &HeaderMap) -> ApiResult<Option<DateTime<Utc>>> {
+    let Some(value) = headers.get(IF_MATCH) else {
+        return Ok(None);
+    };
+    let raw = value
+        .to_str()
+        .map_err(|_| bad("If-Match must be the ETag of the issue"))?
+        .trim()
+        .trim_matches('"');
+    DateTime::parse_from_rfc3339(raw)
+        .map(|t| Some(t.with_timezone(&Utc)))
+        .map_err(|_| bad("If-Match must be the ETag of the issue"))
+}
+
 #[utoipa::path(get, path = "/api/issues/{id}/details", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn issue_details(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Value>> {
+pub(crate) async fn issue_details(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<(HeaderMap, Json<Value>)> {
     let i = tx.identity.clone();
     valid_issue(&mut tx, &i, id).await?;
     let row: Value =
@@ -16,7 +44,11 @@ pub(crate) async fn issue_details(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult
             .fetch_one(&mut *tx)
             .await
             .map_err(db_err)?;
-    Ok(Json(row))
+    let mut headers = HeaderMap::new();
+    if let Some(tag) = row.get("updated_at").and_then(Value::as_str).and_then(issue_etag) {
+        headers.insert(ETAG, tag);
+    }
+    Ok((headers, Json(row)))
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct IssueEdit {
@@ -33,14 +65,16 @@ pub(crate) struct IssueEdit {
     pub(crate) labels: Option<Vec<String>>,
     pub(crate) custom_fields: Option<Value>,
 }
-#[utoipa::path(patch, path = "/api/issues/{id}/edit", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), request_body = IssueEdit, responses((status = 200, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+#[utoipa::path(patch, path = "/api/issues/{id}/edit", tag = "issues", params(("id" = Uuid, Path, description = "Resource id"), ("If-Match" = Option<String>, Header, description = "Optional ETag from the issue details. If the issue changed since, the edit is refused with 412 and nothing is written")), request_body = IssueEdit, responses((status = 200, description = "Success", body = Object), (status = 412, description = "The issue changed since the If-Match ETag was issued", body = ErrorBody),(status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn edit_issue(
     mut tx: Tx,
     Path(id): Path<Uuid>,
+    headers: HeaderMap,
     Json(v): Json<IssueEdit>,
-) -> ApiResult<Json<Value>> {
+) -> ApiResult<(HeaderMap, Json<Value>)> {
     let i = tx.identity.clone();
     require_editor(&i)?;
+    let expected = if_match(&headers)?;
     let project = valid_issue(&mut tx, &i, id).await?;
     if let Some(ref s) = v.title {
         validate_title(s)?;
@@ -93,10 +127,21 @@ pub(crate) async fn edit_issue(
         }
     }
     // Nullable attributes are intentionally unchanged when omitted. Explicit clearing is a separate operation.
-    let row:Value=sqlx::query_scalar("UPDATE issues SET title=COALESCE($1,title),description=COALESCE($2,description),kind=COALESCE($3,kind),priority=COALESCE($4,priority),status=COALESCE($5,status),assignee_id=COALESCE($6,assignee_id),sprint_id=COALESCE($7,sprint_id),parent_id=COALESCE($8,parent_id),story_points=COALESCE($9,story_points),due_at=COALESCE($10,due_at),labels=COALESCE($11,labels),custom_fields=COALESCE($12,custom_fields),updated_at=now() WHERE tenant_id=$13 AND id=$14 AND archived_at IS NULL RETURNING to_jsonb(issues)")
+    let row: Option<Value> = sqlx::query_scalar("UPDATE issues SET title=COALESCE($1,title),description=COALESCE($2,description),kind=COALESCE($3,kind),priority=COALESCE($4,priority),status=COALESCE($5,status),assignee_id=COALESCE($6,assignee_id),sprint_id=COALESCE($7,sprint_id),parent_id=COALESCE($8,parent_id),story_points=COALESCE($9,story_points),due_at=COALESCE($10,due_at),labels=COALESCE($11,labels),custom_fields=COALESCE($12,custom_fields),updated_at=now() WHERE tenant_id=$13 AND id=$14 AND archived_at IS NULL AND ($15::timestamptz IS NULL OR updated_at=$15) RETURNING to_jsonb(issues)")
         .bind(v.title).bind(v.description).bind(v.kind).bind(v.priority).bind(v.status.clone()).bind(v.assignee_id)
         .bind(v.sprint_id).bind(v.parent_id).bind(v.story_points).bind(v.due_at).bind(v.labels).bind(v.custom_fields)
-        .bind(i.tenant_id).bind(id).fetch_one(&mut *tx).await.map_err(db_err)?;
+        .bind(i.tenant_id).bind(id).bind(expected).fetch_optional(&mut *tx).await.map_err(db_err)?;
+    // Nothing matched: either the If-Match precondition failed or the issue was archived meanwhile.
+    // No write has happened yet, so the transaction rolls back cleanly.
+    let Some(row) = row else {
+        return Err(match expected {
+            Some(_) => ApiError::PreconditionFailed(
+                "This issue changed since you loaded it. Reload it and apply your edit again"
+                    .into(),
+            ),
+            None => err(StatusCode::NOT_FOUND, "Issue not found"),
+        });
+    };
     log_event(&mut tx, &i, "updated", "issue", id).await?;
     log_outbox(
         &mut tx,
@@ -109,7 +154,11 @@ pub(crate) async fn edit_issue(
     if v.status.is_some() {
         run_automations(&mut tx, &i, project, id, "issue_status_changed").await?;
     }
-    Ok(Json(row))
+    let mut headers = HeaderMap::new();
+    if let Some(tag) = row.get("updated_at").and_then(Value::as_str).and_then(issue_etag) {
+        headers.insert(ETAG, tag);
+    }
+    Ok((headers, Json(row)))
 }
 #[utoipa::path(post, path = "/api/issues/{id}/archive", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 204, description = "Success"), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn archive_issue(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<StatusCode> {

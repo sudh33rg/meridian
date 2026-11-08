@@ -4022,7 +4022,10 @@ export interface operations {
     edit_issue: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Optional ETag from the issue details. If the issue changed since, the edit is refused with 412 and nothing is written */
+                "If-Match"?: string | null;
+            };
             path: {
                 /** @description Resource id */
                 id: string;
@@ -4073,6 +4076,15 @@ export interface operations {
             };
             /** @description Not found in this workspace */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description The issue changed since the If-Match ETag was issued */
+            412: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6252,12 +6264,24 @@ export interface operations {
             path: {
                 /** @description Resource id */
                 id: string;
+                /** @description Page size, 1 to 500 (default 500, the size clients received before paging existed). */
+                limit: number | null;
+                /** @description Continue below the issue number returned in `X-Next-Cursor`. */
+                cursor: string | null;
+                /** @description Exact status filter: todo, in_progress, in_review or done. */
+                status: string | null;
+                /** @description Exact priority filter: low, medium, high or urgent. */
+                priority: string | null;
+                /** @description Only issues assigned to this user. */
+                assignee_id: string | null;
+                /** @description Case-insensitive title search, up to 200 characters. */
+                q: string | null;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Success */
+            /** @description Success. X-Next-Cursor is present when another page exists */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6307,7 +6331,10 @@ export interface operations {
     create_issue: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Optional client key (8 to 255 visible ASCII characters). A retry with the same key and body replays the original 201 response with Idempotent-Replayed: true; the same key with a different body returns 409 */
+                "Idempotency-Key"?: string | null;
+            };
             path: {
                 /** @description Resource id */
                 id: string;
@@ -6358,6 +6385,15 @@ export interface operations {
             };
             /** @description Not found in this workspace */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Idempotency-Key reused for a different request */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

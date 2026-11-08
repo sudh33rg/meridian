@@ -2,7 +2,45 @@
 use crate::api::collab::run_automations;
 use crate::api::common::*;
 use crate::*;
+use axum::response::IntoResponse;
 use axum::routing::patch;
+use sha2::{Digest, Sha256};
+
+const ISSUE_STATUSES: [&str; 4] = ["todo", "in_progress", "in_review", "done"];
+const ISSUE_PRIORITIES: [&str; 4] = ["low", "medium", "high", "urgent"];
+
+/// Query for `GET /api/projects/{id}/issues`. Results are ordered by issue number, newest first.
+/// Pass the `X-Next-Cursor` response header back as `cursor` to fetch the next page; the header is
+/// absent on the last page.
+#[derive(Deserialize, utoipa::IntoParams)]
+pub(crate) struct IssueListQuery {
+    /// Page size, 1 to 500 (default 500, the size clients received before paging existed).
+    pub(crate) limit: Option<i64>,
+    /// Continue below the issue number returned in `X-Next-Cursor`.
+    pub(crate) cursor: Option<String>,
+    /// Exact status filter: todo, in_progress, in_review or done.
+    pub(crate) status: Option<String>,
+    /// Exact priority filter: low, medium, high or urgent.
+    pub(crate) priority: Option<String>,
+    /// Only issues assigned to this user.
+    pub(crate) assignee_id: Option<Uuid>,
+    /// Case-insensitive title search, up to 200 characters.
+    pub(crate) q: Option<String>,
+}
+
+/// Optional `Idempotency-Key` header: 8 to 255 visible ASCII characters.
+fn idempotency_key(headers: &HeaderMap) -> ApiResult<Option<String>> {
+    let Some(value) = headers.get("idempotency-key") else {
+        return Ok(None);
+    };
+    let key = value
+        .to_str()
+        .map_err(|_| bad("Idempotency-Key must be visible ASCII"))?;
+    if !(8..=255).contains(&key.len()) || !key.bytes().all(|b| b.is_ascii_graphic()) {
+        return Err(bad("Idempotency-Key must be 8 to 255 visible ASCII characters"));
+    }
+    Ok(Some(key.to_string()))
+}
 
 #[derive(Serialize, FromRow, utoipa::ToSchema)]
 pub(crate) struct Project {
@@ -127,10 +165,44 @@ pub(crate) struct NewIssue {
 pub(crate) struct PatchIssue {
     pub(crate) status: String,
 }
-#[utoipa::path(get, path = "/api/projects/{id}/issues", tag = "work", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Issue>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn issues(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<Issue>>> {
+#[utoipa::path(get, path = "/api/projects/{id}/issues", tag = "work", params(("id" = Uuid, Path, description = "Resource id"), IssueListQuery), responses((status = 200, description = "Success. X-Next-Cursor is present when another page exists", body = Vec<Issue>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn issues(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+    axum::extract::Query(p): axum::extract::Query<IssueListQuery>,
+) -> ApiResult<(HeaderMap, Json<Vec<Issue>>)> {
     let i = tx.identity.clone();
     ensure_access(&mut tx, project).await?;
+    let limit = p.limit.unwrap_or(500);
+    if !(1..=500).contains(&limit) {
+        return Err(bad("limit must be between 1 and 500"));
+    }
+    let before: Option<i64> = match p.cursor.as_deref().filter(|c| !c.is_empty()) {
+        None => None,
+        Some(c) => Some(
+            c.parse::<i64>()
+                .ok()
+                .filter(|n| *n > 0)
+                .ok_or_else(|| bad("Invalid cursor"))?,
+        ),
+    };
+    if p.status.as_deref().is_some_and(|s| !ISSUE_STATUSES.contains(&s)) {
+        return Err(bad("Invalid status filter"));
+    }
+    if p.priority.as_deref().is_some_and(|s| !ISSUE_PRIORITIES.contains(&s)) {
+        return Err(bad("Invalid priority filter"));
+    }
+    // Escape LIKE wildcards so the search text is matched literally.
+    let search = match p.q.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        None => None,
+        Some(s) if s.chars().count() > 200 => {
+            return Err(bad("Search text is limited to 200 characters"))
+        }
+        Some(s) => Some(format!(
+            "%{}%",
+            s.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_")
+        )),
+    };
     let exists: bool =
         sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM projects WHERE tenant_id=$1 AND id=$2)")
             .bind(i.tenant_id)
@@ -141,16 +213,45 @@ pub(crate) async fn issues(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<J
     if !exists {
         return Err(err(StatusCode::NOT_FOUND, "Project not found"));
     }
-    let rows=sqlx::query_as("SELECT id,project_id,number,title,description,kind,status,priority,created_at,updated_at FROM issues WHERE tenant_id=$1 AND project_id=$2 ORDER BY number DESC LIMIT 500")
- .bind(i.tenant_id).bind(project).fetch_all(&mut *tx).await.map_err(db_err)?;
-    Ok(Json(rows))
+    // Fetch one row past the page size to learn whether another page exists without a COUNT.
+    let mut rows: Vec<Issue> = sqlx::query_as(
+        "SELECT id,project_id,number,title,description,kind,status,priority,created_at,updated_at \
+         FROM issues WHERE tenant_id=$1 AND project_id=$2 AND archived_at IS NULL \
+         AND ($3::bigint IS NULL OR number < $3) AND ($4::text IS NULL OR status=$4) \
+         AND ($5::text IS NULL OR priority=$5) AND ($6::uuid IS NULL OR assignee_id=$6) \
+         AND ($7::text IS NULL OR title ILIKE $7 ESCAPE '\\') \
+         ORDER BY number DESC LIMIT $8",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .bind(before)
+    .bind(p.status)
+    .bind(p.priority)
+    .bind(p.assignee_id)
+    .bind(search)
+    .bind(limit + 1)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    let has_more = rows.len() as i64 > limit;
+    rows.truncate(limit as usize);
+    let mut headers = HeaderMap::new();
+    if has_more {
+        if let Some(last) = rows.last() {
+            if let Ok(v) = axum::http::HeaderValue::from_str(&last.number.to_string()) {
+                headers.insert("x-next-cursor", v);
+            }
+        }
+    }
+    Ok((headers, Json(rows)))
 }
-#[utoipa::path(post, path = "/api/projects/{id}/issues", tag = "work", params(("id" = Uuid, Path, description = "Resource id")), request_body = NewIssue, responses((status = 201, description = "Success", body = Issue), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+#[utoipa::path(post, path = "/api/projects/{id}/issues", tag = "work", params(("id" = Uuid, Path, description = "Resource id"), ("Idempotency-Key" = Option<String>, Header, description = "Optional client key (8 to 255 visible ASCII characters). A retry with the same key and body replays the original 201 response with Idempotent-Replayed: true; the same key with a different body returns 409")), request_body = NewIssue, responses((status = 201, description = "Success", body = Issue), (status = 409, description = "Idempotency-Key reused for a different request", body = ErrorBody), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn create_issue(
     mut tx: Tx,
     Path(project): Path<Uuid>,
+    headers: HeaderMap,
     Json(v): Json<NewIssue>,
-) -> ApiResult<(StatusCode, Json<Issue>)> {
+) -> ApiResult<axum::response::Response> {
     let i = tx.identity.clone();
     ensure_access(&mut tx, project).await?;
     if !can_edit(&i) {
@@ -177,6 +278,47 @@ pub(crate) async fn create_issue(
     if present.is_none() {
         return Err(err(StatusCode::NOT_FOUND, "Project not found"));
     }
+    // The project row lock above serializes creates in this project. A retry that waited for an
+    // earlier request with the same key therefore sees that request's stored response below.
+    let idem = idempotency_key(&headers)?;
+    let scope = format!("issue.create:{project}");
+    let request_hash = hex::encode(Sha256::digest(
+        serde_json::json!({
+            "project": project,
+            "title": v.title.trim(),
+            "description": v.description.clone().unwrap_or_default(),
+            "kind": &kind,
+            "priority": &priority,
+        })
+        .to_string(),
+    ));
+    if let Some(key) = &idem {
+        let stored: Option<(String, i32, serde_json::Value)> = sqlx::query_as(
+            "SELECT request_hash,response_status,response_body FROM idempotency_keys \
+             WHERE tenant_id=$1 AND user_id=$2 AND scope=$3 AND key=$4",
+        )
+        .bind(i.tenant_id)
+        .bind(i.user_id)
+        .bind(&scope)
+        .bind(key)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(db_err)?;
+        if let Some((hash, status, body)) = stored {
+            if hash != request_hash {
+                return Err(err(
+                    StatusCode::CONFLICT,
+                    "This Idempotency-Key was already used for a different request",
+                ));
+            }
+            let status = StatusCode::from_u16(status as u16).unwrap_or(StatusCode::CREATED);
+            return Ok((
+                [("idempotent-replayed", "true")],
+                (status, Json(body)),
+            )
+                .into_response());
+        }
+    }
     let next: i64 = sqlx::query_scalar(
         "SELECT COALESCE(MAX(number),0)+1 FROM issues WHERE tenant_id=$1 AND project_id=$2",
     )
@@ -197,7 +339,25 @@ pub(crate) async fn create_issue(
     )
     .await?;
     run_automations(&mut tx, &i, project, row.id, "issue_created").await?;
-    Ok((StatusCode::CREATED, Json(row)))
+    if let Some(key) = &idem {
+        // Stored in the same transaction as the issue, so a key never points at a missing issue.
+        let body = serde_json::to_value(&row).map_err(|e| ApiError::Internal(e.to_string()))?;
+        sqlx::query(
+            "INSERT INTO idempotency_keys(tenant_id,user_id,scope,key,request_hash,response_status,response_body) \
+             VALUES($1,$2,$3,$4,$5,$6,$7)",
+        )
+        .bind(i.tenant_id)
+        .bind(i.user_id)
+        .bind(&scope)
+        .bind(key)
+        .bind(&request_hash)
+        .bind(201_i32)
+        .bind(body)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    }
+    Ok((StatusCode::CREATED, Json(row)).into_response())
 }
 #[utoipa::path(patch, path = "/api/issues/{id}", tag = "work", params(("id" = Uuid, Path, description = "Resource id")), request_body = PatchIssue, responses((status = 200, description = "Success", body = Issue), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn patch_issue(

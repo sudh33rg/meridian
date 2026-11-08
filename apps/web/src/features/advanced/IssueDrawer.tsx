@@ -1,8 +1,8 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { EntityRelations } from "./EntityRelations";
 import { Attachments } from "../shared/Attachments";
 import { X } from "lucide-react";
-import { request } from "../../lib/api";
+import { ApiError, request, requestWithHeaders } from "../../lib/api";
 import type { Item } from "../../lib/types";
 import { str, day } from "./shared";
 
@@ -24,12 +24,16 @@ export function IssueDrawer({
     [priority, setPriority] = useState("medium"),
     [status, setStatus] = useState("todo"),
     [error, setError] = useState("");
+  // The ETag of the issue as last loaded; sent back as If-Match so a stale save is refused.
+  const etag = useRef<string | null>(null);
   const reload = useCallback(async () => {
     try {
-      const [i, c] = await Promise.all([
-        request<Item>(token, `/issues/${id}/details`),
+      const [details, c] = await Promise.all([
+        requestWithHeaders<Item>(token, `/issues/${id}/details`),
         request<Item[]>(token, `/issues/${id}/comments`),
       ]);
+      etag.current = details.headers.get("etag");
+      const i = details.data;
       setIssue(i);
       setTitle(str(i.title));
       setPriority(str(i.priority));
@@ -46,12 +50,19 @@ export function IssueDrawer({
     try {
       await request(token, `/issues/${id}/edit`, {
         method: "PATCH",
+        headers: etag.current ? { "If-Match": etag.current } : {},
         body: JSON.stringify({ title, priority, status }),
       });
       await reload();
       onChanged();
       setError("");
     } catch (e) {
+      if (e instanceof ApiError && e.status === 412) {
+        // Someone else changed the issue. Load the latest version so the next save is based on it.
+        await reload();
+        setError("This issue changed while you were editing. The latest version is loaded; review it and save again.");
+        return;
+      }
       setError((e as Error).message);
     }
   };

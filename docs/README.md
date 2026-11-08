@@ -73,7 +73,7 @@ python3 tests/smoke.py                    # requires running local API
 cd apps/server && cargo test             # with DATABASE_URL_TEST for PG isolation tests
 ```
 
-`API_GUIDE.md` enumerates the routes; the machine-readable contract is [`openapi.json`](openapi.json) (also served at `/api/openapi.json`). `SECURITY.md` lists security boundaries and blockers. `OPERATIONS.md` describes deployment and runbooks; `PRODUCT_PLAN.md` and `COMPETITIVE_LANDSCAPE.md` retain the long-range product specification and 100-solution research inventory.
+`API_GUIDE.md` enumerates the routes; the machine-readable contract is [`openapi.json`](openapi.json) (also served at `/api/openapi.json`). `SECURITY.md` lists security boundaries and blockers. `OPERATIONS.md` describes deployment and runbooks; `PRODUCT_PLAN.md` and `COMPETITIVE_LANDSCAPE.md` retain the long-range product specification and 100-solution research inventory. `BEST_IN_CLASS_ANALYSIS.md` compares Meridian with leading products by capability, ranks the gaps and records the implementation plan and what was built from it.
 
 ## File structure
 

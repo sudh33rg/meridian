@@ -204,6 +204,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             header::CONTENT_TYPE,
             axum::http::HeaderName::from_static("x-csrf-token"),
             axum::http::HeaderName::from_static("x-auth-mode"),
+            header::IF_MATCH,
+            axum::http::HeaderName::from_static("idempotency-key"),
+        ])
+        .expose_headers([
+            header::ETAG,
+            axum::http::HeaderName::from_static("x-next-cursor"),
+            axum::http::HeaderName::from_static("idempotent-replayed"),
         ])
         .allow_credentials(true);
     let cfg = std::sync::Arc::new(config::Config::from_env());

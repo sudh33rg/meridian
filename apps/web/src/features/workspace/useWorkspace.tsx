@@ -1,7 +1,15 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
-import { API_BASE, api, errorMessage, send } from "../../lib/api";
+import {
+  API_BASE,
+  ApiError,
+  api,
+  errorMessage,
+  newIdempotencyKey,
+  requestWithHeaders,
+  send,
+} from "../../lib/api";
 import { clearSession, saveSession as persistSession, type Me } from "../../lib/session";
 import type { Issue, Page, Project, Session } from "../../lib/types";
 import type { ExtraTab } from "../advanced/AdvancedWorkspace";
@@ -9,6 +17,28 @@ import { useToast } from "../shared/Toast";
 
 export type Tab = "overview" | "board" | "issues" | "knowledge" | "appearance" | ExtraTab;
 export type Modal = "project" | "issue" | "page" | null;
+
+/** Issues arrive in pages of 200, following the `X-Next-Cursor` header. The client stops after
+ * `ISSUE_MAX_PAGES` (10,000 issues) and says so in the console; the API also accepts filters for
+ * narrower views. */
+const ISSUE_PAGE_SIZE = 200;
+const ISSUE_MAX_PAGES = 50;
+async function loadAllIssues(token: string, projectId: string): Promise<Issue[]> {
+  const all: Issue[] = [];
+  let cursor: string | null = null;
+  for (let page = 0; page < ISSUE_MAX_PAGES; page++) {
+    const query: string = `?limit=${ISSUE_PAGE_SIZE}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`;
+    const { data, headers }: { data: Issue[]; headers: Headers } = await requestWithHeaders<Issue[]>(
+      token,
+      `/projects/${projectId}/issues${query}`,
+    );
+    all.push(...data);
+    cursor = headers.get("x-next-cursor");
+    if (!cursor) return all;
+  }
+  console.warn(`Showing the first ${all.length} issues; this project has more.`);
+  return all;
+}
 const emptyDraft = {
   visibility: "workspace",
   name: "",
@@ -130,7 +160,7 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
   const project = projects.find((p) => p.id === selected);
   const issuesQ = useQuery({
     queryKey: ["issues", selected],
-    queryFn: () => api<Issue[]>(`/projects/${selected}/issues`, token),
+    queryFn: () => loadAllIssues(token, selected),
     enabled: !!selected,
   });
   const pagesQ = useQuery({
@@ -172,18 +202,33 @@ function useWorkspaceState(session: Session, setSession: (s: Session | null) => 
       navigate({ to: "/$tab", params: { tab: "overview" }, search: { project: p.id } });
     },
   });
+  const idemKey = useRef<string | undefined>(undefined);
   const createIssue = useMutation({
-    mutationFn: () =>
-      send<Issue>(`/projects/${selected}/issues`, token, "POST", {
-        title: draft.title,
-        description: draft.description,
-        kind: draft.kind,
-        priority: draft.priority,
-      }),
+    mutationFn: () => {
+      // One key per logical create. A retry after a network failure reuses it, so the server
+      // returns the issue it already made instead of creating a second one.
+      const key = (idemKey.current ??= newIdempotencyKey());
+      return api<Issue>(`/projects/${selected}/issues`, token, {
+        method: "POST",
+        headers: { "Idempotency-Key": key },
+        body: JSON.stringify({
+          title: draft.title,
+          description: draft.description,
+          kind: draft.kind,
+          priority: draft.priority,
+        }),
+      });
+    },
     onSuccess: (i) => {
+      idemKey.current = undefined;
       qc.setQueryData<Issue[]>(["issues", selected], (old) => [i, ...(old ?? [])]);
       toast(`Created ${project?.key ?? ""}-${i.number}`);
       setTab("board");
+    },
+    onError: (e) => {
+      // A rejected request is never stored server-side, so a fresh key is safe. A network failure
+      // keeps the key because the write may have succeeded.
+      if (e instanceof ApiError) idemKey.current = undefined;
     },
   });
   const createPage = useMutation({

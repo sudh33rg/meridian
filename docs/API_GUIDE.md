@@ -37,7 +37,7 @@ Browser clients send `X-Auth-Mode: cookie` on sign-in (tokens go into HttpOnly c
 | Verb | Route | Description |
 |---|---|---|
 | GET / POST | `/projects` | List and create projects |
-| GET / POST | `/projects/{id}/issues` | List and create work items |
+| GET / POST | `/projects/{id}/issues` | List (paged and filterable) and create work items; see paging, concurrency and idempotency below |
 | PATCH | `/issues/{id}` | Change status (foundation endpoint) |
 | GET | `/issues/{id}/details` | Full issue with extended fields |
 | PATCH | `/issues/{id}/edit` | Edit optional title, description, status, type, priority, assignee, parent, sprint, labels, due date and story points |
@@ -85,6 +85,14 @@ curl -X POST "$MERIDIAN_API/api/projects/$PROJECT_ID/issues" \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"title":"Create design review","kind":"task","priority":"high"}'
 ```
+
+### Paging, concurrency and idempotency for work items
+
+- **Paging.** `GET /projects/{id}/issues` lists newest issue number first. `limit` is 1 to 500 (default 500, the size clients received before paging existed). When another page exists the response carries an `X-Next-Cursor` header; send its value back as `cursor` to continue. The header is absent on the last page. Archived issues are not listed.
+- **Filters.** Exact `status` (todo, in_progress, in_review, done), exact `priority` (low, medium, high, urgent), `assignee_id`, and `q`, a case-insensitive title search of up to 200 characters with LIKE wildcards matched literally.
+- **Optimistic concurrency.** Issue details responses carry an `ETag` (the issue's `updated_at` at microsecond precision). Send it back as `If-Match` on `PATCH /issues/{id}/edit`. If the issue changed since, the server returns `412` with code `precondition_failed` and writes nothing. Without `If-Match` the edit applies as before (last writer wins), so existing clients keep working.
+- **Idempotent create.** `POST /projects/{id}/issues` accepts an `Idempotency-Key` header of 8 to 255 visible ASCII characters. A retry with the same key and the same body returns the original `201` response with `Idempotent-Replayed: true` and creates nothing. The same key with a different body returns `409`. Requests that fail are not stored, so a failed create can be retried with the same key. Stored keys are not yet pruned.
+- **Cross-origin browsers.** `ETag`, `X-Next-Cursor` and `Idempotent-Replayed` are exposed to browser clients through CORS, and `If-Match` and `Idempotency-Key` are allowed request headers.
 
 Page edit with optimistic concurrency: `PATCH /api/pages/UUID` with `{"title":"...","content":"...","expected_version":1}`. A conflicting write returns HTTP 409.
 

@@ -2658,6 +2658,18 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Optional ETag from the issue details. If the issue changed since, the edit is refused with 412 and nothing is written",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         ],
         "requestBody": {
@@ -2713,6 +2725,16 @@
           },
           "404": {
             "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The issue changed since the If-Match ETag was issued",
             "content": {
               "application/json": {
                 "schema": {
@@ -5608,11 +5630,85 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "limit",
+            "in": "path",
+            "description": "Page size, 1 to 500 (default 500, the size clients received before paging existed).",
+            "required": true,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "path",
+            "description": "Continue below the issue number returned in `X-Next-Cursor`.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "in": "path",
+            "description": "Exact status filter: todo, in_progress, in_review or done.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "priority",
+            "in": "path",
+            "description": "Exact priority filter: low, medium, high or urgent.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "assignee_id",
+            "in": "path",
+            "description": "Only issues assigned to this user.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "q",
+            "in": "path",
+            "description": "Case-insensitive title search, up to 200 characters.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Success",
+            "description": "Success. X-Next-Cursor is present when another page exists",
             "content": {
               "application/json": {
                 "schema": {
@@ -5686,6 +5782,18 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Optional client key (8 to 255 visible ASCII characters). A retry with the same key and body replays the original 201 response with Idempotent-Replayed: true; the same key with a different body returns 409",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         ],
         "requestBody": {
@@ -5741,6 +5849,16 @@
           },
           "404": {
             "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency-Key reused for a different request",
             "content": {
               "application/json": {
                 "schema": {
