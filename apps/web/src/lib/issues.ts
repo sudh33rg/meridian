@@ -38,6 +38,10 @@ export type SavedView = {
   updated_at: string;
   /** True when the view names a status, field or query term the project no longer has. */
   stale?: boolean;
+  /** True when the view was shared with the project; other members can apply it but not change it. */
+  shared: boolean;
+  owner_id: string;
+  owner: string;
 };
 
 export type BulkItemResult = { id: string; ok: boolean; error?: string | null };

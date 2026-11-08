@@ -5241,6 +5241,94 @@
         ]
       }
     },
+    "/api/issues/{id}/favourite": {
+      "put": {
+        "tags": [
+          "views"
+        ],
+        "operationId": "add_favourite",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Added to your favourites"
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Issue not found for you",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "views"
+        ],
+        "operationId": "remove_favourite",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed from your favourites, or was not a favourite"
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/issues/{id}/history": {
       "get": {
         "tags": [
@@ -6098,6 +6186,56 @@
           },
           "409": {
             "description": "Issue is not archived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/issues/{id}/viewed": {
+      "post": {
+        "tags": [
+          "views"
+        ],
+        "operationId": "record_view",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Recorded as recently viewed"
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Issue not found for you",
             "content": {
               "application/json": {
                 "schema": {
@@ -10579,6 +10717,66 @@
         ]
       }
     },
+    "/api/projects/{id}/favourites": {
+      "get": {
+        "tags": [
+          "views"
+        ],
+        "operationId": "list_favourites",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Your favourite issues in this project, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IssueRef"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/projects/{id}/fields": {
       "get": {
         "tags": [
@@ -12517,6 +12715,66 @@
           },
           "403": {
             "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found in this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/projects/{id}/recent": {
+      "get": {
+        "tags": [
+          "views"
+        ],
+        "operationId": "list_recent",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Resource id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Issues you opened most recently in this project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IssueRef"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
             "content": {
               "application/json": {
                 "schema": {
@@ -20122,6 +20380,45 @@
           }
         }
       },
+      "IssueRef": {
+        "type": "object",
+        "description": "An issue as the favourites and recent lists show it.",
+        "required": [
+          "id",
+          "number",
+          "title",
+          "kind",
+          "status",
+          "priority",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "IssueTeamInput": {
         "type": "object",
         "description": "Team ownership of one issue.",
@@ -20553,6 +20850,10 @@
           "name": {
             "type": "string",
             "description": "1 to 80 characters; unique per member and project."
+          },
+          "shared": {
+            "type": "boolean",
+            "description": "Share the view with everyone who can see the project. Defaults to false (private)."
           }
         }
       },
@@ -21547,7 +21848,10 @@
           "filters",
           "created_at",
           "updated_at",
-          "stale"
+          "stale",
+          "shared",
+          "owner_id",
+          "owner"
         ],
         "properties": {
           "created_at": {
@@ -21564,9 +21868,22 @@
           "name": {
             "type": "string"
           },
+          "owner": {
+            "type": "string",
+            "description": "Display name of the member who saved the view."
+          },
+          "owner_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The member who saved the view."
+          },
           "project_id": {
             "type": "string",
             "format": "uuid"
+          },
+          "shared": {
+            "type": "boolean",
+            "description": "True when the view was shared with the project. Other members can apply it but cannot change it."
           },
           "stale": {
             "type": "boolean",

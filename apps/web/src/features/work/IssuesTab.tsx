@@ -9,7 +9,7 @@ import { KindIcon, PRIORITIES, PriorityIcon } from "./meta";
 import { typeName } from "../../lib/issue-types";
 import { errorMessage, request, send } from "../../lib/api";
 import { loadIssues, type BulkResult, type SavedView } from "../../lib/issues";
-import type { Issue } from "../../lib/types";
+import type { Issue, IssueRef } from "../../lib/types";
 import { ImportPanel } from "./ImportPanel";
 
 type Sort = "updated" | "priority" | "number";
@@ -33,6 +33,7 @@ export function IssuesTab() {
     statuses,
     statusLabel,
     issueTypes,
+    me,
   } = useWorkspace();
   const token = session.token;
   const { toast } = useToast();
@@ -50,6 +51,8 @@ export function IssuesTab() {
   const [viewId, setViewId] = useState("");
   // null: the name field is closed; a string: it is open with that draft.
   const [naming, setNaming] = useState<string | null>(null);
+  // Whether a view being saved is shared with everyone who can see the project.
+  const [sharedDraft, setSharedDraft] = useState(false);
 
   const archivedQ = useQuery({
     queryKey: ["issues-archived", selected],
@@ -62,6 +65,17 @@ export function IssuesTab() {
     enabled: !!selected,
   });
   const views = viewsQ.data ?? [];
+  // Favourites and recently opened issues are this member's own lists for the project.
+  const favouritesQ = useQuery({
+    queryKey: ["favourites", selected],
+    queryFn: () => request<IssueRef[]>(token, `/projects/${selected}/favourites`),
+    enabled: !!selected,
+  });
+  const recentQ = useQuery({
+    queryKey: ["recent", selected],
+    queryFn: () => request<IssueRef[]>(token, `/projects/${selected}/recent`),
+    enabled: !!selected,
+  });
 
   const bulk = useMutation({
     mutationFn: (change: { action: string; value: string }) =>
@@ -88,7 +102,7 @@ export function IssuesTab() {
     onError: (e) => toast(errorMessage(e)),
   });
   const saveView = useMutation({
-    mutationFn: (name: string) => {
+    mutationFn: ({ name, shared }: { name: string; shared: boolean }) => {
       // The server stores status, priority and title search. Type and assignee filters are not part
       // of saved views yet.
       const filters: Record<string, string> = {};
@@ -97,7 +111,7 @@ export function IssuesTab() {
       if (search.trim()) filters.q = search.trim();
       if (kind) filters.kind = kind;
       if (activeQuery) filters.query = activeQuery;
-      return send<SavedView>(`/projects/${selected}/views`, token, "POST", { name, filters });
+      return send<SavedView>(`/projects/${selected}/views`, token, "POST", { name, filters, shared });
     },
     onSuccess: (v) => {
       setViewId(v.id);
@@ -286,6 +300,30 @@ export function IssuesTab() {
             </button>
           )}
         </div>
+        {(favouritesQ.data?.length ?? 0) > 0 || (recentQ.data?.length ?? 0) > 0 ? (
+          <div className="quick-issues" aria-label="Favourites and recent issues">
+            {(favouritesQ.data?.length ?? 0) > 0 && (
+              <div className="quick-issues-row">
+                <span className="muted small">Favourites</span>
+                {favouritesQ.data?.map((i) => (
+                  <button key={i.id} className="chip-button" onClick={() => setSelectedIssue(i.id)}>
+                    {project?.key}-{i.number} {i.title}
+                  </button>
+                ))}
+              </div>
+            )}
+            {(recentQ.data?.length ?? 0) > 0 && (
+              <div className="quick-issues-row">
+                <span className="muted small">Recent</span>
+                {recentQ.data?.map((i) => (
+                  <button key={i.id} className="chip-button" onClick={() => setSelectedIssue(i.id)}>
+                    {project?.key}-{i.number} {i.title}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null}
         <div className="view-opts">
           <label className="filter-chip">
             <Bookmark size={13} />
@@ -293,7 +331,11 @@ export function IssuesTab() {
               <option value="">All issues</option>
               {views.map((v) => (
                 <option key={v.id} value={v.id}>
-                  {v.stale ? `${v.name} (stale)` : v.name}
+                  {v.stale
+                    ? `${v.name} (stale)`
+                    : v.owner_id !== me?.user_id
+                      ? `${v.name} · shared by ${v.owner}`
+                      : v.name}
                 </option>
               ))}
             </select>
@@ -303,7 +345,7 @@ export function IssuesTab() {
               </span>
             )}
           </label>
-          {viewId && (
+          {viewId && views.find((v) => v.id === viewId)?.owner_id === me?.user_id && (
             <button className="secondary" onClick={() => removeView.mutate(viewId)}>
               Delete view
             </button>
@@ -318,7 +360,7 @@ export function IssuesTab() {
               onSubmit={(e) => {
                 e.preventDefault();
                 const name = naming.trim();
-                if (name) saveView.mutate(name);
+                if (name) saveView.mutate({ name, shared: sharedDraft });
               }}
             >
               <input
@@ -329,6 +371,10 @@ export function IssuesTab() {
                 onChange={(e) => setNaming(e.target.value)}
                 placeholder="View name"
               />
+              <label className="filter-chip">
+                <input type="checkbox" checked={sharedDraft} onChange={(e) => setSharedDraft(e.target.checked)} />
+                <span>Share with project</span>
+              </label>
               <button className="primary" type="submit" disabled={!naming.trim()}>
                 Save
               </button>

@@ -790,3 +790,42 @@
   align-items: center;
   gap: 8px;
 }
+
+/* Phase F8: favourites, recent issues and shared views. */
+.favourite-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted, inherit);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+}
+.favourite-toggle[aria-pressed="true"] {
+  color: var(--accent-text);
+}
+.quick-issues {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 10px;
+}
+.quick-issues-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.chip-button {
+  font-size: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 3px 10px;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}

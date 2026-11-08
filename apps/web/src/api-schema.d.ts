@@ -1064,6 +1064,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/issues/{id}/favourite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["add_favourite"];
+        post?: never;
+        delete: operations["remove_favourite"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/issues/{id}/history": {
         parameters: {
             query?: never;
@@ -1218,6 +1234,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["unarchive_issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/issues/{id}/viewed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["record_view"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1896,6 +1928,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/favourites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_favourites"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}/fields": {
         parameters: {
             query?: never;
@@ -2114,6 +2162,22 @@ export interface paths {
         get: operations["pages"];
         put?: never;
         post: operations["create_page"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_recent"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3702,6 +3766,19 @@ export interface components {
             /** Format: uuid */
             target_id: string;
         };
+        /** @description An issue as the favourites and recent lists show it. */
+        IssueRef: {
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            /** Format: int64 */
+            number: number;
+            priority: string;
+            status: string;
+            title: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
         /** @description Team ownership of one issue. */
         IssueTeamInput: {
             /**
@@ -3842,6 +3919,8 @@ export interface components {
             filters: unknown;
             /** @description 1 to 80 characters; unique per member and project. */
             name: string;
+            /** @description Share the view with everyone who can see the project. Defaults to false (private). */
+            shared?: boolean;
         };
         NewStatus: {
             category: string;
@@ -4191,8 +4270,17 @@ export interface components {
             /** Format: uuid */
             id: string;
             name: string;
+            /** @description Display name of the member who saved the view. */
+            owner: string;
+            /**
+             * Format: uuid
+             * @description The member who saved the view.
+             */
+            owner_id: string;
             /** Format: uuid */
             project_id: string;
+            /** @description True when the view was shared with the project. Other members can apply it but cannot change it. */
+            shared: boolean;
             /** @description True when the view names a status, field or query term the project no longer has. */
             stale: boolean;
             /** Format: date-time */
@@ -8577,6 +8665,75 @@ export interface operations {
             };
         };
     };
+    add_favourite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Added to your favourites */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Issue not found for you */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    remove_favourite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed from your favourites, or was not a favourite */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     issue_history: {
         parameters: {
             query?: never;
@@ -9229,6 +9386,45 @@ export interface operations {
             };
             /** @description Issue is not archived */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    record_view: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recorded as recently viewed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Issue not found for you */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12563,6 +12759,47 @@ export interface operations {
             };
         };
     };
+    list_favourites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Your favourite issues in this project, newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssueRef"][];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     list_fields: {
         parameters: {
             query?: never;
@@ -13897,6 +14134,47 @@ export interface operations {
             };
             /** @description Insufficient permissions */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found in this workspace */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list_recent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Issues you opened most recently in this project */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssueRef"][];
+                };
+            };
+            /** @description Missing or invalid session */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

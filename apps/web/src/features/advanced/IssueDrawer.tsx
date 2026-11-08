@@ -3,8 +3,8 @@ import { useTeams } from "../agile/agile-shared";
 import { IssueDepth } from "../agile/IssueDepth";
 import { EntityRelations } from "./EntityRelations";
 import { Attachments } from "../shared/Attachments";
-import { X } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Star, X } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiError, request, requestWithHeaders } from "../../lib/api";
 import type { ProjectStatus } from "../../lib/statuses";
 import { displayValue, toPayload, type FieldDefinition } from "../../lib/fields";
@@ -77,6 +77,26 @@ export function IssueDrawer({
   useEffect(() => {
     void reload();
   }, [reload]);
+  // Favourites are this member's own list for the project; the star in the header toggles them.
+  const qc = useQueryClient();
+  const favouritesQ = useQuery({
+    queryKey: ["favourites", projectId],
+    queryFn: () => request<Item[]>(token, `/projects/${projectId}/favourites`),
+    enabled: !!projectId,
+  });
+  const isFavourite = !!favouritesQ.data?.some((f) => str(f.id) === id);
+  const toggleFavourite = useMutation({
+    mutationFn: () => request(token, `/issues/${id}/favourite`, { method: isFavourite ? "DELETE" : "PUT" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["favourites", projectId] }),
+    onError: (e) => setError((e as Error).message),
+  });
+  // Opening an issue records it in this member's recent list. Failure here never blocks the drawer.
+  useEffect(() => {
+    void request(token, `/issues/${id}/viewed`, { method: "POST" })
+      .then(() => qc.invalidateQueries({ queryKey: ["recent", projectId] }))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, token]);
   const save = async () => {
     try {
       await request(token, `/issues/${id}/edit`, {
@@ -174,6 +194,17 @@ export function IssueDrawer({
       <aside className="issue-drawer" role="dialog" aria-modal="true" aria-label="Issue details">
         <div className="drawer-top">
           <b>{issue ? str(issue.kind).toUpperCase() + " · " + str(issue.number) : "Loading issue"}</b>
+          <button
+            type="button"
+            className="favourite-toggle"
+            aria-pressed={isFavourite}
+            aria-label={isFavourite ? "Remove from favourites" : "Add to favourites"}
+            title={isFavourite ? "Remove from favourites" : "Add to favourites"}
+            disabled={!issue || toggleFavourite.isPending}
+            onClick={() => toggleFavourite.mutate()}
+          >
+            <Star size={18} fill={isFavourite ? "currentColor" : "none"} />
+          </button>
           <button onClick={onClose} aria-label="Close">
             <X size={20} />
           </button>

@@ -4,7 +4,7 @@
 use crate::api::common::*;
 use crate::api::work::ISSUE_PRIORITIES;
 use crate::*;
-use axum::routing::{delete, get};
+use axum::routing::{delete, get, post, put};
 use serde_json::{json, Map, Value};
 
 /// Per member and project. Keeps the list short enough to scan in a dropdown.
@@ -24,12 +24,21 @@ pub(crate) struct SavedView {
     /// True when the view names a status, field or query term the project no longer has.
     #[sqlx(default)]
     pub(crate) stale: bool,
+    /// True when the view was shared with the project. Other members can apply it but cannot change it.
+    pub(crate) shared: bool,
+    /// The member who saved the view.
+    pub(crate) owner_id: Uuid,
+    /// Display name of the member who saved the view.
+    pub(crate) owner: String,
 }
 #[derive(Deserialize, utoipa::ToSchema)]
 pub(crate) struct NewSavedView {
     /// 1 to 80 characters; unique per member and project.
     pub(crate) name: String,
     pub(crate) filters: Value,
+    /// Share the view with everyone who can see the project. Defaults to false (private).
+    #[serde(default)]
+    pub(crate) shared: bool,
 }
 #[derive(Serialize, utoipa::ToSchema)]
 pub(crate) struct NotificationPreference {
@@ -189,8 +198,10 @@ pub(crate) async fn list_views(
     let i = tx.identity.clone();
     ensure_access(&mut tx, project).await?;
     let mut rows: Vec<SavedView> = sqlx::query_as(
-        "SELECT id,project_id,name,filters,created_at,updated_at FROM saved_views \
-         WHERE tenant_id=$1 AND user_id=$2 AND project_id=$3 ORDER BY lower(name)",
+        "SELECT v.id,v.project_id,v.name,v.filters,v.shared,v.user_id AS owner_id,u.display_name AS owner,\
+         v.created_at,v.updated_at FROM saved_views v JOIN users u ON u.id=v.user_id \
+         WHERE v.tenant_id=$1 AND v.project_id=$3 AND (v.user_id=$2 OR v.shared) \
+         ORDER BY (v.user_id<>$2), lower(v.name)",
     )
     .bind(i.tenant_id)
     .bind(i.user_id)
@@ -250,14 +261,16 @@ pub(crate) async fn create_view(
         ));
     }
     let row: SavedView = sqlx::query_as(
-        "INSERT INTO saved_views(tenant_id,user_id,project_id,name,filters) VALUES($1,$2,$3,$4,$5) \
-         RETURNING id,project_id,name,filters,created_at,updated_at",
+        "INSERT INTO saved_views(tenant_id,user_id,project_id,name,filters,shared) VALUES($1,$2,$3,$4,$5,$6) \
+         RETURNING id,project_id,name,filters,shared,user_id AS owner_id,\
+         (SELECT display_name FROM users WHERE id=user_id) AS owner,created_at,updated_at",
     )
     .bind(i.tenant_id)
     .bind(i.user_id)
     .bind(project)
     .bind(&name)
     .bind(filters)
+    .bind(v.shared)
     .fetch_one(&mut *tx)
     .await
     .map_err(db_err)?;
@@ -341,7 +354,145 @@ pub(crate) fn routes() -> Router<App> {
         )
         .route("/api/views/{id}", delete(delete_view))
         .route(
+            "/api/issues/{id}/favourite",
+            put(add_favourite).delete(remove_favourite),
+        )
+        .route("/api/issues/{id}/viewed", post(record_view))
+        .route("/api/projects/{id}/favourites", get(list_favourites))
+        .route("/api/projects/{id}/recent", get(list_recent))
+        .route(
             "/api/me/notification-preferences",
             get(get_notification_preferences).put(set_notification_preference),
         )
+}
+
+/// An issue as the favourites and recent lists show it.
+#[derive(Serialize, FromRow, utoipa::ToSchema)]
+pub(crate) struct IssueRef {
+    pub(crate) id: Uuid,
+    pub(crate) number: i64,
+    pub(crate) title: String,
+    pub(crate) kind: String,
+    pub(crate) status: String,
+    pub(crate) priority: String,
+    pub(crate) updated_at: DateTime<Utc>,
+}
+
+/// Most recently opened issues kept per member. Older entries are dropped when a new one is recorded.
+const RECENT_KEEP: i64 = 20;
+/// How many recent issues one project's list shows.
+const RECENT_SHOWN: i64 = 10;
+
+/// Personal lists are open to any member who can see the project, as saved views are. They change
+/// only the caller's own rows, so viewers may use them.
+async fn member_of(tx: &mut Tx, i: &Identity, project: Uuid) -> ApiResult<()> {
+    match project_level(&mut **tx, i, project).await? {
+        Some(l) if l >= 1 => Ok(()),
+        _ => Err(err(StatusCode::NOT_FOUND, "Project not found")),
+    }
+}
+
+async fn project_of_issue(tx: &mut Tx, tenant: Uuid, issue: Uuid) -> ApiResult<Uuid> {
+    sqlx::query_scalar("SELECT project_id FROM issues WHERE tenant_id=$1 AND id=$2")
+        .bind(tenant)
+        .bind(issue)
+        .fetch_optional(&mut **tx)
+        .await
+        .map_err(db_err)?
+        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Issue not found"))
+}
+
+#[utoipa::path(put, path = "/api/issues/{id}/favourite", tag = "views", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 204, description = "Added to your favourites"), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Issue not found for you", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn add_favourite(mut tx: Tx, Path(issue): Path<Uuid>) -> ApiResult<StatusCode> {
+    let i = tx.identity.clone();
+    let project = project_of_issue(&mut tx, i.tenant_id, issue).await?;
+    member_of(&mut tx, &i, project).await?;
+    sqlx::query("INSERT INTO issue_favourites(tenant_id,user_id,issue_id) VALUES($1,$2,$3) ON CONFLICT DO NOTHING")
+        .bind(i.tenant_id)
+        .bind(i.user_id)
+        .bind(issue)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(delete, path = "/api/issues/{id}/favourite", tag = "views", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 204, description = "Removed from your favourites, or was not a favourite"), (status = 401, description = "Missing or invalid session", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn remove_favourite(mut tx: Tx, Path(issue): Path<Uuid>) -> ApiResult<StatusCode> {
+    let i = tx.identity.clone();
+    sqlx::query("DELETE FROM issue_favourites WHERE tenant_id=$1 AND user_id=$2 AND issue_id=$3")
+        .bind(i.tenant_id)
+        .bind(i.user_id)
+        .bind(issue)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(post, path = "/api/issues/{id}/viewed", tag = "views", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 204, description = "Recorded as recently viewed"), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Issue not found for you", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn record_view(mut tx: Tx, Path(issue): Path<Uuid>) -> ApiResult<StatusCode> {
+    let i = tx.identity.clone();
+    let project = project_of_issue(&mut tx, i.tenant_id, issue).await?;
+    member_of(&mut tx, &i, project).await?;
+    sqlx::query(
+        "INSERT INTO issue_recent(tenant_id,user_id,issue_id,viewed_at) VALUES($1,$2,$3,now()) \
+         ON CONFLICT (tenant_id,user_id,issue_id) DO UPDATE SET viewed_at=now()",
+    )
+    .bind(i.tenant_id)
+    .bind(i.user_id)
+    .bind(issue)
+    .execute(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    sqlx::query(
+        "DELETE FROM issue_recent WHERE tenant_id=$1 AND user_id=$2 AND issue_id IN ( \
+         SELECT issue_id FROM issue_recent WHERE tenant_id=$1 AND user_id=$2 ORDER BY viewed_at DESC OFFSET $3)",
+    )
+    .bind(i.tenant_id)
+    .bind(i.user_id)
+    .bind(RECENT_KEEP)
+    .execute(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(get, path = "/api/projects/{id}/favourites", tag = "views", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Your favourite issues in this project, newest first", body = Vec<IssueRef>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn list_favourites(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<IssueRef>>> {
+    let i = tx.identity.clone();
+    member_of(&mut tx, &i, project).await?;
+    let rows: Vec<IssueRef> = sqlx::query_as(
+        "SELECT i.id,i.number,i.title,i.kind,i.status,i.priority,i.updated_at FROM issue_favourites f \
+         JOIN issues i ON i.tenant_id=f.tenant_id AND i.id=f.issue_id \
+         WHERE f.tenant_id=$1 AND f.user_id=$2 AND i.project_id=$3 AND i.archived_at IS NULL AND i.trashed_at IS NULL \
+         ORDER BY f.created_at DESC LIMIT 100",
+    )
+    .bind(i.tenant_id)
+    .bind(i.user_id)
+    .bind(project)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    Ok(Json(rows))
+}
+
+#[utoipa::path(get, path = "/api/projects/{id}/recent", tag = "views", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Issues you opened most recently in this project", body = Vec<IssueRef>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
+pub(crate) async fn list_recent(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<IssueRef>>> {
+    let i = tx.identity.clone();
+    member_of(&mut tx, &i, project).await?;
+    let rows: Vec<IssueRef> = sqlx::query_as(
+        "SELECT i.id,i.number,i.title,i.kind,i.status,i.priority,i.updated_at FROM issue_recent r \
+         JOIN issues i ON i.tenant_id=r.tenant_id AND i.id=r.issue_id \
+         WHERE r.tenant_id=$1 AND r.user_id=$2 AND i.project_id=$3 AND i.archived_at IS NULL AND i.trashed_at IS NULL \
+         ORDER BY r.viewed_at DESC LIMIT $4",
+    )
+    .bind(i.tenant_id)
+    .bind(i.user_id)
+    .bind(project)
+    .bind(RECENT_SHOWN)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    Ok(Json(rows))
 }

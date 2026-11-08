@@ -11,5 +11,6 @@ export type BoardLane = S["BoardLane"];
 export type BoardIssue = S["BoardIssue"];
 export type AuditEvent = S["AuditEvent"];
 export type WorkspaceSettings = S["WorkspaceSettings"];
+export type IssueRef = S["IssueRef"];
 export type Item = Record<string, unknown>;
 export type ProjectRef = Pick<Project, "id" | "key" | "name">;
