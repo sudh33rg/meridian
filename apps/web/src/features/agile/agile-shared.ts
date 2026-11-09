@@ -3,7 +3,7 @@ import { useQuery, type QueryClient } from "@tanstack/react-query";
 import type { components } from "../../api-schema";
 import { request } from "../../lib/api";
 
-/** Wire types for the Phase E planning endpoints come from the generated schema. */
+/** Wire types for the planning endpoints come from the generated schema. */
 type S = components["schemas"];
 export type BacklogItem = S["BacklogItem"];
 export type Sprint = S["Sprint"];

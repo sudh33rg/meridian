@@ -42,7 +42,7 @@ pub(crate) struct StatusPatch {
 }
 
 /// The statuses every new project starts with, which match what all projects had before this.
-/// Project templates (Phase K1). Each names the statuses a new project starts with. Templates only
+/// Project templates. Each names the statuses a new project starts with. Templates only
 /// seed statuses: fields, boards and rules stay as the project defines them.
 pub(crate) const PROJECT_TEMPLATES: [&str; 4] = ["software", "kanban", "bugs", "service"];
 

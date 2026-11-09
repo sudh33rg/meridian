@@ -1,4 +1,4 @@
-//! Custom project roles (Phase J1). A role has a level (viewer, member or admin) and members. A member's
+//! Custom project roles. A role has a level (viewer, member or admin) and members. A member's
 //! project level is the highest of their workspace role, the permission scheme, the grants, and the
 //! custom roles they hold (migration 0046). Only project admins manage roles.
 use crate::api::common::*;

@@ -1,4 +1,4 @@
-//! Email and digests (Phase I2). Members opt in to a daily digest of their unread notifications. The
+//! Email and digests. Members opt in to a daily digest of their unread notifications. The
 //! digest is sent through the job queue, only when the server enables email, and every email carries a
 //! signed unsubscribe link. Nothing is sent to anyone who has not opted in.
 use crate::api::common::*;

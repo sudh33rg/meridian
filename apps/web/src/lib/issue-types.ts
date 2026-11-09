@@ -1,4 +1,4 @@
-/** A project's issue types (Phase F3). The key is stored on issues; the name and icon are for display. */
+/** A project's issue types. The key is stored on issues; the name and icon are for display. */
 export type IssueType = {
   key: string;
   name: string;

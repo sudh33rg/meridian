@@ -1,4 +1,4 @@
-//! Workspace settings (Phase J5): time zone, working days, week start and the default sprint length.
+//! Workspace settings: time zone, working days, week start and the default sprint length.
 //! Members read them; admins change them.
 use crate::api::common::*;
 use crate::*;
@@ -13,11 +13,11 @@ pub(crate) struct WorkspaceSettings {
     /// First day of the week, 0 (Sunday) to 6 (Saturday).
     pub(crate) week_start: i16,
     pub(crate) default_sprint_days: i32,
-    /// Interface language: `en` or `es` (Phase K5). Dates and numbers follow it.
+    /// Interface language: `en` or `es`. Dates and numbers follow it.
     pub(crate) locale: String,
-    /// Days a trashed issue waits before it is purged, 7 to 365 (Phase J4). Audit records are kept.
+    /// Days a trashed issue waits before it is purged, 7 to 365. Audit records are kept.
     pub(crate) trash_retention_days: i32,
-    /// Display name shown in place of the workspace name (Phase J5). Null when not set.
+    /// Display name shown in place of the workspace name. Null when not set.
     pub(crate) brand_name: Option<String>,
     /// Accent colour as `#rrggbb`. Null when not set.
     pub(crate) brand_color: Option<String>,

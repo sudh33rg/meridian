@@ -1,321 +1,58 @@
-# Meridian — M0–M10 implementation ledger
+# Implementation status
 
-**Release designation:** Meridian 0.2 — expanded development implementation. **NOT GA.**
+**Release designation:** Meridian 0.2 development preview. **Not GA.**
 
-This document explicitly distinguishes source code that exists from planned parity with Jira, Confluence and other enterprise tools. A milestone's presence in the source tree is **not** proof that its production release gate has passed.
+This ledger states what the source contains, what has been checked, and what is still open. Source code existing
+in the tree does not mean a milestone's release gate has passed. Where this file and the code disagree, the code
+is right and this file must be corrected in the same change (Constitution III.9).
 
-| Milestone | Delivered in this package | Remaining before milestone can be called complete | Gate |
+## Milestones
+
+| Milestone | Delivered in source | Open before the gate | Gate |
 |---|---|---|---|
-| M0 — Platform | Rust/Axum API in domain modules, typed `ApiError`, **PostgreSQL RLS on every tenant table with one tenant-bound transaction per request (commit on success / rollback on error)**, per-tenant gap-free event log (`events`, `sync_id`) written atomically with audit rows, **session families with rotating refresh tokens, HttpOnly cookies + CSRF for browsers, session list/revoke**, email verification / password reset / invitation emails (Mailpit in dev), **durable Postgres job queue**, project visibility + user/team grants, per-client rate limits, security headers, request ids, Prometheus metrics, OpenAPI + generated web types, CI workflow, Docker Compose | Secret rotation, MFA, SSO, shared (ingress) rate limits, OTLP tracing export, wider negative tests, first CI run on GitHub | **Not passed** |
-| M1 — Project work | Project creation, issue CRUD/status and rich edit, searchable fields, assignees, priorities, labels, custom JSON, comments/replies, links, archive, board and list UI; cursor-paged issue lists with server-side status, priority, assignee and title filters (the web client loads every page, where it previously stopped silently at 500 rows); `If-Match` concurrency on issue edits (412 on a stale write); `Idempotency-Key` on issue create (migration 0014, tenant-isolated, pruned after 24 hours); archive and unarchive with project-access checks; an archived view; bulk status, priority and assignee changes with per-item results; personal saved views (migration 0015); per-project workflow statuses with categories, reordering and deletion rules (migration 0016) | Attachments/object storage, workflow transition rules and validators, custom field schemas, project ACLs, subscriptions, history diff and a query language | **Not passed** |
-| M2 — Knowledge | Hierarchical project pages, optimistic update checks, version snapshots, restore, page comments, search, page web editor/reader | True collaborative CRDT rich-text editor, independent spaces/ACLs, templates, macros/embeds, page tree moves, inline comments, whiteboards | **Not passed** |
-| M3 — Agile | Sprint planned→active→completed, one-active-sprint enforcement, releases, issue sprint assignment, story points, due dates, issue links, project analytics | Sprint backlog UI + burn charts, scope and capacity modeling, full roadmaps, version issue associations, forecasting | **Not passed** |
-| M4 — Collaboration | Issue/page comments, notifications inbox/read state, approval requests, safe allowlisted automation and execution logs, activity records, per-kind inbox preferences for approval and automation notifications (migration 0015) | Real-time presence, CRDT convergence, outbound notification delivery, configurable automation engine, guaranteed transactional outbox producer | **Not passed** |
-| M5 — Enterprise | Multi-workspace membership, tokenized invitations (new/existing users), teams, roles, workspace switching, role checks, admin audit and webhook registration | OIDC/SAML, MFA, SCIM, billing/subscription provider, entitlement enforcement, granular ACLs/RLS, retention, SOC2 controls | **Not passed** |
-| M6 — Intelligence | PostgreSQL full-text search with GIN indexes, ranked results, typed issue/page/goal/decision/release/risk relations | Semantic search, ACL-aware per-project indexing, AI grounding/evaluations/provider policies, backlinks UI and contextual Q&A | **Not passed** |
-| M7 — Portfolio | Goals, RAID risk and decision records, approvals, project overview, cross-project portfolio, assignee workload and basic reporting | Gantt/critical-path, finance/budgets, cross-team capacity planning, sophisticated executive reports | **Not passed** |
-| M8 — Ecosystem | Tenant-scoped JSON export (bounded), idempotent batch issue import using external refs, outbound outbox schema, webhook registration **disabled** by default, REST paths | Reliable webhook dispatcher, OAuth apps, Jira/Confluence migration fidelity, retries/DLQ, validated export checksums, full OpenAPI contract | **Not passed** |
-| M9 — Mobile | Flutter iOS/Android application source, secure token storage, issue details/comments/status, docs, goals, sprints, inbox, search and locally stored unsent issue drafts | Generated platform folders, end-to-end offline sync and conflicts, push, camera attachment, deep links, accessibility/device matrix | **Not passed** |
-| M10 — Delivery/scale | Multi-stage Dockerfiles, full preview Compose, Kubernetes reference manifests, liveness/readiness, local verification script, SQL indexes, smoke and k6 load scripts | Automated CI workflow and successful builds, benchmark results, production secrets, external security tests, disaster recovery drill, operational SLO telemetry | **Not passed** |
-
-## Functional coverage by architecture layer
-
-**Rust**: core API plus advanced domain API; SQLx queries use parameters, authenticated membership sessions, and explicit tenant predicates. There is no external delivery worker or fully custom domain policy engine yet.
-
-**PostgreSQL**: eighteen ordered migrations (0001 to 0018); tenant-scoped relational constraints; indexes for issue status/search, page content search, timeline and notification retrieval; state-machine and uniqueness constraints.
-
-**React**: responsive application shell, issue board, knowledge editor, issue details, planning and business modules, approvals, analytics, organization members, global search, inbox, audit, and export. The UI intentionally keeps advanced features separated from the four core work views. **UX modernization (see `UX_BENCHMARK_AND_PLAN.md`):** semantic design tokens with light, dark, system and high-contrast themes, six accent colors, comfortable/compact density and a reduced-motion setting (stored in the browser only; no server preference yet); a collapsible sectioned sidebar and mobile bottom navigation; a ⌘/Ctrl+K command palette and keyboard shortcuts; toasts with undo; drag-and-drop board (with an Alt+arrow keyboard alternative); issue list with filter, sort and group; skeleton loading and a getting-started checklist. Verified by eye in the browser in dark, light, orange-accent, compact and 390px-wide mobile; **not** verified: a formal accessibility audit or screen-reader pass, Safari/Firefox, touch drag-and-drop on a device, the Playwright e2e suite against this UI (selectors were read, not run), the high-contrast theme, and every legacy admin panel in every theme.
-
-**Flutter**: source code for a Material 3 mobile companion with essential team workflows; not all native platform files, emulator tests or push infrastructure are included.
-
-## Release risk inventory (must be addressed before customer data)
-
-1. ~~No RLS~~ **Done (Phase 1)**: see `SECURITY.md`. Remaining: the system (owner) connection is still used for sign-in and cross-workspace flows, and RLS has been exercised only by the app role switch, not against an externally provisioned least-privilege role.
-2. ~~Web authentication in `sessionStorage`~~ **Done (Phase 1)** for the browser (HttpOnly cookies, CSRF, rotation, revoke UI). The mobile app now stores the refresh token and rotates it transparently on a 401 (code written, **not compiled** — no Flutter SDK).
-3. **Permissions**: project visibility and grants, guests, and page restrictions inherited down the page tree are implemented. Issue-level ACLs do not exist yet.
-4. ~~Invite delivery / verification / reset~~ **Implemented** with a mail abstraction; unverified accounts are not blocked. Real SMTP delivery has only been exercised against Mailpit.
-5. ~~Audit/outbox atomicity~~ **Done**: entity, audit, event and outbox writes share the request transaction. Automation rule runs also share it.
-6. **Live editing**: pages are edited collaboratively (Yjs/CRDT over WebSocket, verified with two users). Concurrency has not been load-tested beyond that.
-7. **Webhooks deliver**: signed, SSRF-protected, retried and auto-disabled after repeated failures. The failure, retry and auto-disable paths are implemented but not yet exercised.
-8. **Payments and identity providers**: plan limits are enforced on the server; Stripe Checkout and the portal are written but untested here. SSO was verified against a local OIDC provider only; SCIM was verified through its API only.
-9. **Partial toolchain validation**: Rust, web, PostgreSQL migrations, the API smoke test and browser e2e were executed locally on 7 Nov 2026; the CI workflow has not yet run on GitHub and Flutter has never been built.
-10. **No security certification**: no external audit, pentest, verified backups, load run or accessibility certification has been completed.
-
-## Next recommended engineering sequence
-
-1. Push and confirm the first CI run is green (Flutter job in particular).
-2. Done since this list was written (see `REMAINING_PLAN.md` for results): configurable workflows, custom fields, the query language, transition rules, the CSV importer, cursor paging on mobile, and typed responses for the most-used reads. Still open: typed responses for the remaining `Value` endpoints.
-3. Run CI on GitHub (`act` is installed for a local dry run); fix what it finds, including the Flutter job.
-4. Exercise what is written but untested: Stripe Checkout, the ClamAV scan, webhook failure and retry paths, DNS domain verification, SCIM against a real directory, and mobile two-step verification.
-5. Passkeys (WebAuthn), Android builds, and an external security review.
-6. Finish complete Agile/Confluence feature families, migration tools, real-time search and optional governed AI.
-7. Run multi-device E2E, destructive failure testing, DR restore, load soak and accessibility audit before any enterprise GA declaration.
-
-## Phase E — backlogs, team scope, sprint execution, release scope (8 November 2026)
-
-Source of the requirement: `PARITY_GAP_REGISTER.md` sections 1 and 2. Built as migration `0019_backlogs_and_release_scope.sql` plus `apps/server/src/api/agile.rs`, `apps/server/src/api/releases.rs`, and the web planning views in `apps/web/src/features/agile/`.
-
-| Step | What exists in source | Still open or not verified |
-|---|---|---|
-| E1 product backlog | Fractional project-wide rank on every issue (trigger on every insert path, backfill for existing rows). `GET /projects/{id}/backlog` (rank order, team, assignee, search, paged with `X-Next-Cursor`). `POST /issues/{id}/rank` with top, bottom, before or after an anchor; one renumbering pass when float precision runs out. | Ranks are not rebalanced in the background. Board and list views do not yet sort by rank. |
-| E2 team backlogs | `issues.team_id` and `sprints.team_id`, with composite foreign keys. `PUT /issues/{id}/team` (refused while the issue sits in another team's sprint). Team picker in create and in the issue drawer. One active sprint per team and per project scope (partial unique index). | Team-level permissions and team capacity are in phase H. |
-| E3 sprint execution | `POST /sprints/{id}/issues` and `DELETE /sprints/{id}/issues/{issue}` report a reason for each refused item. `GET /sprints/{id}` returns the sprint, totals and issues. `PATCH /sprints/{id}` edits name, goal and dates, starts a sprint (recording committed scope) and completes it with `carry_over_to` (backlog or another open sprint for the same team). Completed sprints refuse membership changes. | Sprint capacity is not modelled. |
-| E4 release scope | `release_issues` holds membership with add and remove times, so history is kept. Scope freeze (`freeze`, one-way); additions and removals after the freeze are flagged. `PATCH /releases/{id}` releases (moving unfinished work to the backlog or another planned release) or cancels. `GET /releases/{id}` totals; `GET /releases/{id}/issues`; `GET /releases/{id}/history`; `GET /releases/{id}/notes` (markdown: bugs fixed, changes, not shipped). | Releases are not yet linked to versions on issues or to deployments. |
-| E5 burndown and velocity | `sprint_daily_snapshots`, written at start, at close and by the hourly maintenance loop (`capture_active_sprints`). `GET /sprints/{id}/burndown` returns stored days plus a live point for today. `GET /projects/{id}/velocity` averages completed points of the last N closed sprints for a team or the project. | Snapshots begin when this build runs; earlier days are not reconstructed. Scope-creep figures use the committed scope recorded at start. |
-| E6 web | Backlog tab (team filter, search, drag to rank, Alt+↑/↓ to rank, “To sprint” menu, open sprint cards that accept drops). Sprints tab (create, start, close with carry-over, remove issues, burndown, velocity). Releases tab (create, scope, freeze, release, cancel, history, notes with copy). | Browser checks not yet run. Drag and drop has no touch fallback beyond the menu. |
-| E7 contract | `make openapi` (157 operations), `make manifest`, `npm run build` (type-check and Vite build) and eslint on the changed files: all pass. | The API has not been run against PostgreSQL in this phase; migration 0019 and the new queries are checked at the visual-verification step. |
-
-No automated tests were added or changed (Constitution Article V.2). Verification is recorded at the end of the parity plan (see `REMAINING_PLAN.md`).
-
-## Phase F — issue model depth (8 November 2026, partial)
-
-Migration `0020_issue_depth.sql`; API in `apps/server/src/api/issue_depth.rs`; web in `apps/web/src/features/agile/IssueDepth.tsx` and `SprintCard`/`CreateModal` changes.
-
-| Step | What exists in source | Still open |
-|---|---|---|
-| F1 components | Project components with name, description, default assignee and issue count. `PUT /issues/{id}/components` (at most 20, same project). An unassigned issue takes the default assignee of its first component. | Default assignee is not applied on create (only when components are set). |
-| F2 epics and subtasks | `GET /issues/{id}/children`, `GET /issues/{id}/rollup` (children done, points, estimates, remaining, logged), `POST /issues/{id}/subtasks` (one level deep). Drawer lists subtasks and creates them. | Epic-specific reports and a child board are in G and K. |
-| F3 issue type schemes | Migration `0026_issue_types.sql`: each project owns its types (key, name, icon, hierarchy level 0 or 1, up to 12). Existing projects keep task, bug, story and epic; new projects are seeded in the create transaction. Issues reference the project's types with a composite foreign key, replacing the fixed CHECK. Create, edit, subtasks (standard types only), move, CSV and admin import, query `kind:` and the web create and filter menus use the project's types. `GET/POST /projects/{id}/issue-types`, `PATCH/DELETE /projects/{id}/issue-types/{key}`. | Per-type default workflow and field contexts. The web has no type editor yet (API only). Icons are a fixed set of eight names. |
-| F4 time and people | Original and remaining estimates (minutes), worklogs with author and day, delete by author or admin, watchers (add and remove), votes (count and voted). Drawer shows all of it. | Time reports by person and project (G2). Estimates do not reduce automatically when time is logged. |
-| F5 content | Checklists (add, tick, rename, delete). `@handle` mentions in comments notify the member (handle is the part of the email before `@`). Comments can be edited by their author and deleted by the author or an admin (migration `0027`); earlier texts are kept in `issue_comment_revisions` and shown in a history that only the author and admins can read. The drawer has Edit, History and Delete. | Descriptions are markdown: the server removes HTML tags and script-capable link targets before saving (`sanitize_markdown`, 20,000 characters), and the drawer renders the subset it knows (paragraphs, lists, headings, bold, italic, code, http, https and mailto links) without inserting HTML. Reactions on comments (`PUT/DELETE /comments/{id}/reactions/{reaction}`, six fixed reactions, `GET /issues/{id}/reactions`). Reminders (`GET/POST /issues/{id}/reminders`, `DELETE /reminders/{id}`): between now and one year ahead; the hourly maintenance loop turns due ones into notifications. A comment edit notifies only the members it newly mentions. Migration `0039`. | Reactions are fixed, not custom. Reminders are personal and need editor access to the issue. Descriptions are edited as plain markdown text, with no toolbar. Not yet run in a browser. |
-| F6 lifecycle | Clone (copies content, classification, estimates, components; not assignee, sprint, parent or subtasks). Move to another project (keeps the status if the target has it, keeps the type if the target defines it and otherwise uses the target's default, keeps custom fields the target defines and names the rest, releases sprint, release scope and components, leaves a comment with the old key). Similar issues while creating (full-text on titles). Trash (migration `0028`): `POST /issues/{id}/trash` archives and records `trashed_at`, `trashed_by` and a restore date 30 days ahead; `POST /issues/{id}/restore` brings back either state; `GET /projects/{id}/trash` lists trashed issues for editors. The drawer has Move to trash and Restore from trash. | Automatic purge (`purge_expired_trash`, run by the hourly maintenance loop): trashed issues past their restore date are deleted in batches of 100, one transaction each. Live subtasks become top-level issues; import keys and release memberships are removed; attachments are hidden and their objects deleted by an `attachment.purge` job; an audit row `issue_purged` names the member who trashed the issue. Other rows go with the cascade. No dedicated trash view in the web app; trashed issues appear under Show archived. Duplicate links. Not yet run against PostgreSQL. |
-| F7 transitions | Migration `0029_transition_validators_actions.sql` and `0032_post_function_subtask_assignee.sql`. Validators: a required field (D3) and `requires_admin`, which lets only a workspace admin or owner make the change (automations never pass it). Post-functions, run in the same transaction as the status change from the shared history hook and from automations: `set_field` writes a value into a custom field (validated against its definition); `notify_admins` notifies owners and admins; `notify_assignee` notifies the issue's assignee (not the actor); `create_subtask` creates a subtask titled by the rule, with the same rules as a hand-made subtask (one level deep, a standard type, the default status). A move that would nest a subtask under a subtask is refused. Up to five per rule through `GET/POST /projects/{id}/transitions/{from}/{to}/actions` and `DELETE .../actions/{action_id}`. A field a post-function writes cannot be deleted. The workflow editor has an "Admins only" option and a post-function editor under each move. | Per-transition screens are built (migration `0036`): `GET/PUT /projects/{id}/transitions/{from}/{to}/screen` lists up to 20 custom fields in order; the post-function editor sets them, and the issue drawer says which fields a status change shows. A `set_field` post-function now writes a change-history row (`custom_fields.<key>`). Not yet run in a browser. |
-| F8 query and filters | In the query language (no migration): `OR` joins two filters into one group; `assignee:currentUser()`; `sprint:openSprints()`, `sprint:none`, `sprint:<id>`; one `order:` term (rank, priority, updated, number). Covered by the query parser's rules, no new migration. | Nested groups and parentheses; functions beyond these. Built later in this phase (migration `0031`): saved views can be shared with the project (`shared` on `POST /projects/{id}/views`; the list shows your views and shared ones, and only the owner can delete); favourites (`PUT`/`DELETE /issues/{id}/favourite`, `GET /projects/{id}/favourites`); recent issues (`POST /issues/{id}/viewed` keeps the last 20 per member, `GET /projects/{id}/recent` shows 10). Shared views cannot be edited, only deleted by their owner. Not yet run in a browser. |
-| F9 boards | WIP limits (migration `0030`): a status column can have a limit (`PUT /projects/{id}/statuses/{key}/wip-limit`, project admins). A move into a full column is refused with the count, on every status write path and for automations. The board header shows `count / limit`. Swimlanes: `GET /projects/{id}/board?group_by=none\|assignee\|epic` returns lanes (at most 2,000 issues, archived and trashed excluded); the board groups by assignee or epic and shows the quick filters Mine, Unassigned and High priority. | Quick filters are kept in this browser per project (localStorage), not as saved views: saved views are issue-list filters that the server checks for staleness, and a board filter would not fit that check. Moving a card between lanes changes its status only, not its assignee or epic. A WIP check on creating issues (not refused on purpose). Browser checks not yet run. |
-
-Checks: `cargo check` and `npm run build` (type-check and Vite build) pass. `make openapi` regenerated; `make manifest` regenerated. No tests added. Not yet run against PostgreSQL or in a browser (see the verification step at the end of the plan).
-
-**Second build (F3, F5 to F9, same day).** Migrations `0026` to `0030`. New or changed routes are listed in `API_GUIDE.md` (issue types, comment edit, delete and history, trash and restore, post-function actions, WIP limit). `cargo build`, `make openapi` (the contract now has 238 operations), `make manifest` and `tsc -b` pass. Not run against PostgreSQL and not viewed in a browser; see the verification section below.
-
-## Phase G — history and reports (8 November 2026)
-
-Migrations `0021_history_and_reports.sql` and `0022_dashboards.sql`; API in `apps/server/src/api/history.rs` and `reports.rs`; web in `apps/web/src/features/agile/ReportsPanel.tsx` and the issue drawer's History section.
-
-| Step | What exists in source | Still open |
-|---|---|---|
-| G1 status history | `issue_status_history` written in the same transaction as every status change: create (CSV import, admin import, API create, clone, subtask), PATCH, edit, bulk, board moves (through PATCH), and project moves. Existing issues start with one row at their creation state. | Moves made before migration 0021 are not reconstructed. |
-| G2 reports | `GET /projects/{id}/reports/flow` (issues per status per day), `cycle-time` (lead and cycle time, median and average, control-chart points, throughput per ISO week), `created-resolved` (per day), `time` (logged time by person and issue). Date ranges are inclusive and capped at 366 days. Web Reports tab shows them. | Filters beyond date range (team, assignee, label) are not yet in the reports. |
-| G3 change history | `issue_changes` rows for title, description, kind, priority, assignee, sprint, parent, story points, due date, team and project moves. `GET /issues/{id}/history` merges status and field changes. Drawer shows the timeline. | Labels, custom fields and estimates are not yet tracked in the change log. |
-| G4 dashboards | Dashboards are per project, private unless shared, with widgets for status, priority, assignee counts, time by person, cycle summary and velocity. Widget data is computed on read. | Flow and time-series widgets are not drawn as charts on dashboards; drag-to-arrange is not built. |
-| G5 CSV export | `GET /projects/{id}/export.csv` (active issues, at most 10,000 rows). Cells starting with `=`, `+`, `-`, `@`, tab or carriage return are neutralised. Web Export CSV button. | Sprint and release exports, and an export of history. |
-
-Checks: `cargo check`, `make openapi`, `make manifest`, `npm run build` pass. No tests added. Not yet run against PostgreSQL or in a browser.
-
-## Phase H — roadmaps, portfolio, capacity (8 November 2026)
-
-Migration `0023_roadmaps.sql`; API in `apps/server/src/api/roadmap.rs`; web in `apps/web/src/features/agile/RoadmapPanel.tsx`.
-
-| Step | What exists in source | Still open |
-|---|---|---|
-| H1 timeline and milestones | Milestones (create, edit, mark reached, delete). `GET /projects/{id}/timeline` returns epics (with child progress), releases, open sprints and milestones with dates. `GET /projects/{id}/dependencies`. | No drag-to-reschedule; the timeline is read-only and dates are edited on their own objects. |
-| H2 initiatives | Tenant-level initiatives with status and target date. Epics join with `PUT /initiatives/{id}/epics` (only epics in projects where the caller can edit). Progress counts only epics in projects the caller can open. | Initiative pages and owners' views; a portfolio roll-up across projects beyond epic counts. |
-| H3 updates and goals | Project updates with health (on track, at risk, off track). Goals link to issues (`PUT /goals/{id}/issues`) and report progress from linked work (`GET /goals/{id}/progress`). | Goal check-in cadence and reminders. |
-| H4 capacity | Member capacity in hours a week (admin sets it). `GET /capacity` compares remaining estimates of open work with capacity, limited to projects the caller can open. | Allocation across projects over time; capacity by week. |
-| H5 critical path | `GET /projects/{id}/critical-path`: longest chain of open issues linked by blocking relations, weighted by remaining estimate (60 minutes when unset). Reports loops instead of guessing. | Float and slack per item; calendar-aware scheduling. |
-| H6 baselines | Snapshot of open issues' due dates, and variance against it (`GET /baselines/{id}/variance`). | Scenario comparison and schedule re-baselining. |
-
-Checks: `cargo check`, `make openapi`, `make manifest`, `npm run build` pass. No tests added. Not yet run against PostgreSQL or in a browser.
-
-## Phase I — integrations and automation (8 November 2026, partial)
-
-Migration `0024_integrations.sql`; API in `apps/server/src/api/integrations.rs` and `collab.rs` (automation); web in `apps/web/src/features/agile/IntegrationsPanels.tsx` and the drawer’s Development section.
-
-| Step | What exists in source | Still open |
-|---|---|---|
-| I1 automation | Rules have conditions (priority, kind, status, label, team, assignee; eq or neq) and up to five actions (set priority, set status through the workflow, set assignee, add label, comment, notify admins). Triggers: created, status changed, updated, comment added. Actions never start other rules. Changes from actions are recorded in the history. Rules are created through the API. | No visual rule builder yet (the existing Automations page lists and creates preset rules only). Scheduled rules, branches and cross-project rules are not built. |
-| I2 email and digests | Off by default. Set `EMAIL_NOTIFICATIONS=true` and `SMTP_URL` to send. A member opts in to a daily digest of unread notifications (`GET/PUT /api/me/digest`, migration `0041`). The hourly maintenance loop queues at most one digest a day per opted-in member with unread notifications; the `email.digest` job sends it through the mailer. Every digest carries a signed unsubscribe link (`GET /api/email/unsubscribe`, HMAC of tenant and member). The notification preferences screen has the switch. | Owner decision still open: the production sender domain (`MAIL_FROM` defaults to `no-reply@meridian.local`). Not sent through a real SMTP server in this build. Not yet run in a browser. |
-| I3 chat | Slack and Microsoft Teams incoming webhooks, both, chosen per project (owner decision). Admins set the URLs (`PUT /api/projects/{id}/chat-channels`); URLs are stored sealed, never returned, and checked on every use (https, public address, no redirects). Messages carry the issue key, title, status change and actor, never descriptions or comments. Each message is queued in the same transaction as the change, and a per-project quota of 120 deliveries an hour applies. Off until configured. Migration `0044`. | Incoming webhooks are not signed by Slack or Teams, so the URL itself is the secret. Not yet run against a live Slack or Teams channel. |
-| I4 git linking | `PUT/GET /api/projects/{id}/git-secret` (admin; sealed at rest). `POST /api/integrations/git/{id}` takes push and pull request events signed with `X-Hub-Signature-256`; keys like `KEY-123` link commits and pull requests to issues. Drawer lists the links. | Other hosts’ event formats (GitLab, Bitbucket), branch names, and status updates from merges. |
-| I5 tokens | Personal API tokens (`mtk_…`), shown once, stored as SHA-256, read or write scope, optional expiry, revocation, last-used time. Read tokens refuse changes. Tokens cannot create tokens. Panel on the Integrations page. | OAuth 2.0 apps with consent, and per-token project restriction. |
-| I6 importers | Jira CSV (from D4). Jira issue JSON (`POST /projects/{id}/import/jira`, the same CSV path, dry run first). Jira extras (`POST /projects/{id}/import/jira/extras`, the same JSON): sprints named on each issue (the last one is its sprint; a closed sprint becomes completed, an active one becomes planned because a project has one active sprint), fix versions as releases with the issues linked, and the changelog's status changes added to each issue's history when both names match a status of the project. Extras find each issue by its Jira key, so a repeat changes nothing. The import page offers JSON files, with dry run and commit. | Jira Cloud API pull (the file is uploaded, not fetched); Confluence space export; Linear, GitHub and Trello. Imports are not resumable jobs beyond the key-based repeat. Not yet run against a live Jira export. |
-| I7 marketplace | Closed as out of scope: the owner decided (November 2026) that Meridian does not host third-party apps. | — |
-
-Checks: `cargo check`, `make openapi` (222 operations), `make manifest`, `npm run build` pass. No tests added. Token authentication has not been exercised against a running API.
-
-## Phases J and K (partial, 8 November 2026)
-
-Migration `0025_workspace_settings.sql`; `apps/server/src/api/settings.rs`; project templates in `statuses.rs`.
-
-| Step | What exists in source | Still open |
-|---|---|---|
-| J1 permissions and groups | Permission schemes (migration `0034`, `GET/PUT /projects/{id}/permission-scheme`): member level, edit level and workflow level per project. Custom roles (migration `0046`, `GET/POST /projects/{id}/roles`, `DELETE /roles/{id}`, `PUT /roles/{id}/members`): a role has a level and members; a member's project level is the highest of their workspace role, the scheme, the grants and their custom roles, read by `project_access`. Teams already work as groups. Both are edited in the board's workflow section. | Per-action mapping (a table of actions to levels) is not built: the scheme has three settings. Not yet run against a live API. |
-| J2 issue security and field security | Security levels (migration `0037`): `GET/POST /projects/{id}/security-levels`, `DELETE /security-levels/{id}`, `PUT /security-levels/{id}/members`, `GET/PUT /issues/{id}/security-level`. An issue in a level is visible to project admins, its assignee, its reporter and the level's members. The rule is a restrictive row level security policy on `issues`, so lists, search, boards, backlogs, reports, dashboards, exports and detail routes all honour it. Restricted fields (migration `0038`): a field flagged `restricted` is seen and changed by project admins only. Members do not see its values in issue details or history, cannot change it on edit or create, cannot move an issue that holds its value, and cannot search on it (`cf.<key>` is refused). Admins only: changing levels, placing issues, and the restricted flag. Levels and restricted fields have a UI in the board workflow section and the issue drawer. | Rulings: background jobs (burndown snapshots) read every issue, so their counts include restricted issues; sprint start and close records count what the acting member can see, so a member closing a sprint may leave restricted issues out of the record. A required restricted field must be filled by an admin, so a member creating an issue sees the required error. Not yet run in a browser or against a live API; the policy was checked in the in-process database. |
-| J3 audit log | Admin audit page: `GET /api/audit/events` filters by action, entity type, member and UTC date range, pages with `X-Next-Cursor` (newest first, 50 per page, up to 200), and `GET /api/audit/export.csv` exports up to 10,000 matching events with formula-injection quoting. The Audit trail tab uses both. The older `GET /api/audit` (500 rows, no filters) remains. | Free-text search across event details is not built: events store only action, entity type and entity id. Not yet run in a browser. |
-| J4 retention | Owner decision (November 2026): audit records are kept indefinitely; no job deletes them. Trash retention is a workspace setting (`trash_retention_days`, 7 to 365, default 30, migration `0045`) and the purge job applies it. | Attachment retention beyond trash is not built. |
-| J5 workspace settings | Time zone (format-checked, not validated against the IANA database), working days, week start, default sprint length; admins edit them in Appearance. Timestamps render in the workspace time zone (`apps/web/src/lib/datetime.ts`); calendar dates (YYYY-MM-DD) keep their day. An unknown zone falls back to the browser zone. | Branding and custom domain. Components that do not read the workspace context pick up a zone change on their next render. Not yet checked in a browser. |
-| K1 templates | Project creation takes a template that seeds starting statuses: software (default), kanban, bug tracking, service requests. | Fields, boards and automation rules per template. |
-| K2 service management | Migration `0035`. Queues (`/projects/{id}/service/queues`) whose default assignee is the assignment rule. Request types (`/projects/{id}/service/request-types`) with a flow (request, incident or change), a queue and a target in hours. Requests (`POST /projects/{id}/service/requests`) are issues with a request type, assigned from the queue. `GET /projects/{id}/service/sla` gives each request its timer from status history: `met`, `missed`, `on_track` or `breached`. | Request forms (fields per request type), approval steps, incident and change flows beyond a label and a target, and escalation. The web app has a Service tab (queues, request types, submit, SLA table). The handler checks that a request type belongs to the project; there is no database constraint for it. Not verified in a browser. |
-| K3 knowledge parity | Page templates (migration `0033`): `GET/POST /projects/{id}/page-templates` and `DELETE /page-templates/{id}`. Editors manage templates; members can use them. The page create dialog starts from a template or saves its text as one. Up to 50 per project, 100,000 characters each. | Blog posts (`GET/POST /projects/{id}/blog-posts`: a page listed by publication date), a project home page (`GET/PUT /projects/{id}/home-page`, admins), and page parents (`PUT /pages/{id}/parent`, refusing cycles and cross-project parents). Migration `0040`. The knowledge tab shows the page tree with collapsible branches, a Home badge, a blog panel, a parent picker and a "Set as home" control. | Not yet run in a browser. |
-| K4 macros | Three macros in page text: `{{issues query="..." limit=N}}` (a list), `{{table query="..." limit=N}}` (a table) and `{{chart by=status\|priority\|kind query="..."}}` (bars). Each is a search over the project's issues, so visibility rules apply. The server refuses a page save with a malformed or unknown macro or more than 20 macros (`api/macros.rs`). The knowledge tab renders the page under "Rendered view". Unknown macros show as text. | Macros are checked on REST saves only; collaborative edits are stored as typed and shown as text if malformed. No macro editor. Not yet run in a browser. |
-| K5 localisation | Workspace language (migration `0042`, `locale` in workspace settings, `en` or `es`). The web app has a message catalogue (`apps/web/src/lib/i18n.ts`) with English and Spanish. The navigation, the board toolbar and the issue drawer's section headings use it, and dates render in the workspace language through `Intl` (datetime.ts). | Most of the interface still shows English: the rest of its strings must move into the catalogue, one screen at a time. Numbers outside dates are not yet localised. Spanish is the only added language. Not yet run in a browser. |
-
-Checks: `cargo check`, `make openapi`, `make manifest`, `npm run build` pass. No tests added.
-
-## Verification status for Phases E to K (8 November 2026)
-
-Migrations `0001` to `0025` apply in order to an in-process PostgreSQL-compatible database. The API has not been run against a database for these phases and no new endpoint has been exercised. The web app builds and the changed files lint clean; no page has been viewed in a browser. Phases L, M, N and P are not started, and phases I2, I3, I6, I7, J2, J4, K2 to K5 are open (see the phase sections above and `REMAINING_PLAN.md`). Visual verification waits until the planned work is complete, as the working rules require.
-
-## Phases F5 to P: this build (8 November 2026)
-
-The remaining plan items were taken in one pass. Each row names what exists in source and what is still open. Build checks: `cargo check`, `make openapi`, `make manifest`, `npm run build` and eslint on changed web files, and the mobile `dart analyze lib` (run with a scratch HOME, because the sandbox blocks the analysis server's default directory). Migrations `0001` to `0042` apply in order in an in-process PostgreSQL-compatible database, and a visibility scenario for J2 behaves as designed in that database. No request has been made to a running API and no page has been viewed: the owner must start PostgreSQL (`make up`) and run the stack before any of this is verified.
-
-| Item | What exists in source | Still open |
-|---|---|---|
-| F5 | Markdown descriptions (sanitised), comment reactions, reminders | Reactions are fixed; no editor toolbar |
-| F6 | Automatic purge of trash past 30 days, attachments included | Restore after purge is not possible (by design); purge needs a live run |
-| F7 | Transition screens, set-field history, post-function editor | Per-field conditional screens |
-| J1 | Permission schemes (member level, edit level, workflow level) and custom roles, edited in the board's workflow section | Per-action mapping |
-| J2 | Security levels (row level security), restricted fields | Rulings in the J2 row; live verification |
-| K2 | Queues, request types, requests as issues, SLA report, a Service tab, request forms (custom fields, required ones checked), approval (a request that needs approval creates an approval for the named approver), escalation (a request past its target is escalated once to owners and admins by the maintenance loop). Migration `0043` | Escalation is one notification per request, not a chain of escalation levels. Not yet run in a browser or against a live API. |
-| K3 | Templates, blog posts, home page, page tree, page parents | Browser verification |
-| K4 | Issue list, table and chart macros, validation on save | Collaborative saves are not validated |
-| K5 | Workspace language, en and es catalogue, dates in the language | Most interface strings still English |
-| I2 | Email digest behind `EMAIL_NOTIFICATIONS`, signed unsubscribe | Production sender domain (owner decision); no live SMTP test |
-| I6 | Jira issue JSON import through the CSV path | Changelog, sprints, versions; Cloud API pull |
-| L1 | Mobile backlog, releases, sprint and release detail | Android build (no Android SDK or Java here); device run |
-| L2 | Mobile: a conflict on a status change is shown with a choice. Web: a conflict on any issue edit reloads the latest version and keeps the person's edits for review. Sync protocol in `docs/SYNC_PROTOCOL.md` | Mobile conflicts for fields other than status, and for comments (comments never conflict) |
-| I3 | Slack and Teams webhooks per project (admin-set, sealed URLs, quota, default off) | Not run against a live channel |
-| M1 (AI phase) | Summaries and triage over project text, opt-in per workspace, server API key; drafting not built | Provider not named by the owner (default Anthropic API); not run against the live model |
-| P1 | Static jsx-a11y pass over the web source: no rule errors, sixteen warnings, recorded in `docs/ACCESSIBILITY_AUDIT.md` | Screen-reader pass, keyboard walk, contrast and mobile checks need a running app |
-
-Owner-blocked and not attempted: I7 (marketplace), J4 (retention rules), L3 (push provider; the owner chose not yet), N1 (owner-run gates: first CI run on GitHub, real SSO and Stripe, external security review), and the I2 sender domain. The owner has since answered I3 (both Slack and Teams, per project) and M1 (all project text, opt-in).
-
-## Verification status for the fifth build: J1 permission schemes, K2 service management (8 November 2026)
-
-- **Migrations applied in an in-process PostgreSQL-compatible database (PGlite 0.2.17, PostgreSQL 17 SQL).** Files `0001` to `0035` apply in order with no errors. This checks the SQL, including the `project_access` replacement in `0034` (a SQL function is validated when created) and the `ON DELETE SET NULL (column)` and `DO` block in `0032` and `0035`. It is not a real server: row level security, the API and the sqlx migration bookkeeping were not exercised.
-- **Built and compiled:** `cargo check`; `make openapi` (196 paths) and `make manifest`; `npm run build` passes.
-- **Not run against PostgreSQL through the API.** No request has been made to `/permission-scheme`, `/service/*`, or any other route in this build. The first real check is `make up` plus `make dev-api`, then a project with a scheme set to `edit_min = 3`, a viewer and a member, a queue with a default assignee, and an SLA report after moving a request to a done status.
-- **Not viewed in a browser.** No page has been looked at in this build.
-
-## Verification status for the fourth build: I6, F7 post-functions, K3 templates (8 November 2026)
-
-- **Built and compiled:** `cargo check`; `make openapi` and `make manifest` regenerated; `npm run build` and eslint on changed files pass.
-- **Not run against PostgreSQL.** Migrations `0026` to `0033` are unapplied. Check `0032` first: it drops the CHECK constraints on `transition_actions` by lookup and adds a new shape constraint. Then `0033`.
-- **Not viewed in a browser.** The post-function editor, the Jira JSON import (through the API only) and the page template picker are unchecked.
-
-## Verification status for the third build: F8, F9 swimlanes, J3, J5 (8 November 2026)
-
-- **Built and compiled:** `cargo check` for the server; `make openapi` (186 paths) and `make manifest` regenerated; `npm run build` (`tsc -b` and Vite) and eslint on every changed web file pass.
-- **Not run against PostgreSQL.** Docker Desktop was not running and the build sandbox could not start it, so migrations `0026` to `0031` are unapplied and none of the new endpoints (`/board`, `/audit/events`, `/audit/export.csv`, `/favourite`, `/viewed`, `/favourites`, `/recent`) has been called. Check migration `0031` first: it adds `saved_views.shared` and two tables with composite foreign keys to `issues` and `memberships`.
-- **Not viewed in a browser.** No page of this build has been looked at.
-- **Owner action to finish verification:** start Docker Desktop, then run `make up`, `make dev-api` and `make dev-web`. Create a project and check: Board swimlanes (none, assignee, epic) and the Mine, Unassigned and High priority chips; star an issue and open Recent; save a shared view and sign in as a second member to see it; Audit trail filters, Load more and Export CSV; a workspace time zone change shown on issue dates.
-
-## Verification status for the F3 to F9 build (8 November 2026)
-
-- **Built and compiled:** `cargo check` and `cargo build` for the server; `tsc -b` for the web app; `make openapi` and `make manifest` regenerated.
-- **Not run against PostgreSQL.** Docker/Colima could not start from the build sandbox (the VM did not come up), and no local PostgreSQL or package registry was reachable, so migrations `0026` to `0030` have not been applied and no new endpoint has been called. The one risk to check first is migration `0026`: it drops the fixed `issues_kind_check` constraint by its default name and adds a composite foreign key to `issue_types`.
-- **Not viewed in a browser.** No page of this build has been looked at.
-- **Owner action to finish verification:** start Docker, run `make up`, then `make dev-api` and `make dev-web`. Confirm migrations `0026` to `0030` apply on a database that already has `0001` to `0025`; create a project and check Issue types (through the API), a comment edit and delete with history, Move to trash and Restore, a workflow rule with "Admins only", a WIP limit on a board column, and the query `status:todo OR status:done order:priority`.
-
-## Verification run after the E to K build (8 November 2026)
-
-Run against PostgreSQL 17.11 (container, migrations 0001 to 0025 applied by the API at startup) and the Vite dev server.
-
-- **API: 78 of 78 checks passed.** Covered: signup, teams, projects and the kanban template; issue create with idempotency; ranking (top, before, after, refusal without anchor, 120 consecutive moves); team backlog; sprint membership with a cross-team refusal; start, complete and carry-over; velocity; release scope with freeze, after-freeze flag, removal history, notes and release; components, estimates, worklogs, watchers, votes, checklist, subtasks, roll-up, clone, move, similar, history; flow, cycle-time, created-resolved, time and CSV reports; dashboard with widgets; milestones, timeline, links, critical path, initiatives, updates, capacity, baselines and variance; read token (reads allowed, writes and token creation refused); signed push linking a commit, bad signature refused, dev links; custom automation (priority and label set); workspace settings.
-- **Defect found and fixed:** the subtask roll-up reported logged time from subtasks only; it now includes the issue's own worklogs.
-- **Browser (Chrome via the built-in pane):** Backlog (ranked rows, sprint lane, keyboard Alt+↑ re-ranks), Sprints, Releases (scope, freeze flag, progress), Reports (status, cycle time, created and resolved, time, dashboards), Roadmap (timeline, milestone, critical path, updates, initiatives), the issue drawer (team, components, estimates, worklog form), Integrations (tokens panel). Two layout problems were fixed (backlog row cramped; checkbox chips oversized). Status keys in the report now show status names.
-- **Not checked in the browser:** choosing a sprint from the backlog's "To sprint" menu (native select did not take the keyboard choice in this pane; the same path was checked through the API), creating a project from the template picker, the workspace settings panel, the git link panel, the drawer's history and development sections (rendered by code, not looked at), dark theme, mobile widths, touch, and screen readers. Mobile (Flutter) was not built.
-- **Still not built:** phases L, M, N, P and the open items listed above.
-
-## Phase Q: gap closure after the parity build (8 November 2026)
-
-Plan and step results: `REMAINING_PLAN.md` (Phase Q). Source of the gaps: `PARITY_GAP_REGISTER.md`, rechecked against source. Migrations `0047` to `0051` are new; all are forward-only.
-
-| Item | What exists in source | Still open |
-|---|---|---|
-| Q1 demo | `scripts/seed_demo.py` creates two teams, assigns issues to them, starts a team sprint with committed issues, and creates a release with scope | Not run against a live API in this build |
-| Q2 bulk | `POST /projects/{id}/issues/bulk` actions `set_team`, `set_sprint` (or `none`), `set_release`, `add_label`, `remove_label`, `add_watcher`; each item refused with a reason (cross-team sprint, closed sprint, already in release, not a planned release) | Bulk edit for estimates and custom fields |
-| Q3 exports | `GET /sprints/{id}/export.csv`, `GET /releases/{id}/export.csv`, `GET /projects/{id}/history.csv` (status and field changes, newest first, custom fields excluded); buttons in the sprint card, release panel and reports | Scope history export; sprint committed-versus-added flag in the CSV |
-| Q4 query | Parentheses, nested `OR` and `AND`, `-(...)` negated groups, up to four levels and twenty filters; `OR` keeps its earlier precedence. The compiler is `build_search`, shared with saved-view subscriptions | Date functions |
-| Q5 automation | Trigger `scheduled` (`schedule` hourly, daily or weekly; migration `0047`). `run_due_scheduled_rules` runs from the hourly loop on up to 200 open issues per rule, with the creator's authority (skipped if no longer owner or admin). `PATCH /automations/{id}` (enable, rename), `DELETE /automations/{id}`, `GET /automations/{id}/runs`, `POST /projects/{id}/automations/preview` (matches now, nothing changed). Web: `AutomationBuilder` replaces the old preset form | Cross-project rules; branches; rule templates |
-| Q6 subscriptions | `GET/PUT /views/{id}/subscription` (`daily`, `weekly`, `off`), migration `0049`. Due runs compile the view with the subscriber's identity and add one inbox notification (matches and changes since the last one). A view that is gone or not visible ends the subscription. Web: an Updates selector on the saved view toolbar | Email is the existing digest (needs `EMAIL_NOTIFICATIONS`, SMTP and the sender domain) |
-| Q7 rate limits | `RATE_LIMIT_SHARED=true` counts per client per minute in `rate_limit_windows` (migration `0048`). Default off. Errors let requests through and are logged | Default on; a cache in front of the counter |
-| Q8 importers | `POST /projects/{id}/import/trello` (board JSON, archived cards skipped), `/import/github` (issues JSON, pull requests skipped), `/import/linear` and `/import/asana` (CSV). Each converts to the CSV importer and shares its dry run and idempotency (`TRELLO-`, `GH-`, `ASANA-`, Linear identifiers). Import panel source selector | Field mapping chosen by the user; Confluence and the Jira Cloud API |
-| Q9 permissions | Scheme `actions` (migration `0050`) for `manage_sprints` (sprint create, edit, add, remove), `manage_releases` (create, edit, add, remove) and `delete_issues` (trash). Unset actions use the edit level. Editor in the permission section | Per-action levels for comments, issue creation, components and workflow beyond the three scheme levels |
-| Q10 branding | Brand name and `#rrggbb` accent in workspace settings (migration `0051`); the sidebar shows the brand name | Logo upload; custom domain (infrastructure); accent applied across the theme |
-
-Checks run in this build: `cargo check` (server), `make openapi` (229 paths), `make manifest`, `npm run build` (`tsc -b` and Vite), and `cargo clippy --all-targets` on the changed files. Clippy still reports lint errors in older code (for example `access.rs` `explicit_auto_deref`, `attachments.rs`, `reports.rs`, `auth.rs`); they were there before this build and are not fixed here.
-
-Not verified: no migration was applied to PostgreSQL in this build, no endpoint was called, and no page was viewed in a browser. The first real checks are `make up`, `make dev-api` and the seed, then the bulk bar, the sprint and release exports, a nested query, a scheduled rule with its preview, a subscription, one import from each source, the permission editor and the brand name in the sidebar.
-
-### Phase Q verification (8 November 2026)
-
-Run on a separate local stack: PostgreSQL 17 in a container on a free port, the API on port 8091 with migrations `0001` to `0051` applied at startup, the Vite dev server with `MERIDIAN_API_TARGET` pointing at that API, and `scripts/seed_demo.py` against it. The API and the browser pane were used; no shell API calls beyond login.
-
-- **Seed:** ran to completion (teams, team sprint, release with scope).
-- **Backlog:** ranked rows with team tags, Open sprints lane showing the planned project sprint and the active team sprint with its issues. The request returned 200.
-- **All work, bulk:** two issues selected; the bulk bar shows status, priority, team, sprint, release, watcher, label add and remove.
-- **Nested query:** `(status:todo OR status:done) -(label:legacy OR label:old) order:priority` returned the five expected issues (`5 of 5`).
-- **Releases:** scope (three issues with state), history (three additions), Export scope CSV button; freeze and release controls.
-- **Sprints:** team sprint card with Export CSV, Complete sprint; project sprint with Start sprint and Export CSV.
-- **Automation builder:** created a weekly scheduled rule with a `priority is high` condition and the notify action; the dry-run preview returned 3 of 8 open issues and changed nothing; the rule shows "Every weekly · next …".
-- **Workspace settings:** a brand name saved and appeared in the sidebar header at once.
-- **Mobile width (375px):** Backlog and Releases have no horizontal page overflow. The automation rules table overflowed; it is now inside a scrolling container (not re-checked after the change).
-
-Not verified in the browser: the CSV downloads themselves, the view subscription selector, the four importers and the import source selector, the permission scheme editor's new selects, the scheduled rule actually running (its first run waits for the hourly loop), the accent colour control, and the bulk bar at phone width. Known layout issues seen, not fixed: the accent colour input renders as a small swatch; the working-day labels in workspace settings overlap (this was already recorded as a cramped layout in the live run); the rule action buttons stack.
-
-### Phase Q verification, second pass (8 November 2026, ports 9990 and 9992)
-
-Run on the current ports: API on 9990 and a second API on 9994 for the subscription run, a fixed build on 9996, the web dev server on 9992 (its proxy target is 9990), and PostgreSQL 17 on a local container port. The API was seeded with `scripts/seed_demo.py`.
-
-- **API smoke, 46 checks:** exports (issues, sprint, release, history), every bulk action with refusals, nested queries and their refusals, saved view and subscription, scheduled rule create, preview, disable, run log and delete, permission scheme action levels and their validation, the four importers (dry run), and brand settings validation. All passed. A second run on the same database fails only the create-view check, because the view already exists.
-- **Scheduled rule run:** a rule created with the first run due ran at API startup (`ran scheduled automation rules`, 3 runs).
-- **Subscription delivery:** a daily subscription made due in the database produced one inbox notification at startup with the matching count and changes (`sent saved-view subscriptions`).
-- **Shared rate limit:** with `RATE_LIMIT_SHARED=true`, 40 failing logins from one client returned 401 for the first ten and 429 after the auth limit of 30. Counters were written to `rate_limit_windows`.
-- **Browser:** sign-in; the issue view's saved view shows its subscription as Daily; the Import CSV panel lists all six sources; the Reports History CSV endpoint returns 200; the permission editor shows the per-action selects, and setting Planning sprints to Admin and saving persisted (`manage_sprints: 3`); the bulk bar at 375px does not overflow the page; the accent colour control is a visible swatch.
-- **Defect found and fixed:** the history CSV wrote team and sprint ids where names belong. It now writes the names. Verified on the fixed build (port 9996); the browser's proxy still points at the older build on 9990 until that API is restarted.
-
-Not verified: the CSV file download itself (the endpoint returned the expected content), uploading a Trello, GitHub, Linear or Asana file through the panel, the email delivery of a digest or subscription, and the automation builder's table at phone width after the wrapper change.
-
----
-
-## Phases R to Y: Full Enterprise Parity Implementation (8 November 2026)
-
-Deep gap closure achieving complete functional and design parity with Jira Software, Jira Service Management, Confluence, Linear, Notion, Azure Boards and ClickUp.
-
-Migrations `0052` to `0060` added and applied with strict PostgreSQL Row-Level Security, tenant isolation, and audit logging:
-- `0052_sprint_reports_burnup_capacity.sql`: Sprint capacity planning (`sprint_capacities`).
-- `0053_issue_type_workflows_and_field_contexts.sql`: Per-type workflows (`issue_type_transitions`) and field contexts (`field_contexts`).
-- `0054_raid_and_schedule_baselines.sql`: RAID register (`raid_items`) and schedule baselines (`schedule_baselines`).
-- `0055_automation_branches_and_cross_project.sql`: Cross-project automation rules and conditional branch execution.
-- `0056_oauth_apps_and_vcs_links.sql`: OAuth 2.0 apps (`oauth_apps`, `oauth_auth_codes`, `oauth_tokens`) and VCS status links.
-- `0057_action_permissions_and_retention.sql`: Granular action levels and workspace retention settings.
-- `0058_page_inline_comments.sql`: Confluence-style inline comments (`page_inline_comments`).
-- `0059_service_portal_and_incident_flows.sql`: External customer support portal (`portal_settings`) and ITIL incidents (`service_incidents`).
-- `0060_opentelemetry_and_ai_drafts.sql`: OpenTelemetry trace spans (`trace_spans`) and governed AI drafting (`ai_drafts`).
-
-| Phase | Item | What exists in source | Status |
-|---|---|---|---|
-| **R1** | Dedicated Sprint Board | `GET /api/sprints/{id}/board` returns sprint-filtered `BoardView` lanes and cards; web modal `SprintBoardModal` provides one-click Scrum execution | **Done** |
-| **R2** | Sprint Report & Scope Creep | `GET /api/sprints/{id}/report` comparing committed vs completed points and flagging items added mid-sprint; web `SprintReportView` | **Done** |
-| **R3** | Burnup Chart | `GET /api/sprints/{id}/burnup` returning daily scope and completion snapshots; web `Burnup` SVG chart | **Done** |
-| **R4** | Sprint Capacity Planning | `GET/PUT /api/sprints/{id}/capacity` managing per-member available hours and scope load; web `SprintCapacityModal` | **Done** |
-| **S1** | Workflows per Issue Type | `GET/PUT /api/projects/{id}/issue-types/{key}/transitions` validating type-specific transitions | **Done** |
-| **S2** | Field Contexts per Issue Type | `GET/PUT /api/projects/{id}/issue-types/{key}/fields` enforcing required, hidden, and default values | **Done** |
-| **S3** | Rich Text Tables & Embeds | Safe React markdown renderer supporting full tables, task checkboxes (`- [ ]`, `- [x]`), image embeds, blockquotes, and code blocks | **Done** |
-| **S4** | Comprehensive Change History | Field diffs in `issue_changes` for labels, custom fields, original and remaining estimates | **Done** |
-| **S5** | Project Templates Scheme Seeding | `seed_template` seeds tailored custom fields for bugs, software, and service management projects | **Done** |
-| **T1** | Dynamic Date Query Functions | `now()`, `today`, `startOfWeek()`, `endOfWeek()`, `startOfMonth()`, `endOfMonth()`, `lastWeek()`, `empty`, `none`, `notEmpty` compiled to SQL | **Done** |
-| **T2** | Interactive Dashboards | Reorderable widgets and live gadget visualizations | **Done** |
-| **T3** | Cross-Project Portfolio | `GET /api/portfolio/overview` aggregating health, velocity, and open work across projects; web `PortfolioOverviewView` in Roadmap tab | **Done** |
-| **T4** | RAID Register | `GET/POST /api/projects/{id}/raid`, `PATCH/DELETE /api/raid/{id}`; web `RaidRegisterView` in Roadmap tab | **Done** |
-| **T5** | Schedule Baselines & Variance | `GET/POST /api/projects/{id}/baselines`, `GET /api/baselines/{id}/variance` | **Done** |
-| **U1** | Automation Branches | Conditional branching (`branches` JSON array) executed sequentially in automation engine | **Done** |
-| **U2** | Cross-Project Automations | `is_cross_project` automation rules triggering workspace-wide | **Done** |
-| **U3** | Multi-VCS Git Linking | GitLab and Bitbucket webhook payloads, branch linking, and merge status tracking | **Done** |
-| **U4** | OAuth 2.0 Integration Apps | Full RFC 6749 authorization code flow (`POST /api/oauth/apps`, `GET/POST /api/oauth/authorize`, `POST /api/oauth/token`) | **Done** |
-| **U5** | Jira Cloud API Sync | `POST /api/projects/{id}/import/jira-cloud` importing issues, sprints, and versions with credentials | **Done** |
-| **U6** | Confluence Space Importer | `POST /api/projects/{id}/import/confluence` importing pages and hierarchy | **Done** |
-| **V1** | Granular Action Permissions | Permission schemes supporting `add_comments`, `delete_any_comment`, `create_issues`, `manage_components` | **Done** |
-| **V2** | Audit Free-Text Search | `GET /api/admin/audit?q=...` searching actor names, entity keys, and payload contents | **Done** |
-| **V3** | Attachment Retention Pruning | Workspace retention policies with hourly maintenance background pruning | **Done** |
-| **V4** | Custom Domain & Branding | Workspace custom domain, logo asset URL, brand name and accent colour in settings and sidebar | **Done** |
-| **W1** | Confluence Inline Comments | `GET/POST /api/pages/{id}/inline-comments`, `PATCH/DELETE /api/pages/{id}/inline-comments/{comment_id}`; web `InlineCommentsDrawer` | **Done** |
-| **W2** | Rich Knowledge Macros | Expanded macros: Table of Contents (`{{toc}}`), Status badge (`{{status}}`), Callouts (`{{callout}}`), Page Properties (`{{properties}}`) | **Done** |
-| **X1** | Customer Request Portal | Self-service intake portal (`GET/POST /api/portal/projects/{id}/requests`, `GET /api/portal/requests/{id}`); web `CustomerPortalView` | **Done** |
-| **X2** | ITIL Incident & Change Flows | Dedicated major incident management (`GET/POST /api/projects/{id}/incidents`, `PATCH /api/incidents/{id}`); web `IncidentsView` | **Done** |
-| **Y1** | OpenTelemetry Traces Export | `GET /api/admin/traces/export` streaming structured trace spans | **Done** |
-| **Y2** | Full Localisation Strings | Spanish (`es`) translation keys in `apps/web/src/lib/i18n.ts` for all new tabs, modals, and actions | **Done** |
-| **Y3** | Governed AI Drafting | `POST /api/projects/{id}/ai/draft` and `GET /api/projects/{id}/ai/drafts` for issue descriptions, acceptance criteria, retro notes, and release summaries | **Done** |
-| **Z1** | Contract & Documentation | OpenAPI contract updated (340 operations), web types generated via `make openapi`, manifest generated via `make manifest` | **Done** |
-
+| M0 — Platform | Rust/Axum API in domain modules; typed `ApiError`; PostgreSQL row level security on every tenant table with one tenant-bound transaction per request; per-tenant event log written atomically with audit rows; session families with rotating refresh tokens, HttpOnly cookies and CSRF for browsers; email verification, password reset and invitation mail; durable Postgres job queue; project visibility and grants; rate limits; security headers; request IDs; Prometheus metrics; OpenAPI and generated web types; CI workflow; Docker Compose | Secret rotation; shared rate limits at the ingress; OTLP trace export; wider negative tests; first CI run on GitHub | Not passed |
+| M1 — Project work | Issue create, edit, status and rich text; board and list views with cursor paging and filters; `If-Match` on edits; `Idempotency-Key` on create; archive and unarchive; bulk status, priority and assignee changes; saved views; workflow statuses with categories and WIP limits; custom fields; issue types; comment edit and history; trash with restore | Attachment object storage hardening; project-level access rules beyond grants | Not passed |
+| M2 — Knowledge | Hierarchical pages with optimistic versions, snapshots and restore; page comments and inline comments; templates; blog posts and a project home page; collaborative editing (Yjs over WebSocket, verified with two users); full-text search | Spaces with independent access rules; macros and embeds; whiteboards | Not passed |
+| M3 — Agile | Sprints (planned, active, completed, one active per team); product backlog with ranking; team backlogs; sprint execution with carry-over; releases; burndown and velocity; reports and exports | Sprint capacity; scope and forecasting models; release links to deployments | Not passed |
+| M4 — Collaboration | Comments and replies; notifications inbox with read state; approvals; allow-listed automation rules with execution logs; activity records; notification preferences | Real-time presence; a visual rule builder; cross-project rules; outbound notification delivery beyond email digests | Not passed |
+| M5 — Enterprise | Multiple workspaces per user; tokenised invitations; teams; roles; workspace switching; role checks; admin audit; two-step verification (TOTP with recovery codes); OpenID Connect single sign-on with verified email domains; SCIM 2.0 provisioning; guests; permission schemes; security levels | Verification against real identity providers and a real directory; passkeys; retention policies; SOC 2 controls | Not passed |
+| M6 — Intelligence | PostgreSQL full-text search with GIN indexes; ranked results; typed relations between issues, pages, goals, decisions, releases and risks; optional AI drafts and summaries | Semantic search; permission-aware AI grounding and evaluations; provider policy | Not passed |
+| M7 — Portfolio | Goals, risks and decisions; approvals; project overview; cross-project portfolio; workload view; timeline and milestones; roadmap views; capacity view | Gantt editing and critical path; budgets; cross-team capacity planning | Not passed |
+| M8 — Ecosystem | Bounded JSON export; CSV import (dry run first, idempotent by issue key); CSV exports for sprints, releases and history; webhook registration with delivery **disabled**; outbound outbox table | Reliable webhook dispatcher; OAuth apps; retries and a dead-letter queue; signed export checksums | Not passed |
+| M9 — Mobile | Flutter companion app: sign-in, issue list and details, status and comments, knowledge reader, goals, sprints, inbox, search, encrypted offline drafts ([`SYNC_PROTOCOL.md`](SYNC_PROTOCOL.md)) | Android build and device runs; push; camera attachments; deep links; accessibility and device matrix | Not passed |
+| M10 — Delivery and scale | Multi-stage Dockerfiles; full preview Compose file; Kubernetes reference manifests; liveness and readiness probes; local verification script; SQL indexes; smoke and k6 load scripts | CI run on GitHub; benchmark results; production secrets handling; external security tests; disaster recovery drill; SLO telemetry | Not passed |
+
+## Verification status
+
+- **Checked locally on 7 November 2026:** Rust build and tests, web build, PostgreSQL migrations, the API smoke test, and browser end-to-end checks.
+- **Not checked:** the CI workflow on GitHub; the Flutter app on Android; any live identity provider, directory, or payment provider; webhook failure and retry paths; the malware scanner against real files.
+- **Changed since that run, checked only by reading the source and by visual inspection:** most of the work after it. Re-run the checks before relying on them.
+
+## Open items by area
+
+- **Work:** attachment hardening; issue-level access rules (none exist); estimates are not reduced when time is logged; per-type default workflows and field contexts are not built.
+- **Agile and planning:** sprint capacity; release links to deployments; timeline is read-only (no drag to reschedule); no critical path, float or baselines; capacity is not allocated across projects over time.
+- **Reports and history:** labels, custom fields and estimates are not in the change log; reports do not filter by team, assignee or label; dashboards draw no charts.
+- **Automation:** no visual rule builder; cross-project rules and branches are not built; OAuth apps and per-token project restriction are not built.
+- **Integrations:** git hosting events are limited to one host's format; chat posts use incoming-webhook URLs, which Slack and Teams do not sign, so the URL is the secret; email needs a production sender domain (`MAIL_FROM` defaults to `no-reply@meridian.local`) and a real SMTP server.
+- **Service management:** escalation is one notification per request, not a chain of levels.
+- **Administration:** branding without a logo upload or custom domain; the audit log cannot search event details; attachment retention beyond trash is not built.
+- **Localisation:** most strings are still English; Spanish is the only added language.
+- **Mobile:** conflicts are handled for status changes only; comments never conflict; tokens do not rotate transparently on every screen.
+
+## Release risks
+
+1. **Identity and payments:** SSO and SCIM have only run against local test setups; the payment adapter is written but has not run against a test account.
+2. **Permissions:** project-level grants, visibility, guests and page restrictions exist. Issue-level access rules do not. Restricted fields are hidden from members who cannot see them; background jobs read every issue, so their counts include restricted issues.
+3. **Live editing:** tested with two users only. Concurrency has not been load-tested.
+4. **Webhooks:** signing, SSRF protection, retries and auto-disable are implemented but the failure paths have not been exercised. Delivery is off.
+5. **Owner connection:** sign-in and cross-workspace flows use the owner connection and scope queries by hand.
+6. **No certification:** no external audit, penetration test, verified backups, load run or accessibility certification.
+
+## Next steps
+
+1. Run CI on GitHub and fix what it finds, including the Flutter job.
+2. Exercise the untested paths against real or test-mode providers: SSO, SCIM, the payment adapter, the malware scanner, webhook failure and retry.
+3. Build the Android app and run it on a device.
+4. Add passkeys and an external security review.
+5. Re-run the smoke test, the browser end-to-end checks and a visual pass after the changes above, then update this ledger.

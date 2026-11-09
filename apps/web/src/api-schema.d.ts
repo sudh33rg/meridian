@@ -2492,38 +2492,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{id}/import/asana": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["import_asana"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/projects/{id}/import/confluence": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["import_confluence"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/projects/{id}/import/csv": {
         parameters: {
             query?: never;
@@ -2540,22 +2508,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{id}/import/github": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["import_github"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/projects/{id}/import/issues": {
         parameters: {
             query?: never;
@@ -2566,93 +2518,6 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["import_issues"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/projects/{id}/import/jira": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Jira issue export as JSON: `{"issues": [...]}` or a bare array of issues. It reads the key, the
-         *     summary, the description, and the issue type, priority and status names. Changelog, sprints and
-         *     versions are not read. The file is converted to the CSV importer's columns and then imported by
-         *     the same code, so the dry run, idempotency and row checks are the same. Report line numbers count
-         *     the converted rows, with the header on line 1.
-         */
-        post: operations["import_jira"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/projects/{id}/import/jira-cloud": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["import_jira_cloud"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/projects/{id}/import/jira/extras": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["import_extras"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/projects/{id}/import/linear": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["import_linear"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/projects/{id}/import/trello": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["import_trello"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4570,22 +4435,6 @@ export interface components {
             description?: string | null;
             name?: string | null;
         };
-        ConfluenceImportInput: {
-            dry_run?: boolean | null;
-            pages: components["schemas"]["ConfluencePageItem"][];
-            space_key?: string | null;
-        };
-        ConfluenceImportReport: {
-            /** Format: int64 */
-            created_pages: number;
-            dry_run: boolean;
-            titles: string[];
-        };
-        ConfluencePageItem: {
-            content?: string | null;
-            parent_title?: string | null;
-            title: string;
-        };
         ConsentInput: {
             client_id: string;
             redirect_uri: string;
@@ -4802,7 +4651,7 @@ export interface components {
             /** Format: int32 */
             position: number;
             required: boolean;
-            /** @description Restricted fields are seen and changed by project admins only (Phase J2). */
+            /** @description Restricted fields are seen and changed by project admins only. */
             restricted: boolean;
         };
         FieldPatch: {
@@ -5124,43 +4973,6 @@ export interface components {
             from_key: string;
             requires_field?: string | null;
             to_key: string;
-        };
-        JiraCloudImportInput: {
-            /** @description Atlassian API token */
-            api_token: string;
-            dry_run?: boolean | null;
-            /** @description Atlassian account email */
-            email: string;
-            /** @description Jira Cloud URL e.g. https://your-domain.atlassian.net */
-            host: string;
-            /** @description Jira project key e.g. PROJ */
-            jira_project: string;
-        };
-        JiraCloudImportReport: {
-            connected: boolean;
-            dry_run: boolean;
-            /** Format: int64 */
-            issues_found: number;
-            /** Format: int64 */
-            issues_imported: number;
-            message: string;
-            /** Format: int64 */
-            sprints_found: number;
-            /** Format: int64 */
-            versions_found: number;
-        };
-        JiraExtrasReport: {
-            dry_run: boolean;
-            issues_found: number;
-            issues_in_releases: number;
-            issues_in_sprints: number;
-            /** @description Issues in the file that are not imported yet (no matching key). They are skipped. */
-            issues_not_found: number;
-            releases_to_create: number;
-            sprints_to_create: number;
-            /** @description Status changes whose status name matches no status of the project. They are skipped. */
-            status_changes_skipped: number;
-            status_changes_to_add: number;
         };
         JoinTeamInput: {
             /** Format: uuid */
@@ -5878,7 +5690,7 @@ export interface components {
             name: string;
             /** Format: uuid */
             queue_id: string;
-            /** @description Whether a request of this type waits for approval by `approver_id` (Phase K2). */
+            /** @description Whether a request of this type waits for approval by `approver_id`. */
             requires_approval: boolean;
             /**
              * Format: int32
@@ -6556,19 +6368,19 @@ export interface components {
             attachment_retention_days?: number | null;
             /** @description Accent colour as `#rrggbb`. Null when not set. */
             brand_color?: string | null;
-            /** @description Display name shown in place of the workspace name (Phase J5). Null when not set. */
+            /** @description Display name shown in place of the workspace name. Null when not set. */
             brand_name?: string | null;
             custom_domain?: string | null;
             /** Format: int32 */
             default_sprint_days: number;
-            /** @description Interface language: `en` or `es` (Phase K5). Dates and numbers follow it. */
+            /** @description Interface language: `en` or `es`. Dates and numbers follow it. */
             locale: string;
             logo_url?: string | null;
             /** @description An IANA name such as `Europe/London`, or `UTC`. */
             timezone: string;
             /**
              * Format: int32
-             * @description Days a trashed issue waits before it is purged, 7 to 365 (Phase J4). Audit records are kept.
+             * @description Days a trashed issue waits before it is purged, 7 to 365. Audit records are kept.
              */
             trash_retention_days: number;
             /**
@@ -17182,137 +16994,6 @@ export interface operations {
             };
         };
     };
-    import_asana: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Resource id */
-                id: string;
-                /** @description Default true: report only. Send false to create the issues. */
-                dry_run: boolean | null;
-                /** @description Create statuses that the file names but the project lacks. Default false. */
-                create_statuses: boolean | null;
-            };
-            cookie?: never;
-        };
-        /** @description An Asana project CSV export. Reads Task ID, Name, Section/Column, Notes, Tags, Completed */
-        requestBody: {
-            content: {
-                "text/csv": string;
-            };
-        };
-        responses: {
-            /** @description Report. Check committed and errors */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CsvImportReport"];
-                };
-            };
-            /** @description The file cannot be read */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Missing or invalid session */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Workspace admins only */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Not found in this workspace */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-        };
-    };
-    import_confluence: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Resource id */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ConfluenceImportInput"];
-            };
-        };
-        responses: {
-            /** @description Report on imported Confluence pages */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConfluenceImportReport"];
-                };
-            };
-            /** @description Invalid payload */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Missing or invalid session */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Workspace admins only */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Not found in this workspace */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-        };
-    };
     import_csv: {
         parameters: {
             query?: never;
@@ -17331,74 +17012,6 @@ export interface operations {
         requestBody: {
             content: {
                 "text/csv": string;
-            };
-        };
-        responses: {
-            /** @description Report. Check committed and errors */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CsvImportReport"];
-                };
-            };
-            /** @description The file cannot be read */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Missing or invalid session */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Workspace admins only */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Not found in this workspace */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-        };
-    };
-    import_github: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Resource id */
-                id: string;
-                /** @description Default true: report only. Send false to create the issues. */
-                dry_run: boolean | null;
-                /** @description Create statuses that the file names but the project lacks. Default false. */
-                create_statuses: boolean | null;
-            };
-            cookie?: never;
-        };
-        /** @description GitHub issues as a JSON array (from the issues API). Pull requests are skipped. Reads number, title, body, state, labels */
-        requestBody: {
-            content: {
-                "application/json": string;
             };
         };
         responses: {
@@ -17493,339 +17106,6 @@ export interface operations {
                 };
             };
             /** @description Insufficient permissions */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Not found in this workspace */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-        };
-    };
-    import_jira: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Resource id */
-                id: string;
-                /** @description Default true: report only. Send false to create the issues. */
-                dry_run: boolean | null;
-                /** @description Create statuses that the file names but the project lacks. Default false. */
-                create_statuses: boolean | null;
-            };
-            cookie?: never;
-        };
-        /** @description Jira issues as JSON: {"issues": [...]} or an array. Reads key, fields.summary, fields.description, fields.issuetype.name, fields.priority.name and fields.status.name */
-        requestBody: {
-            content: {
-                "application/json": string;
-            };
-        };
-        responses: {
-            /** @description Report. Check committed and errors */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CsvImportReport"];
-                };
-            };
-            /** @description The file cannot be read */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Missing or invalid session */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Workspace admins only */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Not found in this workspace */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-        };
-    };
-    import_jira_cloud: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Resource id */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["JiraCloudImportInput"];
-            };
-        };
-        responses: {
-            /** @description Jira Cloud API sync report */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JiraCloudImportReport"];
-                };
-            };
-            /** @description Invalid host or parameters */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Missing or invalid session */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Workspace admins only */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Not found in this workspace */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-        };
-    };
-    import_extras: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Resource id */
-                id: string;
-                /** @description Default true: report only. Send false to write. */
-                dry_run: boolean | null;
-            };
-            cookie?: never;
-        };
-        /** @description The same Jira issues JSON as the issue import */
-        requestBody: {
-            content: {
-                "application/json": string;
-            };
-        };
-        responses: {
-            /** @description Report. Dry run unless dry_run=false */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JiraExtrasReport"];
-                };
-            };
-            /** @description The file cannot be read */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Missing or invalid session */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Workspace admins only */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Not found in this workspace */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-        };
-    };
-    import_linear: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Resource id */
-                id: string;
-                /** @description Default true: report only. Send false to create the issues. */
-                dry_run: boolean | null;
-                /** @description Create statuses that the file names but the project lacks. Default false. */
-                create_statuses: boolean | null;
-            };
-            cookie?: never;
-        };
-        /** @description A Linear issues CSV export. Reads ID, Title, Description, Status, Priority, Labels */
-        requestBody: {
-            content: {
-                "text/csv": string;
-            };
-        };
-        responses: {
-            /** @description Report. Check committed and errors */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CsvImportReport"];
-                };
-            };
-            /** @description The file cannot be read */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Missing or invalid session */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Workspace admins only */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Not found in this workspace */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-        };
-    };
-    import_trello: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Resource id */
-                id: string;
-                /** @description Default true: report only. Send false to create the issues. */
-                dry_run: boolean | null;
-                /** @description Create statuses that the file names but the project lacks. Default false. */
-                create_statuses: boolean | null;
-            };
-            cookie?: never;
-        };
-        /** @description A Trello board export (JSON): reads name, lists, and cards (name, desc, idList, labels, closed, id) */
-        requestBody: {
-            content: {
-                "application/json": string;
-            };
-        };
-        responses: {
-            /** @description Report. Check committed and errors */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CsvImportReport"];
-                };
-            };
-            /** @description The file cannot be read */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Missing or invalid session */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorBody"];
-                };
-            };
-            /** @description Workspace admins only */
             403: {
                 headers: {
                     [name: string]: unknown;

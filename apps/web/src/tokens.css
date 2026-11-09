@@ -2,7 +2,7 @@
    Themes are selected by <html data-theme="light|dark|contrast"> and accents by data-accent. */
 
 :root {
-  /* Type scale (13px base, like Linear/Vercel dense UIs) */
+  /* Type scale (13px base, for dense work views) */
   --font-sans: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: Manrope, "DM Sans", system-ui, sans-serif;
   --fs-xs: 11px;

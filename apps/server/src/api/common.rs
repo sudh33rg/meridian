@@ -98,7 +98,7 @@ pub(crate) async fn scheme_of(db: &mut PgConnection, tenant: Uuid, project: Uuid
     })
 }
 
-/// Actions a project scheme can give their own level (Phase J1). Others use the edit level.
+/// Actions a project scheme can give their own level. Others use the edit level.
 pub(crate) const SCHEME_ACTIONS: [&str; 3] = ["manage_sprints", "manage_releases", "delete_issues"];
 
 /// Requires the level the project's scheme sets for `action`, falling back to the edit level. Viewers

@@ -1,4 +1,4 @@
-//! Service management (Phase K2): queues with an assignment rule, request types that route into a
+//! Service management: queues with an assignment rule, request types that route into a
 //! queue, requests submitted as issues, and SLA timers read from status history.
 //!
 //! Queues and request types are workflow configuration, so they follow the project's workflow level
@@ -40,7 +40,7 @@ pub(crate) struct RequestType {
     /// Hours from submission to the first done status.
     pub(crate) target_hours: i32,
     pub(crate) created_at: DateTime<Utc>,
-    /// Whether a request of this type waits for approval by `approver_id` (Phase K2).
+    /// Whether a request of this type waits for approval by `approver_id`.
     pub(crate) requires_approval: bool,
     pub(crate) approver_id: Option<Uuid>,
     /// The form: custom fields in the order they are shown, each with whether it is required.

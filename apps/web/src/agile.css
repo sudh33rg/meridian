@@ -1,4 +1,4 @@
-/* Planning: backlog, sprints and releases (Phase E). Uses the shared design tokens from tokens.css. */
+/* Planning: backlog, sprints and releases. Uses the shared design tokens from tokens.css. */
 
 .planning {
   display: flex;
@@ -574,7 +574,7 @@
   padding-left: 18px;
 }
 
-/* Reports and dashboards (Phase G) */
+/* Reports and dashboards */
 .reports .report-grid,
 .dashboards .report-grid {
   display: grid;
@@ -652,7 +652,7 @@
   line-height: 1.5;
 }
 
-/* Roadmap (Phase H) */
+/* Roadmap */
 .roadmap-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -726,7 +726,7 @@
   border-bottom: 1px solid var(--divider);
 }
 
-/* Integrations (Phase I) */
+/* Integrations */
 .integrations {
   padding: 12px;
   margin-top: 12px;
@@ -749,7 +749,7 @@
   background: var(--surface-2);
 }
 
-/* Phase F9: board swimlanes and quick filters. */
+/* Board swimlanes and quick filters. */
 .board-group {
   display: inline-flex;
   align-items: center;
@@ -791,7 +791,7 @@
   gap: 8px;
 }
 
-/* Phase F8: favourites, recent issues and shared views. */
+/* Favourites, recent issues and shared views. */
 .favourite-toggle {
   display: inline-flex;
   align-items: center;
@@ -830,7 +830,7 @@
   cursor: pointer;
 }
 
-/* Page macros (Phase K4): charts, tables and lists rendered from page text. */
+/* Page macros: charts, tables and lists rendered from page text. */
 .macro-chart {
   display: grid;
   gap: 6px;

@@ -240,56 +240,56 @@ pub(crate) fn spawn_maintenance(db: PgPool, email_on: bool) {
     tokio::spawn(async move {
         loop {
             prune_idempotency_keys(&db).await;
-            // Burndown: one row per active sprint per day (Phase E5).
+            // Burndown: one row per active sprint per day.
             match crate::api::agile::capture_active_sprints(&db).await {
                 Ok(n) if n > 0 => tracing::debug!(sprints = n, "captured sprint burndown"),
                 Ok(_) => {}
                 Err(e) => tracing::error!(error=%e, "sprint burndown capture failed"),
             }
-            // Daily digests are queued for opted-in members with unread notifications (Phase I2).
+            // Daily digests are queued for opted-in members with unread notifications.
             match crate::api::digest::enqueue_due_digests(&db, email_on).await {
                 Ok(n) if n > 0 => tracing::info!(digests = n, "queued email digests"),
                 Ok(_) => {}
                 Err(e) => tracing::error!(error=%e, "digest queueing failed"),
             }
-            // Requests past their target are escalated once to the owners and admins (Phase K2).
+            // Requests past their target are escalated once to the owners and admins.
             match crate::api::service::escalate_breached(&db).await {
                 Ok(n) if n > 0 => tracing::info!(notifications = n, "escalated requests past target"),
                 Ok(_) => {}
                 Err(e) => tracing::error!(error=%e, "request escalation failed"),
             }
-            // Personal reminders that are due become notifications (Phase F5).
+            // Personal reminders that are due become notifications.
             match crate::api::issue_content::send_due_reminders(&db).await {
                 Ok(n) if n > 0 => tracing::info!(reminders = n, "sent due reminders"),
                 Ok(_) => {}
                 Err(e) => tracing::error!(error=%e, "reminder delivery failed"),
             }
-            // Trash past its 30-day window is purged (Phase F6).
+            // Trash past its 30-day window is purged.
             match crate::api::issues::purge_expired_trash(&db).await {
                 Ok(n) if n > 0 => tracing::info!(issues = n, "purged expired trash"),
                 Ok(_) => {}
                 Err(e) => tracing::error!(error=%e, "trash purge failed"),
             }
-            // Scheduled automation rules that are due run on their issues (Phase I1).
+            // Scheduled automation rules that are due run on their issues.
             match crate::api::collab::run_due_scheduled_rules(&db).await {
                 Ok(n) if n > 0 => tracing::info!(runs = n, "ran scheduled automation rules"),
                 Ok(_) => {}
                 Err(e) => tracing::error!(error=%e, "scheduled automation failed"),
             }
-            // Saved views with a subscriber who is due get a notification (Phase I2).
+            // Saved views with a subscriber who is due get a notification.
             match crate::api::personal::run_due_view_subscriptions(&db).await {
                 Ok(n) if n > 0 => tracing::info!(notifications = n, "sent saved-view subscriptions"),
                 Ok(_) => {}
                 Err(e) => tracing::error!(error=%e, "saved-view subscriptions failed"),
             }
-            // Shared rate-limit counters older than an hour are not needed (Phase N).
+            // Shared rate-limit counters older than an hour are not needed.
             if let Err(e) = sqlx::query("DELETE FROM rate_limit_windows WHERE window_start < now() - interval '1 hour'")
                 .execute(&db)
                 .await
             {
                 tracing::error!(error=%e, "rate limit cleanup failed");
             }
-            // Expired attachments past workspace retention days are pruned (Phase V3).
+            // Expired attachments past workspace retention days are pruned.
             prune_expired_attachments(&db).await;
             tokio::time::sleep(Duration::from_secs(3600)).await;
         }

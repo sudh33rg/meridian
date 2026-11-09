@@ -1,4 +1,4 @@
-//! Chat notifications (Phase I3). A project can post status changes and new issues to a Slack and/or a
+//! Chat notifications. A project can post status changes and new issues to a Slack and/or a
 //! Microsoft Teams incoming webhook. Each message carries the issue key, its title, the status change
 //! and who made it; never the description, comments or attachments. The webhook URL is the secret: it
 //! is stored sealed, never returned, and checked on every use against the safe outbound rules (https,

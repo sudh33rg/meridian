@@ -1,4 +1,4 @@
-//! OAuth 2.0 integration apps (Phase U4): third-party client registration,
+//! OAuth 2.0 integration apps: third-party client registration,
 //! authorization code flow, and token exchange.
 use crate::api::common::*;
 use crate::*;

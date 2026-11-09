@@ -1,4 +1,4 @@
-# Mobile sync protocol (Phase L2)
+# Mobile sync protocol
 
 Status: in force for the Flutter companion app (`apps/mobile`). Synchronisation happens only when a
 person opens a screen or presses a button. There is no background sync and no push.
@@ -37,6 +37,5 @@ person opens a screen or presses a button. There is no background sync and no pu
 ## Not covered
 
 - Offline editing of existing issues: a change needs the server, so it is refused while offline.
-- Background synchronisation, push and automatic retries (these depend on the owner's choice of push
-  provider, see the plan item L3).
+- Background synchronisation, push notifications and automatic retries.
 - Conflict review for comments, and for fields other than status.

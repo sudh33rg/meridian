@@ -1,60 +1,76 @@
-# Meridian
+# Meridian documentation
 
-**Work, connected.** Multi-tenant project delivery, knowledge and collaboration software.
+Meridian is a multi-tenant project delivery, knowledge and collaboration system. Its binding rules are in
+[`../CONSTITUTION.md`](../CONSTITUTION.md). This folder holds the reference documentation.
 
-**Package designation: Meridian 0.2 expanded implementation — development preview, not production GA.** The repository provides substantial runnable source for M0–M10 feature areas, but **does not** provide full Jira/Confluence feature parity or pass all M0–M10 release gates. Read [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md) for the explicit milestone-by-milestone ledger.
+**Status: Meridian 0.2 development preview. Not production-ready; do not put real customer data into it.**
+[`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md) is the ledger of what exists, what is verified and
+what is still open.
+
+## Documents
+
+| Document | Contents |
+|---|---|
+| [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md) | Milestone ledger, verification status, open risks |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Design principles, module boundaries, tenancy model, planned components |
+| [`API_GUIDE.md`](API_GUIDE.md) | Route guide for the REST API |
+| [`openapi.json`](openapi.json) | Generated API contract (`make openapi`); also served at `/api/openapi.json` |
+| [`SECURITY.md`](SECURITY.md) | Security boundaries, remaining blockers, existing tests |
+| [`OPERATIONS.md`](OPERATIONS.md) | Local development, container preview, configuration, background jobs, verification |
+| [`SYNC_PROTOCOL.md`](SYNC_PROTOCOL.md) | How the mobile app reads, drafts and changes issues offline |
 
 ## Stack
 
-- **Backend:** Rust / Axum / Tokio / SQLx / Argon2id
-- **Web:** React 19 / TypeScript / Vite / Lucide / responsive application UI
-- **Database:** PostgreSQL 17, relational composite-tenant constraints, full-text GIN indexes
-- **Mobile:** Flutter / Dart / Material 3, secure session and unsent draft storage
-- **Delivery:** Docker Compose, Dockerfiles, local verification script, Kubernetes reference manifests
+- **API:** Rust, Axum, Tokio, SQLx, Argon2id
+- **Web:** React 19, TypeScript, Vite, TanStack Query and Router
+- **Database:** PostgreSQL 17 with composite tenant keys, row level security and full-text GIN indexes
+- **Mobile:** Flutter, Material 3, secure session storage and encrypted unsent drafts
+- **Delivery:** Docker Compose, Dockerfiles, Kubernetes reference manifests
 
-## What you can explore in this implementation
+## Feature areas
 
-1. **Organizations:** workspace signup/login, opaque sessions, invite tokens, existing-account invite acceptance, team/membership lists, workspace switching, basic role control and login attempt throttling.
-2. **Work:** projects, issues, issue board, priority/status/type, assignee, due date, estimates, labels/custom JSON, archive, comments/replies, links, sprint assignment and activity.
-3. **Knowledge:** project pages, nesting support in API, rich history through optimistic snapshots, restore, page comments and unified full-text search.
-4. **Agile/planning:** sprints, releases, goals, project analytics, portfolio overview, workload view, risk and decision records.
-5. **Collaboration:** approval workflow, inbox, basic automation rules, admin audit log, notifications table, typed relationships connecting knowledge to work.
-6. **Integrations:** bounded export, idempotent batch issue import, disabled-by-default webhook registrations, outbox storage primitives.
-7. **Mobile:** login, work list, issue details/status/comments, knowledge reader, goals/sprints, inbox, search, and encrypted unsent issue drafts.
+1. **Workspaces:** sign-up and sign-in, opaque sessions, invitations, teams, roles, workspace switching, login throttling.
+2. **Work:** projects, issues, board and list views, priorities, labels, comments, links, archive, custom fields, workflow statuses and transitions.
+3. **Knowledge:** project pages with versions and restore, page comments, collaborative editing, full-text search.
+4. **Planning:** sprints, releases, goals, risks, decisions, roadmaps, capacity and portfolio views.
+5. **Collaboration:** approvals, inbox, safe automation rules, audit log, typed relations between records.
+6. **Integrations:** bounded export, CSV import, webhook registration (delivery disabled), chat posts, optional AI drafts.
+7. **Mobile:** sign-in, issue list and details, status and comments, knowledge reader, inbox, search, offline drafts.
 
-## Launch quickly (preview)
+## Run it locally
 
-With Docker installed:
+With Docker installed, start the full preview stack:
 
 ```sh
 docker compose -f infra/docker-compose.full.yml up --build -d
 ```
 
-Open **http://localhost:9991** and create a workspace. This preview stack contains a local PostgreSQL instance and **must not be exposed to the public Internet**.
+Open **http://localhost:9991**. The stack runs PostgreSQL with development-only credentials; do not expose it
+to the public Internet.
 
-Or develop each service separately:
+To develop each service separately:
 
 ```sh
 # Terminal 1 — PostgreSQL
 docker compose -f infra/docker-compose.yml up -d
 
-# Terminal 2 — Rust API
+# Terminal 2 — API
 cd apps/server
 export DATABASE_URL='postgres://meridian:meridian_local_only@localhost:5432/meridian'
 export CORS_ORIGIN='http://localhost:9991'
 cargo run
 
-# Terminal 3 — React
+# Terminal 3 — web
 cd apps/web
 npm install
 npm run dev
 ```
 
-Browse **http://localhost:9991**. Optionally populate a fresh demo workspace with `python3 scripts/seed_demo.py` against the local API.
+Optionally populate a demo workspace with `python3 scripts/seed_demo.py` against the local API.
 
-### Flutter development
+### Flutter
 
-This source package has Dart app code and `pubspec.yaml`. Generate Android/iOS scaffolding using a Flutter SDK:
+The mobile app source is in `apps/mobile`. Generate the platform folders with a Flutter SDK, then run:
 
 ```sh
 cd apps/mobile
@@ -63,62 +79,49 @@ flutter pub get
 flutter run --dart-define=MERIDIAN_API=http://10.0.2.2:9990
 ```
 
-Android emulator reaches the host with `10.0.2.2`; use HTTPS for remote/real devices. iOS simulator typically uses `http://localhost:9990`. Native provisioning, push entitlements and production app signing are not included.
+The Android emulator reaches the host at `10.0.2.2`; the iOS simulator uses `http://localhost:9990`. Real devices
+need HTTPS to a reachable API host. Push entitlements and production signing are not included.
 
-## Tests and API
+## Checks
 
 ```sh
-./scripts/verify.sh                       # toolchain-aware local verification
-python3 tests/smoke.py                    # requires running local API
-cd apps/server && cargo test             # with DATABASE_URL_TEST for PG isolation tests
+make fmt && make lint        # formatting and lint
+make openapi                 # regenerate docs/openapi.json and web API types after changing handlers
+make manifest                # regenerate MANIFEST.json after adding or removing files
 ```
 
-`API_GUIDE.md` enumerates the routes; the machine-readable contract is [`openapi.json`](openapi.json) (also served at `/api/openapi.json`). `SECURITY.md` lists security boundaries and blockers. `OPERATIONS.md` describes deployment and runbooks; `PRODUCT_PLAN.md` and `COMPETITIVE_LANDSCAPE.md` retain the long-range product specification and 100-solution research inventory. `BEST_IN_CLASS_ANALYSIS.md` compares Meridian with leading products by capability, ranks the gaps and records the implementation plan and what was built from it.
+See [`OPERATIONS.md`](OPERATIONS.md#verification) for the smoke test and the database-backed Rust tests.
 
-## File structure
+## Repository layout
 
 ```text
 apps/
   server/
-    src/main.rs             Shared state, router assembly, startup (also `--openapi`)
-    src/error.rs            ApiError: typed errors with stable `code`s
-    src/auth.rs             Signup/login/logout/refresh, cookies + CSRF, reset/verify, `Identity` extractor
-    src/db.rs               `Tx`: per-request tenant-bound transaction (RLS) + commit/rollback layer
-    src/jobs.rs, mail.rs    Durable Postgres job queue and the mailer
+    src/main.rs             Router assembly and startup (also `--openapi`)
+    src/error.rs            ApiError: typed errors with stable codes
+    src/auth.rs             Sign-up, sign-in, refresh, cookies and CSRF, reset and verification
+    src/db.rs               Tenant-bound transaction per request (row level security)
+    src/jobs.rs, mail.rs    Durable Postgres job queue and mailer
     src/middleware.rs       Rate limits, security headers, request metrics
     src/config.rs           Environment configuration
-    src/openapi.rs          OpenAPI document (utoipa) served at /api/openapi.json
-    src/api/                Domain route modules: work, org, planning, issues, knowledge,
-                            collab, admin, security (sessions), access (project grants)
-                            (+ common guards and event writers)
+    src/openapi.rs          OpenAPI document, generated from handler annotations
+    src/api/                Domain route modules (work, org, planning, knowledge, collaboration, admin, security, access)
     src/tests.rs            HTTP-level integration tests (need DATABASE_URL_TEST)
-    migrations/             Ordered PostgreSQL schema migrations
+    migrations/             Ordered, forward-only SQL migrations
   web/
-    src/lib/                Typed API client, session storage, generated-type aliases
+    src/lib/                Typed API client and helpers
     src/api-schema.d.ts     GENERATED from docs/openapi.json (npm run gen:api)
-    src/features/           auth, shell, work, workspace (state + routing), advanced
-    src/router.tsx          TanStack Router (tab + project live in the URL)
-    e2e/                    Playwright end-to-end tests (real API + database)
+    src/features/           auth, shell, work, knowledge, agile, workspace, advanced
+    src/router.tsx          Routes (tab and project are kept in the URL)
+    e2e/                    Playwright end-to-end tests
   mobile/
-    lib/                    main, app, core (Api, consts), auth, home, reader, issue
-infra/
-  docker-compose.yml        PostgreSQL for source development
-  docker-compose.full.yml   Three-service local preview
-  Dockerfile.api/web        Container builds
-  k8s/                      Illustrative orchestration files
-scripts/                    Demo data and local verification
-tests/                      Black-box smoke and k6 load harness
-docs/                       Product, architecture, API, security and operations docs
-                            (openapi.json is generated: `make openapi`)
-.github/workflows/ci.yml    fmt/clippy/tests, web lint/test/build, smoke, e2e, mobile analyze
+    lib/                    Flutter app: main, app, core, auth, home, issue, reader
+infra/                      Compose files, Dockerfiles, Kubernetes reference manifests
+scripts/                    Demo seeding, local verification, manifest generation
+tests/                      Black-box smoke test and k6 load sample
+docs/                       Reference documentation (openapi.json is generated)
+.github/workflows/ci.yml    CI workflow (has not yet run on GitHub)
 ```
 
-Keep all application source in `apps/`, documentation in `docs/`, and shared automation in `scripts/`. Deployment assets stay in `infra/`, with black-box checks in `tests/`. Add API route modules under `apps/server/src/api/` as domains grow, and keep migrations in deployment order.
-
-## Engineering caveats
-
-**Rust, web, PostgreSQL migrations, API smoke and browser e2e have now been executed (see `VERIFICATION.md`); Flutter has not.** See `VERIFICATION.md` for what has and has not been executed. Source and manifests need CI execution and fixes before being represented as production-ready.
-
-**Tenant isolation is enforced by explicit SQL predicates and by PostgreSQL row level security** (one tenant-bound transaction per request; see `SECURITY.md`). The browser keeps its session in HttpOnly cookies; API/mobile clients use bearer tokens. Email (verification, reset, invitations) is sent through SMTP when `SMTP_URL` is set and otherwise logged in development. The live document editor is plain-text with optimistic concurrency, not a CRDT. Webhooks do not deliver automatically, and no payment, SSO, push or semantic AI provider is configured.
-
-For these reasons, **do not place real enterprise/customer data into this preview** until the release gates documented in `IMPLEMENTATION_STATUS.md` have been completed.
+Keep application source in `apps/`, documentation in `docs/`, shared automation in `scripts/` and deployment
+assets in `infra/`. Keep migrations in deployment order and never edit one that has been applied.

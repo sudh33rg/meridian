@@ -15,7 +15,7 @@ All core routes are prefixed `/api`. Except authentication and health checks, a 
 | GET / POST | `/invitations`, `/teams` | Admin invitations and team management |
 | POST | `/teams/{id}/members` | Add an existing workspace member to a team |
 
-### Sessions, recovery and access (Phase 1)
+### Sessions, recovery and access
 
 | Verb | Route | Description |
 |---|---|---|
@@ -38,7 +38,7 @@ Browser clients send `X-Auth-Mode: cookie` on sign-in (tokens go into HttpOnly c
 |---|---|---|
 | GET / POST | `/projects` | List and create projects |
 | GET / POST | `/projects/{id}/issues` | List (paged and filterable) and create work items; see paging, concurrency and idempotency below |
-| PATCH | `/issues/{id}` | Change status (foundation endpoint) |
+| PATCH | `/issues/{id}` | Change status |
 | GET | `/issues/{id}/details` | Full issue with extended fields |
 | PATCH | `/issues/{id}/edit` | Edit optional title, description, status, type, priority, assignee, parent, sprint, labels, due date and story points |
 | POST | `/issues/{id}/archive` | Soft archive |
@@ -193,21 +193,20 @@ The author can edit a comment (`PATCH /issues/{id}/comments/{comment}` with `{"b
 - `dry_run` (default `true`): report what would change and commit nothing.
 - `create_statuses` (default `false`): create the statuses the file names that the project lacks, up to the 20-per-project limit.
 
-Rows are idempotent by `Issue Key`, so a repeat import skips rows already imported. The report gives each row's action and any error with its line number. A real import commits only when no row has an error.
+Rows are idempotent by `Issue Key`, so a repeat import skips rows already imported. Imports from other trackers are not supported; export the data to CSV first. The report gives each row's action and any error with its line number. A real import commits only when no row has an error.
 
 ### Typed responses
 
-Issue comments and links, saved views, search results, notifications and approvals return fixed schemas, listed in the OpenAPI document. Saved views also report `stale: true` when a status, field or query term they use no longer exists in the project, instead of silently returning nothing. Saved views accept `query` and `kind` as filters, in addition to the filters in the table above.
+Issue comments and links, saved views, search results, notifications and approvals return fixed schemas, listed in the OpenAPI document. Saved views also report `stale: true` when a status, field or query term they use no longer exists in the project, instead of silently returning nothing.
 
-This is a route guide, **not** a complete generated or audited OpenAPI schema. Formal OpenAPI + typed client generation is an M8/M10 release task.
+This guide lists the main routes. The complete, generated contract is [`openapi.json`](openapi.json); some responses in it are still untyped (`Value`).
 
-## Phase Q additions
+## Additional routes
 
 - Bulk issue actions: `set_team`, `set_sprint`, `set_release`, `add_label`, `remove_label`, `add_watcher` on `POST /api/projects/{id}/issues/bulk`.
 - Exports: `GET /api/sprints/{id}/export.csv`, `GET /api/releases/{id}/export.csv`, `GET /api/projects/{id}/history.csv`.
 - Query: parentheses and nested `OR`/`AND`, and `-(...)` for a negated group, on `GET /api/projects/{id}/issues/search?query=`.
 - Automation rules: `trigger_event: scheduled` with `schedule` (`hourly`, `daily`, `weekly`); `PATCH` and `DELETE /api/automations/{id}`; `GET /api/automations/{id}/runs`; `POST /api/projects/{id}/automations/preview`.
 - Saved-view subscriptions: `GET` and `PUT /api/views/{id}/subscription` with `cadence` `daily`, `weekly` or `off`.
-- Imports: `POST /api/projects/{id}/import/trello`, `/import/github` (JSON), `/import/linear`, `/import/asana` (CSV). All accept `dry_run` (default true) and `create_statuses`.
 - Permission scheme: `actions` map on `GET` and `PUT /api/projects/{id}/permission-scheme` (`manage_sprints`, `manage_releases`, `delete_issues`; level 2 or 3).
 - Workspace settings: `brand_name` and `brand_color` (`#rrggbb`; an empty string clears) on `PUT /api/workspace/settings`.

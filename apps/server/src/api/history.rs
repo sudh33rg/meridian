@@ -1,4 +1,4 @@
-//! Issue history (Phase G1 and G3): every status change and every tracked field change is written
+//! Issue history: every status change and every tracked field change is written
 //! in the same transaction as the change. Reports and the issue timeline read these rows.
 use crate::api::common::*;
 use crate::*;
@@ -43,7 +43,7 @@ pub(crate) async fn record_status(
     .execute(&mut *db)
     .await
     .map_err(db_err)?;
-    // The chat message for this change is queued in the same transaction (Phase I3).
+    // The chat message for this change is queued in the same transaction.
     crate::api::chat::queue_change(db, tenant, issue, from, to, actor).await?;
     Ok(())
 }
@@ -176,7 +176,7 @@ pub(crate) async fn issue_history(
     .fetch_all(&mut *tx)
     .await
     .map_err(db_err)?;
-    // Changes to restricted fields are shown to project admins only (Phase J2).
+    // Changes to restricted fields are shown to project admins only.
     let mut rows = rows;
     if project_level(&mut tx, &i, project).await?.unwrap_or(0) < 3 {
         let hidden = crate::api::fields::restricted_keys(&mut tx, i.tenant_id, project).await?;

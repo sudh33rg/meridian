@@ -1,4 +1,4 @@
-//! Issue depth (Phase F): components, estimates and worklogs, watchers and votes, checklists,
+//! Issue depth: components, estimates and worklogs, watchers and votes, checklists,
 //! subtask roll-up, cloning, moving between projects, and similar-issue suggestions.
 //!
 //! Every write goes through the issue's project access check, so a viewer cannot change anything,
@@ -1038,7 +1038,7 @@ pub(crate) async fn clone_issue(
     .fetch_one(&mut *tx)
     .await
     .map_err(db_err)?;
-    // A copy made by a member does not carry restricted field values (Phase J2).
+    // A copy made by a member does not carry restricted field values.
     if project_level(&mut tx, &i, row_project).await?.unwrap_or(0) < 3 {
         let hidden = crate::api::fields::restricted_keys(&mut tx, i.tenant_id, row_project).await?;
         sqlx::query("UPDATE issues SET custom_fields = custom_fields - $3::text[] WHERE tenant_id=$1 AND id=$2")

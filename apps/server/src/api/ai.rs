@@ -1,4 +1,4 @@
-//! AI summaries and triage (Phase M1). Off until a workspace admin opts in, and only when the server has
+//! AI summaries and triage. Off until a workspace admin opts in, and only when the server has
 //! an Anthropic API key. A summary or a triage suggestion sends the issue's text, its comments and, for
 //! triage, the titles of the project's other open issues, to the configured model. Only text the caller
 //! can already see is read (the same visibility rules as every read). Nothing the model returns is

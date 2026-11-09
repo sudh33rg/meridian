@@ -20,7 +20,7 @@ pub(crate) struct FieldDefinition {
     pub(crate) options: Vec<String>,
     pub(crate) required: bool,
     pub(crate) position: i32,
-    /// Restricted fields are seen and changed by project admins only (Phase J2).
+    /// Restricted fields are seen and changed by project admins only.
     pub(crate) restricted: bool,
 }
 #[derive(Deserialize, utoipa::ToSchema)]

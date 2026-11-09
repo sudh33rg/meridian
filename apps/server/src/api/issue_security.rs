@@ -1,4 +1,4 @@
-//! Issue security levels (Phase J2). A project defines levels, puts members in them, and places issues
+//! Issue security levels. A project defines levels, puts members in them, and places issues
 //! in a level. The rule that hides a restricted issue from people outside its level is a row level
 //! security policy on `issues` (migration 0037), so every read honours it, not only the handlers here.
 //!

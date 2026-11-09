@@ -437,7 +437,7 @@ pub(crate) async fn put_view_subscription(
 /// A subscription that is due: tenant, member, view, cadence and the last time it was sent.
 type DueSubscription = (Uuid, Uuid, Uuid, String, Option<DateTime<Utc>>);
 
-/// Runs the saved views that subscribers are due for (Phase I2). Each run compiles the view's query
+/// Runs the saved views that subscribers are due for. Each run compiles the view's query
 /// with the subscriber's own identity, so visibility and restricted-field rules apply, and adds one
 /// inbox notification. A view that is gone or no longer visible ends the subscription.
 pub(crate) async fn run_due_view_subscriptions(db: &sqlx::PgPool) -> Result<u64, String> {

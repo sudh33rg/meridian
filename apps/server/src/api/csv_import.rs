@@ -1,4 +1,4 @@
-//! CSV issue import (Jira-style exports). It is a dry run unless `dry_run=false` is sent. The report
+//! CSV issue import. It is a dry run unless `dry_run=false` is sent. The report
 //! lists every row's problem by line number. A real import needs no row problems; it then creates
 //! all rows in one transaction. Rows are idempotent by issue key, so repeating an import skips rows
 //! that were already imported.
@@ -466,109 +466,10 @@ pub(crate) async fn import_csv(
     Ok(Json(report))
 }
 
-/// Text of a Jira field: a plain string, or Atlassian Document Format (its text, one block per line).
-fn jira_text(v: Option<&Value>) -> String {
-    fn collect(v: &Value, out: &mut String) {
-        match v {
-            Value::Object(o) => {
-                if let Some(Value::String(t)) = o.get("text") {
-                    out.push_str(t);
-                }
-                if let Some(Value::Array(children)) = o.get("content") {
-                    for child in children {
-                        collect(child, out);
-                    }
-                }
-                let block = matches!(
-                    o.get("type").and_then(Value::as_str),
-                    Some("paragraph" | "heading" | "listItem" | "codeBlock" | "blockquote")
-                );
-                if block && !out.ends_with('\n') {
-                    out.push('\n');
-                }
-            }
-            Value::Array(a) => {
-                for n in a {
-                    collect(n, out);
-                }
-            }
-            Value::String(t) => out.push_str(t),
-            _ => {}
-        }
-    }
-    let mut out = String::new();
-    if let Some(v) = v {
-        collect(v, &mut out);
-    }
-    out.trim().to_string()
-}
-
-/// The `name` of a Jira object such as an issue type, priority or status.
-fn jira_name(v: Option<&Value>) -> String {
-    v.and_then(|x| x.get("name"))
-        .and_then(Value::as_str)
-        .unwrap_or("")
-        .to_string()
-}
-
-/// One CSV cell, always quoted so commas, quotes and line breaks in the text stay in the cell.
-pub(crate) fn quoted(cell: &str) -> String {
-    format!("\"{}\"", cell.replace('"', "\"\""))
-}
-
-/// Jira issue export as JSON: `{"issues": [...]}` or a bare array of issues. It reads the key, the
-/// summary, the description, and the issue type, priority and status names. Changelog, sprints and
-/// versions are not read. The file is converted to the CSV importer's columns and then imported by
-/// the same code, so the dry run, idempotency and row checks are the same. Report line numbers count
-/// the converted rows, with the header on line 1.
-#[utoipa::path(post, path = "/api/projects/{id}/import/jira", tag = "admin", params(("id" = Uuid, Path, description = "Resource id"), CsvImportQuery), request_body(content = String, content_type = "application/json", description = "Jira issues as JSON: {\"issues\": [...]} or an array. Reads key, fields.summary, fields.description, fields.issuetype.name, fields.priority.name and fields.status.name"), responses((status = 200, description = "Report. Check committed and errors", body = CsvImportReport), (status = 400, description = "The file cannot be read", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Workspace admins only", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn import_jira(
-    tx: Tx,
-    Path(project): Path<Uuid>,
-    Query(q): Query<CsvImportQuery>,
-    body: Bytes,
-) -> ApiResult<Json<CsvImportReport>> {
-    if body.len() > MAX_BYTES {
-        return Err(bad("A Jira import is limited to 1 MB"));
-    }
-    let value: Value =
-        serde_json::from_slice(&body).map_err(|_| bad("The file is not valid JSON"))?;
-    let issues = match &value {
-        Value::Array(a) => a,
-        Value::Object(o) => match o.get("issues") {
-            Some(Value::Array(a)) => a,
-            _ => return Err(bad("Expected {\"issues\": [...]} or an array of issues")),
-        },
-        _ => return Err(bad("Expected {\"issues\": [...]} or an array of issues")),
-    };
-    if issues.len() > MAX_ROWS {
-        return Err(bad("A Jira import takes up to 500 issues per file"));
-    }
-    let mut csv = String::from("Summary,Issue Key,Issue Type,Priority,Status,Description\n");
-    for issue in issues {
-        let fields = issue.get("fields").unwrap_or(&Value::Null);
-        let cells = [
-            jira_text(fields.get("summary")),
-            jira_text(issue.get("key")),
-            jira_name(fields.get("issuetype")),
-            jira_name(fields.get("priority")),
-            jira_name(fields.get("status")),
-            jira_text(fields.get("description")),
-        ];
-        csv.push_str(&cells.iter().map(|c| quoted(c)).collect::<Vec<_>>().join(","));
-        csv.push('\n');
-    }
-    import_csv(tx, Path(project), Query(q), Bytes::from(csv)).await
-}
-
 pub(crate) fn routes() -> Router<App> {
     Router::new()
         .route(
             "/api/projects/{id}/import/csv",
             axum::routing::post(import_csv),
-        )
-        .route(
-            "/api/projects/{id}/import/jira",
-            axum::routing::post(import_jira),
         )
 }

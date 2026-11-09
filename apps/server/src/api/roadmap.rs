@@ -1,4 +1,4 @@
-//! Roadmaps, portfolio and capacity (Phase H): milestones and the project timeline, initiatives above
+//! Roadmaps, portfolio and capacity: milestones and the project timeline, initiatives above
 //! epics, project updates with health, goal progress from linked work, member capacity, dependencies
 //! and the critical path, and baselines with variance.
 //!

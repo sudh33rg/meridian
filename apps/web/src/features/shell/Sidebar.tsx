@@ -41,7 +41,7 @@ export function Sidebar() {
     setPaletteOpen,
     me,
   } = useWorkspace();
-  // Workspace branding (Phase J5): a brand name replaces the organization name in the sidebar.
+  // Workspace branding: a brand name replaces the organization name in the sidebar.
   const brandQ = useQuery({
     queryKey: ["workspace-brand"],
     queryFn: () => request<{ brand_name?: string | null; brand_color?: string | null }>(session.token, "/workspace/settings"),

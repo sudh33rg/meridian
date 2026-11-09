@@ -1,4 +1,4 @@
-//! Backlogs, team ownership, sprint execution, burndown and velocity (Phase E).
+//! Backlogs, team ownership, sprint execution, burndown and velocity.
 //!
 //! Ranks are project-wide and fractional: moving one item never renumbers the others, except when
 //! float precision runs out between two neighbours, in which case the project is renumbered once.

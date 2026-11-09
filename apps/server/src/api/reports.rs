@@ -1,4 +1,4 @@
-//! Reports, dashboards and export (Phase G2, G4, G5). Every number comes from stored facts: the status
+//! Reports, dashboards and export. Every number comes from stored facts: the status
 //! history, worklogs, sprint closing records and issues. Date ranges are explicit and bounded.
 use crate::api::agile::done_predicate;
 use crate::api::common::*;

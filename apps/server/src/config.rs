@@ -22,7 +22,7 @@ pub(crate) struct Config {
     /// Outbound email (daily digests). Off unless EMAIL_NOTIFICATIONS=true, and it also needs SMTP_URL.
     /// The production sender domain is an owner decision (see IMPLEMENTATION_STATUS).
     pub(crate) email_notifications: bool,
-    /// AI summaries and triage (Phase M1). Needs ANTHROPIC_API_KEY on the server and a workspace admin's
+    /// AI summaries and triage. Needs ANTHROPIC_API_KEY on the server and a workspace admin's
     /// opt-in. The model and endpoint can be changed with AI_MODEL and AI_API_URL.
     pub(crate) ai_api_key: Option<String>,
     pub(crate) ai_model: String,
@@ -44,7 +44,7 @@ pub(crate) struct Config {
     pub(crate) scan_required: bool,
     pub(crate) auth_per_min: u32,
     pub(crate) global_per_min: u32,
-    /// Count requests per client in PostgreSQL, so every replica shares one limit (Phase N, Constitution IV).
+    /// Count requests per client in PostgreSQL, so every replica shares one limit (Constitution IV).
     /// Off by default: the in-process limiter is used alone, which is cheaper and fine for one instance.
     pub(crate) shared_rate_limit: bool,
 }

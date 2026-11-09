@@ -618,7 +618,7 @@ pub(crate) async fn build_search(
     query: &str,
 ) -> ApiResult<(QueryBuilder<'static, Postgres>, &'static str)> {
     let parsed = parse_query(query)?;
-    // Members cannot search on a restricted field: its values would be learned from the matches (Phase J2).
+    // Members cannot search on a restricted field: its values would be learned from the matches.
     if project_level(db, i, project).await?.unwrap_or(0) < 3 {
         let hidden = crate::api::fields::restricted_keys(db, i.tenant_id, project).await?;
         if let Some(term) = parsed

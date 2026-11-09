@@ -4,9 +4,9 @@ The governing document for Meridian: what it is, what it must never become, and 
 
 ## Article I — What Meridian is
 
-Meridian ("Work, connected") is a multi-tenant SaaS for project delivery, knowledge and collaboration. It aims to join what Jira (work) and Confluence (docs) keep apart: objective → project → issue → page → decision → evidence → release, all linked by typed relations.
+Meridian ("Work, connected") is a multi-tenant SaaS for project delivery, knowledge and collaboration. It keeps work tracking and knowledge in one model: objective → project → issue → page → decision → evidence → release, all linked by typed relations.
 
-**Current status: Meridian 0.2 development preview. Not GA. No production data.** The source covers M0–M10 feature areas in starter form; no release gate has passed (see `docs/IMPLEMENTATION_STATUS.md`, the source of truth for what exists).
+**Current status: Meridian 0.2 development preview. Not GA. No production data.** The source covers the M0–M10 feature areas; no release gate has passed (see `docs/IMPLEMENTATION_STATUS.md`, the source of truth for what exists).
 
 ### What the repo contains
 
@@ -15,9 +15,9 @@ Meridian ("Work, connected") is a multi-tenant SaaS for project delivery, knowle
 | API | `apps/server` | Rust, Axum, Tokio, SQLx, Argon2id | REST API under `src/api/` (admin, collab, issues, knowledge, org, planning, work), `auth.rs` (opaque bearer sessions), `error.rs` (typed `ApiError`), `openapi.rs` |
 | Database | `apps/server/migrations` | PostgreSQL 17 | Composite `(tenant_id, id)` foreign keys, GIN full-text indexes; migrations `0001` (core), `0002` (workspace capabilities) |
 | Web | `apps/web` | React 19, TypeScript, Vite, TanStack Query/Router | Feature folders: `auth`, `shell`, `work` (overview, board, issues, knowledge), `advanced`, `workspace`; API client typed from `docs/openapi.json` |
-| Mobile | `apps/mobile` | Flutter, Material 3 | Companion app: auth, home, issues, reader; secure token storage, local unsent drafts. Never built yet |
+| Mobile | `apps/mobile` | Flutter, Material 3 | Companion app: auth, home, issues, reader; secure token storage, local unsent drafts. Verified on the iOS simulator only |
 | Delivery | `infra/`, `Makefile`, `scripts/` | Docker, Compose, k8s, nginx | Local stack, reference manifests, demo seeding (`scripts/seed_demo.py`) |
-| Docs | `docs/` | Markdown, OpenAPI | Product plan, architecture, security, operations, API guide, roadmap |
+| Docs | `docs/` | Markdown, OpenAPI | Implementation status, architecture, security, operations, API guide, sync protocol, generated OpenAPI contract |
 
 ### Capabilities today
 

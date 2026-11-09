@@ -1,4 +1,4 @@
-//! Release scope (Phase E4): which issues ship in a release, the scope freeze, the history of
+//! Release scope: which issues ship in a release, the scope freeze, the history of
 //! additions and removals, the release action that moves unfinished work, and release notes.
 //!
 //! Membership is a row with an add time and, once removed, a remove time. Nothing is deleted, so

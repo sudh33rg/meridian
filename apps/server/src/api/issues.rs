@@ -55,7 +55,7 @@ pub(crate) async fn issue_details(
     .fetch_one(&mut *tx)
     .await
     .map_err(db_err)?;
-    // Restricted field values are shown to project admins only (Phase J2).
+    // Restricted field values are shown to project admins only.
     if project_level(&mut tx, &i, row.project_id).await?.unwrap_or(0) < 3 {
         let hidden = crate::api::fields::restricted_keys(&mut tx, i.tenant_id, row.project_id).await?;
         row.custom_fields = crate::api::fields::without_keys(&row.custom_fields, &hidden);
@@ -231,7 +231,7 @@ pub(crate) async fn edit_issue(
     }
     let before_json = crate::api::history::issue_json(&mut tx, i.tenant_id, id).await?;
     // Nullable attributes are intentionally unchanged when omitted. Explicit clearing is a separate operation.
-    // The description is markdown: it is cleaned before it is stored (Phase F5).
+    // The description is markdown: it is cleaned before it is stored.
     let description = match v.description.as_deref() {
         Some(text) => {
             let clean = crate::api::issue_content::sanitize_markdown(text);
@@ -1149,7 +1149,7 @@ pub(crate) fn routes() -> Router<App> {
         )
 }
 
-/// Permanently removes trashed issues whose restore window has ended (Phase F6). It runs from the
+/// Permanently removes trashed issues whose restore window has ended. It runs from the
 /// hourly maintenance loop on the system connection, in batches of 100 issues, one transaction each.
 ///
 /// Before an issue's row is deleted: its live subtasks become top-level issues; its import keys and

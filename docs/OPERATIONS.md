@@ -16,7 +16,10 @@ From repository root: `docker compose -f infra/docker-compose.full.yml up --buil
 
 ## Verification
 
-Run `./scripts/verify.sh` for available local toolchains. With the backend serving locally, run `python3 tests/smoke.py`. To test tenant isolation in Rust, set `DATABASE_URL_TEST` to a disposable PostgreSQL database and run `cargo test`. This checkout does not currently include an automated CI workflow.
+- `./scripts/verify.sh` runs the checks for whichever local toolchains are installed.
+- With the API serving locally, `python3 tests/smoke.py` checks the tenant boundary, search, mutations and workflows.
+- Database-backed Rust tests need `DATABASE_URL_TEST` pointing at a disposable PostgreSQL database; run `cargo test` in `apps/server`.
+- `.github/workflows/ci.yml` defines the CI jobs. It has not yet run on GitHub.
 
 API liveness: `GET /health`. Readiness (checks database): `GET /ready`. Neither requires a bearer token. The app sets and echoes `X-Request-ID` on every response and records it on the request's tracing span, so it appears on any log line emitted while a request is handled (including warnings such as refresh-token reuse) and Prometheus metrics (`meridian_http_requests_total`, `meridian_http_request_seconds{method,route}`, `meridian_http_in_flight`, `meridian_db_pool_size/idle`, job and rate-limit counters). There is no OTLP trace exporter or dashboard yet.
 
@@ -48,7 +51,7 @@ Local email: `docker compose -f infra/docker-compose.yml up -d mailpit`, set `SM
 ## Background jobs and the event log
 
 * `jobs` is a Postgres queue (enqueue is part of the request transaction; the worker claims with `SKIP LOCKED`, retries with exponential backoff up to `max_attempts`, then marks the row `dead` with `last_error`). Inspect with `SELECT id,kind,state,attempts,last_error FROM jobs ORDER BY id DESC;`. Metrics: `meridian_jobs_queued`, `meridian_jobs_total{kind,outcome}`.
-* `events` is the append-only per-tenant change log (`sync_id` is gap-free per tenant). Nothing consumes it yet; it is the basis for client sync, webhooks and indexing in later phases. `outbox_events` is still written for the future webhook dispatcher.
+* `events` is the append-only per-tenant change log (`sync_id` is gap-free per tenant). Nothing consumes it yet. `outbox_events` is written but has no dispatcher yet; webhook delivery is disabled.
 * Row level security: if you add a table with a `tenant_id` column, enable RLS and add the `tenant_isolation` policy in the same migration or the API will refuse to start.
 
 ## Observability requirements
@@ -60,9 +63,9 @@ Capture p50/p95/p99 HTTP latency by route, status/error counts, DB pool waits, S
 - Rust API uses connection-pool reuse and static SQL; move long tasks to workers.
 - GIN full-text indexes support ranked searches; keep all tenant ID filters in query plans and monitor database index selection.
 - UI bundles should be split by route, not render all advanced modules at once; board lists require virtual scrolling above ~1000 issues.
-- Add paginated APIs for issue, page, audit and export datasets; current bounded result sets are deliberately initial limits.
+- Issue lists are paged. Page, audit and export datasets are bounded by fixed limits; extend them to paging before large tenants use them.
 - Capacity models should use database connection budgets and automated load test baselines, especially in multi-instance deployments.
 
-## Shared rate limits (Phase Q)
+## Shared rate limits
 
 By default each API process limits requests in memory. Set `RATE_LIMIT_SHARED=true` to count requests per client address per minute in PostgreSQL (`rate_limit_windows`, migration `0048`), so every replica shares one limit. The counter adds one small write per request; a database error lets the request through and is logged. Counters older than an hour are removed by the maintenance loop.

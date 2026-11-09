@@ -1,4 +1,4 @@
-//! Integrations (Phase I): personal API tokens, git linking through signed repository events, and
+//! Integrations: personal API tokens, git linking through signed repository events, and
 //! reading the links an issue has collected.
 //!
 //! Tokens: the secret is returned once. Only its SHA-256 is stored, and a `read` token cannot make

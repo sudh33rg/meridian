@@ -1,4 +1,4 @@
-//! Issue content (Phase F5): descriptions written as markdown and cleaned on the server, reactions on
+//! Issue content: descriptions written as markdown and cleaned on the server, reactions on
 //! comments, and personal reminders on issues.
 //!
 //! The description is stored as markdown source. Raw HTML is removed and links that would run script

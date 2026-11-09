@@ -1,4 +1,4 @@
-//! Macros in pages (Phase K4). A page's text can hold a few macros that the reader renders from their
+//! Macros in pages. A page's text can hold a few macros that the reader renders from their
 //! definitions: an issue list, a table of issues, or a bar chart of issue counts. Each one is a search
 //! over the project's issues, so it honours the same visibility rules as every other read.
 //!

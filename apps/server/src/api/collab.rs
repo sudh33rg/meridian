@@ -211,7 +211,7 @@ pub(crate) async fn apply_rule(
     Ok(true)
 }
 
-/// Scheduled rules (Phase I1). Each enabled scheduled rule runs its conditions over up to 200 open
+/// Scheduled rules. Each enabled scheduled rule runs its conditions over up to 200 open
 /// issues of its project, with its creator's authority: it is skipped while the creator is no longer
 /// an owner or admin. Then its next run moves forward by its schedule. Returns the issues it ran on.
 pub(crate) async fn run_due_scheduled_rules(db: &sqlx::PgPool) -> Result<u64, String> {

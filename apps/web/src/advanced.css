@@ -599,7 +599,7 @@
   margin: 0;
 }
 
-/* Automation rule builder (Phase Q): rows of conditions and actions, a wrapping action cell. */
+/* Automation rule builder: rows of conditions and actions, a wrapping action cell. */
 .automation-form {
   display: grid;
   gap: 12px;

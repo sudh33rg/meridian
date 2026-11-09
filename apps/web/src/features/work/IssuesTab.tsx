@@ -689,7 +689,7 @@ export function IssuesTab() {
   );
 }
 
-/** Subscribe to a saved view: a daily or weekly inbox notification with the matching issues (Phase I2). */
+/** Subscribe to a saved view: a daily or weekly inbox notification with the matching issues. */
 function ViewSubscribe({ token, viewId }: { token: string; viewId: string }) {
   const qc = useQueryClient();
   const { toast } = useToast();

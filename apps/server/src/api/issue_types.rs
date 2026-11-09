@@ -1,4 +1,4 @@
-//! Issue type schemes (Phase F3). Each project defines the types its issues can have. A key is fixed
+//! Issue type schemes. Each project defines the types its issues can have. A key is fixed
 //! once created, because issues store it. Names and icons can change. Level-1 types group child
 //! issues (epic level); level-0 types are standard work and can be subtasks.
 use crate::api::common::*;
