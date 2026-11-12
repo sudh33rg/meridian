@@ -89,7 +89,10 @@ export function CreateModal() {
                 {modal === "project" && (
                   <label>
                     Starting template
-                    <select value={draft.template} onChange={(e) => setDraft({ ...draft, template: e.target.value })}>
+                    <select
+                      value={draft.template}
+                      onChange={(e) => setDraft({ ...draft, template: e.target.value })}
+                    >
                       <option value="software">Software (To do, In progress, In review, Done)</option>
                       <option value="kanban">Kanban (To do, In progress, Done)</option>
                       <option value="bugs">Bug tracking (New, Triage, Fixing, Verified, Closed)</option>
@@ -125,7 +128,14 @@ export function CreateModal() {
                     <ul>
                       {(similar.data ?? []).map((s) => (
                         <li key={s.id}>
-                          <button type="button" className="issue-number-button" onClick={() => { setModal(null); setSelectedIssue(s.id); }}>
+                          <button
+                            type="button"
+                            className="issue-number-button"
+                            onClick={() => {
+                              setModal(null);
+                              setSelectedIssue(s.id);
+                            }}
+                          >
                             {project?.key}-{s.number}
                           </button>{" "}
                           {s.title} <span className="muted">· {s.status}</span>
@@ -162,7 +172,10 @@ export function CreateModal() {
                     </label>
                     <label>
                       Team
-                      <select value={draft.teamId} onChange={(e) => setDraft({ ...draft, teamId: e.target.value })}>
+                      <select
+                        value={draft.teamId}
+                        onChange={(e) => setDraft({ ...draft, teamId: e.target.value })}
+                      >
                         <option value="">No team (product backlog)</option>
                         {(teams.data ?? []).map((t) => (
                           <option key={t.id} value={t.id}>

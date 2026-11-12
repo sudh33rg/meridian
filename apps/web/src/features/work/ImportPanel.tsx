@@ -59,8 +59,8 @@ export function ImportPanel({ token, projectId }: { token: string; projectId: st
       <div className="workflow-head">
         <b>Import issues</b>
         <span className="muted small">
-          Needs Summary and Issue Key columns. Optional: Issue Type, Priority, Status, Description. Repeat imports skip
-          issues they already created.
+          Needs Summary and Issue Key columns. Optional: Issue Type, Priority, Status, Description. Repeat
+          imports skip issues they already created.
         </span>
       </div>
       <div className="workflow-add">
@@ -80,8 +80,12 @@ export function ImportPanel({ token, projectId }: { token: string; projectId: st
           }}
         />
         <label className="inline-check">
-          <input type="checkbox" checked={createStatuses} onChange={(e) => setCreateStatuses(e.target.checked)} /> Create
-          statuses the file names
+          <input
+            type="checkbox"
+            checked={createStatuses}
+            onChange={(e) => setCreateStatuses(e.target.checked)}
+          />{" "}
+          Create statuses the file names
         </label>
         <button className="secondary" disabled={text === null || busy} onClick={() => run(true)}>
           Check file
@@ -95,7 +99,8 @@ export function ImportPanel({ token, projectId }: { token: string; projectId: st
       {report && (
         <div className="import-report" role="status">
           <p>
-            {fileName}: {report.to_create} to create, {report.to_skip} already imported, {report.errors} problem
+            {fileName}: {report.to_create} to create, {report.to_skip} already imported, {report.errors}{" "}
+            problem
             {report.errors === 1 ? "" : "s"}
             {report.new_statuses.length > 0 && <> · new statuses: {report.new_statuses.join(", ")}</>}
             {report.committed && <> · committed</>}

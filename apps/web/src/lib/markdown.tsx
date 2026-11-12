@@ -6,7 +6,8 @@ import React from "react";
  * blockquotes, headings, bold, italic, code, links, and safe images.
  * It builds React elements and never inserts HTML, so stored text cannot run as markup.
  */
-const INLINE = /(!\[([^\]\n]*)\]\((https?:\/\/[^\s)]+|\/[^\s)]+)\)|\*\*([^*\n]+)\*\*|\*([^*\n]+)\*|`([^`\n]+)`|\[([^\]\n]+)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+)\))/g;
+const INLINE =
+  /(!\[([^\]\n]*)\]\((https?:\/\/[^\s)]+|\/[^\s)]+)\)|\*\*([^*\n]+)\*\*|\*([^*\n]+)\*|`([^`\n]+)`|\[([^\]\n]+)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+)\))/g;
 
 function inline(text: string, keyBase: string): React.ReactNode[] {
   const out: React.ReactNode[] = [];
@@ -26,7 +27,7 @@ function inline(text: string, keyBase: string): React.ReactNode[] {
           alt={m[2] || "image"}
           style={{ maxWidth: "100%", borderRadius: "4px", margin: "4px 0" }}
           loading="lazy"
-        />
+        />,
       );
     } else if (m[4] !== undefined) {
       out.push(<strong key={key}>{m[4]}</strong>);
@@ -38,7 +39,7 @@ function inline(text: string, keyBase: string): React.ReactNode[] {
       out.push(
         <a key={key} href={m[8]} target="_blank" rel="noopener noreferrer">
           {m[7]}
-        </a>
+        </a>,
       );
     }
     last = INLINE.lastIndex;
@@ -52,8 +53,14 @@ export function Markdown({ source }: { source: string }) {
 
   // Split into raw blocks, honoring fenced code blocks
   const lines = source.split("\n");
-  const blocks: { type: "code" | "table" | "quote" | "checklist" | "ul" | "ol" | "h" | "p"; lines: string[] }[] = [];
-  let currentBlock: { type: "code" | "table" | "quote" | "checklist" | "ul" | "ol" | "h" | "p"; lines: string[] } | null = null;
+  const blocks: {
+    type: "code" | "table" | "quote" | "checklist" | "ul" | "ol" | "h" | "p";
+    lines: string[];
+  }[] = [];
+  let currentBlock: {
+    type: "code" | "table" | "quote" | "checklist" | "ul" | "ol" | "h" | "p";
+    lines: string[];
+  } | null = null;
   let inCode = false;
 
   for (let i = 0; i < lines.length; i++) {
@@ -119,7 +126,7 @@ export function Markdown({ source }: { source: string }) {
       } else {
         currentBlock.lines.push(line.replace(/^\s*\d+\.\s+/, ""));
       }
-    } else if (line.includes("|") && lines[i + 1]?.includes("|--") || currentBlock?.type === "table") {
+    } else if ((line.includes("|") && lines[i + 1]?.includes("|--")) || currentBlock?.type === "table") {
       if (currentBlock?.type !== "table") {
         if (currentBlock) blocks.push(currentBlock);
         currentBlock = { type: "table", lines: [line] };
@@ -194,7 +201,10 @@ export function Markdown({ source }: { source: string }) {
                 const checked = /^\s*-\s+\[[xX]\]/.test(l);
                 const text = l.replace(/^\s*-\s+\[[ xX]\]\s*/, "");
                 return (
-                  <label key={li} style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px" }}>
+                  <label
+                    key={li}
+                    style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px" }}
+                  >
                     <input type="checkbox" checked={checked} readOnly />
                     <span style={{ textDecoration: checked ? "line-through" : "none" }}>
                       {inline(text, `${bi}-${li}`)}
@@ -228,8 +238,16 @@ export function Markdown({ source }: { source: string }) {
 
         if (b.type === "table") {
           const rows = b.lines.filter((l) => l.trim().startsWith("|") && !l.includes("|--"));
-          const headerRow = rows[0]?.split("|").map((c) => c.trim()).filter((_, idx, arr) => idx > 0 && idx < arr.length);
-          const bodyRows = rows.slice(1).map((r) => r.split("|").map((c) => c.trim()).filter((_, idx, arr) => idx > 0 && idx < arr.length));
+          const headerRow = rows[0]
+            ?.split("|")
+            .map((c) => c.trim())
+            .filter((_, idx, arr) => idx > 0 && idx < arr.length);
+          const bodyRows = rows.slice(1).map((r) =>
+            r
+              .split("|")
+              .map((c) => c.trim())
+              .filter((_, idx, arr) => idx > 0 && idx < arr.length),
+          );
 
           return (
             <table

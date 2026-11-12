@@ -48,7 +48,9 @@ export function BacklogTab() {
   if (!active) return null;
 
   const items = backlog.data ?? [];
-  const laneSprints = (sprints.data ?? []).filter(isOpenSprint).filter((s) => !teamFilter || s.team_id === teamFilter);
+  const laneSprints = (sprints.data ?? [])
+    .filter(isOpenSprint)
+    .filter((s) => !teamFilter || s.team_id === teamFilter);
   const key = project?.key ?? "";
 
   const rank = async (issueId: string, placement: Placement, anchor?: string) => {
@@ -64,12 +66,10 @@ export function BacklogTab() {
   };
   const addToSprint = async (issueId: string, sprintId: string) => {
     try {
-      const res = await send<{ changed: number; results: { id: string; ok: boolean; error?: string | null }[] }>(
-        `/sprints/${sprintId}/issues`,
-        session.token,
-        "POST",
-        { issue_ids: [issueId] },
-      );
+      const res = await send<{
+        changed: number;
+        results: { id: string; ok: boolean; error?: string | null }[];
+      }>(`/sprints/${sprintId}/issues`, session.token, "POST", { issue_ids: [issueId] });
       const refused = res.results.find((r) => !r.ok);
       if (refused?.error) setError(refused.error);
       else toast("Moved to sprint");
@@ -102,7 +102,12 @@ export function BacklogTab() {
         <label className="search-field small">
           <Search size={14} aria-hidden />
           <span className="sr-only">Search backlog</span>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search backlog" maxLength={200} />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search backlog"
+            maxLength={200}
+          />
         </label>
         <button className="secondary" onClick={() => setTab("sprints")}>
           Sprints
@@ -185,7 +190,11 @@ export function BacklogTab() {
                 </span>
                 <span className="backlog-key">
                   <KindIcon kind={item.kind} size={13} />
-                  <button className="issue-number-button" onClick={() => setSelectedIssue(item.id)} tabIndex={-1}>
+                  <button
+                    className="issue-number-button"
+                    onClick={() => setSelectedIssue(item.id)}
+                    tabIndex={-1}
+                  >
                     {key}-{item.number}
                   </button>
                 </span>
@@ -194,7 +203,9 @@ export function BacklogTab() {
                   {item.team_id && <span className="chip">{teamName(teamList, item.team_id)}</span>}
                   <span className="small muted">{statusLabel(item.status)}</span>
                   <PriorityIcon priority={item.priority} />
-                  <span className="small muted">{item.story_points != null ? `${item.story_points} pt` : "–"}</span>
+                  <span className="small muted">
+                    {item.story_points != null ? `${item.story_points} pt` : "–"}
+                  </span>
                 </span>
                 <select
                   aria-label={`Move ${key}-${item.number} to a sprint`}
@@ -221,7 +232,11 @@ export function BacklogTab() {
                 : "The backlog is empty. Every issue is in a sprint, or done."}
             </div>
           )}
-          {dragId && <div className="backlog-end-zone" aria-hidden>Drop here to rank last</div>}
+          {dragId && (
+            <div className="backlog-end-zone" aria-hidden>
+              Drop here to rank last
+            </div>
+          )}
         </div>
         <div className="backlog-sprints" aria-label="Open sprints">
           <h3 className="section-title">Open sprints</h3>

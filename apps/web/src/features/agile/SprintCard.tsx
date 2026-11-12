@@ -1,6 +1,17 @@
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, ChevronDown, ChevronUp, Play, Square, X, TrendingUp, FileText, Users, Kanban } from "lucide-react";
+import {
+  BarChart3,
+  ChevronDown,
+  ChevronUp,
+  Play,
+  Square,
+  X,
+  TrendingUp,
+  FileText,
+  Users,
+  Kanban,
+} from "lucide-react";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { errorMessage, request, send } from "../../lib/api";
 import { downloadCsv } from "../../lib/download";
@@ -99,9 +110,14 @@ export function SprintCard({
         const id = e.dataTransfer.getData("text/plain");
         if (!id || sprint.state === "completed") return;
         run(async () => {
-          const res = await send<MembershipResultLike>(`/sprints/${sprint.id}/issues`, session.token, "POST", {
-            issue_ids: [id],
-          });
+          const res = await send<MembershipResultLike>(
+            `/sprints/${sprint.id}/issues`,
+            session.token,
+            "POST",
+            {
+              issue_ids: [id],
+            },
+          );
           const refused = res.results.find((r) => !r.ok);
           if (refused?.error) setError(refused.error);
           else toast(`Added to ${sprint.name}`);
@@ -150,10 +166,18 @@ export function SprintCard({
           )}
           {!compact && sprint.state !== "planned" && (
             <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "8px" }}>
-              <button className="secondary small-btn" onClick={() => setShowBurndown((v) => !v)} aria-expanded={showBurndown}>
+              <button
+                className="secondary small-btn"
+                onClick={() => setShowBurndown((v) => !v)}
+                aria-expanded={showBurndown}
+              >
                 <BarChart3 size={14} /> {showBurndown ? "Hide burndown" : "Burndown"}
               </button>
-              <button className="secondary small-btn" onClick={() => setShowBurnup((v) => !v)} aria-expanded={showBurnup}>
+              <button
+                className="secondary small-btn"
+                onClick={() => setShowBurnup((v) => !v)}
+                aria-expanded={showBurnup}
+              >
                 <TrendingUp size={14} /> {showBurnup ? "Hide burnup" : "Burnup"}
               </button>
               <button className="secondary small-btn" onClick={() => setShowReport(true)}>
@@ -178,7 +202,9 @@ export function SprintCard({
                   {projectKey}-{issue.number}
                 </span>
                 <span className="sprint-issue-title">{issue.title}</span>
-                <span className="small muted">{issue.story_points != null ? `${issue.story_points} pt` : ""}</span>
+                <span className="small muted">
+                  {issue.story_points != null ? `${issue.story_points} pt` : ""}
+                </span>
                 {sprint.state !== "completed" && (
                   <button
                     className="icon-ghost"
@@ -219,8 +245,8 @@ export function SprintCard({
           <button
             className="secondary small-btn"
             onClick={() =>
-              downloadCsv(`/sprints/${sprint.id}/export.csv`, session.token, `${sprint.name}.csv`).catch((e) =>
-                setError(errorMessage(e)),
+              downloadCsv(`/sprints/${sprint.id}/export.csv`, session.token, `${sprint.name}.csv`).catch(
+                (e) => setError(errorMessage(e)),
               )
             }
           >
@@ -270,14 +296,26 @@ export function SprintCard({
         <SprintReportView sprintId={sprint.id} projectKey={projectKey} onClose={() => setShowReport(false)} />
       )}
       {showCapacity && (
-        <SprintCapacityModal sprintId={sprint.id} sprintName={sprint.name} onClose={() => setShowCapacity(false)} />
+        <SprintCapacityModal
+          sprintId={sprint.id}
+          sprintName={sprint.name}
+          onClose={() => setShowCapacity(false)}
+        />
       )}
       {showBoard && (
-        <SprintBoardModal sprintId={sprint.id} sprintName={sprint.name} projectKey={projectKey} onClose={() => setShowBoard(false)} />
+        <SprintBoardModal
+          sprintId={sprint.id}
+          sprintName={sprint.name}
+          projectKey={projectKey}
+          onClose={() => setShowBoard(false)}
+        />
       )}
     </section>
   );
 }
 
 /** Subset of `MembershipResult` used by drop handling. */
-type MembershipResultLike = { changed: number; results: { id: string; ok: boolean; error?: string | null }[] };
+type MembershipResultLike = {
+  changed: number;
+  results: { id: string; ok: boolean; error?: string | null }[];
+};

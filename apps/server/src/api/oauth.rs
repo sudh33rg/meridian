@@ -128,7 +128,9 @@ pub(crate) async fn create_oauth_app(
     let client_id = generate_random_token("mrd_client", 12);
     let client_secret = generate_random_token("mrd_secret", 24);
     let secret_hash = hash_secret(&client_secret);
-    let scopes = input.scopes.unwrap_or_else(|| vec!["read".to_string(), "write".to_string()]);
+    let scopes = input
+        .scopes
+        .unwrap_or_else(|| vec!["read".to_string(), "write".to_string()]);
     let is_trusted = input.is_trusted.unwrap_or(false);
 
     let app: OAuthApp = sqlx::query_as(
@@ -150,10 +152,7 @@ pub(crate) async fn create_oauth_app(
 
     Ok((
         StatusCode::CREATED,
-        Json(CreatedOAuthApp {
-            app,
-            client_secret,
-        }),
+        Json(CreatedOAuthApp { app, client_secret }),
     ))
 }
 
@@ -233,7 +232,11 @@ pub(crate) async fn submit_authorize(
     .await
     .map_err(db_err)?;
 
-    let delimiter = if registered_redirect.contains('?') { "&" } else { "?" };
+    let delimiter = if registered_redirect.contains('?') {
+        "&"
+    } else {
+        "?"
+    };
     let state_param = match &input.state {
         Some(s) => format!("&state={s}"),
         None => String::new(),
@@ -315,7 +318,13 @@ pub(crate) async fn exchange_token(
 
 pub(crate) fn routes() -> axum::Router<App> {
     axum::Router::new()
-        .route("/api/oauth/apps", get(list_oauth_apps).post(create_oauth_app))
-        .route("/api/oauth/authorize", get(get_authorize).post(submit_authorize))
+        .route(
+            "/api/oauth/apps",
+            get(list_oauth_apps).post(create_oauth_app),
+        )
+        .route(
+            "/api/oauth/authorize",
+            get(get_authorize).post(submit_authorize),
+        )
         .route("/api/oauth/token", post(exchange_token))
 }

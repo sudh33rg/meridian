@@ -2,10 +2,11 @@
 //! `meridian-api --openapi` prints it and `GET /api/openapi.json` serves it.
 //! `docs/openapi.json` is the checked-in copy the web client types are generated from; CI checks it is current.
 use crate::api::{
-    access::*, admin::*, agile::*, collab::*, csv_import::*, fields::*, history::*,
-    integrations::*, issue_depth::*, issue_types::*, issues::*, knowledge::*, org::*, personal::*, service::*, issue_security::*, issue_content::*, digest::*, ai::*, chat::*, roles::*,
-    planning::*, releases::*, reports::*, roadmap::*, security::*, settings::*, statuses::*,
-    transitions::*, oauth::*, work::*,
+    access::*, admin::*, agile::*, ai::*, chat::*, collab::*, csv_import::*, digest::*, fields::*,
+    history::*, integrations::*, issue_content::*, issue_depth::*, issue_security::*,
+    issue_types::*, issues::*, knowledge::*, oauth::*, org::*, personal::*, planning::*,
+    releases::*, reports::*, roadmap::*, roles::*, security::*, service::*, settings::*,
+    statuses::*, transitions::*, work::*,
 };
 use crate::*;
 use utoipa::{

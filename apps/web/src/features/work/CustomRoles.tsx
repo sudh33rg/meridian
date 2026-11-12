@@ -46,7 +46,8 @@ export function CustomRoles({ token, projectId }: { token: string; projectId: st
     onError: fail,
   });
   const setMembers = useMutation({
-    mutationFn: ({ id, user_ids }: { id: string; user_ids: string[] }) => send<void>(`/roles/${id}/members`, token, "PUT", { user_ids }),
+    mutationFn: ({ id, user_ids }: { id: string; user_ids: string[] }) =>
+      send<void>(`/roles/${id}/members`, token, "PUT", { user_ids }),
     onSuccess: refresh,
     onError: fail,
   });
@@ -55,7 +56,9 @@ export function CustomRoles({ token, projectId }: { token: string; projectId: st
     <section className="workflow" aria-label="Custom roles">
       <div className="workflow-head">
         <b>Custom roles</b>
-        <span className="muted small">A role gives its members the level it names, on top of their own. Project admins manage roles.</span>
+        <span className="muted small">
+          A role gives its members the level it names, on top of their own. Project admins manage roles.
+        </span>
       </div>
       <ul className="workflow-list">
         {rolesQ.data.map((r) => (
@@ -73,7 +76,9 @@ export function CustomRoles({ token, projectId }: { token: string; projectId: st
                     onChange={(e) =>
                       setMembers.mutate({
                         id: r.id,
-                        user_ids: e.target.checked ? [...r.member_ids, m.id] : r.member_ids.filter((x) => x !== m.id),
+                        user_ids: e.target.checked
+                          ? [...r.member_ids, m.id]
+                          : r.member_ids.filter((x) => x !== m.id),
                       })
                     }
                   />{" "}
@@ -81,7 +86,12 @@ export function CustomRoles({ token, projectId }: { token: string; projectId: st
                 </label>
               ))}
             </fieldset>
-            <button className="icon-btn danger" aria-label={`Remove role ${r.name}`} disabled={remove.isPending} onClick={() => remove.mutate(r.id)}>
+            <button
+              className="icon-btn danger"
+              aria-label={`Remove role ${r.name}`}
+              disabled={remove.isPending}
+              onClick={() => remove.mutate(r.id)}
+            >
               <Trash2 size={14} />
             </button>
           </li>
@@ -95,7 +105,13 @@ export function CustomRoles({ token, projectId }: { token: string; projectId: st
           if (name.trim()) create.mutate();
         }}
       >
-        <input aria-label="Role name" maxLength={80} value={name} onChange={(e) => setName(e.target.value)} placeholder="Role name" />
+        <input
+          aria-label="Role name"
+          maxLength={80}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Role name"
+        />
         <select aria-label="Role level" value={level} onChange={(e) => setLevel(Number(e.target.value))}>
           <option value={1}>Viewer</option>
           <option value={2}>Member</option>

@@ -38,8 +38,8 @@ export function ApiTokensPanel() {
         <KeyRound size={16} aria-hidden /> Personal API tokens
       </h3>
       <p className="muted small">
-        Use a token as <code>Authorization: Bearer mtk_…</code>. A read token can only read. Tokens are shown once and
-        can be revoked at any time.
+        Use a token as <code>Authorization: Bearer mtk_…</code>. A read token can only read. Tokens are shown
+        once and can be revoked at any time.
       </p>
       <form
         className="row-actions wrap"
@@ -60,7 +60,13 @@ export function ApiTokensPanel() {
           }
         }}
       >
-        <input aria-label="Token name" placeholder="Name, e.g. CI reader" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
+        <input
+          aria-label="Token name"
+          placeholder="Name, e.g. CI reader"
+          value={name}
+          maxLength={80}
+          onChange={(e) => setName(e.target.value)}
+        />
         <select aria-label="Token scope" value={scope} onChange={(e) => setScope(e.target.value)}>
           <option value="read">Read only</option>
           <option value="write">Read and write</option>
@@ -96,7 +102,8 @@ export function ApiTokensPanel() {
         {(tokens.data ?? []).map((t) => (
           <li key={t.id} className="small checklist-row">
             <span>
-              <b>{t.name}</b> <span className="mono">{t.prefix}…</span> · {t.scope} · created {shortDay(t.created_at)}
+              <b>{t.name}</b> <span className="mono">{t.prefix}…</span> · {t.scope} · created{" "}
+              {shortDay(t.created_at)}
               {t.last_used_at ? ` · last used ${shortDay(t.last_used_at)}` : " · never used"}
               {t.revoked_at ? " · revoked" : t.expires_at ? ` · expires ${shortDay(t.expires_at)}` : ""}
             </span>
@@ -141,8 +148,9 @@ export function GitLinkPanel() {
     <section className="panel integrations" aria-labelledby="git-title">
       <h3 id="git-title">Git linking · {project.name}</h3>
       <p className="muted small">
-        Commits and pull requests that name an issue key ({project.key}-123) link to that issue. Point your repository’s
-        webhook at the address below, with JSON content and the same secret, and send push and pull request events.
+        Commits and pull requests that name an issue key ({project.key}-123) link to that issue. Point your
+        repository’s webhook at the address below, with JSON content and the same secret, and send push and
+        pull request events.
       </p>
       <p className="small">
         Address: <code className="token-secret">{url}</code>

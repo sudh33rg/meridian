@@ -86,7 +86,9 @@ export function WorkspaceSettingsPanel() {
             max={3650}
             value={current.attachment_retention_days ?? 0}
             disabled={!admin}
-            onChange={(e) => setDraft({ ...current, attachment_retention_days: Number(e.target.value) || null })}
+            onChange={(e) =>
+              setDraft({ ...current, attachment_retention_days: Number(e.target.value) || null })
+            }
           />
         </label>
         <label>

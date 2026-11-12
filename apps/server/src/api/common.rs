@@ -79,7 +79,11 @@ pub(crate) const DEFAULT_SCHEME: Scheme = Scheme {
     workflow_min: 3,
 };
 
-pub(crate) async fn scheme_of(db: &mut PgConnection, tenant: Uuid, project: Uuid) -> ApiResult<Scheme> {
+pub(crate) async fn scheme_of(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    project: Uuid,
+) -> ApiResult<Scheme> {
     let row: Option<(i16, i16, i16)> = sqlx::query_as(
         "SELECT member_level, edit_min, workflow_min FROM project_permission_schemes WHERE tenant_id=$1 AND project_id=$2",
     )
@@ -127,7 +131,12 @@ pub(crate) async fn ensure_action(tx: &mut Tx, project: Uuid, action: &str) -> A
 }
 
 /// `ensure_action` for an entity that belongs to a project (`sprints` or `releases`), found by id.
-pub(crate) async fn ensure_action_on(tx: &mut Tx, table: &'static str, id: Uuid, action: &str) -> ApiResult<()> {
+pub(crate) async fn ensure_action_on(
+    tx: &mut Tx,
+    table: &'static str,
+    id: Uuid,
+    action: &str,
+) -> ApiResult<()> {
     let i = tx.identity.clone();
     let sql = format!("SELECT project_id FROM {table} WHERE tenant_id=$1 AND id=$2");
     let project: Uuid = sqlx::query_scalar(&sql)
@@ -356,7 +365,10 @@ pub(crate) async fn log_event(
 /// side, so a row that does not fit is a server error rather than a silent change in shape.
 pub(crate) fn typed_rows<T: serde::de::DeserializeOwned>(rows: Vec<Value>) -> ApiResult<Vec<T>> {
     rows.into_iter()
-        .map(|r| serde_json::from_value(r).map_err(|e| ApiError::Internal(format!("row does not match its schema: {e}"))))
+        .map(|r| {
+            serde_json::from_value(r)
+                .map_err(|e| ApiError::Internal(format!("row does not match its schema: {e}")))
+        })
         .collect()
 }
 pub(crate) async fn log_outbox(

@@ -111,7 +111,9 @@ export async function requestWithHeaders<T>(
  * plain-HTTP origins such as a LAN address. */
 export function newIdempotencyKey(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
-  return Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join(
+    "",
+  );
 }
 
 export const send = <T>(path: string, token: string, method: string, body?: unknown) =>

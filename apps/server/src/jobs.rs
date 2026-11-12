@@ -195,9 +195,15 @@ async fn email_digest(ctx: &Ctx, payload: &Value) -> Result<(), String> {
     }
     let tenant = payload_id(payload, "tenant_id")?;
     let user = payload_id(payload, "user_id")?;
-    let text = crate::api::digest::digest_text(&ctx.db, &ctx.cfg.secret, &ctx.cfg.public_url, tenant, user)
-        .await
-        .map_err(|e| e.to_string())?;
+    let text = crate::api::digest::digest_text(
+        &ctx.db,
+        &ctx.cfg.secret,
+        &ctx.cfg.public_url,
+        tenant,
+        user,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
     match text {
         Some((subject, body, to)) => ctx.mailer.send(&to, &subject, &body).await,
         None => Ok(()),
@@ -254,7 +260,9 @@ pub(crate) fn spawn_maintenance(db: PgPool, email_on: bool) {
             }
             // Requests past their target are escalated once to the owners and admins.
             match crate::api::service::escalate_breached(&db).await {
-                Ok(n) if n > 0 => tracing::info!(notifications = n, "escalated requests past target"),
+                Ok(n) if n > 0 => {
+                    tracing::info!(notifications = n, "escalated requests past target")
+                }
                 Ok(_) => {}
                 Err(e) => tracing::error!(error=%e, "request escalation failed"),
             }
@@ -278,14 +286,18 @@ pub(crate) fn spawn_maintenance(db: PgPool, email_on: bool) {
             }
             // Saved views with a subscriber who is due get a notification.
             match crate::api::personal::run_due_view_subscriptions(&db).await {
-                Ok(n) if n > 0 => tracing::info!(notifications = n, "sent saved-view subscriptions"),
+                Ok(n) if n > 0 => {
+                    tracing::info!(notifications = n, "sent saved-view subscriptions")
+                }
                 Ok(_) => {}
                 Err(e) => tracing::error!(error=%e, "saved-view subscriptions failed"),
             }
             // Shared rate-limit counters older than an hour are not needed.
-            if let Err(e) = sqlx::query("DELETE FROM rate_limit_windows WHERE window_start < now() - interval '1 hour'")
-                .execute(&db)
-                .await
+            if let Err(e) = sqlx::query(
+                "DELETE FROM rate_limit_windows WHERE window_start < now() - interval '1 hour'",
+            )
+            .execute(&db)
+            .await
             {
                 tracing::error!(error=%e, "rate limit cleanup failed");
             }

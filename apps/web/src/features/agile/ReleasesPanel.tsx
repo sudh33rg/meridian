@@ -16,7 +16,11 @@ import {
   shortDay,
 } from "./agile-shared";
 
-const RELEASE_LABEL: Record<string, string> = { planned: "Planned", released: "Released", cancelled: "Cancelled" };
+const RELEASE_LABEL: Record<string, string> = {
+  planned: "Planned",
+  released: "Released",
+  cancelled: "Cancelled",
+};
 
 /** Releases: scope, scope freeze, history of changes, the release action and generated notes. */
 export function ReleasesPanel() {
@@ -92,18 +96,15 @@ export function ReleasesPanel() {
             onSubmit={(e) => {
               e.preventDefault();
               if (!name.trim() || !selected) return;
-              run(
-                async () => {
-                  const created = await send<Release>(`/projects/${selected}/releases`, session.token, "POST", {
-                    name: name.trim(),
-                    description,
-                  });
-                  setChosen(created.id);
-                  setName("");
-                  setDescription("");
-                },
-                "Release created",
-              );
+              run(async () => {
+                const created = await send<Release>(`/projects/${selected}/releases`, session.token, "POST", {
+                  name: name.trim(),
+                  description,
+                });
+                setChosen(created.id);
+                setName("");
+                setDescription("");
+              }, "Release created");
             }}
           >
             <label className="small">
@@ -149,7 +150,9 @@ export function ReleasesPanel() {
                 </span>
               )}
               {current.target_at && <span className="small muted">Target {shortDay(current.target_at)}</span>}
-              {current.released_at && <span className="small muted">Released {shortDay(current.released_at)}</span>}
+              {current.released_at && (
+                <span className="small muted">Released {shortDay(current.released_at)}</span>
+              )}
             </header>
             {current.description && <p className="muted">{current.description}</p>}
             {totals && (
@@ -162,8 +165,9 @@ export function ReleasesPanel() {
                   />
                 </div>
                 <span className="small">
-                  {totals.done_count}/{totals.scope_count} issues done · {totals.done_points}/{totals.scope_points} pts ·{" "}
-                  {totals.added_after_freeze} added after freeze · {totals.removed_count} removed in total
+                  {totals.done_count}/{totals.scope_count} issues done · {totals.done_points}/
+                  {totals.scope_points} pts · {totals.added_after_freeze} added after freeze ·{" "}
+                  {totals.removed_count} removed in total
                 </span>
               </div>
             )}
@@ -171,15 +175,25 @@ export function ReleasesPanel() {
               <button
                 className="secondary"
                 onClick={() =>
-                  downloadCsv(`/releases/${releaseId}/export.csv`, session.token, `${current.name}-scope.csv`).catch((e) =>
-                    setError(errorMessage(e)),
-                  )
+                  downloadCsv(
+                    `/releases/${releaseId}/export.csv`,
+                    session.token,
+                    `${current.name}-scope.csv`,
+                  ).catch((e) => setError(errorMessage(e)))
                 }
               >
                 Export scope CSV
               </button>
               {open && !current.frozen_at && (
-                <button className="secondary" onClick={() => run(() => send(`/releases/${releaseId}`, session.token, "PATCH", { freeze: true }), "Scope frozen")}>
+                <button
+                  className="secondary"
+                  onClick={() =>
+                    run(
+                      () => send(`/releases/${releaseId}`, session.token, "PATCH", { freeze: true }),
+                      "Scope frozen",
+                    )
+                  }
+                >
                   <Lock size={14} /> Freeze scope
                 </button>
               )}
@@ -234,7 +248,10 @@ export function ReleasesPanel() {
                     className="danger"
                     onClick={() => {
                       setConfirming(null);
-                      run(() => send(`/releases/${releaseId}`, session.token, "PATCH", { status: "cancelled" }), "Release cancelled");
+                      run(
+                        () => send(`/releases/${releaseId}`, session.token, "PATCH", { status: "cancelled" }),
+                        "Release cancelled",
+                      );
                     }}
                   >
                     <X size={14} /> Cancel release
@@ -278,7 +295,9 @@ export function ReleasesPanel() {
                   e.preventDefault();
                   if (!addIssue) return;
                   run(async () => {
-                    await send(`/releases/${releaseId}/issues`, session.token, "POST", { issue_ids: [addIssue] });
+                    await send(`/releases/${releaseId}/issues`, session.token, "POST", {
+                      issue_ids: [addIssue],
+                    });
                     setAddIssue("");
                   }, "Added to release");
                 }}
@@ -335,8 +354,8 @@ export function ReleasesPanel() {
             <ol className="release-history" aria-label="Scope history">
               {(history.data ?? []).map((h, n) => (
                 <li key={`${h.issue_id}-${h.action}-${n}`}>
-                  <span className="small muted">{shortDay(h.at)}</span> {h.action === "added" ? "Added" : "Removed"}{" "}
-                  {key}-{h.number} {h.title}
+                  <span className="small muted">{shortDay(h.at)}</span>{" "}
+                  {h.action === "added" ? "Added" : "Removed"} {key}-{h.number} {h.title}
                   {h.after_freeze && <span className="chip warn">After freeze</span>}
                 </li>
               ))}

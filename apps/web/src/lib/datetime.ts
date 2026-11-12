@@ -21,7 +21,10 @@ function toDate(value: string | Date | null | undefined): Date | null {
 }
 
 /** Formats a date with explicit options. Use the named helpers below unless a layout needs its own parts. */
-export function formatWith(value: string | Date | null | undefined, options: Intl.DateTimeFormatOptions): string {
+export function formatWith(
+  value: string | Date | null | undefined,
+  options: Intl.DateTimeFormatOptions,
+): string {
   const d = toDate(value);
   if (!d) return "—";
   const dateOnly = typeof value === "string" && CALENDAR_DATE.test(value);
@@ -37,7 +40,13 @@ export const formatDate = (value: string | Date | null | undefined) =>
   formatWith(value, { year: "numeric", month: "numeric", day: "numeric" });
 
 export const formatDateTime = (value: string | Date | null | undefined) =>
-  formatWith(value, { year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" });
+  formatWith(value, {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 
 export const formatTime = (value: string | Date | null | undefined) =>
   formatWith(value, { hour: "numeric", minute: "2-digit" });

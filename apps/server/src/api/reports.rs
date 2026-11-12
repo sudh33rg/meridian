@@ -15,11 +15,15 @@ const MAX_RANGE_DAYS: i64 = 366;
 fn date_range(from: Option<&str>, to: Option<&str>) -> ApiResult<(NaiveDate, NaiveDate)> {
     let today = Utc::now().date_naive();
     let to_day = match to.filter(|s| !s.is_empty()) {
-        Some(s) => NaiveDate::parse_from_str(s, "%Y-%m-%d").map_err(|_| bad("to must be YYYY-MM-DD"))?,
+        Some(s) => {
+            NaiveDate::parse_from_str(s, "%Y-%m-%d").map_err(|_| bad("to must be YYYY-MM-DD"))?
+        }
         None => today,
     };
     let from_day = match from.filter(|s| !s.is_empty()) {
-        Some(s) => NaiveDate::parse_from_str(s, "%Y-%m-%d").map_err(|_| bad("from must be YYYY-MM-DD"))?,
+        Some(s) => {
+            NaiveDate::parse_from_str(s, "%Y-%m-%d").map_err(|_| bad("from must be YYYY-MM-DD"))?
+        }
         None => to_day.checked_sub_days(Days::new(29)).unwrap_or(to_day),
     };
     if from_day > to_day {
@@ -51,7 +55,13 @@ pub(crate) struct FlowRow {
     pub(crate) count: i64,
 }
 
-async fn flow_rows(db: &mut PgConnection, tenant: Uuid, project: Uuid, from: NaiveDate, to: NaiveDate) -> ApiResult<Vec<FlowRow>> {
+async fn flow_rows(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    project: Uuid,
+    from: NaiveDate,
+    to: NaiveDate,
+) -> ApiResult<Vec<FlowRow>> {
     sqlx::query_as(
         "WITH days AS (SELECT generate_series($3::date, $4::date, '1 day')::date AS day), \
          state AS (\
@@ -133,7 +143,11 @@ fn median(mut xs: Vec<f64>) -> Option<f64> {
     }
     xs.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     let mid = xs.len() / 2;
-    Some(if xs.len() % 2 == 0 { (xs[mid - 1] + xs[mid]) / 2.0 } else { xs[mid] })
+    Some(if xs.len() % 2 == 0 {
+        (xs[mid - 1] + xs[mid]) / 2.0
+    } else {
+        xs[mid]
+    })
 }
 
 fn mean(xs: &[f64]) -> Option<f64> {
@@ -145,7 +159,13 @@ fn mean(xs: &[f64]) -> Option<f64> {
 }
 
 /// Issues first completed inside the range, with their first start and completion times.
-async fn completed_issues(db: &mut PgConnection, tenant: Uuid, project: Uuid, from: NaiveDate, to: NaiveDate) -> ApiResult<Vec<CompletedIssue>> {
+async fn completed_issues(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    project: Uuid,
+    from: NaiveDate,
+    to: NaiveDate,
+) -> ApiResult<Vec<CompletedIssue>> {
     sqlx::query_as(
         "WITH done AS (\
            SELECT h.issue_id, min(h.changed_at) AS done_at FROM issue_status_history h \
@@ -189,7 +209,9 @@ pub(crate) async fn cycle_report(
             title: r.title.clone(),
             done_on: r.done_at.format("%Y-%m-%d").to_string(),
             lead_days: (r.done_at - r.created_at).num_seconds() as f64 / 86_400.0,
-            cycle_days: r.started_at.map(|s| (r.done_at - s).num_seconds() as f64 / 86_400.0),
+            cycle_days: r
+                .started_at
+                .map(|s| (r.done_at - s).num_seconds() as f64 / 86_400.0),
         })
         .collect();
     let leads: Vec<f64> = items.iter().map(|x| x.lead_days).collect();
@@ -209,7 +231,10 @@ pub(crate) async fn cycle_report(
         items,
         throughput: weeks
             .into_iter()
-            .map(|(w, n)| Throughput { week: w.format("%Y-%m-%d").to_string(), completed: n })
+            .map(|(w, n)| Throughput {
+                week: w.format("%Y-%m-%d").to_string(),
+                completed: n,
+            })
             .collect(),
     }))
 }
@@ -290,10 +315,18 @@ pub(crate) async fn time_report(
     let i = tx.identity.clone();
     valid_project(&mut tx, &i, p).await?;
     let (from, to) = date_range(q.from.as_deref(), q.to.as_deref())?;
-    Ok(Json(time_report_for(&mut tx, i.tenant_id, p, from, to).await?))
+    Ok(Json(
+        time_report_for(&mut tx, i.tenant_id, p, from, to).await?,
+    ))
 }
 
-async fn time_report_for(db: &mut PgConnection, tenant: Uuid, project: Uuid, from: NaiveDate, to: NaiveDate) -> ApiResult<TimeReport> {
+async fn time_report_for(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    project: Uuid,
+    from: NaiveDate,
+    to: NaiveDate,
+) -> ApiResult<TimeReport> {
     let total: i64 = sqlx::query_scalar(
         "SELECT COALESCE(sum(w.minutes),0)::bigint FROM worklogs w JOIN issues i ON i.tenant_id=w.tenant_id AND i.id=w.issue_id \
          WHERE w.tenant_id=$1 AND i.project_id=$2 AND w.started_on BETWEEN $3 AND $4",
@@ -329,7 +362,13 @@ async fn time_report_for(db: &mut PgConnection, tenant: Uuid, project: Uuid, fro
     .fetch_all(&mut *db)
     .await
     .map_err(db_err)?;
-    Ok(TimeReport { from: from.to_string(), to: to.to_string(), total_minutes: total, by_person, by_issue })
+    Ok(TimeReport {
+        from: from.to_string(),
+        to: to.to_string(),
+        total_minutes: total,
+        by_person,
+        by_issue,
+    })
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -372,10 +411,14 @@ pub(crate) struct WidgetView {
     pub(crate) data: Value,
 }
 
-const DASHBOARD_SELECT: &str = "SELECT id, project_id, owner_id, name, shared, created_at FROM dashboards";
+const DASHBOARD_SELECT: &str =
+    "SELECT id, project_id, owner_id, name, shared, created_at FROM dashboards";
 
 #[utoipa::path(get, path = "/api/projects/{id}/dashboards", tag = "reports", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Dashboards you own and shared ones", body = Vec<Dashboard>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_dashboards(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json<Vec<Dashboard>>> {
+pub(crate) async fn list_dashboards(
+    mut tx: Tx,
+    Path(p): Path<Uuid>,
+) -> ApiResult<Json<Vec<Dashboard>>> {
     let i = tx.identity.clone();
     valid_project(&mut tx, &i, p).await?;
     let rows: Vec<Dashboard> = sqlx::query_as(&format!(
@@ -425,18 +468,30 @@ pub(crate) async fn create_dashboard(
 }
 
 /// Reads a dashboard the caller may see: their own, or one shared with the workspace.
-async fn visible_dashboard(db: &mut PgConnection, tenant: Uuid, me: Uuid, id: Uuid) -> ApiResult<Dashboard> {
-    sqlx::query_as(&format!("{DASHBOARD_SELECT} WHERE tenant_id=$1 AND id=$2 AND (shared OR owner_id=$3)"))
-        .bind(tenant)
-        .bind(id)
-        .bind(me)
-        .fetch_optional(&mut *db)
-        .await
-        .map_err(db_err)?
-        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Dashboard not found"))
+async fn visible_dashboard(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    me: Uuid,
+    id: Uuid,
+) -> ApiResult<Dashboard> {
+    sqlx::query_as(&format!(
+        "{DASHBOARD_SELECT} WHERE tenant_id=$1 AND id=$2 AND (shared OR owner_id=$3)"
+    ))
+    .bind(tenant)
+    .bind(id)
+    .bind(me)
+    .fetch_optional(&mut *db)
+    .await
+    .map_err(db_err)?
+    .ok_or_else(|| err(StatusCode::NOT_FOUND, "Dashboard not found"))
 }
 
-async fn widget_data(db: &mut PgConnection, tenant: Uuid, project: Uuid, w: &Widget) -> ApiResult<Value> {
+async fn widget_data(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    project: Uuid,
+    w: &Widget,
+) -> ApiResult<Value> {
     let done = done_predicate("i");
     Ok(match w.kind.as_str() {
         "status_counts" => {
@@ -448,7 +503,10 @@ async fn widget_data(db: &mut PgConnection, tenant: Uuid, project: Uuid, w: &Wid
             .fetch_all(&mut *db)
             .await
             .map_err(db_err)?;
-            json!(rows.into_iter().map(|(k, n)| json!({"key": k, "count": n})).collect::<Vec<_>>())
+            json!(rows
+                .into_iter()
+                .map(|(k, n)| json!({"key": k, "count": n}))
+                .collect::<Vec<_>>())
         }
         "priority_counts" => {
             let rows: Vec<(String, i64)> = sqlx::query_as(
@@ -459,7 +517,10 @@ async fn widget_data(db: &mut PgConnection, tenant: Uuid, project: Uuid, w: &Wid
             .fetch_all(&mut *db)
             .await
             .map_err(db_err)?;
-            json!(rows.into_iter().map(|(k, n)| json!({"key": k, "count": n})).collect::<Vec<_>>())
+            json!(rows
+                .into_iter()
+                .map(|(k, n)| json!({"key": k, "count": n}))
+                .collect::<Vec<_>>())
         }
         "assignee_counts" => {
             let rows: Vec<(Option<String>, i64)> = sqlx::query_as(&format!(
@@ -481,7 +542,11 @@ async fn widget_data(db: &mut PgConnection, tenant: Uuid, project: Uuid, w: &Wid
                 w.config.get("from").and_then(Value::as_str),
                 w.config.get("to").and_then(Value::as_str),
             )?;
-            json!(time_report_for(db, tenant, project, from, to).await?.by_person)
+            json!(
+                time_report_for(db, tenant, project, from, to)
+                    .await?
+                    .by_person
+            )
         }
         "flow" => {
             let (from, to) = date_range(
@@ -496,31 +561,57 @@ async fn widget_data(db: &mut PgConnection, tenant: Uuid, project: Uuid, w: &Wid
                 w.config.get("to").and_then(Value::as_str),
             )?;
             let rows = completed_issues(db, tenant, project, from, to).await?;
-            let leads: Vec<f64> = rows.iter().map(|r| (r.done_at - r.created_at).num_seconds() as f64 / 86_400.0).collect();
+            let leads: Vec<f64> = rows
+                .iter()
+                .map(|r| (r.done_at - r.created_at).num_seconds() as f64 / 86_400.0)
+                .collect();
             let cycles: Vec<f64> = rows
                 .iter()
-                .filter_map(|r| r.started_at.map(|s| (r.done_at - s).num_seconds() as f64 / 86_400.0))
+                .filter_map(|r| {
+                    r.started_at
+                        .map(|s| (r.done_at - s).num_seconds() as f64 / 86_400.0)
+                })
                 .collect();
             json!({"completed": rows.len(), "median_lead_days": median(leads), "median_cycle_days": median(cycles)})
         }
         "velocity" => {
-            let rows: Vec<(Option<i32>,)> = sqlx::query_as(
-                "SELECT final_done_points FROM sprints WHERE tenant_id=$1 AND project_id=$2 AND state='completed' AND final_done_points IS NOT NULL ORDER BY closed_at DESC NULLS LAST LIMIT 5",
+            let rows: Vec<(String, Option<i32>, Option<i32>)> = sqlx::query_as(
+                "SELECT name, started_scope_points, final_done_points FROM sprints WHERE tenant_id=$1 AND project_id=$2 AND state='completed' AND final_done_points IS NOT NULL ORDER BY closed_at DESC NULLS LAST LIMIT 5",
             )
             .bind(tenant)
             .bind(project)
             .fetch_all(&mut *db)
             .await
             .map_err(db_err)?;
-            let xs: Vec<f64> = rows.into_iter().map(|(p,)| f64::from(p.unwrap_or(0))).collect();
-            json!({"sprints": xs.len(), "average_done_points": mean(&xs).unwrap_or(0.0)})
+            let recent: Vec<Value> = rows
+                .iter()
+                .map(|(name, started, done)| {
+                    json!({
+                        "name": name,
+                        "started_points": started.unwrap_or(0),
+                        "done_points": done.unwrap_or(0),
+                    })
+                })
+                .collect();
+            let xs: Vec<f64> = rows
+                .iter()
+                .map(|(_, _, p)| f64::from(p.unwrap_or(0)))
+                .collect();
+            json!({
+                "sprints": xs.len(),
+                "average_done_points": mean(&xs).unwrap_or(0.0),
+                "recent": recent
+            })
         }
         _ => json!(null),
     })
 }
 
 #[utoipa::path(get, path = "/api/dashboards/{id}", tag = "reports", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Dashboard with each widget's data", body = DashboardView), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn get_dashboard(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<DashboardView>> {
+pub(crate) async fn get_dashboard(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<DashboardView>> {
     let i = tx.identity.clone();
     let dashboard = visible_dashboard(&mut tx, i.tenant_id, i.user_id, id).await?;
     ensure_access(&mut tx, dashboard.project_id).await?;
@@ -535,9 +626,19 @@ pub(crate) async fn get_dashboard(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult
     let mut views = Vec::with_capacity(widgets.len());
     for w in widgets {
         let data = widget_data(&mut tx, i.tenant_id, dashboard.project_id, &w).await?;
-        views.push(WidgetView { id: w.id, kind: w.kind, title: w.title, config: w.config, position: w.position, data });
+        views.push(WidgetView {
+            id: w.id,
+            kind: w.kind,
+            title: w.title,
+            config: w.config,
+            position: w.position,
+            data,
+        });
     }
-    Ok(Json(DashboardView { dashboard, widgets: views }))
+    Ok(Json(DashboardView {
+        dashboard,
+        widgets: views,
+    }))
 }
 
 #[derive(Deserialize, utoipa::ToSchema)]
@@ -557,19 +658,28 @@ pub(crate) async fn add_widget(
 ) -> ApiResult<(StatusCode, Json<Widget>)> {
     let i = tx.identity.clone();
     require_editor(&i)?;
-    let dashboard: Dashboard = sqlx::query_as(&format!("{DASHBOARD_SELECT} WHERE tenant_id=$1 AND id=$2"))
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(db_err)?
-        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Dashboard not found"))?;
+    let dashboard: Dashboard =
+        sqlx::query_as(&format!("{DASHBOARD_SELECT} WHERE tenant_id=$1 AND id=$2"))
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(db_err)?
+            .ok_or_else(|| err(StatusCode::NOT_FOUND, "Dashboard not found"))?;
     if dashboard.owner_id != i.user_id {
         return Err(forbidden());
     }
     ensure_access(&mut tx, dashboard.project_id).await?;
-    if !["status_counts", "priority_counts", "assignee_counts", "time_by_person", "flow", "velocity", "cycle_summary"]
-        .contains(&v.kind.as_str())
+    if ![
+        "status_counts",
+        "priority_counts",
+        "assignee_counts",
+        "time_by_person",
+        "flow",
+        "velocity",
+        "cycle_summary",
+    ]
+    .contains(&v.kind.as_str())
     {
         return Err(bad("Unknown widget kind"));
     }
@@ -598,21 +708,26 @@ pub(crate) async fn add_widget(
 }
 
 #[utoipa::path(delete, path = "/api/dashboards/{id}/widgets/{widget_id}", tag = "reports", params(("id" = Uuid, Path, description = "Resource id"), ("widget_id" = Uuid, Path, description = "Widget id")), responses((status = 204, description = "Deleted"), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn delete_widget(mut tx: Tx, Path((id, widget)): Path<(Uuid, Uuid)>) -> ApiResult<StatusCode> {
+pub(crate) async fn delete_widget(
+    mut tx: Tx,
+    Path((id, widget)): Path<(Uuid, Uuid)>,
+) -> ApiResult<StatusCode> {
     let i = tx.identity.clone();
     require_editor(&i)?;
     let dashboard = visible_dashboard(&mut tx, i.tenant_id, i.user_id, id).await?;
     if dashboard.owner_id != i.user_id {
         return Err(forbidden());
     }
-    let affected = sqlx::query("DELETE FROM dashboard_widgets WHERE tenant_id=$1 AND dashboard_id=$2 AND id=$3")
-        .bind(i.tenant_id)
-        .bind(id)
-        .bind(widget)
-        .execute(&mut *tx)
-        .await
-        .map_err(db_err)?
-        .rows_affected();
+    let affected = sqlx::query(
+        "DELETE FROM dashboard_widgets WHERE tenant_id=$1 AND dashboard_id=$2 AND id=$3",
+    )
+    .bind(i.tenant_id)
+    .bind(id)
+    .bind(widget)
+    .execute(&mut *tx)
+    .await
+    .map_err(db_err)?
+    .rows_affected();
     if affected == 0 {
         return Err(err(StatusCode::NOT_FOUND, "Widget not found"));
     }
@@ -644,7 +759,9 @@ pub(crate) async fn delete_dashboard(mut tx: Tx, Path(id): Path<Uuid>) -> ApiRes
 /// with `=`, `+`, `-`, `@`, a tab or a carriage return.
 pub(crate) fn csv_cell(raw: &str) -> String {
     let guarded = match raw.chars().next() {
-        Some('=') | Some('+') | Some('-') | Some('@') | Some('\t') | Some('\r') => format!("'{raw}"),
+        Some('=') | Some('+') | Some('-') | Some('@') | Some('\t') | Some('\r') => {
+            format!("'{raw}")
+        }
         _ => raw.to_string(),
     };
     if guarded.contains([',', '"', '\n', '\r']) {
@@ -655,7 +772,10 @@ pub(crate) fn csv_cell(raw: &str) -> String {
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/export.csv", tag = "reports", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Active issues as CSV (at most 10000 rows)", content_type = "text/csv", body = String), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn export_csv(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<axum::response::Response> {
+pub(crate) async fn export_csv(
+    mut tx: Tx,
+    Path(p): Path<Uuid>,
+) -> ApiResult<axum::response::Response> {
     let i = tx.identity.clone();
     valid_project(&mut tx, &i, p).await?;
     let key: String = sqlx::query_scalar("SELECT key FROM projects WHERE tenant_id=$1 AND id=$2")
@@ -678,8 +798,24 @@ pub(crate) async fn export_csv(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<axu
         .fetch_all(&mut *tx)
         .await
         .map_err(db_err)?;
-    let mut out = String::from("key,title,type,status,priority,assignee,team,sprint,story_points,labels,created,updated\n");
-    for (number, title, kind, status, priority, assignee, team, sprint, points, labels, created, updated) in rows {
+    let mut out = String::from(
+        "key,title,type,status,priority,assignee,team,sprint,story_points,labels,created,updated\n",
+    );
+    for (
+        number,
+        title,
+        kind,
+        status,
+        priority,
+        assignee,
+        team,
+        sprint,
+        points,
+        labels,
+        created,
+        updated,
+    ) in rows
+    {
         let cells = [
             format!("{key}-{number}"),
             title,
@@ -694,7 +830,13 @@ pub(crate) async fn export_csv(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<axu
             created,
             updated,
         ];
-        out.push_str(&cells.iter().map(|c| csv_cell(c)).collect::<Vec<_>>().join(","));
+        out.push_str(
+            &cells
+                .iter()
+                .map(|c| csv_cell(c))
+                .collect::<Vec<_>>()
+                .join(","),
+        );
         out.push('\n');
     }
     let disposition = format!("attachment; filename=\"{key}-issues.csv\"");
@@ -710,15 +852,34 @@ pub(crate) async fn export_csv(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<axu
 
 /// Columns shared by the sprint and release exports: key, title, type, status, priority, assignee,
 /// team, story points, labels, last updated.
-type ScopeExportRow = (i64, String, String, String, String, Option<String>, Option<String>, Option<i32>, String, String);
+type ScopeExportRow = (
+    i64,
+    String,
+    String,
+    String,
+    String,
+    Option<String>,
+    Option<String>,
+    Option<i32>,
+    String,
+    String,
+);
 
-fn scope_csv(key: &str, rows: Vec<ScopeExportRow>, extra_header: bool, extra: Vec<String>) -> String {
-    let mut out = String::from("key,title,type,status,priority,assignee,team,story_points,labels,updated");
+fn scope_csv(
+    key: &str,
+    rows: Vec<ScopeExportRow>,
+    extra_header: bool,
+    extra: Vec<String>,
+) -> String {
+    let mut out =
+        String::from("key,title,type,status,priority,assignee,team,story_points,labels,updated");
     if extra_header {
         out.push_str(",added_after_freeze");
     }
     out.push('\n');
-    for (idx, (number, title, kind, status, priority, assignee, team, points, labels, updated)) in rows.into_iter().enumerate() {
+    for (idx, (number, title, kind, status, priority, assignee, team, points, labels, updated)) in
+        rows.into_iter().enumerate()
+    {
         let mut cells = vec![
             format!("{key}-{number}"),
             title,
@@ -734,7 +895,13 @@ fn scope_csv(key: &str, rows: Vec<ScopeExportRow>, extra_header: bool, extra: Ve
         if extra_header {
             cells.push(extra.get(idx).cloned().unwrap_or_default());
         }
-        out.push_str(&cells.iter().map(|c| csv_cell(c)).collect::<Vec<_>>().join(","));
+        out.push_str(
+            &cells
+                .iter()
+                .map(|c| csv_cell(c))
+                .collect::<Vec<_>>()
+                .join(","),
+        );
         out.push('\n');
     }
     out
@@ -744,7 +911,10 @@ fn csv_response(filename: String, body: String) -> axum::response::Response {
     (
         [
             (CONTENT_TYPE, "text/csv; charset=utf-8".to_string()),
-            (CONTENT_DISPOSITION, format!("attachment; filename=\"{filename}\"")),
+            (
+                CONTENT_DISPOSITION,
+                format!("attachment; filename=\"{filename}\""),
+            ),
         ],
         body,
     )
@@ -761,15 +931,19 @@ async fn project_key_for(tx: &mut Tx, tenant: Uuid, project: Uuid) -> ApiResult<
 }
 
 #[utoipa::path(get, path = "/api/sprints/{id}/export.csv", tag = "reports", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Issues in the sprint as CSV (at most 10000 rows)", content_type = "text/csv", body = String), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn sprint_export(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<axum::response::Response> {
+pub(crate) async fn sprint_export(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<axum::response::Response> {
     let i = tx.identity.clone();
-    let project: Uuid = sqlx::query_scalar("SELECT project_id FROM sprints WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(db_err)?
-        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Sprint not found"))?;
+    let project: Uuid =
+        sqlx::query_scalar("SELECT project_id FROM sprints WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(db_err)?
+            .ok_or_else(|| err(StatusCode::NOT_FOUND, "Sprint not found"))?;
     valid_project(&mut tx, &i, project).await?;
     let key = project_key_for(&mut tx, i.tenant_id, project).await?;
     let rows: Vec<ScopeExportRow> = sqlx::query_as(
@@ -783,19 +957,26 @@ pub(crate) async fn sprint_export(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult
     .fetch_all(&mut *tx)
     .await
     .map_err(db_err)?;
-    Ok(csv_response(format!("{key}-sprint-issues.csv"), scope_csv(&key, rows, false, Vec::new())))
+    Ok(csv_response(
+        format!("{key}-sprint-issues.csv"),
+        scope_csv(&key, rows, false, Vec::new()),
+    ))
 }
 
 #[utoipa::path(get, path = "/api/releases/{id}/export.csv", tag = "reports", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Active release scope as CSV (at most 10000 rows)", content_type = "text/csv", body = String), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn release_export(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<axum::response::Response> {
+pub(crate) async fn release_export(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<axum::response::Response> {
     let i = tx.identity.clone();
-    let project: Uuid = sqlx::query_scalar("SELECT project_id FROM releases WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(db_err)?
-        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Release not found"))?;
+    let project: Uuid =
+        sqlx::query_scalar("SELECT project_id FROM releases WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(db_err)?
+            .ok_or_else(|| err(StatusCode::NOT_FOUND, "Release not found"))?;
     valid_project(&mut tx, &i, project).await?;
     let key = project_key_for(&mut tx, i.tenant_id, project).await?;
     let rows: Vec<(i64, String, String, String, String, Option<String>, Option<String>, Option<i32>, String, String, bool)> = sqlx::query_as(
@@ -812,15 +993,29 @@ pub(crate) async fn release_export(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResul
     .map_err(db_err)?;
     let mut flags = Vec::with_capacity(rows.len());
     let mut scope = Vec::with_capacity(rows.len());
-    for (number, title, kind, status, priority, assignee, team, points, labels, updated, after) in rows {
-        flags.push(if after { "yes".to_string() } else { "no".to_string() });
-        scope.push((number, title, kind, status, priority, assignee, team, points, labels, updated));
+    for (number, title, kind, status, priority, assignee, team, points, labels, updated, after) in
+        rows
+    {
+        flags.push(if after {
+            "yes".to_string()
+        } else {
+            "no".to_string()
+        });
+        scope.push((
+            number, title, kind, status, priority, assignee, team, points, labels, updated,
+        ));
     }
-    Ok(csv_response(format!("{key}-release-scope.csv"), scope_csv(&key, scope, true, flags)))
+    Ok(csv_response(
+        format!("{key}-release-scope.csv"),
+        scope_csv(&key, scope, true, flags),
+    ))
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/history.csv", tag = "reports", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Status and field changes of the project's issues as CSV (at most 10000 rows, newest first)", content_type = "text/csv", body = String), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn history_export(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<axum::response::Response> {
+pub(crate) async fn history_export(
+    mut tx: Tx,
+    Path(p): Path<Uuid>,
+) -> ApiResult<axum::response::Response> {
     let i = tx.identity.clone();
     valid_project(&mut tx, &i, p).await?;
     let key = project_key_for(&mut tx, i.tenant_id, p).await?;
@@ -850,8 +1045,21 @@ pub(crate) async fn history_export(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult
     .map_err(db_err)?;
     let mut out = String::from("key,field,from,to,by,at\n");
     for (number, field, from, to, by, at) in rows {
-        let cells = [format!("{key}-{number}"), field, from.unwrap_or_default(), to.unwrap_or_default(), by, at];
-        out.push_str(&cells.iter().map(|c| csv_cell(c)).collect::<Vec<_>>().join(","));
+        let cells = [
+            format!("{key}-{number}"),
+            field,
+            from.unwrap_or_default(),
+            to.unwrap_or_default(),
+            by,
+            at,
+        ];
+        out.push_str(
+            &cells
+                .iter()
+                .map(|c| csv_cell(c))
+                .collect::<Vec<_>>()
+                .join(","),
+        );
         out.push('\n');
     }
     Ok(csv_response(format!("{key}-history.csv"), out))
@@ -861,12 +1069,27 @@ pub(crate) fn routes() -> axum::Router<App> {
     axum::Router::new()
         .route("/api/projects/{id}/reports/flow", get(flow_report))
         .route("/api/projects/{id}/reports/cycle-time", get(cycle_report))
-        .route("/api/projects/{id}/reports/created-resolved", get(created_resolved_report))
+        .route(
+            "/api/projects/{id}/reports/created-resolved",
+            get(created_resolved_report),
+        )
         .route("/api/projects/{id}/reports/time", get(time_report))
-        .route("/api/projects/{id}/dashboards", get(list_dashboards).post(create_dashboard))
-        .route("/api/dashboards/{id}", get(get_dashboard).delete(delete_dashboard))
-        .route("/api/dashboards/{id}/widgets", axum::routing::post(add_widget))
-        .route("/api/dashboards/{id}/widgets/{widget_id}", delete(delete_widget))
+        .route(
+            "/api/projects/{id}/dashboards",
+            get(list_dashboards).post(create_dashboard),
+        )
+        .route(
+            "/api/dashboards/{id}",
+            get(get_dashboard).delete(delete_dashboard),
+        )
+        .route(
+            "/api/dashboards/{id}/widgets",
+            axum::routing::post(add_widget),
+        )
+        .route(
+            "/api/dashboards/{id}/widgets/{widget_id}",
+            delete(delete_widget),
+        )
         .route("/api/projects/{id}/export.csv", get(export_csv))
         .route("/api/projects/{id}/history.csv", get(history_export))
         .route("/api/sprints/{id}/export.csv", get(sprint_export))

@@ -150,7 +150,10 @@ async fn request_type_project(tx: &mut Tx, tenant: Uuid, id: Uuid) -> ApiResult<
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/service/queues", tag = "service", params(("id" = Uuid, Path, description = "Project id")), responses((status = 200, description = "Queues in this project", body = Vec<ServiceQueue>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_queues(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<ServiceQueue>>> {
+pub(crate) async fn list_queues(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+) -> ApiResult<Json<Vec<ServiceQueue>>> {
     let i = tx.identity.clone();
     ensure_access(&mut tx, project).await?;
     let rows: Vec<ServiceQueue> = sqlx::query_as(
@@ -186,7 +189,9 @@ pub(crate) async fn create_queue(
         .await
         .map_err(db_err)?;
         if !member {
-            return Err(bad("The default assignee must be an active member of this workspace"));
+            return Err(bad(
+                "The default assignee must be an active member of this workspace",
+            ));
         }
     }
     let taken: bool = sqlx::query_scalar(
@@ -199,7 +204,10 @@ pub(crate) async fn create_queue(
     .await
     .map_err(db_err)?;
     if taken {
-        return Err(err(StatusCode::CONFLICT, "A queue with this name already exists"));
+        return Err(err(
+            StatusCode::CONFLICT,
+            "A queue with this name already exists",
+        ));
     }
     let row: ServiceQueue = sqlx::query_as(
         "INSERT INTO service_queues(tenant_id,project_id,name,default_assignee_id) VALUES($1,$2,$3,$4) \
@@ -221,14 +229,17 @@ pub(crate) async fn delete_queue(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<
     let i = tx.identity.clone();
     let project = queue_project(&mut tx, i.tenant_id, id).await?;
     ensure_workflow(&mut tx, project).await?;
-    let used: i64 = sqlx::query_scalar("SELECT count(*) FROM request_types WHERE tenant_id=$1 AND queue_id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let used: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM request_types WHERE tenant_id=$1 AND queue_id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
     if used > 0 {
-        return Err(bad("This queue still has request types. Delete or move them first"));
+        return Err(bad(
+            "This queue still has request types. Delete or move them first",
+        ));
     }
     sqlx::query("DELETE FROM service_queues WHERE tenant_id=$1 AND id=$2")
         .bind(i.tenant_id)
@@ -241,7 +252,10 @@ pub(crate) async fn delete_queue(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/service/request-types", tag = "service", params(("id" = Uuid, Path, description = "Project id")), responses((status = 200, description = "Request types in this project", body = Vec<RequestType>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_request_types(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<RequestType>>> {
+pub(crate) async fn list_request_types(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+) -> ApiResult<Json<Vec<RequestType>>> {
     let i = tx.identity.clone();
     ensure_access(&mut tx, project).await?;
     let rows: Vec<RequestType> = sqlx::query_as(
@@ -295,11 +309,16 @@ pub(crate) async fn create_request_type(
     .await
     .map_err(db_err)?;
     if taken {
-        return Err(err(StatusCode::CONFLICT, "A request type with this name already exists"));
+        return Err(err(
+            StatusCode::CONFLICT,
+            "A request type with this name already exists",
+        ));
     }
     let requires_approval = v.requires_approval.unwrap_or(false);
     if requires_approval {
-        let approver = v.approver_id.ok_or_else(|| bad("A request type that needs approval names an approver"))?;
+        let approver = v
+            .approver_id
+            .ok_or_else(|| bad("A request type that needs approval names an approver"))?;
         let member: bool = sqlx::query_scalar(
             "SELECT EXISTS(SELECT 1 FROM memberships WHERE tenant_id=$1 AND user_id=$2 AND disabled_at IS NULL)",
         )
@@ -309,7 +328,9 @@ pub(crate) async fn create_request_type(
         .await
         .map_err(db_err)?;
         if !member {
-            return Err(bad("The approver must be an active member of this workspace"));
+            return Err(bad(
+                "The approver must be an active member of this workspace",
+            ));
         }
     }
     let form = v.fields.clone().unwrap_or_default();
@@ -331,7 +352,10 @@ pub(crate) async fn create_request_type(
         .await
         .map_err(db_err)?;
         if !defined {
-            return Err(bad(&format!("“{}” is not a custom field in this project", f.key)));
+            return Err(bad(&format!(
+                "“{}” is not a custom field in this project",
+                f.key
+            )));
         }
     }
     let mut row: RequestType = sqlx::query_as(
@@ -375,14 +399,17 @@ pub(crate) async fn delete_request_type(mut tx: Tx, Path(id): Path<Uuid>) -> Api
     let i = tx.identity.clone();
     let project = request_type_project(&mut tx, i.tenant_id, id).await?;
     ensure_workflow(&mut tx, project).await?;
-    let used: i64 = sqlx::query_scalar("SELECT count(*) FROM issues WHERE tenant_id=$1 AND request_type_id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let used: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM issues WHERE tenant_id=$1 AND request_type_id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
     if used > 0 {
-        return Err(bad("Requests of this type exist, so it cannot be deleted. Their history is kept"));
+        return Err(bad(
+            "Requests of this type exist, so it cannot be deleted. Their history is kept",
+        ));
     }
     sqlx::query("DELETE FROM request_types WHERE tenant_id=$1 AND id=$2")
         .bind(i.tenant_id)
@@ -420,16 +447,19 @@ pub(crate) async fn submit_request(
     if rt_project != project {
         return Err(bad("That request type belongs to another project"));
     }
-    let assignee: Option<Uuid> =
-        sqlx::query_scalar("SELECT default_assignee_id FROM service_queues WHERE tenant_id=$1 AND id=$2")
-            .bind(i.tenant_id)
-            .bind(queue)
-            .fetch_one(&mut *tx)
-            .await
-            .map_err(db_err)?;
+    let assignee: Option<Uuid> = sqlx::query_scalar(
+        "SELECT default_assignee_id FROM service_queues WHERE tenant_id=$1 AND id=$2",
+    )
+    .bind(i.tenant_id)
+    .bind(queue)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
     let kind = crate::api::issue_types::default_type(&mut tx, i.tenant_id, project).await?;
     if crate::api::issue_types::type_level(&mut tx, i.tenant_id, project, &kind).await? != Some(0) {
-        return Err(bad("The project's default type is an epic level type, so requests cannot use it"));
+        return Err(bad(
+            "The project's default type is an epic level type, so requests cannot use it",
+        ));
     }
     // Same lock and numbering as a subtask made by hand, so two submissions cannot take one number.
     sqlx::query("SELECT id FROM projects WHERE tenant_id=$1 AND id=$2 FOR UPDATE")
@@ -454,13 +484,17 @@ pub(crate) async fn submit_request(
     let given = given.as_object().cloned().unwrap_or_default();
     let mut custom = serde_json::Map::new();
     for form_field in request_form(&mut tx, i.tenant_id, v.request_type_id).await? {
-        let def = crate::api::fields::definition(&mut tx, i.tenant_id, project, &form_field.key).await?;
+        let def =
+            crate::api::fields::definition(&mut tx, i.tenant_id, project, &form_field.key).await?;
         match given.get(&form_field.key) {
             Some(value) if !value.is_null() => {
                 if def.restricted && !is_admin {
                     return Err(forbidden());
                 }
-                custom.insert(form_field.key.clone(), crate::api::fields::check_value(&def, value)?);
+                custom.insert(
+                    form_field.key.clone(),
+                    crate::api::fields::check_value(&def, value)?,
+                );
             }
             _ if form_field.required => return Err(bad(&format!("{} is required", def.label))),
             _ => {}
@@ -487,7 +521,9 @@ pub(crate) async fn submit_request(
     .map_err(db_err)?;
     if needs_approval {
         // The approver decides in the approvals inbox; the request is worked once it is approved.
-        let approver = approver.ok_or_else(|| ApiError::Internal("A request type needs approval but has no approver".into()))?;
+        let approver = approver.ok_or_else(|| {
+            ApiError::Internal("A request type needs approval but has no approver".into())
+        })?;
         sqlx::query(
             "INSERT INTO approvals(tenant_id,project_id,title,subject_type,subject_id,requester_id,reviewer_id) VALUES($1,$2,$3,'issue',$4,$5,$6)",
         )
@@ -502,7 +538,8 @@ pub(crate) async fn submit_request(
         .map_err(db_err)?;
     }
     log_event(&mut tx, &i, "created", "issue", row.id).await?;
-    crate::api::history::record_status(&mut tx, i.tenant_id, row.id, None, &row.status, i.user_id).await?;
+    crate::api::history::record_status(&mut tx, i.tenant_id, row.id, None, &row.status, i.user_id)
+        .await?;
     log_outbox(
         &mut tx,
         i.tenant_id,
@@ -515,7 +552,10 @@ pub(crate) async fn submit_request(
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/service/sla", tag = "service", params(("id" = Uuid, Path, description = "Project id")), responses((status = 200, description = "SLA timers for the project's requests, newest first (at most 500)", body = Vec<SlaRow>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn sla_report(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<SlaRow>>> {
+pub(crate) async fn sla_report(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+) -> ApiResult<Json<Vec<SlaRow>>> {
     let i = tx.identity.clone();
     ensure_access(&mut tx, project).await?;
     let raw: Vec<SlaRaw> = sqlx::query_as(
@@ -573,18 +613,31 @@ pub(crate) fn routes() -> Router<App> {
             "/api/projects/{id}/service/request-types",
             get(list_request_types).post(create_request_type),
         )
-        .route("/api/service/request-types/{id}", delete(delete_request_type))
+        .route(
+            "/api/service/request-types/{id}",
+            delete(delete_request_type),
+        )
         .route("/api/projects/{id}/service/requests", post(submit_request))
         .route("/api/projects/{id}/service/sla", get(sla_report))
         .route("/api/portal/projects/{id}", get(get_portal_info))
-        .route("/api/portal/projects/{id}/requests", post(submit_customer_request))
+        .route(
+            "/api/portal/projects/{id}/requests",
+            post(submit_customer_request),
+        )
         .route("/api/portal/requests/{id}", get(get_customer_request))
-        .route("/api/projects/{id}/incidents", get(list_incidents).post(create_incident))
+        .route(
+            "/api/projects/{id}/incidents",
+            get(list_incidents).post(create_incident),
+        )
         .route("/api/incidents/{id}", axum::routing::patch(update_incident))
 }
 
 /// The form of a request type, in order: each field key with whether it is required.
-pub(crate) async fn request_form(tx: &mut Tx, tenant: Uuid, request_type: Uuid) -> ApiResult<Vec<RequestFormField>> {
+pub(crate) async fn request_form(
+    tx: &mut Tx,
+    tenant: Uuid,
+    request_type: Uuid,
+) -> ApiResult<Vec<RequestFormField>> {
     let rows: Vec<(String, bool)> = sqlx::query_as(
         "SELECT field_key, required FROM request_type_fields WHERE tenant_id=$1 AND request_type_id=$2 ORDER BY position",
     )
@@ -593,7 +646,10 @@ pub(crate) async fn request_form(tx: &mut Tx, tenant: Uuid, request_type: Uuid) 
     .fetch_all(&mut **tx)
     .await
     .map_err(db_err)?;
-    Ok(rows.into_iter().map(|(key, required)| RequestFormField { key, required }).collect())
+    Ok(rows
+        .into_iter()
+        .map(|(key, required)| RequestFormField { key, required })
+        .collect())
 }
 
 /// Escalates requests that have passed their target without reaching a done status. Each request is
@@ -659,7 +715,8 @@ pub(crate) async fn get_portal_info(
             .await
             .map_err(db_err)?;
 
-    let (tenant_id, project_name) = project_row.ok_or_else(|| err(StatusCode::NOT_FOUND, "Project not found"))?;
+    let (tenant_id, project_name) =
+        project_row.ok_or_else(|| err(StatusCode::NOT_FOUND, "Project not found"))?;
 
     let settings: Option<(String, String)> = sqlx::query_as(
         "SELECT portal_name, welcome_message FROM portal_settings WHERE tenant_id=$1 AND project_id=$2 AND portal_enabled=true",
@@ -739,7 +796,11 @@ pub(crate) async fn submit_customer_request(
     .await
     .map_err(db_err)?;
 
-    let desc = format!("Submitted by: {}\n\n{}", email, input.description.unwrap_or_default());
+    let desc = format!(
+        "Submitted by: {}\n\n{}",
+        email,
+        input.description.unwrap_or_default()
+    );
 
     let (id, number, status, created_at): (Uuid, i64, String, DateTime<Utc>) = sqlx::query_as(
         "INSERT INTO issues(tenant_id, project_id, number, title, description, kind, status, priority, creator_id, request_type_id) \
@@ -914,13 +975,14 @@ pub(crate) async fn update_incident(
     Json(v): Json<UpdateIncidentInput>,
 ) -> ApiResult<Json<ServiceIncident>> {
     let i = tx.identity.clone();
-    let project: Uuid = sqlx::query_scalar("SELECT project_id FROM service_incidents WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(db_err)?
-        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Incident not found"))?;
+    let project: Uuid =
+        sqlx::query_scalar("SELECT project_id FROM service_incidents WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(db_err)?
+            .ok_or_else(|| err(StatusCode::NOT_FOUND, "Incident not found"))?;
     ensure_access(&mut tx, project).await?;
 
     let resolved_at = match v.status.as_deref() {

@@ -14,7 +14,12 @@ export function AiSettingsCard({ token, admin }: { token: string; admin: boolean
     queryFn: () => request<AiSettings>(token, "/workspace/ai"),
   });
   const save = useMutation({
-    mutationFn: (enabled: boolean) => send<AiSettings>("/workspace/ai", token, "PUT", { enabled, configured: q.data?.configured ?? false, model: q.data?.model ?? "" }),
+    mutationFn: (enabled: boolean) =>
+      send<AiSettings>("/workspace/ai", token, "PUT", {
+        enabled,
+        configured: q.data?.configured ?? false,
+        model: q.data?.model ?? "",
+      }),
     onSuccess: (next) => {
       toast(next.enabled ? "AI summaries and triage are on" : "AI summaries and triage are off");
       void qc.invalidateQueries({ queryKey: ["ai-settings"] });
@@ -26,10 +31,13 @@ export function AiSettingsCard({ token, admin }: { token: string; admin: boolean
     <section className="panel" aria-label="AI assistance">
       <h4>AI summaries and triage</h4>
       <p className="muted small">
-        When on, an issue's title, description and comments, and the titles of the project's other open issues, are sent to
-        the model the server is configured with. Only text you can already see is sent. Nothing the model returns is stored.
+        When on, an issue's title, description and comments, and the titles of the project's other open
+        issues, are sent to the model the server is configured with. Only text you can already see is sent.
+        Nothing the model returns is stored.
       </p>
-      {!q.data.configured && <p className="muted small">The server has no AI key, so this cannot be turned on here.</p>}
+      {!q.data.configured && (
+        <p className="muted small">The server has no AI key, so this cannot be turned on here.</p>
+      )}
       <label className="inline-check">
         <input
           type="checkbox"

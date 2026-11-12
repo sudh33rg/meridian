@@ -97,7 +97,9 @@ export function InlineCommentsDrawer({
         padding: 16,
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}
+      >
         <h4 style={{ display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
           <MessageSquare size={18} /> Inline Comments: {pageTitle}
         </h4>
@@ -106,11 +108,10 @@ export function InlineCommentsDrawer({
         </button>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <button
-          className="secondary small-btn"
-          onClick={() => setFilterResolved((v) => !v)}
-        >
+      <div
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}
+      >
+        <button className="secondary small-btn" onClick={() => setFilterResolved((v) => !v)}>
           {filterResolved ? "View Open Threads" : "View Resolved"}
         </button>
         <button className="primary small-btn" onClick={() => setAdding((v) => !v)}>
@@ -119,7 +120,10 @@ export function InlineCommentsDrawer({
       </div>
 
       {adding && (
-        <form onSubmit={addComment} style={{ background: "var(--bg-subtle)", padding: 12, borderRadius: 6, marginBottom: 16 }}>
+        <form
+          onSubmit={addComment}
+          style={{ background: "var(--bg-subtle)", padding: 12, borderRadius: 6, marginBottom: 16 }}
+        >
           <label className="small" style={{ display: "block", marginBottom: 8 }}>
             Highlighted Text Reference
             <input
@@ -146,7 +150,11 @@ export function InlineCommentsDrawer({
             <button type="button" className="secondary small-btn" onClick={() => setAdding(false)}>
               Cancel
             </button>
-            <button type="submit" className="primary small-btn" disabled={!highlightedText.trim() || !newComment.trim()}>
+            <button
+              type="submit"
+              className="primary small-btn"
+              disabled={!highlightedText.trim() || !newComment.trim()}
+            >
               Post
             </button>
           </div>
@@ -179,8 +187,13 @@ export function InlineCommentsDrawer({
               “{c.highlighted_text}”
             </div>
             <div style={{ fontSize: 13, marginBottom: 6 }}>{c.comment}</div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11 }} className="muted">
-              <span>{c.author_name} · {formatDateTime(c.created_at)}</span>
+            <div
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11 }}
+              className="muted"
+            >
+              <span>
+                {c.author_name} · {formatDateTime(c.created_at)}
+              </span>
               <div style={{ display: "flex", gap: 4 }}>
                 <button
                   className="icon-ghost"

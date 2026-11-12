@@ -289,20 +289,29 @@ pub(crate) struct PermissionScheme {
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/permission-scheme", tag = "access", params(("id" = Uuid, Path, description = "Project id")), responses((status = 200, description = "The project's scheme; defaults apply when none is saved", body = PermissionScheme), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn get_scheme(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<PermissionScheme>> {
+pub(crate) async fn get_scheme(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+) -> ApiResult<Json<PermissionScheme>> {
     let i = tx.identity.clone();
     ensure_access(&mut tx, project).await?;
     let s = scheme_of(&mut tx, i.tenant_id, project).await?;
-    let raw: Value = sqlx::query_scalar("SELECT action_levels FROM project_permission_schemes WHERE tenant_id=$1 AND project_id=$2")
-        .bind(i.tenant_id)
-        .bind(project)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(db_err)?
-        .unwrap_or_else(|| serde_json::json!({}));
+    let raw: Value = sqlx::query_scalar(
+        "SELECT action_levels FROM project_permission_schemes WHERE tenant_id=$1 AND project_id=$2",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(db_err)?
+    .unwrap_or_else(|| serde_json::json!({}));
     let actions = raw
         .as_object()
-        .map(|o| o.iter().filter_map(|(k, v)| v.as_i64().map(|n| (k.clone(), n as i32))).collect())
+        .map(|o| {
+            o.iter()
+                .filter_map(|(k, v)| v.as_i64().map(|n| (k.clone(), n as i32)))
+                .collect()
+        })
         .unwrap_or_default();
     Ok(Json(PermissionScheme {
         member_level: s.member_level,
@@ -338,7 +347,10 @@ pub(crate) async fn set_scheme(
         }
     }
     let action_json = serde_json::Value::Object(
-        v.actions.iter().map(|(k, lvl)| (k.clone(), serde_json::json!(lvl))).collect(),
+        v.actions
+            .iter()
+            .map(|(k, lvl)| (k.clone(), serde_json::json!(lvl)))
+            .collect(),
     );
     sqlx::query(
         "INSERT INTO project_permission_schemes(tenant_id,project_id,member_level,edit_min,workflow_min,action_levels,updated_at) \

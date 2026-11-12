@@ -41,12 +41,17 @@ export function CustomerPortalView({ projectId }: { projectId: string }) {
     e.preventDefault();
     if (!email.trim() || !summary.trim() || !requestTypeId) return;
     try {
-      const res = await send<CustomerRequestStatus>(`/portal/projects/${projectId}/requests`, session.token, "POST", {
-        email: email.trim(),
-        summary: summary.trim(),
-        description: description.trim() || null,
-        request_type_id: requestTypeId,
-      });
+      const res = await send<CustomerRequestStatus>(
+        `/portal/projects/${projectId}/requests`,
+        session.token,
+        "POST",
+        {
+          email: email.trim(),
+          summary: summary.trim(),
+          description: description.trim() || null,
+          request_type_id: requestTypeId,
+        },
+      );
       toast(`Request #${res.number} created via Customer Portal!`);
       setEmail("");
       setSummary("");
@@ -72,7 +77,9 @@ export function CustomerPortalView({ projectId }: { projectId: string }) {
 
   return (
     <section className="panel" aria-label="Customer Portal" style={{ marginTop: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}
+      >
         <div>
           <h4 style={{ display: "flex", alignItems: "center", gap: 6, margin: 0 }}>
             <Globe size={18} color="#3b82f6" /> Customer Support Portal
@@ -166,7 +173,14 @@ export function CustomerPortalView({ projectId }: { projectId: string }) {
             </form>
 
             {trackingResult && (
-              <div style={{ background: "var(--bg)", border: "1px solid var(--border)", padding: 12, borderRadius: 6 }}>
+              <div
+                style={{
+                  background: "var(--bg)",
+                  border: "1px solid var(--border)",
+                  padding: 12,
+                  borderRadius: 6,
+                }}
+              >
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                   <strong>Ticket #{trackingResult.number}</strong>
                   <span className="chip small success">{trackingResult.status}</span>

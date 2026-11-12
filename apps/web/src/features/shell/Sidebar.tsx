@@ -44,7 +44,11 @@ export function Sidebar() {
   // Workspace branding: a brand name replaces the organization name in the sidebar.
   const brandQ = useQuery({
     queryKey: ["workspace-brand"],
-    queryFn: () => request<{ brand_name?: string | null; brand_color?: string | null }>(session.token, "/workspace/settings"),
+    queryFn: () =>
+      request<{ brand_name?: string | null; brand_color?: string | null }>(
+        session.token,
+        "/workspace/settings",
+      ),
     staleTime: 60_000,
   });
   const [folded, setFolded] = useState<Record<string, boolean>>(loadFolded);

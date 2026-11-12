@@ -374,25 +374,41 @@ pub(crate) fn routes() -> Router<App> {
 }
 
 /// Keys of the project's restricted fields.
-pub(crate) async fn restricted_keys(db: &mut PgConnection, tenant: Uuid, project: Uuid) -> ApiResult<Vec<String>> {
-    sqlx::query_scalar("SELECT key FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 AND restricted")
-        .bind(tenant)
-        .bind(project)
-        .fetch_all(&mut *db)
-        .await
-        .map_err(db_err)
+pub(crate) async fn restricted_keys(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    project: Uuid,
+) -> ApiResult<Vec<String>> {
+    sqlx::query_scalar(
+        "SELECT key FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 AND restricted",
+    )
+    .bind(tenant)
+    .bind(project)
+    .fetch_all(&mut *db)
+    .await
+    .map_err(db_err)
 }
 
 /// A copy of an object of custom field values without the given keys.
 pub(crate) fn without_keys(values: &Value, keys: &[String]) -> Value {
     match values {
-        Value::Object(map) => Value::Object(map.iter().filter(|(k, _)| !keys.contains(k)).map(|(k, v)| (k.clone(), v.clone())).collect()),
+        Value::Object(map) => Value::Object(
+            map.iter()
+                .filter(|(k, _)| !keys.contains(k))
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect(),
+        ),
         other => other.clone(),
     }
 }
 
 /// One field definition of the project, by key.
-pub(crate) async fn definition(tx: &mut Tx, tenant: Uuid, project: Uuid, key: &str) -> ApiResult<FieldDefinition> {
+pub(crate) async fn definition(
+    tx: &mut Tx,
+    tenant: Uuid,
+    project: Uuid,
+    key: &str,
+) -> ApiResult<FieldDefinition> {
     sqlx::query_as(
         "SELECT key,label,field_type,options,required,position,restricted FROM field_definitions WHERE tenant_id=$1 AND project_id=$2 AND key=$3",
     )

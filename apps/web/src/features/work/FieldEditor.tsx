@@ -31,7 +31,13 @@ export function FieldEditor({ token, projectId }: { token: string; projectId: st
       send<FieldDefinition>(`/projects/${projectId}/fields`, token, "POST", {
         label: label.trim(),
         field_type: type,
-        options: type === "select" ? options.split(",").map((o) => o.trim()).filter(Boolean) : undefined,
+        options:
+          type === "select"
+            ? options
+                .split(",")
+                .map((o) => o.trim())
+                .filter(Boolean)
+            : undefined,
         required,
         restricted,
       }),
@@ -47,13 +53,17 @@ export function FieldEditor({ token, projectId }: { token: string; projectId: st
   });
   const toggleRestricted = useMutation({
     mutationFn: (f: FieldDefinition) =>
-      send<FieldDefinition>(`/projects/${projectId}/fields/${f.key}`, token, "PATCH", { restricted: !f.restricted }),
+      send<FieldDefinition>(`/projects/${projectId}/fields/${f.key}`, token, "PATCH", {
+        restricted: !f.restricted,
+      }),
     onSuccess: () => void refresh(),
     onError: fail,
   });
   const toggleRequired = useMutation({
     mutationFn: (f: FieldDefinition) =>
-      send<FieldDefinition>(`/projects/${projectId}/fields/${f.key}`, token, "PATCH", { required: !f.required }),
+      send<FieldDefinition>(`/projects/${projectId}/fields/${f.key}`, token, "PATCH", {
+        required: !f.required,
+      }),
     onSuccess: () => void refresh(),
     onError: fail,
   });
@@ -70,15 +80,20 @@ export function FieldEditor({ token, projectId }: { token: string; projectId: st
     <section className="workflow" aria-label="Custom fields">
       <div className="workflow-head">
         <b>Custom fields</b>
-        <span className="muted small">Shown on every issue in this project. Required fields must be filled to save.</span>
+        <span className="muted small">
+          Shown on every issue in this project. Required fields must be filled to save.
+        </span>
       </div>
       <ul className="workflow-list">
         {fields.map((f) => (
           <li key={f.key} className="workflow-row">
             <span>
               {f.label}
-              <span className="muted small"> · {FIELD_TYPE_LABEL[f.field_type]}
-                {f.field_type === "select" ? ` (${f.options.join(", ")})` : ""}</span>
+              <span className="muted small">
+                {" "}
+                · {FIELD_TYPE_LABEL[f.field_type]}
+                {f.field_type === "select" ? ` (${f.options.join(", ")})` : ""}
+              </span>
             </span>
             <button
               className="secondary"
@@ -123,7 +138,11 @@ export function FieldEditor({ token, projectId }: { token: string; projectId: st
           maxLength={60}
           onChange={(e) => setLabel(e.target.value)}
         />
-        <select aria-label="New field type" value={type} onChange={(e) => setType(e.target.value as FieldType)}>
+        <select
+          aria-label="New field type"
+          value={type}
+          onChange={(e) => setType(e.target.value as FieldType)}
+        >
           {TYPES.map((t) => (
             <option key={t} value={t}>
               {FIELD_TYPE_LABEL[t]}
@@ -139,10 +158,12 @@ export function FieldEditor({ token, projectId }: { token: string; projectId: st
           />
         )}
         <label className="inline-check">
-          <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} /> Required
+          <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} />{" "}
+          Required
         </label>
         <label className="inline-check">
-          <input type="checkbox" checked={restricted} onChange={(e) => setRestricted(e.target.checked)} /> Admins only
+          <input type="checkbox" checked={restricted} onChange={(e) => setRestricted(e.target.checked)} />{" "}
+          Admins only
         </label>
         <button className="secondary" type="submit" disabled={!label.trim() || add.isPending}>
           <Plus size={14} /> Add field

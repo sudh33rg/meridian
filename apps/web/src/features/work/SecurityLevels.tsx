@@ -27,7 +27,8 @@ export function SecurityLevels({ token, projectId }: { token: string; projectId:
   const refresh = () => void qc.invalidateQueries({ queryKey: ["security-levels", projectId] });
   const fail = (e: unknown) => toast(errorMessage(e), { kind: "error" });
   const create = useMutation({
-    mutationFn: () => send(`/projects/${projectId}/security-levels`, token, "POST", { name: name.trim(), description }),
+    mutationFn: () =>
+      send(`/projects/${projectId}/security-levels`, token, "POST", { name: name.trim(), description }),
     onSuccess: () => {
       setName("");
       setDescription("");
@@ -62,7 +63,8 @@ export function SecurityLevels({ token, projectId }: { token: string; projectId:
       <div className="workflow-head">
         <b>Security levels</b>
         <span className="muted small">
-          An issue in a level is visible to project admins, its assignee, its reporter, and the level's members.
+          An issue in a level is visible to project admins, its assignee, its reporter, and the level's
+          members.
         </span>
       </div>
       <ul className="workflow-list">
@@ -106,7 +108,9 @@ export function SecurityLevels({ token, projectId }: { token: string; projectId:
             )}
           </li>
         ))}
-        {!data.levels.length && <li className="muted small">No security levels. Every issue is open to the project.</li>}
+        {!data.levels.length && (
+          <li className="muted small">No security levels. Every issue is open to the project.</li>
+        )}
       </ul>
       {data.can_manage && (
         <form
@@ -116,7 +120,13 @@ export function SecurityLevels({ token, projectId }: { token: string; projectId:
             if (name.trim()) create.mutate();
           }}
         >
-          <input aria-label="Level name" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} placeholder="Level name" />
+          <input
+            aria-label="Level name"
+            value={name}
+            maxLength={80}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Level name"
+          />
           <input
             aria-label="Level description"
             value={description}

@@ -48,7 +48,10 @@ struct ChannelRow {
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/chat-channels", tag = "integrations", params(("id" = Uuid, Path, description = "Project id")), responses((status = 200, description = "Chat setup. URLs are never returned", body = ChatChannels), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Project admins only", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn get_channels(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<ChatChannels>> {
+pub(crate) async fn get_channels(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+) -> ApiResult<Json<ChatChannels>> {
     let i = tx.identity.clone();
     ensure_project_admin(&mut tx, project).await?;
     let row: Option<ChannelRow> = sqlx::query_as(
@@ -139,13 +142,24 @@ pub(crate) async fn put_channels(
 }
 
 /// Checks a webhook URL and seals it. An empty string clears the channel.
-fn seal_url(cfg: &crate::config::Config, tenant: Uuid, project: Uuid, kind: &str, url: &str) -> ApiResult<Option<String>> {
+fn seal_url(
+    cfg: &crate::config::Config,
+    tenant: Uuid,
+    project: Uuid,
+    kind: &str,
+    url: &str,
+) -> ApiResult<Option<String>> {
     let url = url.trim();
     if url.is_empty() {
         return Ok(None);
     }
-    crate::safe_http::check_url(cfg, url).map_err(|m| bad(&format!("The webhook URL is refused: {m}")))?;
-    Ok(Some(crate::secrets::seal(cfg, &aad(tenant, project, kind), url.as_bytes())))
+    crate::safe_http::check_url(cfg, url)
+        .map_err(|m| bad(&format!("The webhook URL is refused: {m}")))?;
+    Ok(Some(crate::secrets::seal(
+        cfg,
+        &aad(tenant, project, kind),
+        url.as_bytes(),
+    )))
 }
 
 /// Queues a chat message for a status change or a new issue. Runs inside the change's transaction, so a
@@ -179,25 +193,38 @@ pub(crate) async fn queue_change(
 
 /// The name of a status of the project, or its key when the name is gone.
 async fn status_name(db: &sqlx::PgPool, tenant: Uuid, project: Uuid, key: &str) -> String {
-    sqlx::query_scalar::<_, String>("SELECT name FROM project_statuses WHERE tenant_id=$1 AND project_id=$2 AND key=$3")
-        .bind(tenant)
-        .bind(project)
-        .bind(key)
-        .fetch_optional(db)
-        .await
-        .ok()
-        .flatten()
-        .unwrap_or_else(|| key.to_string())
+    sqlx::query_scalar::<_, String>(
+        "SELECT name FROM project_statuses WHERE tenant_id=$1 AND project_id=$2 AND key=$3",
+    )
+    .bind(tenant)
+    .bind(project)
+    .bind(key)
+    .fetch_optional(db)
+    .await
+    .ok()
+    .flatten()
+    .unwrap_or_else(|| key.to_string())
 }
 
 /// The job worker's handler: builds one message and posts it to each enabled channel.
-pub(crate) async fn deliver(db: &sqlx::PgPool, cfg: &crate::config::Config, payload: &serde_json::Value) -> Result<(), String> {
+pub(crate) async fn deliver(
+    db: &sqlx::PgPool,
+    cfg: &crate::config::Config,
+    payload: &serde_json::Value,
+) -> Result<(), String> {
     let tenant = uuid_field(payload, "tenant")?;
     let project = uuid_field(payload, "project")?;
     let issue = uuid_field(payload, "issue")?;
     let actor = uuid_field(payload, "actor")?;
-    let to = payload.get("to").and_then(|v| v.as_str()).ok_or("missing to")?.to_string();
-    let from = payload.get("from").and_then(|v| v.as_str()).map(str::to_string);
+    let to = payload
+        .get("to")
+        .and_then(|v| v.as_str())
+        .ok_or("missing to")?
+        .to_string();
+    let from = payload
+        .get("from")
+        .and_then(|v| v.as_str())
+        .map(str::to_string);
 
     let channel: Option<ChannelRow> = sqlx::query_as(
         "SELECT slack_url_sealed, teams_url_sealed, slack_enabled, teams_enabled, notify_status_changes, notify_new_issues \
@@ -208,7 +235,9 @@ pub(crate) async fn deliver(db: &sqlx::PgPool, cfg: &crate::config::Config, payl
     .fetch_optional(db)
     .await
     .map_err(|e| e.to_string())?;
-    let Some(channel) = channel else { return Ok(()) };
+    let Some(channel) = channel else {
+        return Ok(());
+    };
 
     let sent_last_hour: i64 = sqlx::query_scalar(
         "SELECT count(*) FROM chat_deliveries WHERE tenant_id=$1 AND project_id=$2 AND sent_at > now() - interval '1 hour'",
@@ -239,15 +268,27 @@ pub(crate) async fn deliver(db: &sqlx::PgPool, cfg: &crate::config::Config, payl
         .await
         .map_err(|e| e.to_string())?;
     let change = match &from {
-        Some(f) => format!("{} → {}", status_name(db, tenant, project, f).await, to_name),
+        Some(f) => format!(
+            "{} → {}",
+            status_name(db, tenant, project, f).await,
+            to_name
+        ),
         None => format!("created in {to_name}"),
     };
     let text = format!("{key}-{number} {title}: {change} (by {actor_name})");
 
     let http = crate::safe_http::client(cfg);
     let targets = [
-        (channel.slack_enabled, channel.slack_url_sealed.as_deref(), "slack"),
-        (channel.teams_enabled, channel.teams_url_sealed.as_deref(), "teams"),
+        (
+            channel.slack_enabled,
+            channel.slack_url_sealed.as_deref(),
+            "slack",
+        ),
+        (
+            channel.teams_enabled,
+            channel.teams_url_sealed.as_deref(),
+            "teams",
+        ),
     ];
     for (enabled, sealed, kind) in targets {
         if !enabled {

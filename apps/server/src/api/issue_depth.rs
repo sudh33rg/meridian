@@ -48,7 +48,11 @@ async fn load_component(db: &mut PgConnection, tenant: Uuid, id: Uuid) -> ApiRes
     .ok_or_else(|| err(StatusCode::NOT_FOUND, "Component not found"))
 }
 
-pub(crate) async fn active_member(db: &mut PgConnection, tenant: Uuid, user: Uuid) -> ApiResult<bool> {
+pub(crate) async fn active_member(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    user: Uuid,
+) -> ApiResult<bool> {
     sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM memberships WHERE tenant_id=$1 AND user_id=$2 AND disabled_at IS NULL)")
         .bind(tenant)
         .bind(user)
@@ -1017,12 +1021,13 @@ pub(crate) async fn clone_issue(
     let status = crate::api::statuses::default_status(&mut tx, i.tenant_id, project).await?;
     // The copy keeps content, classification, estimates and components. It does not keep the
     // assignee, sprint, parent or subtasks, and it starts in the project's first To do status.
-    let row_project = sqlx::query_scalar::<_, Uuid>("SELECT project_id FROM issues WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let row_project =
+        sqlx::query_scalar::<_, Uuid>("SELECT project_id FROM issues WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
     let row: crate::api::work::Issue = sqlx::query_as(
         "INSERT INTO issues(tenant_id,project_id,number,title,description,kind,priority,created_by,status,labels,custom_fields,story_points,team_id,original_estimate_minutes,remaining_estimate_minutes) \
          SELECT tenant_id,project_id,$3,$4,description,kind,priority,$5,$6,labels,custom_fields,story_points,team_id,original_estimate_minutes,remaining_estimate_minutes \
@@ -1163,7 +1168,9 @@ pub(crate) async fn move_issue(
     if project_level(&mut tx, &i, source).await?.unwrap_or(0) < 3 {
         let hidden = crate::api::fields::restricted_keys(&mut tx, i.tenant_id, source).await?;
         if hidden.iter().any(|k| custom.get(k).is_some()) {
-            return Err(bad("This issue holds restricted fields. A project admin must move it"));
+            return Err(bad(
+                "This issue holds restricted fields. A project admin must move it",
+            ));
         }
     }
     let defined: Vec<String> = sqlx::query_scalar(

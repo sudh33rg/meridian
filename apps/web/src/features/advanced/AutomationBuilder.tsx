@@ -21,7 +21,13 @@ type Rule = {
   next_run_at?: string | null;
 };
 
-type Run = { id: number; issue_number: number | null; issue_title: string | null; result: string; at: string };
+type Run = {
+  id: number;
+  issue_number: number | null;
+  issue_title: string | null;
+  result: string;
+  at: string;
+};
 type Preview = { checked: number; matching: number; sample: { key: string; title: string }[] };
 
 const TRIGGERS: [string, string][] = [
@@ -101,7 +107,9 @@ export function AutomationBuilder({
   };
   const runPreview = async () => {
     try {
-      const res = await send<Preview>(`/projects/${project.id}/automations/preview`, token, "POST", { conditions });
+      const res = await send<Preview>(`/projects/${project.id}/automations/preview`, token, "POST", {
+        conditions,
+      });
       setPreview(res);
     } catch (e) {
       fail(e);
@@ -140,7 +148,10 @@ export function AutomationBuilder({
         <div>
           <div className="eyebrow blue">MERIDIAN / {project.key}</div>
           <h2>Automation rules</h2>
-          <p>When something happens or on a schedule, check conditions and run up to five actions. Rules never start other rules.</p>
+          <p>
+            When something happens or on a schedule, check conditions and run up to five actions. Rules never
+            start other rules.
+          </p>
         </div>
         <div className="ext-actions">
           <button className="secondary" onClick={() => void refresh()}>
@@ -209,13 +220,21 @@ export function AutomationBuilder({
                   placeholder={c.field.endsWith("_id") ? "id (team or member)" : "value"}
                   onChange={(e) => setConditions(updateAt(conditions, idx, { value: e.target.value }))}
                 />
-                <button type="button" className="secondary small-btn" onClick={() => setConditions(conditions.filter((_, i) => i !== idx))}>
+                <button
+                  type="button"
+                  className="secondary small-btn"
+                  onClick={() => setConditions(conditions.filter((_, i) => i !== idx))}
+                >
                   Remove
                 </button>
               </div>
             ))}
             {conditions.length < 10 && (
-              <button type="button" className="secondary small-btn" onClick={() => setConditions([...conditions, emptyCondition()])}>
+              <button
+                type="button"
+                className="secondary small-btn"
+                onClick={() => setConditions([...conditions, emptyCondition()])}
+              >
                 Add condition
               </button>
             )}
@@ -230,7 +249,9 @@ export function AutomationBuilder({
                   value={a.type}
                   onChange={(e) => {
                     const type = e.target.value;
-                    setActions(updateAt(actions, idx, { type, value: type === "set_priority" ? "high" : "" }));
+                    setActions(
+                      updateAt(actions, idx, { type, value: type === "set_priority" ? "high" : "" }),
+                    );
                   }}
                 >
                   {ACTIONS.map(([v, label]) => (
@@ -268,13 +289,21 @@ export function AutomationBuilder({
                     onChange={(e) => setActions(updateAt(actions, idx, { value: e.target.value }))}
                   />
                 )}
-                <button type="button" className="secondary small-btn" onClick={() => setActions(actions.filter((_, i) => i !== idx))}>
+                <button
+                  type="button"
+                  className="secondary small-btn"
+                  onClick={() => setActions(actions.filter((_, i) => i !== idx))}
+                >
                   Remove
                 </button>
               </div>
             ))}
             {actions.length < 5 && (
-              <button type="button" className="secondary small-btn" onClick={() => setActions([...actions, emptyAction()])}>
+              <button
+                type="button"
+                className="secondary small-btn"
+                onClick={() => setActions([...actions, emptyAction()])}
+              >
                 Add action
               </button>
             )}
@@ -291,7 +320,8 @@ export function AutomationBuilder({
           {preview && (
             <p className="small" role="status">
               {preview.matching} of the last {preview.checked} open issues match now. Nothing has changed.
-              {preview.sample.length > 0 && ` For example: ${preview.sample.map((s) => `${s.key} ${s.title}`).join("; ")}`}
+              {preview.sample.length > 0 &&
+                ` For example: ${preview.sample.map((s) => `${s.key} ${s.title}`).join("; ")}`}
             </p>
           )}
         </form>
@@ -303,67 +333,81 @@ export function AutomationBuilder({
         <p className="muted">No rules yet. Create one to automate routine changes.</p>
       ) : (
         <div className="table-scroll">
-        <table className="automation-table">
-          <thead>
-            <tr>
-              <th scope="col">Rule</th>
-              <th scope="col">When</th>
-              <th scope="col">Status</th>
-              <th scope="col">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(rules.data ?? []).map((r) => (
-              <React.Fragment key={r.id}>
-                <tr>
-                  <td>{r.name}</td>
-                  <td>
-                    {r.trigger_event === "scheduled" ? `Every ${r.schedule ?? "day"}` : r.trigger_event.replace(/_/g, " ")}
-                    {r.trigger_event === "scheduled" && r.next_run_at && (
-                      <span className="muted small"> · next {new Date(r.next_run_at).toLocaleString()}</span>
-                    )}
-                  </td>
-                  <td>
-                    <label className="small">
-                      <input type="checkbox" checked={r.enabled} onChange={() => void toggle(r)} /> {r.enabled ? "On" : "Off"}
-                    </label>
-                  </td>
-                  <td className="automation-cell-actions">
-                    <button
-                      className="secondary small-btn"
-                      aria-expanded={openRuns === r.id}
-                      onClick={() => setOpenRuns(openRuns === r.id ? null : r.id)}
-                    >
-                      Run log
-                    </button>
-                    <button className="secondary small-btn" onClick={() => void remove(r)} aria-label={`Delete rule ${r.name}`}>
-                      <Trash2 size={14} /> Delete
-                    </button>
-                  </td>
-                </tr>
-                {openRuns === r.id && (
+          <table className="automation-table">
+            <thead>
+              <tr>
+                <th scope="col">Rule</th>
+                <th scope="col">When</th>
+                <th scope="col">Status</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(rules.data ?? []).map((r) => (
+                <React.Fragment key={r.id}>
                   <tr>
-                    <td colSpan={4}>
-                      {runs.isLoading ? (
-                        <span className="muted">Loading…</span>
-                      ) : (runs.data ?? []).length === 0 ? (
-                        <span className="muted">This rule has not run yet.</span>
-                      ) : (
-                        <ul className="small">
-                          {(runs.data ?? []).map((run) => (
-                            <li key={run.id}>
-                              {new Date(run.at).toLocaleString()} · {run.issue_number ? `#${run.issue_number} ${run.issue_title ?? ""}` : "issue removed"} · {run.result}
-                            </li>
-                          ))}
-                        </ul>
+                    <td>{r.name}</td>
+                    <td>
+                      {r.trigger_event === "scheduled"
+                        ? `Every ${r.schedule ?? "day"}`
+                        : r.trigger_event.replace(/_/g, " ")}
+                      {r.trigger_event === "scheduled" && r.next_run_at && (
+                        <span className="muted small">
+                          {" "}
+                          · next {new Date(r.next_run_at).toLocaleString()}
+                        </span>
                       )}
                     </td>
+                    <td>
+                      <label className="small">
+                        <input type="checkbox" checked={r.enabled} onChange={() => void toggle(r)} />{" "}
+                        {r.enabled ? "On" : "Off"}
+                      </label>
+                    </td>
+                    <td className="automation-cell-actions">
+                      <button
+                        className="secondary small-btn"
+                        aria-expanded={openRuns === r.id}
+                        onClick={() => setOpenRuns(openRuns === r.id ? null : r.id)}
+                      >
+                        Run log
+                      </button>
+                      <button
+                        className="secondary small-btn"
+                        onClick={() => void remove(r)}
+                        aria-label={`Delete rule ${r.name}`}
+                      >
+                        <Trash2 size={14} /> Delete
+                      </button>
+                    </td>
                   </tr>
-                )}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
+                  {openRuns === r.id && (
+                    <tr>
+                      <td colSpan={4}>
+                        {runs.isLoading ? (
+                          <span className="muted">Loading…</span>
+                        ) : (runs.data ?? []).length === 0 ? (
+                          <span className="muted">This rule has not run yet.</span>
+                        ) : (
+                          <ul className="small">
+                            {(runs.data ?? []).map((run) => (
+                              <li key={run.id}>
+                                {new Date(run.at).toLocaleString()} ·{" "}
+                                {run.issue_number
+                                  ? `#${run.issue_number} ${run.issue_title ?? ""}`
+                                  : "issue removed"}{" "}
+                                · {run.result}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </section>

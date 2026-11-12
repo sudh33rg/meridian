@@ -47,8 +47,17 @@ export function SprintBoardModal({
   const data = board.data;
 
   return (
-    <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()} role="dialog" aria-modal="true" aria-label="Sprint Board">
-      <div className="modal" style={{ maxWidth: 960, width: "90vw", maxHeight: "85vh", display: "flex", flexDirection: "column" }}>
+    <div
+      className="overlay"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Sprint Board"
+    >
+      <div
+        className="modal"
+        style={{ maxWidth: 960, width: "90vw", maxHeight: "85vh", display: "flex", flexDirection: "column" }}
+      >
         <div className="modal-head">
           <h3 style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <Kanban size={18} /> Sprint Board: {sprintName}
@@ -61,7 +70,17 @@ export function SprintBoardModal({
         {board.isLoading && <p className="muted small">Loading sprint board…</p>}
 
         {data && (
-          <div style={{ display: "grid", gridAutoColumns: "minmax(200px, 1fr)", gridAutoFlow: "column", gap: 12, overflowX: "auto", flex: 1, paddingBottom: 8 }}>
+          <div
+            style={{
+              display: "grid",
+              gridAutoColumns: "minmax(200px, 1fr)",
+              gridAutoFlow: "column",
+              gap: 12,
+              overflowX: "auto",
+              flex: 1,
+              paddingBottom: 8,
+            }}
+          >
             {data.lanes.map((lane) => {
               const laneIssues = lane.issues || [];
               return (
@@ -76,11 +95,22 @@ export function SprintBoardModal({
                     minWidth: 220,
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, fontWeight: 600, fontSize: 13 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 8,
+                      fontWeight: 600,
+                      fontSize: 13,
+                    }}
+                  >
                     <span>{lane.label}</span>
                     <span className="chip small">{laneIssues.length}</span>
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, overflowY: "auto" }}>
+                  <div
+                    style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, overflowY: "auto" }}
+                  >
                     {laneIssues.map((issue) => (
                       <div
                         key={issue.id}
@@ -92,12 +122,30 @@ export function SprintBoardModal({
                           boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
                         }}
                       >
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }} className="muted">
-                          <span className="mono">{projectKey}-{issue.number}</span>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            fontSize: 11,
+                            marginBottom: 4,
+                          }}
+                          className="muted"
+                        >
+                          <span className="mono">
+                            {projectKey}-{issue.number}
+                          </span>
                           <span className={`chip small priority-${issue.priority}`}>{issue.priority}</span>
                         </div>
                         <p style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 500 }}>{issue.title}</p>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11 }} className="muted">
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            fontSize: 11,
+                          }}
+                          className="muted"
+                        >
                           <span>{issue.assignee_name || "Unassigned"}</span>
                           {issue.story_points != null && <span>{issue.story_points} pt</span>}
                         </div>

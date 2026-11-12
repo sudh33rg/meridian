@@ -46,9 +46,18 @@ pub(crate) struct StatusPatch {
 /// seed statuses: fields, boards and rules stay as the project defines them.
 pub(crate) const PROJECT_TEMPLATES: [&str; 4] = ["software", "kanban", "bugs", "service"];
 
-pub(crate) async fn seed_template(db: &mut PgConnection, tenant: Uuid, project: Uuid, template: &str) -> ApiResult<()> {
+pub(crate) async fn seed_template(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    project: Uuid,
+    template: &str,
+) -> ApiResult<()> {
     let statuses: &[(&str, &str, &str, i32)] = match template {
-        "kanban" => &[("todo", "To do", "todo", 0), ("in_progress", "In progress", "in_progress", 1), ("done", "Done", "done", 2)],
+        "kanban" => &[
+            ("todo", "To do", "todo", 0),
+            ("in_progress", "In progress", "in_progress", 1),
+            ("done", "Done", "done", 2),
+        ],
         "bugs" => &[
             ("new", "New", "todo", 0),
             ("triage", "Triage", "todo", 1),
@@ -56,7 +65,11 @@ pub(crate) async fn seed_template(db: &mut PgConnection, tenant: Uuid, project: 
             ("verified", "Verified", "in_progress", 3),
             ("closed", "Closed", "done", 4),
         ],
-        "service" => &[("open", "Open", "todo", 0), ("waiting", "Waiting", "in_progress", 1), ("resolved", "Resolved", "done", 2)],
+        "service" => &[
+            ("open", "Open", "todo", 0),
+            ("waiting", "Waiting", "in_progress", 1),
+            ("resolved", "Resolved", "done", 2),
+        ],
         _ => &[
             ("todo", "To do", "todo", 0),
             ("in_progress", "In progress", "in_progress", 1),
@@ -80,16 +93,40 @@ pub(crate) async fn seed_template(db: &mut PgConnection, tenant: Uuid, project: 
     }
 
     let fields: &[(&str, &str, &str, &[&str], bool, i32)] = match template {
-        "bugs" => &[
-            ("severity", "Severity", "select", &["low", "medium", "high", "critical"], false, 0),
-        ],
+        "bugs" => &[(
+            "severity",
+            "Severity",
+            "select",
+            &["low", "medium", "high", "critical"],
+            false,
+            0,
+        )],
         "service" => &[
-            ("impact", "Impact", "select", &["low", "medium", "high", "critical"], false, 0),
-            ("urgency", "Urgency", "select", &["low", "medium", "high"], false, 1),
+            (
+                "impact",
+                "Impact",
+                "select",
+                &["low", "medium", "high", "critical"],
+                false,
+                0,
+            ),
+            (
+                "urgency",
+                "Urgency",
+                "select",
+                &["low", "medium", "high"],
+                false,
+                1,
+            ),
         ],
-        "software" => &[
-            ("environment", "Environment", "select", &["development", "staging", "production"], false, 0),
-        ],
+        "software" => &[(
+            "environment",
+            "Environment",
+            "select",
+            &["development", "staging", "production"],
+            false,
+            0,
+        )],
         _ => &[],
     };
     for (f_key, f_label, f_type, f_opts, f_req, f_pos) in fields {
@@ -143,7 +180,11 @@ pub(crate) async fn status_defined(
 }
 
 /// The status a new issue starts in: the first `todo` status by position.
-pub(crate) async fn default_status(db: &mut PgConnection, tenant: Uuid, project: Uuid) -> ApiResult<String> {
+pub(crate) async fn default_status(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    project: Uuid,
+) -> ApiResult<String> {
     sqlx::query_scalar(
         "SELECT key FROM project_statuses WHERE tenant_id=$1 AND project_id=$2 AND category='todo' ORDER BY position, key LIMIT 1",
     )
@@ -160,7 +201,8 @@ pub(crate) fn valid_key(key: &str) -> bool {
     !b.is_empty()
         && b.len() <= 32
         && b[0].is_ascii_lowercase()
-        && b.iter().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == b'_')
+        && b.iter()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == b'_')
 }
 
 pub(crate) fn slug(name: &str) -> ApiResult<String> {
@@ -198,7 +240,10 @@ fn validate_category(category: &str) -> ApiResult<String> {
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/statuses", tag = "workflow", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "The project's statuses in column order", body = Vec<ProjectStatus>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_statuses(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<ProjectStatus>>> {
+pub(crate) async fn list_statuses(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+) -> ApiResult<Json<Vec<ProjectStatus>>> {
     ensure_access(&mut tx, project).await?;
     let rows: Vec<ProjectStatus> = sqlx::query_as(
         "SELECT key,name,category,position,wip_limit FROM project_statuses WHERE tenant_id=$1 AND project_id=$2 ORDER BY position, key",
@@ -223,20 +268,27 @@ pub(crate) async fn create_status(
     let category = validate_category(&v.category)?;
     let key = match v.key {
         Some(k) if valid_key(&k) => k,
-        Some(_) => return Err(bad("A status key uses lowercase letters, digits and underscores, starting with a letter")),
+        Some(_) => return Err(bad(
+            "A status key uses lowercase letters, digits and underscores, starting with a letter",
+        )),
         None => slug(&name)?,
     };
-    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM project_statuses WHERE tenant_id=$1 AND project_id=$2")
-        .bind(i.tenant_id)
-        .bind(project)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let count: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM project_statuses WHERE tenant_id=$1 AND project_id=$2",
+    )
+    .bind(i.tenant_id)
+    .bind(project)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
     if count >= MAX_STATUSES_PER_PROJECT {
         return Err(bad("A project can have up to 20 statuses"));
     }
     if status_defined(&mut tx, i.tenant_id, project, &key).await? {
-        return Err(err(StatusCode::CONFLICT, "A status with this key already exists"));
+        return Err(err(
+            StatusCode::CONFLICT,
+            "A status with this key already exists",
+        ));
     }
     let position: i32 = sqlx::query_scalar(
         "SELECT COALESCE(MAX(position), -1) + 1 FROM project_statuses WHERE tenant_id=$1 AND project_id=$2",
@@ -264,7 +316,13 @@ pub(crate) async fn create_status(
 
 /// Moves one status to `target` and renumbers the rest, all inside the request transaction. The
 /// position uniqueness constraint is deferred, so the intermediate states are allowed.
-async fn reorder(tx: &mut Tx, tenant: Uuid, project: Uuid, key: &str, target: i32) -> ApiResult<()> {
+async fn reorder(
+    tx: &mut Tx,
+    tenant: Uuid,
+    project: Uuid,
+    key: &str,
+    target: i32,
+) -> ApiResult<()> {
     let others: Vec<String> = sqlx::query_scalar(
         "SELECT key FROM project_statuses WHERE tenant_id=$1 AND project_id=$2 AND key<>$3 ORDER BY position, key",
     )
@@ -327,7 +385,10 @@ pub(crate) async fn update_status(
         .await
         .map_err(db_err)?;
         if others == 0 {
-            return Err(err(StatusCode::CONFLICT, "A project needs at least one To do status"));
+            return Err(err(
+                StatusCode::CONFLICT,
+                "A project needs at least one To do status",
+            ));
         }
     }
     sqlx::query("UPDATE project_statuses SET name=$1, category=$2 WHERE tenant_id=$3 AND project_id=$4 AND key=$5")
@@ -399,7 +460,10 @@ pub(crate) async fn delete_status(
         .await
         .map_err(db_err)?;
         if others == 0 {
-            return Err(err(StatusCode::CONFLICT, "A project needs at least one To do status"));
+            return Err(err(
+                StatusCode::CONFLICT,
+                "A project needs at least one To do status",
+            ));
         }
     }
     sqlx::query("DELETE FROM project_statuses WHERE tenant_id=$1 AND project_id=$2 AND key=$3")
@@ -424,14 +488,16 @@ pub(crate) async fn set_wip_limit(
     if v.limit.is_some_and(|n| !(1..=1000).contains(&n)) {
         return Err(bad("A WIP limit is between 1 and 1000, or null for none"));
     }
-    let updated = sqlx::query("UPDATE project_statuses SET wip_limit=$1 WHERE tenant_id=$2 AND project_id=$3 AND key=$4")
-        .bind(v.limit)
-        .bind(i.tenant_id)
-        .bind(project)
-        .bind(&key)
-        .execute(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let updated = sqlx::query(
+        "UPDATE project_statuses SET wip_limit=$1 WHERE tenant_id=$2 AND project_id=$3 AND key=$4",
+    )
+    .bind(v.limit)
+    .bind(i.tenant_id)
+    .bind(project)
+    .bind(&key)
+    .execute(&mut *tx)
+    .await
+    .map_err(db_err)?;
     if updated.rows_affected() == 0 {
         return Err(err(StatusCode::NOT_FOUND, "Status not found"));
     }
@@ -450,7 +516,16 @@ pub(crate) async fn set_wip_limit(
 
 pub(crate) fn routes() -> Router<App> {
     Router::new()
-        .route("/api/projects/{id}/statuses/{key}/wip-limit", axum::routing::put(set_wip_limit))
-        .route("/api/projects/{id}/statuses", get(list_statuses).post(create_status))
-        .route("/api/projects/{id}/statuses/{key}", patch(update_status).delete(delete_status))
+        .route(
+            "/api/projects/{id}/statuses/{key}/wip-limit",
+            axum::routing::put(set_wip_limit),
+        )
+        .route(
+            "/api/projects/{id}/statuses",
+            get(list_statuses).post(create_status),
+        )
+        .route(
+            "/api/projects/{id}/statuses/{key}",
+            patch(update_status).delete(delete_status),
+        )
 }

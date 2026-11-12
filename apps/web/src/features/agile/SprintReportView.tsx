@@ -43,7 +43,13 @@ export function SprintReportView({
   const data = rep.data;
 
   return (
-    <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()} role="dialog" aria-modal="true" aria-label="Sprint Report">
+    <div
+      className="overlay"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Sprint Report"
+    >
       <div className="modal" style={{ maxWidth: 640 }}>
         <div className="modal-head">
           <h3>Sprint Report: {data?.sprint_name ?? "Loading..."}</h3>
@@ -57,21 +63,39 @@ export function SprintReportView({
         {data && (
           <div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }}>
-              <div className="stat-card" style={{ padding: 12, background: "var(--bg-subtle)", borderRadius: 6 }}>
+              <div
+                className="stat-card"
+                style={{ padding: 12, background: "var(--bg-subtle)", borderRadius: 6 }}
+              >
                 <span className="small muted">Committed</span>
                 <strong style={{ display: "block", fontSize: 18 }}>{data.committed_points} pts</strong>
               </div>
-              <div className="stat-card" style={{ padding: 12, background: "var(--bg-subtle)", borderRadius: 6 }}>
+              <div
+                className="stat-card"
+                style={{ padding: 12, background: "var(--bg-subtle)", borderRadius: 6 }}
+              >
                 <span className="small muted">Completed</span>
-                <strong style={{ display: "block", fontSize: 18, color: "#10b981" }}>{data.completed_points} pts</strong>
+                <strong style={{ display: "block", fontSize: 18, color: "#10b981" }}>
+                  {data.completed_points} pts
+                </strong>
               </div>
-              <div className="stat-card" style={{ padding: 12, background: "var(--bg-subtle)", borderRadius: 6 }}>
+              <div
+                className="stat-card"
+                style={{ padding: 12, background: "var(--bg-subtle)", borderRadius: 6 }}
+              >
                 <span className="small muted">Incomplete</span>
-                <strong style={{ display: "block", fontSize: 18, color: "#f59e0b" }}>{data.incomplete_points} pts</strong>
+                <strong style={{ display: "block", fontSize: 18, color: "#f59e0b" }}>
+                  {data.incomplete_points} pts
+                </strong>
               </div>
-              <div className="stat-card" style={{ padding: 12, background: "var(--bg-subtle)", borderRadius: 6 }}>
+              <div
+                className="stat-card"
+                style={{ padding: 12, background: "var(--bg-subtle)", borderRadius: 6 }}
+              >
                 <span className="small muted">Scope Creep</span>
-                <strong style={{ display: "block", fontSize: 18, color: "#ef4444" }}>+{data.scope_creep_points} pts</strong>
+                <strong style={{ display: "block", fontSize: 18, color: "#ef4444" }}>
+                  +{data.scope_creep_points} pts
+                </strong>
               </div>
             </div>
 
@@ -97,7 +121,9 @@ export function SprintReportView({
                       <td style={{ padding: "6px 8px" }}>
                         <span className={`chip small ${item.category === "added" ? "warning" : ""}`}>
                           {item.category === "added" ? (
-                            <><PlusCircle size={10} style={{ marginRight: 2 }} /> Added mid-sprint</>
+                            <>
+                              <PlusCircle size={10} style={{ marginRight: 2 }} /> Added mid-sprint
+                            </>
                           ) : (
                             "Committed"
                           )}
@@ -105,11 +131,20 @@ export function SprintReportView({
                       </td>
                       <td style={{ padding: "6px 8px" }}>
                         {item.completed ? (
-                          <span style={{ color: "#10b981", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                          <span
+                            style={{ color: "#10b981", display: "inline-flex", alignItems: "center", gap: 3 }}
+                          >
                             <CheckCircle size={12} /> {item.status}
                           </span>
                         ) : (
-                          <span style={{ color: "var(--muted)", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                          <span
+                            style={{
+                              color: "var(--muted)",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 3,
+                            }}
+                          >
                             <AlertCircle size={12} /> {item.status}
                           </span>
                         )}

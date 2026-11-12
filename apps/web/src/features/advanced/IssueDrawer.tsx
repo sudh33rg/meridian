@@ -73,10 +73,17 @@ export function IssueDrawer({
     setAiResult("");
     try {
       if (kind === "summary") {
-        const r = await send<{ text: string }>(`/projects/${projectId}/ai/summary`, token, "POST", { issue_id: id });
+        const r = await send<{ text: string }>(`/projects/${projectId}/ai/summary`, token, "POST", {
+          issue_id: id,
+        });
         setAiResult(r.text);
       } else {
-        const r = await send<{ priority: string; reason: string }>(`/projects/${projectId}/ai/triage`, token, "POST", { issue_id: id });
+        const r = await send<{ priority: string; reason: string }>(
+          `/projects/${projectId}/ai/triage`,
+          token,
+          "POST",
+          { issue_id: id },
+        );
         setAiResult(`Suggested priority: ${r.priority}. ${r.reason}`);
       }
     } catch (e) {
@@ -89,16 +96,21 @@ export function IssueDrawer({
   const levelsQ = useQuery({
     queryKey: ["security-levels", projectId],
     queryFn: () =>
-      request<{ can_manage: boolean; levels: { id: string; name: string }[] }>(token, `/projects/${projectId}/security-levels`),
+      request<{ can_manage: boolean; levels: { id: string; name: string }[] }>(
+        token,
+        `/projects/${projectId}/security-levels`,
+      ),
     enabled: !!projectId,
   });
   const issueLevelQ = useQuery({
     queryKey: ["issue-security", id],
-    queryFn: () => request<{ level_id: string | null; name: string | null }>(token, `/issues/${id}/security-level`),
+    queryFn: () =>
+      request<{ level_id: string | null; name: string | null }>(token, `/issues/${id}/security-level`),
     enabled: !!id,
   });
   const setLevel = useMutation({
-    mutationFn: (levelId: string | null) => send(`/issues/${id}/security-level`, token, "PUT", { level_id: levelId }),
+    mutationFn: (levelId: string | null) =>
+      send(`/issues/${id}/security-level`, token, "PUT", { level_id: levelId }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["issue-security", id] });
       onChanged();
@@ -110,7 +122,10 @@ export function IssueDrawer({
   const screenQ = useQuery({
     queryKey: ["transition-screen", projectId, currentStatus, status],
     queryFn: () =>
-      request<{ fields: string[] }>(token, `/projects/${projectId}/transitions/${currentStatus}/${status}/screen`),
+      request<{ fields: string[] }>(
+        token,
+        `/projects/${projectId}/transitions/${currentStatus}/${status}/screen`,
+      ),
     enabled: !!projectId && !!currentStatus && status !== currentStatus,
     retry: false,
   });
@@ -171,7 +186,12 @@ export function IssueDrawer({
           priority,
           status,
           ...(fieldsQ.isSuccess
-            ? { custom_fields: toPayload(visibleFields(fieldsQ.data ?? [], levelsQ.data?.can_manage ?? false), values) }
+            ? {
+                custom_fields: toPayload(
+                  visibleFields(fieldsQ.data ?? [], levelsQ.data?.can_manage ?? false),
+                  values,
+                ),
+              }
             : {}),
         }),
       });
@@ -188,7 +208,9 @@ export function IssueDrawer({
         setPriority(mine.priority);
         setStatus(mine.status);
         setValues(mine.values);
-        setError("This issue changed while you were editing. The latest version is loaded and your edits are kept; review them and save again.");
+        setError(
+          "This issue changed while you were editing. The latest version is loaded and your edits are kept; review them and save again.",
+        );
         return;
       }
       setError((e as Error).message);
@@ -196,7 +218,8 @@ export function IssueDrawer({
   };
   // Archive hides an issue from the active lists; trash does the same and keeps it restorable for 30 days.
   const lifecycle = async (action: "archive" | "trash" | "restore") => {
-    if (action === "trash" && !window.confirm("Move this issue to trash? You can restore it for 30 days.")) return;
+    if (action === "trash" && !window.confirm("Move this issue to trash? You can restore it for 30 days."))
+      return;
     try {
       await request(token, `/issues/${id}/${action}`, { method: "POST" });
       await reload();
@@ -302,10 +325,20 @@ export function IssueDrawer({
             </label>
             {aiQ.data?.enabled && (
               <div className="row-actions" aria-label="AI assistance">
-                <button type="button" className="secondary small-btn" disabled={aiBusy} onClick={() => runAi("summary")}>
+                <button
+                  type="button"
+                  className="secondary small-btn"
+                  disabled={aiBusy}
+                  onClick={() => runAi("summary")}
+                >
                   Summarise with AI
                 </button>
-                <button type="button" className="secondary small-btn" disabled={aiBusy} onClick={() => runAi("triage")}>
+                <button
+                  type="button"
+                  className="secondary small-btn"
+                  disabled={aiBusy}
+                  onClick={() => runAi("triage")}
+                >
                   Suggest priority
                 </button>
               </div>
@@ -348,7 +381,9 @@ export function IssueDrawer({
             {screenQ.data && screenQ.data.fields.length > 0 && (
               <p className="muted small" role="status">
                 This move shows{" "}
-                {screenQ.data.fields.map((k) => (fieldsQ.data ?? []).find((f) => f.key === k)?.label ?? k).join(", ")}
+                {screenQ.data.fields
+                  .map((k) => (fieldsQ.data ?? []).find((f) => f.key === k)?.label ?? k)
+                  .join(", ")}
                 .
               </p>
             )}
@@ -430,7 +465,9 @@ export function IssueDrawer({
                         </select>
                       ) : (
                         <input
-                          type={f.field_type === "number" ? "number" : f.field_type === "date" ? "date" : "text"}
+                          type={
+                            f.field_type === "number" ? "number" : f.field_type === "date" ? "date" : "text"
+                          }
                           value={displayValue(raw)}
                           disabled={disabled}
                           onChange={(e) => setValues({ ...values, [f.key]: e.target.value })}
@@ -474,7 +511,12 @@ export function IssueDrawer({
               <Attachments entityType="issue" entityId={id} canEdit />
             </div>
             <IssueDepth
-              issue={{ id, number: Number(issue.number), title: str(issue.title), project_id: str(issue.project_id) }}
+              issue={{
+                id,
+                number: Number(issue.number),
+                title: str(issue.title),
+                project_id: str(issue.project_id),
+              }}
               archived={!!issue.archived_at}
               onChanged={() => onChanged()}
             />
@@ -526,10 +568,18 @@ export function IssueDrawer({
                             Edit
                           </button>
                         )}
-                        <button type="button" className="ghost small-btn" onClick={() => showHistory(commentId)}>
+                        <button
+                          type="button"
+                          className="ghost small-btn"
+                          onClick={() => showHistory(commentId)}
+                        >
                           {history ? "Hide history" : "History"}
                         </button>
-                        <button type="button" className="ghost small-btn" onClick={() => deleteComment(commentId)}>
+                        <button
+                          type="button"
+                          className="ghost small-btn"
+                          onClick={() => deleteComment(commentId)}
+                        >
                           Delete
                         </button>
                       </div>
@@ -539,7 +589,8 @@ export function IssueDrawer({
                         {history.revisions.map((r, n) => (
                           <li key={n}>
                             <small>
-                              {day(r.changed_at)} · {r.change === "delete" ? "deleted by" : "changed by"} {r.changed_by}
+                              {day(r.changed_at)} · {r.change === "delete" ? "deleted by" : "changed by"}{" "}
+                              {r.changed_by}
                             </small>
                             <p>{r.body}</p>
                           </li>

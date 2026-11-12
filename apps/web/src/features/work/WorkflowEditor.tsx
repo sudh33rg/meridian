@@ -90,7 +90,9 @@ export function WorkflowEditor({
                   return;
                 }
                 if (next !== (s.wip_limit ?? null)) {
-                  void send(`/projects/${projectId}/statuses/${s.key}/wip-limit`, token, "PUT", { limit: next })
+                  void send(`/projects/${projectId}/statuses/${s.key}/wip-limit`, token, "PUT", {
+                    limit: next,
+                  })
                     .then(() => refresh())
                     .catch(fail);
                 }

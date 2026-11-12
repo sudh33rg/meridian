@@ -88,15 +88,19 @@ export function BoardTab() {
   const step = (status: string, dir: -1 | 1) => keys[keys.indexOf(status) + dir];
   const lanes: BoardLane[] = boardQ.data?.lanes ?? [];
   const lanesShown: BoardLane[] =
-    prefs.group === "none" ? [{ key: "all", label: "All issues", issues: lanes.flatMap((l) => l.issues) }] : lanes;
+    prefs.group === "none"
+      ? [{ key: "all", label: "All issues", issues: lanes.flatMap((l) => l.issues) }]
+      : lanes;
   const totals = new Map<string, number>();
-  for (const lane of lanesShown) for (const i of lane.issues) totals.set(i.status, (totals.get(i.status) ?? 0) + 1);
+  for (const lane of lanesShown)
+    for (const i of lane.issues) totals.set(i.status, (totals.get(i.status) ?? 0) + 1);
   const fullIssue = (id: string) => issues.find((x) => x.id === id);
   const busyLoading = loading || (boardQ.isLoading && !boardQ.data);
 
   const renderColumn = (laneKey: string, status: (typeof statuses)[number], index: number) => {
     const dropKey = `${laneKey}|${status.key}`;
-    const list = lanesShown.find((l) => l.key === laneKey)?.issues.filter((i) => i.status === status.key) ?? [];
+    const list =
+      lanesShown.find((l) => l.key === laneKey)?.issues.filter((i) => i.status === status.key) ?? [];
     return (
       <section
         className={"column" + (over === dropKey ? " drop" : "")}
@@ -189,18 +193,15 @@ export function BoardTab() {
             </div>
           </article>
         ))}
-        {!busyLoading && !list.length && prefs.group === "none" && <div className="column-empty">Drop issues here</div>}
+        {!busyLoading && !list.length && prefs.group === "none" && (
+          <div className="column-empty">Drop issues here</div>
+        )}
       </section>
     );
   };
 
   const chip = (label: string, on: boolean, toggle: () => void) => (
-    <button
-      type="button"
-      className={"chip" + (on ? " on" : "")}
-      aria-pressed={on}
-      onClick={toggle}
-    >
+    <button type="button" className={"chip" + (on ? " on" : "")} aria-pressed={on} onClick={toggle}>
       {label}
     </button>
   );
@@ -211,9 +212,7 @@ export function BoardTab() {
         <span className="board-title">
           <span className="project-icon sm">{project?.key.slice(0, 2)}</span> {project?.name}
         </span>
-        <span className="muted small hide-sm">
-          {t("board.hint")}
-        </span>
+        <span className="muted small hide-sm">{t("board.hint")}</span>
         <label className="board-group">
           <span className="muted small">{t("board.swimlanes")}</span>
           <select
@@ -240,15 +239,23 @@ export function BoardTab() {
       </div>
       <div className="board-quick" role="group" aria-label={t("board.quickFilters")}>
         {chip(t("board.mine"), prefs.mine, () => changePrefs({ ...prefs, mine: !prefs.mine }))}
-        {chip(t("board.unassigned"), prefs.unassigned, () => changePrefs({ ...prefs, unassigned: !prefs.unassigned }))}
+        {chip(t("board.unassigned"), prefs.unassigned, () =>
+          changePrefs({ ...prefs, unassigned: !prefs.unassigned }),
+        )}
         {chip(t("board.highPriority"), prefs.high, () => changePrefs({ ...prefs, high: !prefs.high }))}
         {(prefs.mine || prefs.unassigned || prefs.high) && (
-          <button type="button" className="link" onClick={() => changePrefs({ ...prefs, mine: false, unassigned: false, high: false })}>
+          <button
+            type="button"
+            className="link"
+            onClick={() => changePrefs({ ...prefs, mine: false, unassigned: false, high: false })}
+          >
             {t("board.clearFilters")}
           </button>
         )}
         {boardQ.data?.truncated && (
-          <span className="muted small">Showing the first 2,000 matching issues. Narrow the filters to see the rest.</span>
+          <span className="muted small">
+            Showing the first 2,000 matching issues. Narrow the filters to see the rest.
+          </span>
         )}
       </div>
       {boardQ.isError && <p className="error">Could not load the board.</p>}
@@ -277,9 +284,7 @@ export function BoardTab() {
           </div>
         ))}
         {!lanesShown.length && !busyLoading && (
-          <div className="columns">
-            {statuses.map((status, index) => renderColumn("all", status, index))}
-          </div>
+          <div className="columns">{statuses.map((status, index) => renderColumn("all", status, index))}</div>
         )}
       </div>
     </div>

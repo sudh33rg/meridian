@@ -18,7 +18,15 @@ type CommentReaction = { comment_id: string; reaction: string; count: number; mi
 type Reminder = { id: string; remind_at: string; note: string; sent_at: string | null };
 
 /** Reaction buttons under one comment. Counts come from the issue's reactions list. */
-export function CommentReactions({ token, issueId, commentId }: { token: string; issueId: string; commentId: string }) {
+export function CommentReactions({
+  token,
+  issueId,
+  commentId,
+}: {
+  token: string;
+  issueId: string;
+  commentId: string;
+}) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const reactionsQ = useQuery({
@@ -118,7 +126,12 @@ export function Reminders({ token, issueId }: { token: string; issueId: string }
           if (when) add.mutate();
         }}
       >
-        <input type="datetime-local" aria-label="Remind me at" value={when} onChange={(e) => setWhen(e.target.value)} />
+        <input
+          type="datetime-local"
+          aria-label="Remind me at"
+          value={when}
+          onChange={(e) => setWhen(e.target.value)}
+        />
         <input
           aria-label="Reminder note"
           maxLength={500}

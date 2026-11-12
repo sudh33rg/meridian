@@ -90,7 +90,16 @@ export function RaidRegisterView({ projectId }: { projectId: string }) {
 
   return (
     <div className="raid-register" style={{ marginTop: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+          flexWrap: "wrap",
+          gap: 12,
+        }}
+      >
         <div>
           <h3 style={{ display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
             <ShieldAlert size={20} /> RAID Register
@@ -101,7 +110,11 @@ export function RaidRegisterView({ projectId }: { projectId: string }) {
         </div>
 
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <select value={kindFilter} onChange={(e) => setKindFilter(e.target.value)} style={{ padding: "4px 8px" }}>
+          <select
+            value={kindFilter}
+            onChange={(e) => setKindFilter(e.target.value)}
+            style={{ padding: "4px 8px" }}
+          >
             <option value="all">All Types</option>
             <option value="risk">Risks</option>
             <option value="assumption">Assumptions</option>
@@ -115,7 +128,10 @@ export function RaidRegisterView({ projectId }: { projectId: string }) {
       </div>
 
       {creating && (
-        <form onSubmit={addItem} style={{ background: "var(--bg-subtle)", padding: 16, borderRadius: 8, marginBottom: 16 }}>
+        <form
+          onSubmit={addItem}
+          style={{ background: "var(--bg-subtle)", padding: 16, borderRadius: 8, marginBottom: 16 }}
+        >
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
             <label className="small">
               Type
@@ -197,7 +213,11 @@ export function RaidRegisterView({ projectId }: { projectId: string }) {
                   </td>
                   <td>
                     <strong>{i.title}</strong>
-                    {i.description && <div className="small muted" style={{ marginTop: 2 }}>{i.description}</div>}
+                    {i.description && (
+                      <div className="small muted" style={{ marginTop: 2 }}>
+                        {i.description}
+                      </div>
+                    )}
                   </td>
                   <td>
                     <span

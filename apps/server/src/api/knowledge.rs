@@ -292,7 +292,10 @@ pub(crate) fn routes() -> Router<App> {
             "/api/projects/{id}/home-page",
             get(get_home_page).put(set_home_page),
         )
-        .route("/api/pages/{id}/parent", axum::routing::put(set_page_parent))
+        .route(
+            "/api/pages/{id}/parent",
+            axum::routing::put(set_page_parent),
+        )
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -325,7 +328,10 @@ pub(crate) struct PageParent {
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/blog-posts", tag = "knowledge", params(("id" = Uuid, Path, description = "Project id")), responses((status = 200, description = "Newest blog posts you can open (at most 200)", body = Vec<BlogPost>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_blog_posts(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<BlogPost>>> {
+pub(crate) async fn list_blog_posts(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+) -> ApiResult<Json<Vec<BlogPost>>> {
     let i = tx.identity.clone();
     ensure_access(&mut tx, project).await?;
     let rows: Vec<BlogPost> = sqlx::query_as(
@@ -383,30 +389,40 @@ pub(crate) async fn create_blog_post(
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/home-page", tag = "knowledge", params(("id" = Uuid, Path, description = "Project id")), responses((status = 200, description = "The home page, if one is set", body = HomePage), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn get_home_page(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<HomePage>> {
+pub(crate) async fn get_home_page(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+) -> ApiResult<Json<HomePage>> {
     let i = tx.identity.clone();
     ensure_access(&mut tx, project).await?;
-    let page_id: Option<Uuid> = sqlx::query_scalar("SELECT home_page_id FROM projects WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(project)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let page_id: Option<Uuid> =
+        sqlx::query_scalar("SELECT home_page_id FROM projects WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(project)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
     Ok(Json(HomePage { page_id }))
 }
 
 #[utoipa::path(put, path = "/api/projects/{id}/home-page", tag = "knowledge", params(("id" = Uuid, Path, description = "Project id")), request_body = HomePage, responses((status = 200, description = "Saved", body = HomePage), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Project admins only", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn set_home_page(mut tx: Tx, Path(project): Path<Uuid>, Json(v): Json<HomePage>) -> ApiResult<Json<HomePage>> {
+pub(crate) async fn set_home_page(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+    Json(v): Json<HomePage>,
+) -> ApiResult<Json<HomePage>> {
     let i = tx.identity.clone();
     ensure_project_admin(&mut tx, project).await?;
     if let Some(page) = v.page_id {
-        let inside: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM pages WHERE tenant_id=$1 AND project_id=$2 AND id=$3)")
-            .bind(i.tenant_id)
-            .bind(project)
-            .bind(page)
-            .fetch_one(&mut *tx)
-            .await
-            .map_err(db_err)?;
+        let inside: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM pages WHERE tenant_id=$1 AND project_id=$2 AND id=$3)",
+        )
+        .bind(i.tenant_id)
+        .bind(project)
+        .bind(page)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(db_err)?;
         if !inside {
             return Err(bad("The home page must be a page of this project"));
         }
@@ -423,15 +439,20 @@ pub(crate) async fn set_home_page(mut tx: Tx, Path(project): Path<Uuid>, Json(v)
 }
 
 #[utoipa::path(put, path = "/api/pages/{id}/parent", tag = "knowledge", params(("id" = Uuid, Path, description = "Resource id")), request_body = PageParent, responses((status = 200, description = "Moved", body = crate::api::work::Page), (status = 400, description = "A page cannot move under itself or its own children, or to another project", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn set_page_parent(mut tx: Tx, Path(page): Path<Uuid>, Json(v): Json<PageParent>) -> ApiResult<Json<crate::api::work::Page>> {
+pub(crate) async fn set_page_parent(
+    mut tx: Tx,
+    Path(page): Path<Uuid>,
+    Json(v): Json<PageParent>,
+) -> ApiResult<Json<crate::api::work::Page>> {
     let i = tx.identity.clone();
-    let project: Uuid = sqlx::query_scalar("SELECT project_id FROM pages WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(page)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(db_err)?
-        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Page not found"))?;
+    let project: Uuid =
+        sqlx::query_scalar("SELECT project_id FROM pages WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(page)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(db_err)?
+            .ok_or_else(|| err(StatusCode::NOT_FOUND, "Page not found"))?;
     ensure_access(&mut tx, project).await?;
     if !can_edit(&i) {
         return Err(forbidden());
@@ -440,13 +461,15 @@ pub(crate) async fn set_page_parent(mut tx: Tx, Path(page): Path<Uuid>, Json(v):
         if parent == page {
             return Err(bad("A page cannot be its own parent"));
         }
-        let same_project: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM pages WHERE tenant_id=$1 AND project_id=$2 AND id=$3)")
-            .bind(i.tenant_id)
-            .bind(project)
-            .bind(parent)
-            .fetch_one(&mut *tx)
-            .await
-            .map_err(db_err)?;
+        let same_project: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM pages WHERE tenant_id=$1 AND project_id=$2 AND id=$3)",
+        )
+        .bind(i.tenant_id)
+        .bind(project)
+        .bind(parent)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(db_err)?;
         if !same_project {
             return Err(bad("The parent page must belong to this project"));
         }
@@ -558,7 +581,10 @@ pub(crate) async fn create_page_template(
     .await
     .map_err(db_err)?;
     if taken {
-        return Err(err(StatusCode::CONFLICT, "A template with this name already exists"));
+        return Err(err(
+            StatusCode::CONFLICT,
+            "A template with this name already exists",
+        ));
     }
     let row: PageTemplate = sqlx::query_as(
         "INSERT INTO page_templates(tenant_id,project_id,name,body,created_by) VALUES($1,$2,$3,$4,$5) \
@@ -577,17 +603,19 @@ pub(crate) async fn create_page_template(
 }
 
 #[utoipa::path(delete, path = "/api/page-templates/{id}", tag = "knowledge", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 204, description = "Deleted"), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn delete_page_template(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<StatusCode> {
+pub(crate) async fn delete_page_template(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<StatusCode> {
     let i = tx.identity.clone();
-    let project: Uuid = sqlx::query_scalar(
-        "SELECT project_id FROM page_templates WHERE tenant_id=$1 AND id=$2",
-    )
-    .bind(i.tenant_id)
-    .bind(id)
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(db_err)?
-    .ok_or_else(|| err(StatusCode::NOT_FOUND, "Template not found"))?;
+    let project: Uuid =
+        sqlx::query_scalar("SELECT project_id FROM page_templates WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(db_err)?
+            .ok_or_else(|| err(StatusCode::NOT_FOUND, "Template not found"))?;
     ensure_access(&mut tx, project).await?;
     sqlx::query("DELETE FROM page_templates WHERE tenant_id=$1 AND id=$2")
         .bind(i.tenant_id)
@@ -730,8 +758,12 @@ pub(crate) async fn update_inline_comment(
     let i = tx.identity.clone();
     valid_page(&mut tx, &i, page_id).await?;
 
-    let resolved_at = v.resolved.and_then(|r| if r { Some(Utc::now()) } else { None });
-    let resolved_by = v.resolved.and_then(|r| if r { Some(i.user_id) } else { None });
+    let resolved_at = v
+        .resolved
+        .and_then(|r| if r { Some(Utc::now()) } else { None });
+    let resolved_by = v
+        .resolved
+        .and_then(|r| if r { Some(i.user_id) } else { None });
 
     let row: PageInlineComment = sqlx::query_as(
         "UPDATE page_inline_comments SET \
@@ -767,13 +799,14 @@ pub(crate) async fn delete_inline_comment(
     let i = tx.identity.clone();
     valid_page(&mut tx, &i, page_id).await?;
 
-    let res = sqlx::query("DELETE FROM page_inline_comments WHERE tenant_id=$1 AND page_id=$2 AND id=$3")
-        .bind(i.tenant_id)
-        .bind(page_id)
-        .bind(comment_id)
-        .execute(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let res =
+        sqlx::query("DELETE FROM page_inline_comments WHERE tenant_id=$1 AND page_id=$2 AND id=$3")
+            .bind(i.tenant_id)
+            .bind(page_id)
+            .bind(comment_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(db_err)?;
 
     if res.rows_affected() == 0 {
         return Err(err(StatusCode::NOT_FOUND, "Inline comment not found"));

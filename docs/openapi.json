@@ -31074,18 +31074,36 @@
           "window",
           "average_done_points",
           "average_started_points",
+          "average_done_count",
+          "average_started_count",
+          "predictability_pct",
           "sprints"
         ],
         "properties": {
+          "average_done_count": {
+            "type": "number",
+            "format": "double",
+            "description": "Mean completed issue count over the sprints listed."
+          },
           "average_done_points": {
             "type": "number",
             "format": "double",
             "description": "Mean completed points over the sprints listed. 0 when none are closed yet."
           },
+          "average_started_count": {
+            "type": "number",
+            "format": "double",
+            "description": "Mean committed issue count over the sprints listed."
+          },
           "average_started_points": {
             "type": "number",
             "format": "double",
             "description": "Mean committed points at start over the sprints listed."
+          },
+          "predictability_pct": {
+            "type": "number",
+            "format": "double",
+            "description": "Sprint predictability (done / committed points or count as a percentage)."
           },
           "sprints": {
             "type": "array",
@@ -31128,7 +31146,21 @@
             ],
             "format": "date-time"
           },
+          "final_done_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
           "final_done_points": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "final_scope_count": {
             "type": [
               "integer",
               "null"
@@ -31149,6 +31181,13 @@
             "type": "string",
             "format": "uuid"
           },
+          "started_scope_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
           "started_scope_points": {
             "type": [
               "integer",
@@ -31162,6 +31201,12 @@
               "null"
             ],
             "format": "uuid"
+          },
+          "team_name": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },

@@ -79,7 +79,9 @@ export function IncidentsView({ projectId }: { projectId: string }) {
 
   return (
     <section className="panel" aria-label="ITIL Incidents" style={{ marginTop: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}
+      >
         <div>
           <h4 style={{ display: "flex", alignItems: "center", gap: 6, margin: 0 }}>
             <Flame size={18} color="#ef4444" /> ITIL Incident Management
@@ -94,7 +96,10 @@ export function IncidentsView({ projectId }: { projectId: string }) {
       </div>
 
       {creating && (
-        <form onSubmit={createIncident} style={{ background: "var(--bg-subtle)", padding: 12, borderRadius: 6, marginBottom: 16 }}>
+        <form
+          onSubmit={createIncident}
+          style={{ background: "var(--bg-subtle)", padding: 12, borderRadius: 6, marginBottom: 16 }}
+        >
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12, marginBottom: 12 }}>
             <label className="small">
               Issue ID / UUID

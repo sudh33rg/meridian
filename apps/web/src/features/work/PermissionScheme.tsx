@@ -28,7 +28,8 @@ export function PermissionScheme({ token, projectId }: { token: string; projectI
     enabled: !!projectId,
   });
   const save = useMutation({
-    mutationFn: (next: Scheme) => send<Scheme>(`/projects/${projectId}/permission-scheme`, token, "PUT", { actions: {}, ...next }),
+    mutationFn: (next: Scheme) =>
+      send<Scheme>(`/projects/${projectId}/permission-scheme`, token, "PUT", { actions: {}, ...next }),
     onSuccess: () => {
       setDraft(null);
       toast("Permission scheme saved");
@@ -59,7 +60,10 @@ export function PermissionScheme({ token, projectId }: { token: string; projectI
         </label>
         <label>
           <span className="muted small">Changing issues needs</span>
-          <select value={current.edit_min} onChange={(e) => setDraft({ ...current, edit_min: Number(e.target.value) })}>
+          <select
+            value={current.edit_min}
+            onChange={(e) => setDraft({ ...current, edit_min: Number(e.target.value) })}
+          >
             <option value={2}>Member</option>
             <option value={3}>Admin</option>
           </select>

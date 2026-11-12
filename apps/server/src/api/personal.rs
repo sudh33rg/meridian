@@ -377,7 +377,10 @@ async fn subscribable_view(tx: &mut Tx, i: &Identity, view: Uuid) -> ApiResult<U
 }
 
 #[utoipa::path(get, path = "/api/views/{id}/subscription", tag = "views", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Your subscription to this view, or null", body = Option<ViewSubscription>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn get_view_subscription(mut tx: Tx, Path(view): Path<Uuid>) -> ApiResult<Json<Option<ViewSubscription>>> {
+pub(crate) async fn get_view_subscription(
+    mut tx: Tx,
+    Path(view): Path<Uuid>,
+) -> ApiResult<Json<Option<ViewSubscription>>> {
     let i = tx.identity.clone();
     subscribable_view(&mut tx, &i, view).await?;
     let row: Option<ViewSubscription> = sqlx::query_as(
@@ -402,13 +405,15 @@ pub(crate) async fn put_view_subscription(
     subscribable_view(&mut tx, &i, view).await?;
     match v.cadence.as_str() {
         "off" => {
-            sqlx::query("DELETE FROM view_subscriptions WHERE tenant_id=$1 AND user_id=$2 AND view_id=$3")
-                .bind(i.tenant_id)
-                .bind(i.user_id)
-                .bind(view)
-                .execute(&mut *tx)
-                .await
-                .map_err(db_err)?;
+            sqlx::query(
+                "DELETE FROM view_subscriptions WHERE tenant_id=$1 AND user_id=$2 AND view_id=$3",
+            )
+            .bind(i.tenant_id)
+            .bind(i.user_id)
+            .bind(view)
+            .execute(&mut *tx)
+            .await
+            .map_err(db_err)?;
             Ok(Json(None))
         }
         "daily" | "weekly" => {
@@ -478,9 +483,10 @@ pub(crate) async fn run_due_view_subscriptions(db: &sqlx::PgPool) -> Result<u64,
                     user_id: user,
                     role,
                 };
-                let (mut qb, _order) = crate::api::query::build_search(&mut tx, &identity, project, &query)
-                    .await
-                    .map_err(|_| "a subscribed view could not run".to_string())?;
+                let (mut qb, _order) =
+                    crate::api::query::build_search(&mut tx, &identity, project, &query)
+                        .await
+                        .map_err(|_| "a subscribed view could not run".to_string())?;
                 qb.push(" ORDER BY updated_at DESC LIMIT 200");
                 let rows: Vec<crate::api::work::Issue> = qb
                     .build_query_as::<crate::api::work::Issue>()
@@ -509,7 +515,11 @@ pub(crate) async fn run_due_view_subscriptions(db: &sqlx::PgPool) -> Result<u64,
                 .await
                 .map_err(|e| e.to_string())?;
                 sent += 1;
-                let step = if cadence == "weekly" { "7 days" } else { "1 day" };
+                let step = if cadence == "weekly" {
+                    "7 days"
+                } else {
+                    "1 day"
+                };
                 sqlx::query(
                     "UPDATE view_subscriptions SET last_sent_at=now(), next_run_at=now() + $1::interval \
                      WHERE tenant_id=$2 AND user_id=$3 AND view_id=$4",
@@ -654,7 +664,10 @@ pub(crate) async fn record_view(mut tx: Tx, Path(issue): Path<Uuid>) -> ApiResul
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/favourites", tag = "views", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Your favourite issues in this project, newest first", body = Vec<IssueRef>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_favourites(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<IssueRef>>> {
+pub(crate) async fn list_favourites(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+) -> ApiResult<Json<Vec<IssueRef>>> {
     let i = tx.identity.clone();
     member_of(&mut tx, &i, project).await?;
     let rows: Vec<IssueRef> = sqlx::query_as(
@@ -673,7 +686,10 @@ pub(crate) async fn list_favourites(mut tx: Tx, Path(project): Path<Uuid>) -> Ap
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/recent", tag = "views", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Issues you opened most recently in this project", body = Vec<IssueRef>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_recent(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<IssueRef>>> {
+pub(crate) async fn list_recent(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+) -> ApiResult<Json<Vec<IssueRef>>> {
     let i = tx.identity.clone();
     member_of(&mut tx, &i, project).await?;
     let rows: Vec<IssueRef> = sqlx::query_as(

@@ -176,7 +176,6 @@ export function ServicePanel() {
   const sla = slaQ.data ?? [];
   const breached = sla.filter((r) => r.state === "breached" || r.state === "missed").length;
 
-
   return (
     <div className="service-panel">
       <div className="panel-head">
@@ -195,7 +194,8 @@ export function ServicePanel() {
                   {q.name}
                   <span className="muted small">
                     {" "}
-                    · assigns to {membersQ.data?.find((m) => m.id === q.default_assignee_id)?.name ?? "nobody"}
+                    · assigns to{" "}
+                    {membersQ.data?.find((m) => m.id === q.default_assignee_id)?.name ?? "nobody"}
                   </span>
                 </span>
               </li>
@@ -209,8 +209,18 @@ export function ServicePanel() {
               if (queueName.trim()) addQueue.mutate();
             }}
           >
-            <input aria-label="Queue name" maxLength={80} value={queueName} onChange={(e) => setQueueName(e.target.value)} placeholder="Queue name" />
-            <select aria-label="Default assignee" value={queueAssignee} onChange={(e) => setQueueAssignee(e.target.value)}>
+            <input
+              aria-label="Queue name"
+              maxLength={80}
+              value={queueName}
+              onChange={(e) => setQueueName(e.target.value)}
+              placeholder="Queue name"
+            />
+            <select
+              aria-label="Default assignee"
+              value={queueAssignee}
+              onChange={(e) => setQueueAssignee(e.target.value)}
+            >
               <option value="">No default assignee</option>
               {(membersQ.data ?? []).map((m) => (
                 <option key={m.id} value={m.id}>
@@ -232,7 +242,8 @@ export function ServicePanel() {
                   {t.name}
                   <span className="muted small">
                     {" "}
-                    · {t.flow} · {t.target_hours} h · {queues.find((q) => q.id === t.queue_id)?.name ?? "queue"}
+                    · {t.flow} · {t.target_hours} h ·{" "}
+                    {queues.find((q) => q.id === t.queue_id)?.name ?? "queue"}
                   </span>
                 </span>
               </li>
@@ -246,8 +257,20 @@ export function ServicePanel() {
               if (typeName.trim() && typeQueue) addType.mutate();
             }}
           >
-            <input aria-label="Request type name" maxLength={80} value={typeName} onChange={(e) => setTypeName(e.target.value)} placeholder="Name" />
-            <input aria-label="Request type description" maxLength={2000} value={typeDesc} onChange={(e) => setTypeDesc(e.target.value)} placeholder="Description" />
+            <input
+              aria-label="Request type name"
+              maxLength={80}
+              value={typeName}
+              onChange={(e) => setTypeName(e.target.value)}
+              placeholder="Name"
+            />
+            <input
+              aria-label="Request type description"
+              maxLength={2000}
+              value={typeDesc}
+              onChange={(e) => setTypeDesc(e.target.value)}
+              placeholder="Description"
+            />
             <select aria-label="Flow" value={typeFlow} onChange={(e) => setTypeFlow(e.target.value)}>
               <option value="request">Request</option>
               <option value="incident">Incident</option>
@@ -261,12 +284,28 @@ export function ServicePanel() {
                 </option>
               ))}
             </select>
-            <input aria-label="Target hours" type="number" min={1} max={8760} value={typeHours} onChange={(e) => setTypeHours(e.target.value)} />
+            <input
+              aria-label="Target hours"
+              type="number"
+              min={1}
+              max={8760}
+              value={typeHours}
+              onChange={(e) => setTypeHours(e.target.value)}
+            />
             <label className="inline-check">
-              <input type="checkbox" checked={typeNeedsApproval} onChange={(e) => setTypeNeedsApproval(e.target.checked)} /> Needs approval
+              <input
+                type="checkbox"
+                checked={typeNeedsApproval}
+                onChange={(e) => setTypeNeedsApproval(e.target.checked)}
+              />{" "}
+              Needs approval
             </label>
             {typeNeedsApproval && (
-              <select aria-label="Approver" value={typeApprover} onChange={(e) => setTypeApprover(e.target.value)}>
+              <select
+                aria-label="Approver"
+                value={typeApprover}
+                onChange={(e) => setTypeApprover(e.target.value)}
+              >
                 <option value="">Approver…</option>
                 {(membersQ.data ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
@@ -310,9 +349,17 @@ export function ServicePanel() {
                   </span>
                 );
               })}
-              {!(fieldsQ.data ?? []).length && <span className="muted small">Define custom fields in the board's workflow section first.</span>}
+              {!(fieldsQ.data ?? []).length && (
+                <span className="muted small">
+                  Define custom fields in the board's workflow section first.
+                </span>
+              )}
             </fieldset>
-            <button className="secondary" type="submit" disabled={!typeName.trim() || !typeQueue || addType.isPending}>
+            <button
+              className="secondary"
+              type="submit"
+              disabled={!typeName.trim() || !typeQueue || addType.isPending}
+            >
               Add request type
             </button>
           </form>
@@ -335,14 +382,29 @@ export function ServicePanel() {
               </option>
             ))}
           </select>
-          <input aria-label="Request title" maxLength={200} value={reqTitle} onChange={(e) => setReqTitle(e.target.value)} placeholder="What do you need?" />
-          <input aria-label="Request details" maxLength={20000} value={reqText} onChange={(e) => setReqText(e.target.value)} placeholder="Details (optional)" />
+          <input
+            aria-label="Request title"
+            maxLength={200}
+            value={reqTitle}
+            onChange={(e) => setReqTitle(e.target.value)}
+            placeholder="What do you need?"
+          />
+          <input
+            aria-label="Request details"
+            maxLength={20000}
+            value={reqText}
+            onChange={(e) => setReqText(e.target.value)}
+            placeholder="Details (optional)"
+          />
           {formFields.map((f) => (
             <label key={f.key} className="inline-check">
               {f.label}
               {f.required ? " *" : ""}
               {f.field_type === "select" ? (
-                <select value={reqValues[f.key] ?? ""} onChange={(e) => setReqValues({ ...reqValues, [f.key]: e.target.value })}>
+                <select
+                  value={reqValues[f.key] ?? ""}
+                  onChange={(e) => setReqValues({ ...reqValues, [f.key]: e.target.value })}
+                >
                   <option value="">—</option>
                   {f.options.map((o) => (
                     <option key={o} value={o}>
@@ -354,7 +416,9 @@ export function ServicePanel() {
                 <input
                   type="checkbox"
                   checked={reqValues[f.key] === "true"}
-                  onChange={(e) => setReqValues({ ...reqValues, [f.key]: e.target.checked ? "true" : "false" })}
+                  onChange={(e) =>
+                    setReqValues({ ...reqValues, [f.key]: e.target.checked ? "true" : "false" })
+                  }
                 />
               ) : (
                 <input
@@ -366,7 +430,11 @@ export function ServicePanel() {
               )}
             </label>
           ))}
-          <button className="primary" type="submit" disabled={!reqType || !reqTitle.trim() || submit.isPending}>
+          <button
+            className="primary"
+            type="submit"
+            disabled={!reqType || !reqTitle.trim() || submit.isPending}
+          >
             Submit
           </button>
         </form>

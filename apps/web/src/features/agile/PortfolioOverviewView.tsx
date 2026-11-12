@@ -39,7 +39,9 @@ export function PortfolioOverviewView() {
 
   return (
     <div className="portfolio-overview" style={{ marginTop: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}
+      >
         <div>
           <h3 style={{ display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
             <Briefcase size={20} /> Cross-Project Portfolio
@@ -112,7 +114,15 @@ export function PortfolioOverviewView() {
                     <td>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <span>{p.open_issues} open</span>
-                        <div style={{ width: 60, height: 6, background: "var(--border)", borderRadius: 3, overflow: "hidden" }}>
+                        <div
+                          style={{
+                            width: 60,
+                            height: 6,
+                            background: "var(--border)",
+                            borderRadius: 3,
+                            overflow: "hidden",
+                          }}
+                        >
                           <div style={{ width: `${progressPct}%`, height: "100%", background: "#10b981" }} />
                         </div>
                       </div>

@@ -240,7 +240,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mailer = std::sync::Arc::new(mail::Mailer::from_config(&cfg));
     let store = storage::from_config(&cfg)?;
     jobs::spawn_worker(db.clone(), cfg.clone(), mailer, store.clone());
-    jobs::spawn_maintenance(db.clone(), cfg.email_notifications && cfg.smtp_url.is_some());
+    jobs::spawn_maintenance(
+        db.clone(),
+        cfg.email_notifications && cfg.smtp_url.is_some(),
+    );
     webhooks::spawn_dispatcher(db.clone(), cfg.clone());
     let sampler = db.clone();
     tokio::spawn(async move {

@@ -69,7 +69,13 @@ export function SprintCapacityModal({
   const data = cap.data;
 
   return (
-    <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()} role="dialog" aria-modal="true" aria-label="Sprint Capacity">
+    <div
+      className="overlay"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Sprint Capacity"
+    >
       <div className="modal" style={{ maxWidth: 560 }}>
         <div className="modal-head">
           <h3>Sprint Capacity: {sprintName}</h3>
@@ -82,7 +88,16 @@ export function SprintCapacityModal({
 
         {data && (
           <div>
-            <div style={{ display: "flex", gap: 16, marginBottom: 16, padding: 12, background: "var(--bg-subtle)", borderRadius: 6 }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 16,
+                marginBottom: 16,
+                padding: 12,
+                background: "var(--bg-subtle)",
+                borderRadius: 6,
+              }}
+            >
               <div>
                 <span className="small muted">Total Team Capacity</span>
                 <strong style={{ display: "block", fontSize: 18 }}>

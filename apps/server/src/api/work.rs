@@ -307,10 +307,16 @@ pub(crate) async fn create_issue(
     // Members cannot set restricted fields; the values they leave out are simply not stored.
     let admin = project_level(&mut tx, &i, project).await?.unwrap_or(0) >= 3;
     let restricted = crate::api::fields::restricted_keys(&mut tx, i.tenant_id, project).await?;
-    let mut given = v.custom_fields.clone().unwrap_or_else(|| serde_json::json!({}));
+    let mut given = v
+        .custom_fields
+        .clone()
+        .unwrap_or_else(|| serde_json::json!({}));
     if !admin {
         if restricted.iter().any(|k| given.get(k).is_some()) {
-            return Err(err(StatusCode::FORBIDDEN, "A restricted field can be set only by a project admin"));
+            return Err(err(
+                StatusCode::FORBIDDEN,
+                "A restricted field can be set only by a project admin",
+            ));
         }
         given = crate::api::fields::without_keys(&given, &restricted);
     }

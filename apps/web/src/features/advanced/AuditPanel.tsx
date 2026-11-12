@@ -38,13 +38,7 @@ async function readPage(token: string, qs: string): Promise<{ rows: AuditEvent[]
   return { rows: JSON.parse(text) as AuditEvent[], next: res.headers.get("x-next-cursor") };
 }
 
-export function AuditPanel({
-  token,
-  onError,
-}: {
-  token: string;
-  onError: (message: string) => void;
-}) {
+export function AuditPanel({ token, onError }: { token: string; onError: (message: string) => void }) {
   const [draft, setDraft] = useState<Filters>(EMPTY);
   const [applied, setApplied] = useState<Filters>(EMPTY);
   const [rows, setRows] = useState<AuditEvent[]>([]);
@@ -75,7 +69,10 @@ export function AuditPanel({
   const run = async (filters: Filters, cursor?: string) => {
     setBusy(true);
     try {
-      const page = await readPage(token, queryString(filters, { limit: String(PAGE), ...(cursor ? { cursor } : {}) }));
+      const page = await readPage(
+        token,
+        queryString(filters, { limit: String(PAGE), ...(cursor ? { cursor } : {}) }),
+      );
       setRows((old) => (cursor ? [...old, ...page.rows] : page.rows));
       setNext(page.next);
       setLoaded(true);

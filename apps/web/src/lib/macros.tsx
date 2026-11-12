@@ -10,7 +10,10 @@ import { Markdown } from "./markdown";
  * renderer does not recognise is shown as plain text, never run.
  */
 type Macro = { name: string; args: Record<string, string> };
-type Segment = { kind: "text"; text: string } | { kind: "macro"; macro: Macro; raw: string } | { kind: "invalid"; raw: string };
+type Segment =
+  | { kind: "text"; text: string }
+  | { kind: "macro"; macro: Macro; raw: string }
+  | { kind: "invalid"; raw: string };
 
 function parseMacro(body: string): Macro | null {
   const trimmed = body.trim();
@@ -53,7 +56,8 @@ export function splitMacros(content: string): Segment[] {
     if (start > 0) out.push({ kind: "text", text: rest.slice(0, start) });
     const raw = rest.slice(start, end + 2);
     const macro = parseMacro(rest.slice(start + 2, end));
-    const known = macro && ["issues", "table", "chart", "toc", "status", "callout", "properties"].includes(macro.name);
+    const known =
+      macro && ["issues", "table", "chart", "toc", "status", "callout", "properties"].includes(macro.name);
     out.push(known ? { kind: "macro", macro, raw } : { kind: "invalid", raw });
     rest = rest.slice(end + 2);
   }
@@ -122,11 +126,15 @@ function StaticMacroBlock({ macro }: { macro: Macro }) {
   if (macro.name === "properties") {
     const entries = Object.entries(macro.args);
     return (
-      <div style={{ margin: "12px 0", border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden" }}>
+      <div
+        style={{ margin: "12px 0", border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden" }}
+      >
         <table className="macro-table" style={{ margin: 0 }}>
           <thead>
             <tr>
-              <th scope="col" style={{ width: "35%" }}>Property</th>
+              <th scope="col" style={{ width: "35%" }}>
+                Property
+              </th>
               <th scope="col">Value</th>
             </tr>
           </thead>
@@ -145,9 +153,14 @@ function StaticMacroBlock({ macro }: { macro: Macro }) {
 
   if (macro.name === "toc") {
     return (
-      <nav aria-label="Table of contents" style={{ margin: "12px 0", padding: "10px 14px", background: "var(--bg-subtle)", borderRadius: 6 }}>
+      <nav
+        aria-label="Table of contents"
+        style={{ margin: "12px 0", padding: "10px 14px", background: "var(--bg-subtle)", borderRadius: 6 }}
+      >
         <strong style={{ fontSize: 13 }}>Table of Contents</strong>
-        <p className="muted small" style={{ margin: "4px 0 0" }}>Auto-generated document structure</p>
+        <p className="muted small" style={{ margin: "4px 0 0" }}>
+          Auto-generated document structure
+        </p>
       </nav>
     );
   }
@@ -242,13 +255,22 @@ function MacroBlock({ token, projectId, macro }: { token: string; projectId: str
 }
 
 /** A page's text with its macros rendered. Text is shown as markdown; macros run as searches. */
-export function PageBody({ content, token, projectId }: { content: string; token: string; projectId: string }) {
+export function PageBody({
+  content,
+  token,
+  projectId,
+}: {
+  content: string;
+  token: string;
+  projectId: string;
+}) {
   const segments = splitMacros(content);
   return (
     <div className="page-body">
       {segments.map((s, n) => {
         if (s.kind === "text") return <Markdown key={n} source={s.text} />;
-        if (s.kind === "macro") return <MacroBlock key={n} token={token} projectId={projectId} macro={s.macro} />;
+        if (s.kind === "macro")
+          return <MacroBlock key={n} token={token} projectId={projectId} macro={s.macro} />;
         return (
           <p key={n} className="muted small" role="note">
             Unknown macro shown as text: <code>{s.raw}</code>

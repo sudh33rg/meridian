@@ -123,7 +123,10 @@ export function PostFunctionEditor({
       const body: Record<string, unknown> = { action };
       if (action === "set_field") {
         body.field = field;
-        body.value = fieldValue(fields.find((f) => f.key === field), text);
+        body.value = fieldValue(
+          fields.find((f) => f.key === field),
+          text,
+        );
       }
       if (action === "create_subtask") body.value = text.trim();
       return send<PostFunction>(base, token, "POST", body);

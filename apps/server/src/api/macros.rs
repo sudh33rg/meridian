@@ -49,7 +49,9 @@ pub(crate) fn parse_macro(body: &str) -> Result<(String, Vec<(String, String)>),
         }
         let after = rest[eq + 1..].trim_start();
         let (value, remainder) = if let Some(quoted) = after.strip_prefix('"') {
-            let close = quoted.find('"').ok_or_else(|| format!("The value of {key} is not closed"))?;
+            let close = quoted
+                .find('"')
+                .ok_or_else(|| format!("The value of {key} is not closed"))?;
             (quoted[..close].to_string(), &quoted[close + 1..])
         } else {
             let end = after.find(char::is_whitespace).unwrap_or(after.len());
@@ -89,8 +91,15 @@ fn validate_one(body: &str) -> ApiResult<()> {
             "by" if !matches!(value.as_str(), "status" | "priority" | "kind") => {
                 return Err(bad("chart by must be status, priority or kind"))
             }
-            "color" if !matches!(value.as_str(), "gray" | "blue" | "green" | "yellow" | "red" | "purple") => {
-                return Err(bad("status color must be gray, blue, green, yellow, red or purple"))
+            "color"
+                if !matches!(
+                    value.as_str(),
+                    "gray" | "blue" | "green" | "yellow" | "red" | "purple"
+                ) =>
+            {
+                return Err(bad(
+                    "status color must be gray, blue, green, yellow, red or purple",
+                ))
             }
             "type" if !matches!(value.as_str(), "info" | "warning" | "tip" | "caution") => {
                 return Err(bad("callout type must be info, warning, tip or caution"))

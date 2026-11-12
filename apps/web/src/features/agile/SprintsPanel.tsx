@@ -1,17 +1,12 @@
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { BarChart3, Plus } from "lucide-react";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { errorMessage, request, send } from "../../lib/api";
 import { useToast } from "../shared/Toast";
 import { SprintCard } from "./SprintCard";
-import {
-  type Sprint,
-  type Velocity,
-  invalidatePlanning,
-  isOpenSprint,
-  useTeams,
-} from "./agile-shared";
+import { TeamVelocityModal } from "./TeamVelocityModal";
+import { type Sprint, type Velocity, invalidatePlanning, isOpenSprint, useTeams } from "./agile-shared";
 
 const ORDER: Record<string, number> = { active: 0, planned: 1, completed: 2 };
 
@@ -24,6 +19,7 @@ export function SprintsPanel() {
   const [name, setName] = useState("");
   const [goal, setGoal] = useState("");
   const [newTeam, setNewTeam] = useState("");
+  const [showVelocityModal, setShowVelocityModal] = useState(false);
   const active = tab === "sprints" && !!selected;
   const teams = useTeams(session.token, active);
   const sprints = useQuery({
@@ -57,22 +53,39 @@ export function SprintsPanel() {
             {project?.name}. One active sprint per team; work moves between sprints and the backlog.
           </p>
         </div>
-        <label className="small">
-          Team
-          <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
-            <option value="">All teams</option>
-            {teamList.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        {velocity.data && velocity.data.sprints.length > 0 && (
-          <span className="chip" aria-label="Average velocity">
-            Velocity {Math.round(velocity.data.average_done_points)} pts over {velocity.data.sprints.length} sprints
-          </span>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <label className="small" style={{ margin: 0 }}>
+            Team
+            <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
+              <option value="">All teams</option>
+              {teamList.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            className="secondary"
+            onClick={() => setShowVelocityModal(true)}
+            aria-label="View Team Velocity"
+            style={{ display: "flex", alignItems: "center", gap: 6 }}
+          >
+            <BarChart3 size={15} /> Team Velocity
+          </button>
+          {velocity.data && velocity.data.sprints.length > 0 && (
+            <button
+              className="chip"
+              onClick={() => setShowVelocityModal(true)}
+              aria-label="Average velocity"
+              style={{ cursor: "pointer", border: "none" }}
+              title="Click to view full velocity chart & predictability report"
+            >
+              Velocity {Math.round(velocity.data.average_done_points)} pts over {velocity.data.sprints.length}{" "}
+              sprints
+            </button>
+          )}
+        </div>
       </div>
       <form
         className="sprint-create"
@@ -83,7 +96,7 @@ export function SprintsPanel() {
             await send(`/projects/${selected}/sprints`, session.token, "POST", {
               name: name.trim(),
               goal,
-              team_id: (newTeam || teamFilter) || null,
+              team_id: newTeam || teamFilter || null,
             });
             setName("");
             setGoal("");
@@ -134,6 +147,16 @@ export function SprintsPanel() {
           </div>
         )}
       </div>
+
+      {showVelocityModal && selected && (
+        <TeamVelocityModal
+          projectId={selected}
+          projectKey={project?.key ?? ""}
+          projectName={project?.name}
+          initialTeamId={teamFilter}
+          onClose={() => setShowVelocityModal(false)}
+        />
+      )}
     </section>
   );
 }

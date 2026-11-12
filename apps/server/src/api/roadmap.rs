@@ -30,19 +30,25 @@ pub(crate) struct Milestone {
     pub(crate) created_at: DateTime<Utc>,
 }
 
-const MILESTONE_SELECT: &str = "SELECT id, project_id, name, to_char(target_on,'YYYY-MM-DD') AS target_on, \
+const MILESTONE_SELECT: &str =
+    "SELECT id, project_id, name, to_char(target_on,'YYYY-MM-DD') AS target_on, \
  to_char(reached_on,'YYYY-MM-DD') AS reached_on, created_at FROM milestones";
 
 #[utoipa::path(get, path = "/api/projects/{id}/milestones", tag = "roadmap", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Milestone>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_milestones(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json<Vec<Milestone>>> {
+pub(crate) async fn list_milestones(
+    mut tx: Tx,
+    Path(p): Path<Uuid>,
+) -> ApiResult<Json<Vec<Milestone>>> {
     let i = tx.identity.clone();
     valid_project(&mut tx, &i, p).await?;
-    let rows: Vec<Milestone> = sqlx::query_as(&format!("{MILESTONE_SELECT} WHERE tenant_id=$1 AND project_id=$2 ORDER BY target_on"))
-        .bind(i.tenant_id)
-        .bind(p)
-        .fetch_all(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let rows: Vec<Milestone> = sqlx::query_as(&format!(
+        "{MILESTONE_SELECT} WHERE tenant_id=$1 AND project_id=$2 ORDER BY target_on"
+    ))
+    .bind(i.tenant_id)
+    .bind(p)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(db_err)?;
     Ok(Json(rows))
 }
 
@@ -72,12 +78,13 @@ pub(crate) async fn create_milestone(
         .fetch_one(&mut *tx)
         .await
         .map_err(db_err)?;
-    let row: Milestone = sqlx::query_as(&format!("{MILESTONE_SELECT} WHERE tenant_id=$1 AND id=$2"))
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let row: Milestone =
+        sqlx::query_as(&format!("{MILESTONE_SELECT} WHERE tenant_id=$1 AND id=$2"))
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
     Ok((StatusCode::CREATED, Json(row)))
 }
 
@@ -116,12 +123,13 @@ pub(crate) async fn update_milestone(
     .execute(&mut *tx)
     .await
     .map_err(db_err)?;
-    let row: Milestone = sqlx::query_as(&format!("{MILESTONE_SELECT} WHERE tenant_id=$1 AND id=$2"))
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let row: Milestone =
+        sqlx::query_as(&format!("{MILESTONE_SELECT} WHERE tenant_id=$1 AND id=$2"))
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
     Ok(Json(row))
 }
 
@@ -153,7 +161,10 @@ pub(crate) struct TimelineItem {
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/timeline", tag = "roadmap", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Epics, releases, sprints and milestones with dates", body = Vec<TimelineItem>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn timeline(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json<Vec<TimelineItem>>> {
+pub(crate) async fn timeline(
+    mut tx: Tx,
+    Path(p): Path<Uuid>,
+) -> ApiResult<Json<Vec<TimelineItem>>> {
     let i = tx.identity.clone();
     valid_project(&mut tx, &i, p).await?;
     let done = done_predicate("e");
@@ -213,14 +224,21 @@ pub(crate) struct Dependency {
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/dependencies", tag = "roadmap", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Blocking links between open issues, normalised so `from` comes first", body = Vec<Dependency>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn dependencies(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json<Vec<Dependency>>> {
+pub(crate) async fn dependencies(
+    mut tx: Tx,
+    Path(p): Path<Uuid>,
+) -> ApiResult<Json<Vec<Dependency>>> {
     let i = tx.identity.clone();
     valid_project(&mut tx, &i, p).await?;
     Ok(Json(load_dependencies(&mut tx, i.tenant_id, p).await?))
 }
 
 /// Normalised edges of open issues in a project: `blocks` runs source to target, `depends_on` runs target to source.
-async fn load_dependencies(db: &mut PgConnection, tenant: Uuid, project: Uuid) -> ApiResult<Vec<Dependency>> {
+async fn load_dependencies(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    project: Uuid,
+) -> ApiResult<Vec<Dependency>> {
     let done = done_predicate("a");
     let done_b = done_predicate("b");
     let rows: Vec<Dependency> = sqlx::query_as(&format!(
@@ -262,7 +280,10 @@ pub(crate) struct CriticalPath {
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/critical-path", tag = "roadmap", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Longest chain of dependent open issues", body = CriticalPath), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn critical_path(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json<CriticalPath>> {
+pub(crate) async fn critical_path(
+    mut tx: Tx,
+    Path(p): Path<Uuid>,
+) -> ApiResult<Json<CriticalPath>> {
     let i = tx.identity.clone();
     valid_project(&mut tx, &i, p).await?;
     let edges = load_dependencies(&mut tx, i.tenant_id, p).await?;
@@ -287,7 +308,11 @@ pub(crate) async fn critical_path(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<
         out.entry(e.from).or_default().push(e.to);
     }
     // Kahn's algorithm, which also detects cycles.
-    let mut queue: VecDeque<Uuid> = indegree.iter().filter(|(_, d)| **d == 0).map(|(n, _)| *n).collect();
+    let mut queue: VecDeque<Uuid> = indegree
+        .iter()
+        .filter(|(_, d)| **d == 0)
+        .map(|(n, _)| *n)
+        .collect();
     let mut order: Vec<Uuid> = Vec::new();
     let mut remaining_in = indegree.clone();
     while let Some(n) = queue.pop_front() {
@@ -302,7 +327,11 @@ pub(crate) async fn critical_path(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<
         }
     }
     if order.len() != indegree.len() {
-        return Ok(Json(CriticalPath { path: Vec::new(), total_minutes: 0, has_cycle: true }));
+        return Ok(Json(CriticalPath {
+            path: Vec::new(),
+            total_minutes: 0,
+            has_cycle: true,
+        }));
     }
     // Longest weighted path ending at each node, with the predecessor that gives it.
     let mut best: HashMap<Uuid, (i64, Option<Uuid>)> = HashMap::new();
@@ -320,7 +349,11 @@ pub(crate) async fn critical_path(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<
         }
     }
     let Some((&end, &(total, _))) = best.iter().max_by_key(|(_, (t, _))| *t) else {
-        return Ok(Json(CriticalPath { path: Vec::new(), total_minutes: 0, has_cycle: false }));
+        return Ok(Json(CriticalPath {
+            path: Vec::new(),
+            total_minutes: 0,
+            has_cycle: false,
+        }));
     };
     let mut chain = vec![end];
     let mut cursor = end;
@@ -340,7 +373,11 @@ pub(crate) async fn critical_path(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<
             })
         })
         .collect();
-    Ok(Json(CriticalPath { path, total_minutes: total, has_cycle: false }))
+    Ok(Json(CriticalPath {
+        path,
+        total_minutes: total,
+        has_cycle: false,
+    }))
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -392,7 +429,10 @@ pub(crate) struct InitiativeInput {
 }
 
 #[utoipa::path(post, path = "/api/initiatives", tag = "roadmap", request_body = InitiativeInput, responses((status = 201, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn create_initiative(mut tx: Tx, Json(v): Json<InitiativeInput>) -> ApiResult<(StatusCode, Json<Value>)> {
+pub(crate) async fn create_initiative(
+    mut tx: Tx,
+    Json(v): Json<InitiativeInput>,
+) -> ApiResult<(StatusCode, Json<Value>)> {
     let i = tx.identity.clone();
     require_editor(&i)?;
     validate_title(&v.name)?;
@@ -424,13 +464,20 @@ pub(crate) struct InitiativePatch {
 }
 
 #[utoipa::path(patch, path = "/api/initiatives/{id}", tag = "roadmap", params(("id" = Uuid, Path, description = "Resource id")), request_body = InitiativePatch, responses((status = 200, description = "Success", body = Object), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn update_initiative(mut tx: Tx, Path(id): Path<Uuid>, Json(v): Json<InitiativePatch>) -> ApiResult<Json<Value>> {
+pub(crate) async fn update_initiative(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+    Json(v): Json<InitiativePatch>,
+) -> ApiResult<Json<Value>> {
     let i = tx.identity.clone();
     require_editor(&i)?;
     if let Some(n) = &v.name {
         validate_title(n)?;
     }
-    if v.status.as_deref().is_some_and(|s| !["active", "paused", "done"].contains(&s)) {
+    if v.status
+        .as_deref()
+        .is_some_and(|s| !["active", "paused", "done"].contains(&s))
+    {
         return Err(bad("Status must be active, paused or done"));
     }
     let target = v.target_on.as_deref().map(day).transpose()?;
@@ -447,7 +494,9 @@ pub(crate) async fn update_initiative(mut tx: Tx, Path(id): Path<Uuid>, Json(v):
     .fetch_optional(&mut *tx)
     .await
     .map_err(db_err)?;
-    Ok(Json(row.ok_or_else(|| err(StatusCode::NOT_FOUND, "Initiative not found"))?))
+    Ok(Json(row.ok_or_else(|| {
+        err(StatusCode::NOT_FOUND, "Initiative not found")
+    })?))
 }
 
 #[derive(Deserialize, utoipa::ToSchema)]
@@ -464,12 +513,13 @@ pub(crate) async fn link_initiative_epics(
 ) -> ApiResult<Json<crate::api::agile::MembershipResult>> {
     let i = tx.identity.clone();
     require_editor(&i)?;
-    let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM initiatives WHERE tenant_id=$1 AND id=$2)")
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let exists: bool =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM initiatives WHERE tenant_id=$1 AND id=$2)")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
     if !exists {
         return Err(err(StatusCode::NOT_FOUND, "Initiative not found"));
     }
@@ -491,7 +541,9 @@ pub(crate) async fn link_initiative_epics(
         let reason = match row {
             None => Some("Issue not found".to_string()),
             Some((_, _, Some(_))) => Some("Issue is archived".into()),
-            Some((_, kind, _)) if kind != "epic" => Some("Only epics can join an initiative".into()),
+            Some((_, kind, _)) if kind != "epic" => {
+                Some("Only epics can join an initiative".into())
+            }
             Some((project, _, _)) => {
                 let level: Option<i32> = sqlx::query_scalar("SELECT project_access($1,$2,$3)")
                     .bind(project)
@@ -508,7 +560,11 @@ pub(crate) async fn link_initiative_epics(
             }
         };
         match reason {
-            Some(reason) => results.push(crate::api::issues::BulkItemResult { id: issue, ok: false, error: Some(reason) }),
+            Some(reason) => results.push(crate::api::issues::BulkItemResult {
+                id: issue,
+                ok: false,
+                error: Some(reason),
+            }),
             None => {
                 sqlx::query(
                     "INSERT INTO initiative_epics(tenant_id,initiative_id,issue_id) VALUES($1,$2,$3) \
@@ -521,11 +577,18 @@ pub(crate) async fn link_initiative_epics(
                 .await
                 .map_err(db_err)?;
                 changed += 1;
-                results.push(crate::api::issues::BulkItemResult { id: issue, ok: true, error: None });
+                results.push(crate::api::issues::BulkItemResult {
+                    id: issue,
+                    ok: true,
+                    error: None,
+                });
             }
         }
     }
-    Ok(Json(crate::api::agile::MembershipResult { changed, results }))
+    Ok(Json(crate::api::agile::MembershipResult {
+        changed,
+        results,
+    }))
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -545,7 +608,10 @@ pub(crate) struct ProjectUpdate {
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/updates", tag = "roadmap", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Newest first", body = Vec<ProjectUpdate>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_updates(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json<Vec<ProjectUpdate>>> {
+pub(crate) async fn list_updates(
+    mut tx: Tx,
+    Path(p): Path<Uuid>,
+) -> ApiResult<Json<Vec<ProjectUpdate>>> {
     let i = tx.identity.clone();
     valid_project(&mut tx, &i, p).await?;
     let rows: Vec<ProjectUpdate> = sqlx::query_as(
@@ -616,15 +682,19 @@ pub(crate) struct GoalProgress {
 }
 
 #[utoipa::path(get, path = "/api/goals/{id}/progress", tag = "roadmap", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = GoalProgress), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn goal_progress(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<GoalProgress>> {
+pub(crate) async fn goal_progress(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<GoalProgress>> {
     let i = tx.identity.clone();
-    let project: Option<Uuid> = sqlx::query_scalar("SELECT project_id FROM goals WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(db_err)?
-        .flatten();
+    let project: Option<Uuid> =
+        sqlx::query_scalar("SELECT project_id FROM goals WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(db_err)?
+            .flatten();
     match project {
         Some(p) => ensure_access(&mut tx, p).await?,
         None => return Err(err(StatusCode::NOT_FOUND, "Goal not found")),
@@ -639,8 +709,17 @@ pub(crate) async fn goal_progress(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult
     .fetch_one(&mut *tx)
     .await
     .map_err(db_err)?;
-    let progress = if linked == 0 { None } else { Some(((finished * 100) / linked) as i32) };
-    Ok(Json(GoalProgress { goal_id: id, linked, done: finished, progress }))
+    let progress = if linked == 0 {
+        None
+    } else {
+        Some(((finished * 100) / linked) as i32)
+    };
+    Ok(Json(GoalProgress {
+        goal_id: id,
+        linked,
+        done: finished,
+        progress,
+    }))
 }
 
 #[derive(Deserialize, utoipa::ToSchema)]
@@ -656,13 +735,14 @@ pub(crate) async fn set_goal_issues(
 ) -> ApiResult<Json<GoalProgress>> {
     let i = tx.identity.clone();
     require_editor(&i)?;
-    let project: Option<Uuid> = sqlx::query_scalar("SELECT project_id FROM goals WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(db_err)?
-        .flatten();
+    let project: Option<Uuid> =
+        sqlx::query_scalar("SELECT project_id FROM goals WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(db_err)?
+            .flatten();
     let Some(project) = project else {
         return Err(err(StatusCode::NOT_FOUND, "Goal not found"));
     };
@@ -715,8 +795,17 @@ pub(crate) async fn set_goal_issues(
     .fetch_one(&mut *tx)
     .await
     .map_err(db_err)?;
-    let progress = if linked == 0 { None } else { Some(((finished * 100) / linked) as i32) };
-    Ok(Json(GoalProgress { goal_id: id, linked, done: finished, progress }))
+    let progress = if linked == 0 {
+        None
+    } else {
+        Some(((finished * 100) / linked) as i32)
+    };
+    Ok(Json(GoalProgress {
+        goal_id: id,
+        linked,
+        done: finished,
+        progress,
+    }))
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -791,12 +880,14 @@ pub(crate) async fn set_capacity(
     if !(0.0..=168.0).contains(&v.hours_per_week) || !v.hours_per_week.is_finite() {
         return Err(bad("hours_per_week must be between 0 and 168"));
     }
-    let member: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM memberships WHERE tenant_id=$1 AND user_id=$2)")
-        .bind(i.tenant_id)
-        .bind(user)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let member: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM memberships WHERE tenant_id=$1 AND user_id=$2)",
+    )
+    .bind(i.tenant_id)
+    .bind(user)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
     if !member {
         return Err(err(StatusCode::NOT_FOUND, "Member not found"));
     }
@@ -827,7 +918,10 @@ pub(crate) struct Baseline {
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/baselines", tag = "roadmap", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = Vec<Baseline>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_baselines(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json<Vec<Baseline>>> {
+pub(crate) async fn list_baselines(
+    mut tx: Tx,
+    Path(p): Path<Uuid>,
+) -> ApiResult<Json<Vec<Baseline>>> {
     let i = tx.identity.clone();
     valid_project(&mut tx, &i, p).await?;
     let rows: Vec<Baseline> = sqlx::query_as(
@@ -858,13 +952,15 @@ pub(crate) async fn create_baseline(
     valid_project(&mut tx, &i, p).await?;
     validate_title(&v.name)?;
     let done = done_predicate("i");
-    let id: Uuid = sqlx::query_scalar("INSERT INTO baselines(tenant_id,project_id,name) VALUES($1,$2,$3) RETURNING id")
-        .bind(i.tenant_id)
-        .bind(p)
-        .bind(v.name.trim())
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let id: Uuid = sqlx::query_scalar(
+        "INSERT INTO baselines(tenant_id,project_id,name) VALUES($1,$2,$3) RETURNING id",
+    )
+    .bind(i.tenant_id)
+    .bind(p)
+    .bind(v.name.trim())
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
     sqlx::query(&format!(
         "INSERT INTO baseline_items(tenant_id,baseline_id,issue_id,due_at) \
          SELECT i.tenant_id, $2, i.id, i.due_at FROM issues i WHERE i.tenant_id=$1 AND i.project_id=$3 AND i.archived_at IS NULL AND NOT {done}"
@@ -900,15 +996,19 @@ pub(crate) struct Variance {
 }
 
 #[utoipa::path(get, path = "/api/baselines/{id}/variance", tag = "roadmap", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Due date against baseline for each issue in the snapshot", body = Vec<Variance>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn baseline_variance(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Vec<Variance>>> {
+pub(crate) async fn baseline_variance(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<Vec<Variance>>> {
     let i = tx.identity.clone();
-    let project: Uuid = sqlx::query_scalar("SELECT project_id FROM baselines WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(db_err)?
-        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Baseline not found"))?;
+    let project: Uuid =
+        sqlx::query_scalar("SELECT project_id FROM baselines WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(db_err)?
+            .ok_or_else(|| err(StatusCode::NOT_FOUND, "Baseline not found"))?;
     ensure_access(&mut tx, project).await?;
     let done = done_predicate("i");
     let rows: Vec<Variance> = sqlx::query_as(&format!(
@@ -1016,7 +1116,10 @@ pub(crate) struct UpdateRaidItem {
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/raid", tag = "roadmap", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "RAID items for this project", body = Vec<RaidItem>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_raid_items(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<RaidItem>>> {
+pub(crate) async fn list_raid_items(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+) -> ApiResult<Json<Vec<RaidItem>>> {
     ensure_access(&mut tx, project).await?;
     let rows: Vec<RaidItem> = sqlx::query_as(
         "SELECT id, project_id, kind, title, description, severity, status, owner_id, to_char(due_date,'YYYY-MM-DD') AS due_date, created_at \
@@ -1078,13 +1181,14 @@ pub(crate) async fn update_raid_item(
     Json(input): Json<UpdateRaidItem>,
 ) -> ApiResult<Json<RaidItem>> {
     let i = tx.identity.clone();
-    let project: Uuid = sqlx::query_scalar("SELECT project_id FROM raid_items WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(db_err)?
-        .ok_or_else(|| err(StatusCode::NOT_FOUND, "RAID item not found"))?;
+    let project: Uuid =
+        sqlx::query_scalar("SELECT project_id FROM raid_items WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(db_err)?
+            .ok_or_else(|| err(StatusCode::NOT_FOUND, "RAID item not found"))?;
     ensure_access(&mut tx, project).await?;
 
     let row: RaidItem = sqlx::query_as(
@@ -1117,13 +1221,14 @@ pub(crate) async fn update_raid_item(
 #[utoipa::path(delete, path = "/api/raid/{id}", tag = "roadmap", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 204, description = "Deleted"), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn delete_raid_item(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<StatusCode> {
     let i = tx.identity.clone();
-    let project: Uuid = sqlx::query_scalar("SELECT project_id FROM raid_items WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(db_err)?
-        .ok_or_else(|| err(StatusCode::NOT_FOUND, "RAID item not found"))?;
+    let project: Uuid =
+        sqlx::query_scalar("SELECT project_id FROM raid_items WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(db_err)?
+            .ok_or_else(|| err(StatusCode::NOT_FOUND, "RAID item not found"))?;
     ensure_access(&mut tx, project).await?;
 
     sqlx::query("DELETE FROM raid_items WHERE tenant_id=$1 AND id=$2")
@@ -1139,21 +1244,45 @@ pub(crate) async fn delete_raid_item(mut tx: Tx, Path(id): Path<Uuid>) -> ApiRes
 pub(crate) fn routes() -> axum::Router<App> {
     axum::Router::new()
         .route("/api/portfolio/overview", get(portfolio_overview))
-        .route("/api/projects/{id}/raid", get(list_raid_items).post(create_raid_item))
-        .route("/api/raid/{id}", axum::routing::patch(update_raid_item).delete(delete_raid_item))
-        .route("/api/projects/{id}/milestones", get(list_milestones).post(create_milestone))
-        .route("/api/milestones/{id}", axum::routing::patch(update_milestone).delete(delete_milestone))
+        .route(
+            "/api/projects/{id}/raid",
+            get(list_raid_items).post(create_raid_item),
+        )
+        .route(
+            "/api/raid/{id}",
+            axum::routing::patch(update_raid_item).delete(delete_raid_item),
+        )
+        .route(
+            "/api/projects/{id}/milestones",
+            get(list_milestones).post(create_milestone),
+        )
+        .route(
+            "/api/milestones/{id}",
+            axum::routing::patch(update_milestone).delete(delete_milestone),
+        )
         .route("/api/projects/{id}/timeline", get(timeline))
         .route("/api/projects/{id}/dependencies", get(dependencies))
         .route("/api/projects/{id}/critical-path", get(critical_path))
-        .route("/api/initiatives", get(list_initiatives).post(create_initiative))
-        .route("/api/initiatives/{id}", axum::routing::patch(update_initiative))
+        .route(
+            "/api/initiatives",
+            get(list_initiatives).post(create_initiative),
+        )
+        .route(
+            "/api/initiatives/{id}",
+            axum::routing::patch(update_initiative),
+        )
         .route("/api/initiatives/{id}/epics", put(link_initiative_epics))
-        .route("/api/projects/{id}/updates", get(list_updates).post(post_update))
+        .route(
+            "/api/projects/{id}/updates",
+            get(list_updates).post(post_update),
+        )
         .route("/api/goals/{id}/progress", get(goal_progress))
         .route("/api/goals/{id}/issues", put(set_goal_issues))
         .route("/api/capacity", get(capacity))
         .route("/api/members/{user_id}/capacity", put(set_capacity))
-        .route("/api/projects/{id}/baselines", get(list_baselines).post(create_baseline))
+        .route(
+            "/api/projects/{id}/baselines",
+            get(list_baselines).post(create_baseline),
+        )
         .route("/api/baselines/{id}/variance", get(baseline_variance))
 }

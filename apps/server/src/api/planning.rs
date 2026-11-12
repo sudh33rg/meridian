@@ -51,12 +51,13 @@ pub(crate) async fn new_sprint(
         return Err(bad("Sprint end must follow start"));
     }
     if let Some(team) = v.team_id {
-        let ok: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM teams WHERE tenant_id=$1 AND id=$2)")
-            .bind(i.tenant_id)
-            .bind(team)
-            .fetch_one(&mut *tx)
-            .await
-            .map_err(db_err)?;
+        let ok: bool =
+            sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM teams WHERE tenant_id=$1 AND id=$2)")
+                .bind(i.tenant_id)
+                .bind(team)
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(db_err)?;
         if !ok {
             return Err(bad("Team not found in this workspace"));
         }

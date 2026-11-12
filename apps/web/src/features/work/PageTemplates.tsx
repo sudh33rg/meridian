@@ -28,7 +28,10 @@ export function PageTemplates({
   const templates = templatesQ.data ?? [];
   const save = useMutation({
     mutationFn: () =>
-      send<PageTemplate>(`/projects/${projectId}/page-templates`, token, "POST", { name: name.trim(), body: content }),
+      send<PageTemplate>(`/projects/${projectId}/page-templates`, token, "POST", {
+        name: name.trim(),
+        body: content,
+      }),
     onSuccess: () => {
       setName("");
       toast("Template saved");

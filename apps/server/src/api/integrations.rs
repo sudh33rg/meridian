@@ -87,7 +87,10 @@ pub(crate) async fn create_token(
 ) -> ApiResult<(StatusCode, Json<CreatedApiToken>)> {
     let i = tx.identity.clone();
     if sent_with_api_token(&headers) {
-        return Err(err(StatusCode::FORBIDDEN, "API tokens cannot create tokens. Sign in to create one"));
+        return Err(err(
+            StatusCode::FORBIDDEN,
+            "API tokens cannot create tokens. Sign in to create one",
+        ));
     }
     let name = v.name.trim().to_string();
     if name.is_empty() || name.chars().count() > 80 {
@@ -117,7 +120,13 @@ pub(crate) async fn create_token(
     .await
     .map_err(db_err)?;
     log_event(&mut tx, &i, "created", "api_token", info.id).await?;
-    Ok((StatusCode::CREATED, Json(CreatedApiToken { token: secret, info })))
+    Ok((
+        StatusCode::CREATED,
+        Json(CreatedApiToken {
+            token: secret,
+            info,
+        }),
+    ))
 }
 
 #[utoipa::path(delete, path = "/api/me/tokens/{id}", tag = "me", params(("id" = Uuid, Path, description = "Token id")), responses((status = 204, description = "Revoked"), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found", body = ErrorBody)), security(("bearer" = [])))]
@@ -185,17 +194,25 @@ pub(crate) struct GitSecretStatus {
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/git-secret", tag = "integrations", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Whether a secret is set; the secret itself is never returned", body = GitSecretStatus), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn get_git_secret(mut tx: Tx, Path(p): Path<Uuid>) -> ApiResult<Json<GitSecretStatus>> {
+pub(crate) async fn get_git_secret(
+    mut tx: Tx,
+    Path(p): Path<Uuid>,
+) -> ApiResult<Json<GitSecretStatus>> {
     let i = tx.identity.clone();
     require_admin(&i)?;
     valid_project(&mut tx, &i, p).await?;
-    let configured: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM project_git_secrets WHERE tenant_id=$1 AND project_id=$2)")
-        .bind(i.tenant_id)
-        .bind(p)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
-    Ok(Json(GitSecretStatus { configured, webhook_path: format!("/api/integrations/git/{p}") }))
+    let configured: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM project_git_secrets WHERE tenant_id=$1 AND project_id=$2)",
+    )
+    .bind(i.tenant_id)
+    .bind(p)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db_err)?;
+    Ok(Json(GitSecretStatus {
+        configured,
+        webhook_path: format!("/api/integrations/git/{p}"),
+    }))
 }
 
 /// Keys of the form `KEY-123` that belong to `project_key`, in order of first appearance.
@@ -244,7 +261,13 @@ fn git_items(event: &str, payload: &Value) -> Vec<GitItem> {
                         GitItem {
                             kind: "commit",
                             reference: s(c.get("id")),
-                            title: message.lines().next().unwrap_or("").chars().take(500).collect(),
+                            title: message
+                                .lines()
+                                .next()
+                                .unwrap_or("")
+                                .chars()
+                                .take(500)
+                                .collect(),
                             url: s(c.get("url")),
                             author: c
                                 .get("author")
@@ -306,12 +329,14 @@ pub(crate) async fn git_webhook(
             .await
             .map_err(db_err)?;
     let sealed: Option<String> = match &project {
-        Some((tenant, _)) => sqlx::query_scalar("SELECT secret_sealed FROM project_git_secrets WHERE tenant_id=$1 AND project_id=$2")
-            .bind(tenant)
-            .bind(p)
-            .fetch_optional(&app.db)
-            .await
-            .map_err(db_err)?,
+        Some((tenant, _)) => sqlx::query_scalar(
+            "SELECT secret_sealed FROM project_git_secrets WHERE tenant_id=$1 AND project_id=$2",
+        )
+        .bind(tenant)
+        .bind(p)
+        .fetch_optional(&app.db)
+        .await
+        .map_err(db_err)?,
         None => None,
     };
     let (Some((tenant, key)), Some(sealed)) = (project, sealed) else {
@@ -389,7 +414,10 @@ pub(crate) struct DevLink {
 }
 
 #[utoipa::path(get, path = "/api/issues/{id}/dev-links", tag = "integrations", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Commits and pull requests that name this issue", body = Vec<DevLink>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn issue_dev_links(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Vec<DevLink>>> {
+pub(crate) async fn issue_dev_links(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<Vec<DevLink>>> {
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "issues", id).await?;
     let rows: Vec<DevLink> = sqlx::query_as(
@@ -408,7 +436,10 @@ pub(crate) fn routes() -> axum::Router<App> {
     axum::Router::new()
         .route("/api/me/tokens", get(list_tokens).post(create_token))
         .route("/api/me/tokens/{id}", delete(revoke_token))
-        .route("/api/projects/{id}/git-secret", put(put_git_secret).get(get_git_secret))
+        .route(
+            "/api/projects/{id}/git-secret",
+            put(put_git_secret).get(get_git_secret),
+        )
         .route("/api/integrations/git/{id}", post(git_webhook))
         .route("/api/issues/{id}/dev-links", get(issue_dev_links))
 }

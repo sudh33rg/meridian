@@ -63,7 +63,10 @@ async fn level_project(tx: &mut Tx, tenant: Uuid, level: Uuid) -> ApiResult<Uuid
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/security-levels", tag = "security", params(("id" = Uuid, Path, description = "Project id")), responses((status = 200, description = "The project's levels", body = SecurityLevels), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_levels(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<SecurityLevels>> {
+pub(crate) async fn list_levels(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+) -> ApiResult<Json<SecurityLevels>> {
     let i = tx.identity.clone();
     ensure_access(&mut tx, project).await?;
     let can_manage = project_level(&mut tx, &i, project).await?.unwrap_or(0) >= 3;
@@ -111,7 +114,10 @@ pub(crate) async fn create_level(
     .await
     .map_err(db_err)?;
     if taken {
-        return Err(err(StatusCode::CONFLICT, "A level with this name already exists"));
+        return Err(err(
+            StatusCode::CONFLICT,
+            "A level with this name already exists",
+        ));
     }
     let row: SecurityLevel = sqlx::query_as(
         "INSERT INTO security_levels(tenant_id,project_id,name,description) VALUES($1,$2,$3,$4) \
@@ -133,12 +139,14 @@ pub(crate) async fn delete_level(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<
     let i = tx.identity.clone();
     let project = level_project(&mut tx, i.tenant_id, id).await?;
     ensure_project_admin(&mut tx, project).await?;
-    sqlx::query("UPDATE issues SET security_level_id=NULL WHERE tenant_id=$1 AND security_level_id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .execute(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    sqlx::query(
+        "UPDATE issues SET security_level_id=NULL WHERE tenant_id=$1 AND security_level_id=$2",
+    )
+    .bind(i.tenant_id)
+    .bind(id)
+    .execute(&mut *tx)
+    .await
+    .map_err(db_err)?;
     sqlx::query("DELETE FROM security_levels WHERE tenant_id=$1 AND id=$2")
         .bind(i.tenant_id)
         .bind(id)
@@ -173,7 +181,9 @@ pub(crate) async fn set_level_members(
     .await
     .map_err(db_err)?;
     if known as usize != ids.len() {
-        return Err(bad("Every member must be an active member of this workspace"));
+        return Err(bad(
+            "Every member must be an active member of this workspace",
+        ));
     }
     sqlx::query("DELETE FROM security_level_members WHERE tenant_id=$1 AND level_id=$2")
         .bind(i.tenant_id)
@@ -182,20 +192,32 @@ pub(crate) async fn set_level_members(
         .await
         .map_err(db_err)?;
     for user in ids {
-        sqlx::query("INSERT INTO security_level_members(tenant_id,level_id,user_id) VALUES($1,$2,$3)")
-            .bind(i.tenant_id)
-            .bind(id)
-            .bind(user)
-            .execute(&mut *tx)
-            .await
-            .map_err(db_err)?;
+        sqlx::query(
+            "INSERT INTO security_level_members(tenant_id,level_id,user_id) VALUES($1,$2,$3)",
+        )
+        .bind(i.tenant_id)
+        .bind(id)
+        .bind(user)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
     }
-    log_event(&mut tx, &i, "security_level_members_set", "project", project).await?;
+    log_event(
+        &mut tx,
+        &i,
+        "security_level_members_set",
+        "project",
+        project,
+    )
+    .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
 #[utoipa::path(get, path = "/api/issues/{id}/security-level", tag = "security", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "The issue's level", body = IssueSecurity), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Issue not found for you", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn get_issue_level(mut tx: Tx, Path(issue): Path<Uuid>) -> ApiResult<Json<IssueSecurity>> {
+pub(crate) async fn get_issue_level(
+    mut tx: Tx,
+    Path(issue): Path<Uuid>,
+) -> ApiResult<Json<IssueSecurity>> {
     let i = tx.identity.clone();
     valid_issue(&mut tx, &i, issue).await?;
     let row: IssueSecurity = sqlx::query_as(
@@ -241,13 +263,15 @@ pub(crate) async fn set_issue_level(
                 .map_err(db_err)?
         }
     };
-    sqlx::query("UPDATE issues SET security_level_id=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3")
-        .bind(v.level_id)
-        .bind(i.tenant_id)
-        .bind(issue)
-        .execute(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    sqlx::query(
+        "UPDATE issues SET security_level_id=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3",
+    )
+    .bind(v.level_id)
+    .bind(i.tenant_id)
+    .bind(issue)
+    .execute(&mut *tx)
+    .await
+    .map_err(db_err)?;
     crate::api::history::record_change(
         &mut tx,
         i.tenant_id,
@@ -259,7 +283,10 @@ pub(crate) async fn set_issue_level(
     )
     .await?;
     log_event(&mut tx, &i, "issue_security_level_set", "issue", issue).await?;
-    Ok(Json(IssueSecurity { level_id: v.level_id, name }))
+    Ok(Json(IssueSecurity {
+        level_id: v.level_id,
+        name,
+    }))
 }
 
 pub(crate) fn routes() -> axum::Router<App> {

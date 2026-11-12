@@ -6,6 +6,8 @@ import { apiResponse, errorMessage, request, send } from "../../lib/api";
 import { downloadCsv } from "../../lib/download";
 import { useToast } from "../shared/Toast";
 import { formatMinutes } from "./IssueDepth";
+import { TeamVelocityChart, TeamVelocityModal } from "./TeamVelocityModal";
+import { type Velocity } from "./agile-shared";
 
 type FlowRow = { day: string; status: string; count: number };
 type CycleReport = {
@@ -14,7 +16,14 @@ type CycleReport = {
   average_lead_days: number | null;
   median_cycle_days: number | null;
   average_cycle_days: number | null;
-  items: { issue_id: string; number: number; title: string; done_on: string; lead_days: number; cycle_days: number | null }[];
+  items: {
+    issue_id: string;
+    number: number;
+    title: string;
+    done_on: string;
+    lead_days: number;
+    cycle_days: number | null;
+  }[];
   throughput: { week: string; completed: number }[];
 };
 type CreatedResolved = { day: string; created: number; resolved: number };
@@ -69,8 +78,14 @@ export function ReportsPanel() {
   const [chosen, setChosen] = useState("");
   const [widgetKind, setWidgetKind] = useState<string>(WIDGET_KINDS[0][0]);
   const [widgetTitle, setWidgetTitle] = useState("");
+  const [showVelocityModal, setShowVelocityModal] = useState(false);
   const active = tab === "reports" && !!selected;
   const range = `from=${from}&to=${to}`;
+  const velocity = useQuery({
+    queryKey: ["velocity-report", selected],
+    queryFn: () => request<Velocity>(session.token, `/projects/${selected}/velocity?sprints=5`),
+    enabled: active,
+  });
   const flow = useQuery({
     queryKey: ["report", "flow", selected, from, to],
     queryFn: () => request<FlowRow[]>(session.token, `/projects/${selected}/reports/flow?${range}`),
@@ -83,7 +98,8 @@ export function ReportsPanel() {
   });
   const cr = useQuery({
     queryKey: ["report", "created", selected, from, to],
-    queryFn: () => request<CreatedResolved[]>(session.token, `/projects/${selected}/reports/created-resolved?${range}`),
+    queryFn: () =>
+      request<CreatedResolved[]>(session.token, `/projects/${selected}/reports/created-resolved?${range}`),
     enabled: active,
   });
   const time = useQuery({
@@ -124,7 +140,9 @@ export function ReportsPanel() {
       <div className="planning-head">
         <div>
           <h2 id="reports-title">Reports</h2>
-          <p className="muted small">Built from status history and logged time. Ranges are inclusive, at most a year.</p>
+          <p className="muted small">
+            Built from status history and logged time. Ranges are inclusive, at most a year.
+          </p>
         </div>
         <label className="small">
           From
@@ -168,6 +186,38 @@ export function ReportsPanel() {
       </div>
 
       <div className="report-grid">
+        <article className="panel report-card" style={{ gridColumn: "span 2" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h3>Team Velocity &amp; Predictability</h3>
+            <button
+              className="secondary small-btn"
+              onClick={() => setShowVelocityModal(true)}
+              style={{ fontSize: 12, padding: "3px 10px" }}
+            >
+              Full Velocity Report
+            </button>
+          </div>
+          <p className="small">
+            {velocity.data?.sprints && velocity.data.sprints.length > 0 ? (
+              <>
+                <strong>{velocity.data.average_done_points.toFixed(1)} pts</strong> average over{" "}
+                {velocity.data.sprints.length} sprints ·{" "}
+                <strong>{Math.round(velocity.data.predictability_pct)}%</strong> commitment predictability
+              </>
+            ) : (
+              "No completed sprints with story points recorded yet."
+            )}
+          </p>
+          {velocity.data && velocity.data.sprints.length > 0 ? (
+            <div style={{ marginTop: 8 }}>
+              <TeamVelocityChart velocity={velocity.data} metric="points" height={190} />
+            </div>
+          ) : (
+            <p className="muted small">
+              Close a sprint with story points to track team velocity and commitment delivery.
+            </p>
+          )}
+        </article>
         <article className="panel report-card">
           <h3>Status now</h3>
           <Bars
@@ -193,7 +243,10 @@ export function ReportsPanel() {
           </dl>
           <Bars
             label="Completed per week"
-            rows={(cycle.data?.throughput ?? []).map((t) => ({ label: `Week of ${t.week}`, value: t.completed }))}
+            rows={(cycle.data?.throughput ?? []).map((t) => ({
+              label: `Week of ${t.week}`,
+              value: t.completed,
+            }))}
           />
         </article>
         <article className="panel report-card">
@@ -203,7 +256,9 @@ export function ReportsPanel() {
           </p>
           <Bars
             label="Resolved per day"
-            rows={(cr.data ?? []).filter((r) => r.resolved > 0).map((r) => ({ label: r.day, value: r.resolved }))}
+            rows={(cr.data ?? [])
+              .filter((r) => r.resolved > 0)
+              .map((r) => ({ label: r.day, value: r.resolved }))}
           />
         </article>
         <article className="panel report-card">
@@ -211,7 +266,10 @@ export function ReportsPanel() {
           <p className="small">Total {formatMinutes(time.data?.total_minutes ?? 0)}</p>
           <Bars
             label="Time by person"
-            rows={(time.data?.by_person ?? []).map((p) => ({ label: p.name, value: Math.round(p.minutes / 60) }))}
+            rows={(time.data?.by_person ?? []).map((p) => ({
+              label: p.name,
+              value: Math.round(p.minutes / 60),
+            }))}
           />
           <p className="muted small">Bars show whole hours.</p>
           <ul className="plain-list">
@@ -248,7 +306,13 @@ export function ReportsPanel() {
             }
           }}
         >
-          <input aria-label="Dashboard name" placeholder="New dashboard name" value={dashName} maxLength={120} onChange={(e) => setDashName(e.target.value)} />
+          <input
+            aria-label="Dashboard name"
+            placeholder="New dashboard name"
+            value={dashName}
+            maxLength={120}
+            onChange={(e) => setDashName(e.target.value)}
+          />
           <button className="secondary small-btn" disabled={!dashName.trim()}>
             <Plus size={14} /> Create
           </button>
@@ -268,7 +332,8 @@ export function ReportsPanel() {
               className="row-actions wrap"
               onSubmit={async (e) => {
                 e.preventDefault();
-                const title = widgetTitle.trim() || WIDGET_KINDS.find((k) => k[0] === widgetKind)?.[1] || "Widget";
+                const title =
+                  widgetTitle.trim() || WIDGET_KINDS.find((k) => k[0] === widgetKind)?.[1] || "Widget";
                 try {
                   await send(`/dashboards/${chosen}/widgets`, session.token, "POST", {
                     kind: widgetKind,
@@ -282,14 +347,24 @@ export function ReportsPanel() {
                 }
               }}
             >
-              <select aria-label="Widget kind" value={widgetKind} onChange={(e) => setWidgetKind(e.target.value)}>
+              <select
+                aria-label="Widget kind"
+                value={widgetKind}
+                onChange={(e) => setWidgetKind(e.target.value)}
+              >
                 {WIDGET_KINDS.map(([k, label]) => (
                   <option key={k} value={k}>
                     {label}
                   </option>
                 ))}
               </select>
-              <input aria-label="Widget title" placeholder="Widget title (optional)" value={widgetTitle} maxLength={120} onChange={(e) => setWidgetTitle(e.target.value)} />
+              <input
+                aria-label="Widget title"
+                placeholder="Widget title (optional)"
+                value={widgetTitle}
+                maxLength={120}
+                onChange={(e) => setWidgetTitle(e.target.value)}
+              />
               <button className="secondary small-btn">Add widget</button>
             </form>
           )}
@@ -303,6 +378,15 @@ export function ReportsPanel() {
           ))}
         </div>
       </section>
+
+      {showVelocityModal && selected && (
+        <TeamVelocityModal
+          projectId={selected}
+          projectKey={key}
+          projectName={project?.name}
+          onClose={() => setShowVelocityModal(false)}
+        />
+      )}
     </section>
   );
 }
@@ -314,20 +398,64 @@ function WidgetBody({ kind, data }: { kind: string; data: unknown }) {
   }
   if (kind === "time_by_person") {
     const rows = (data as { name: string; minutes: number }[]) ?? [];
-    return <Bars label="Time" rows={rows.map((r) => ({ label: r.name, value: Math.round(r.minutes / 60) }))} />;
+    return (
+      <Bars label="Time" rows={rows.map((r) => ({ label: r.name, value: Math.round(r.minutes / 60) }))} />
+    );
   }
   if (kind === "cycle_summary") {
-    const d = data as { completed: number; median_lead_days: number | null; median_cycle_days: number | null };
+    const d = data as {
+      completed: number;
+      median_lead_days: number | null;
+      median_cycle_days: number | null;
+    };
     return (
       <p className="small">
-        {d.completed} completed · median lead {d.median_lead_days == null ? "–" : `${d.median_lead_days.toFixed(1)} d`} · median cycle{" "}
+        {d.completed} completed · median lead{" "}
+        {d.median_lead_days == null ? "–" : `${d.median_lead_days.toFixed(1)} d`} · median cycle{" "}
         {d.median_cycle_days == null ? "–" : `${d.median_cycle_days.toFixed(1)} d`}
       </p>
     );
   }
   if (kind === "velocity") {
-    const d = data as { sprints: number; average_done_points: number };
-    return <p className="small">{d.average_done_points.toFixed(1)} points average over {d.sprints} sprints</p>;
+    const d = data as {
+      sprints?: number;
+      sprints_count?: number;
+      average_done_points: number;
+      recent?: { name: string; started_points: number; done_points: number }[];
+    };
+    const count = d.sprints ?? d.sprints_count ?? 0;
+    const recent = d.recent ?? [];
+    return (
+      <div>
+        <p className="small" style={{ margin: "0 0 6px" }}>
+          <strong>{d.average_done_points.toFixed(1)} pts</strong> average over {count} sprints
+        </p>
+        {recent.length > 0 && (
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-end", height: 60, padding: "4px 0" }}>
+            {recent.map((s, idx) => {
+              const max = Math.max(1, ...recent.map((r) => Math.max(r.started_points, r.done_points)));
+              const commH = Math.max(4, (s.started_points / max) * 44);
+              const doneH = Math.max(4, (s.done_points / max) * 44);
+              return (
+                <div
+                  key={idx}
+                  style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}
+                  title={`${s.name}: ${s.done_points} done / ${s.started_points} committed`}
+                >
+                  <div style={{ display: "flex", gap: 2, alignItems: "flex-end", height: 46 }}>
+                    <div style={{ width: 8, height: commH, background: "#94a3b8", borderRadius: 2 }} />
+                    <div style={{ width: 8, height: doneH, background: "#10b981", borderRadius: 2 }} />
+                  </div>
+                  <span style={{ fontSize: 9, color: "var(--text-3)", marginTop: 2, whiteSpace: "nowrap" }}>
+                    {s.name.length > 6 ? `${s.name.slice(0, 5)}…` : s.name}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
   }
   if (kind === "flow") {
     return <p className="small muted">Flow is shown on the Reports page.</p>;

@@ -467,9 +467,8 @@ pub(crate) async fn import_csv(
 }
 
 pub(crate) fn routes() -> Router<App> {
-    Router::new()
-        .route(
-            "/api/projects/{id}/import/csv",
-            axum::routing::post(import_csv),
-        )
+    Router::new().route(
+        "/api/projects/{id}/import/csv",
+        axum::routing::post(import_csv),
+    )
 }

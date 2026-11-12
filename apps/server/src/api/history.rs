@@ -155,12 +155,13 @@ pub(crate) async fn issue_history(
 ) -> ApiResult<Json<Vec<IssueHistoryEntry>>> {
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "issues", id).await?;
-    let project: Uuid = sqlx::query_scalar("SELECT project_id FROM issues WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let project: Uuid =
+        sqlx::query_scalar("SELECT project_id FROM issues WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
     let rows: Vec<IssueHistoryEntry> = sqlx::query_as(
         "SELECT x.kind, x.field, x.old_value, x.new_value, x.actor_id, x.actor_name, x.changed_at FROM (\
            SELECT 'status'::text AS kind, NULL::text AS field, h.from_status AS old_value, h.to_status AS new_value, \
@@ -180,9 +181,15 @@ pub(crate) async fn issue_history(
     let mut rows = rows;
     if project_level(&mut tx, &i, project).await?.unwrap_or(0) < 3 {
         let hidden = crate::api::fields::restricted_keys(&mut tx, i.tenant_id, project).await?;
-        rows.retain(|r| match r.field.as_deref().and_then(|f| f.strip_prefix("custom_fields.")) {
-            Some(key) => !hidden.iter().any(|k| k == key),
-            None => true,
+        rows.retain(|r| {
+            match r
+                .field
+                .as_deref()
+                .and_then(|f| f.strip_prefix("custom_fields."))
+            {
+                Some(key) => !hidden.iter().any(|k| k == key),
+                None => true,
+            }
         });
     }
     Ok(Json(rows))

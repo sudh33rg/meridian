@@ -83,7 +83,9 @@ pub(crate) async fn backlog(
         }
         Some(s) => Some(format!(
             "%{}%",
-            s.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_")
+            s.replace('\\', "\\\\")
+                .replace('%', "\\%")
+                .replace('_', "\\_")
         )),
     };
     let done = done_predicate("i");
@@ -125,15 +127,22 @@ pub(crate) struct RankInput {
     pub(crate) anchor_id: Option<Uuid>,
 }
 
-async fn rank_of(db: &mut PgConnection, tenant: Uuid, project: Uuid, issue: Uuid) -> ApiResult<f64> {
-    sqlx::query_scalar("SELECT backlog_rank FROM issues WHERE tenant_id=$1 AND project_id=$2 AND id=$3")
-        .bind(tenant)
-        .bind(project)
-        .bind(issue)
-        .fetch_optional(&mut *db)
-        .await
-        .map_err(db_err)?
-        .ok_or_else(|| bad("Anchor must be an issue in the same project"))
+async fn rank_of(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    project: Uuid,
+    issue: Uuid,
+) -> ApiResult<f64> {
+    sqlx::query_scalar(
+        "SELECT backlog_rank FROM issues WHERE tenant_id=$1 AND project_id=$2 AND id=$3",
+    )
+    .bind(tenant)
+    .bind(project)
+    .bind(issue)
+    .fetch_optional(&mut *db)
+    .await
+    .map_err(db_err)?
+    .ok_or_else(|| bad("Anchor must be an issue in the same project"))
 }
 
 /// Ranks the project's issues 1..n in their current order. Used only when float precision runs out.
@@ -175,15 +184,27 @@ pub(crate) async fn rank_issue(
     let mut renumbered = false;
     let new_rank = loop {
         let (lower, upper) = match (v.placement.as_str(), v.anchor_id) {
-            ("top", _) => (None, min_rank(&mut tx, i.tenant_id, project, id, None).await?),
-            ("bottom", _) => (max_rank(&mut tx, i.tenant_id, project, id, None).await?, None),
+            ("top", _) => (
+                None,
+                min_rank(&mut tx, i.tenant_id, project, id, None).await?,
+            ),
+            ("bottom", _) => (
+                max_rank(&mut tx, i.tenant_id, project, id, None).await?,
+                None,
+            ),
             ("before", Some(a)) => {
                 let ar = rank_of(&mut tx, i.tenant_id, project, a).await?;
-                (max_rank(&mut tx, i.tenant_id, project, id, Some(ar)).await?, Some(ar))
+                (
+                    max_rank(&mut tx, i.tenant_id, project, id, Some(ar)).await?,
+                    Some(ar),
+                )
             }
             ("after", Some(a)) => {
                 let ar = rank_of(&mut tx, i.tenant_id, project, a).await?;
-                (Some(ar), min_rank(&mut tx, i.tenant_id, project, id, Some(ar)).await?)
+                (
+                    Some(ar),
+                    min_rank(&mut tx, i.tenant_id, project, id, Some(ar)).await?,
+                )
             }
             _ => return Err(bad("Invalid placement")),
         };
@@ -197,7 +218,9 @@ pub(crate) async fn rank_issue(
                     break mid;
                 }
                 if renumbered {
-                    return Err(ApiError::Internal("Could not place the item after renumbering".into()));
+                    return Err(ApiError::Internal(
+                        "Could not place the item after renumbering".into(),
+                    ));
                 }
                 renumber_project(&mut tx, i.tenant_id, project).await?;
                 renumbered = true;
@@ -276,12 +299,13 @@ pub(crate) async fn set_issue_team(
     require_editor(&i)?;
     valid_issue(&mut tx, &i, id).await?;
     if let Some(team) = v.team_id {
-        let ok: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM teams WHERE tenant_id=$1 AND id=$2)")
-            .bind(i.tenant_id)
-            .bind(team)
-            .fetch_one(&mut *tx)
-            .await
-            .map_err(db_err)?;
+        let ok: bool =
+            sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM teams WHERE tenant_id=$1 AND id=$2)")
+                .bind(i.tenant_id)
+                .bind(team)
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(db_err)?;
         if !ok {
             return Err(bad("Team not found in this workspace"));
         }
@@ -298,14 +322,17 @@ pub(crate) async fn set_issue_team(
     .await
     .map_err(db_err)?;
     if blocked {
-        return Err(bad("Remove the issue from its team's sprint before changing its team"));
+        return Err(bad(
+            "Remove the issue from its team's sprint before changing its team",
+        ));
     }
-    let before_team: Option<Uuid> = sqlx::query_scalar("SELECT team_id FROM issues WHERE tenant_id=$1 AND id=$2")
-        .bind(i.tenant_id)
-        .bind(id)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(db_err)?;
+    let before_team: Option<Uuid> =
+        sqlx::query_scalar("SELECT team_id FROM issues WHERE tenant_id=$1 AND id=$2")
+            .bind(i.tenant_id)
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db_err)?;
     let row: BacklogItem = sqlx::query_as(&format!(
         "UPDATE issues SET team_id=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3 AND archived_at IS NULL RETURNING {BACKLOG_COLUMNS}"
     ))
@@ -339,20 +366,30 @@ pub(crate) struct SprintTotals {
     pub(crate) done_points: i32,
 }
 
-pub(crate) async fn sprint_totals(db: &mut PgConnection, tenant: Uuid, sprint: Uuid) -> ApiResult<SprintTotals> {
+pub(crate) async fn sprint_totals(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    sprint: Uuid,
+) -> ApiResult<SprintTotals> {
     let done = done_predicate("i");
     let sql = format!(
         "SELECT count(*)::int4, count(*) FILTER (WHERE {done})::int4, \
          COALESCE(sum(i.story_points),0)::int4, COALESCE(sum(i.story_points) FILTER (WHERE {done}),0)::int4 \
          FROM issues i WHERE i.tenant_id=$1 AND i.sprint_id=$2 AND i.archived_at IS NULL"
     );
-    let (scope_count, done_count, scope_points, done_points): (i32, i32, i32, i32) = sqlx::query_as(&sql)
-        .bind(tenant)
-        .bind(sprint)
-        .fetch_one(&mut *db)
-        .await
-        .map_err(db_err)?;
-    Ok(SprintTotals { scope_count, done_count, scope_points, done_points })
+    let (scope_count, done_count, scope_points, done_points): (i32, i32, i32, i32) =
+        sqlx::query_as(&sql)
+            .bind(tenant)
+            .bind(sprint)
+            .fetch_one(&mut *db)
+            .await
+            .map_err(db_err)?;
+    Ok(SprintTotals {
+        scope_count,
+        done_count,
+        scope_points,
+        done_points,
+    })
 }
 
 /// Stores today's totals for a sprint. Re-running on the same day replaces the day's row.
@@ -419,14 +456,20 @@ pub(crate) struct Sprint {
 pub(crate) const SPRINT_COLUMNS: &str = "id,tenant_id,project_id,team_id,name,goal,state,starts_at,ends_at,created_at,\
 started_scope_count,started_scope_points,closed_at,final_scope_count,final_scope_points,final_done_count,final_done_points,carried_over_count";
 
-pub(crate) async fn load_sprint(db: &mut PgConnection, tenant: Uuid, id: Uuid) -> ApiResult<Sprint> {
-    sqlx::query_as(&format!("SELECT {SPRINT_COLUMNS} FROM sprints WHERE tenant_id=$1 AND id=$2"))
-        .bind(tenant)
-        .bind(id)
-        .fetch_optional(&mut *db)
-        .await
-        .map_err(db_err)?
-        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Sprint not found"))
+pub(crate) async fn load_sprint(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    id: Uuid,
+) -> ApiResult<Sprint> {
+    sqlx::query_as(&format!(
+        "SELECT {SPRINT_COLUMNS} FROM sprints WHERE tenant_id=$1 AND id=$2"
+    ))
+    .bind(tenant)
+    .bind(id)
+    .fetch_optional(&mut *db)
+    .await
+    .map_err(db_err)?
+    .ok_or_else(|| err(StatusCode::NOT_FOUND, "Sprint not found"))
 }
 
 #[derive(Serialize, utoipa::ToSchema)]
@@ -438,7 +481,10 @@ pub(crate) struct SprintDetail {
 }
 
 #[utoipa::path(get, path = "/api/sprints/{id}", tag = "agile", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = SprintDetail), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn sprint_detail(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<SprintDetail>> {
+pub(crate) async fn sprint_detail(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<SprintDetail>> {
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "sprints", id).await?;
     let sprint = load_sprint(&mut tx, i.tenant_id, id).await?;
@@ -451,7 +497,11 @@ pub(crate) async fn sprint_detail(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult
     .fetch_all(&mut *tx)
     .await
     .map_err(db_err)?;
-    Ok(Json(SprintDetail { sprint, totals, issues }))
+    Ok(Json(SprintDetail {
+        sprint,
+        totals,
+        issues,
+    }))
 }
 
 /// Issue ids to add to or remove from a sprint. At most 100 distinct ids.
@@ -497,12 +547,16 @@ pub(crate) async fn add_issues_to_sprint(
         let prev_sprint = row.and_then(|r| r.3);
         let reason = match row {
             None => Some("Issue not found".to_string()),
-            Some((project, _, _, _)) if project != sprint.project_id => Some("Issue is in another project".into()),
+            Some((project, _, _, _)) if project != sprint.project_id => {
+                Some("Issue is in another project".into())
+            }
             Some((_, _, Some(_), _)) => Some("Issue is archived".into()),
             Some((_, team, _, _)) if sprint.team_id.is_some() && team != sprint.team_id => {
                 Some("Issue belongs to another team; assign it to this team first".into())
             }
-            Some((_, _, _, Some(current))) if current == id => Some("Already in this sprint".into()),
+            Some((_, _, _, Some(current))) if current == id => {
+                Some("Already in this sprint".into())
+            }
             Some((_, _, _, Some(current))) => {
                 // Work that was completed in a closed sprint stays there; open work may move between sprints.
                 let closed: bool = sqlx::query_scalar(
@@ -522,15 +576,21 @@ pub(crate) async fn add_issues_to_sprint(
             Some(_) => None,
         };
         match reason {
-            Some(reason) => results.push(crate::api::issues::BulkItemResult { id: issue, ok: false, error: Some(reason) }),
+            Some(reason) => results.push(crate::api::issues::BulkItemResult {
+                id: issue,
+                ok: false,
+                error: Some(reason),
+            }),
             None => {
-                sqlx::query("UPDATE issues SET sprint_id=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3")
-                    .bind(id)
-                    .bind(i.tenant_id)
-                    .bind(issue)
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(db_err)?;
+                sqlx::query(
+                    "UPDATE issues SET sprint_id=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3",
+                )
+                .bind(id)
+                .bind(i.tenant_id)
+                .bind(issue)
+                .execute(&mut *tx)
+                .await
+                .map_err(db_err)?;
                 log_event(&mut tx, &i, "updated", "issue", issue).await?;
                 crate::api::history::record_change(
                     &mut tx,
@@ -543,7 +603,11 @@ pub(crate) async fn add_issues_to_sprint(
                 )
                 .await?;
                 changed += 1;
-                results.push(crate::api::issues::BulkItemResult { id: issue, ok: true, error: None });
+                results.push(crate::api::issues::BulkItemResult {
+                    id: issue,
+                    ok: true,
+                    error: None,
+                });
             }
         }
     }
@@ -625,7 +689,8 @@ pub(crate) async fn update_sprint(
     require_editor(&i)?;
     ensure_action_on(&mut tx, "sprints", id, "manage_sprints").await?;
     let current = load_sprint(&mut tx, i.tenant_id, id).await?;
-    let meta_change = v.name.is_some() || v.goal.is_some() || v.starts_at.is_some() || v.ends_at.is_some();
+    let meta_change =
+        v.name.is_some() || v.goal.is_some() || v.starts_at.is_some() || v.ends_at.is_some();
     if v.state.is_none() && !meta_change {
         return Err(bad("Nothing to change"));
     }
@@ -688,12 +753,16 @@ pub(crate) async fn update_sprint(
         }
         Some("completed") => {
             if current.state != "active" {
-                return Err(err(StatusCode::CONFLICT, "Only an active sprint can complete"));
+                return Err(err(
+                    StatusCode::CONFLICT,
+                    "Only an active sprint can complete",
+                ));
             }
             // Totals are taken before anything moves, so the closing record describes the sprint as it ended.
             let t = sprint_totals(&mut tx, i.tenant_id, id).await?;
             record_snapshot(&mut tx, i.tenant_id, id).await?;
-            let target = carry_over_target(&mut tx, &i, &current, v.carry_over_to.as_deref()).await?;
+            let target =
+                carry_over_target(&mut tx, &i, &current, v.carry_over_to.as_deref()).await?;
             let done = done_predicate("issues");
             let carried = sqlx::query(&format!(
                 "UPDATE issues SET sprint_id=$1, updated_at=now() WHERE tenant_id=$2 AND sprint_id=$3 AND archived_at IS NULL AND NOT {done}"
@@ -773,10 +842,14 @@ pub(crate) struct VelocitySprint {
     pub(crate) sprint_id: Uuid,
     pub(crate) name: String,
     pub(crate) team_id: Option<Uuid>,
+    pub(crate) team_name: Option<String>,
     pub(crate) closed_at: Option<DateTime<Utc>>,
     pub(crate) started_scope_points: Option<i32>,
     pub(crate) final_scope_points: Option<i32>,
     pub(crate) final_done_points: Option<i32>,
+    pub(crate) started_scope_count: Option<i32>,
+    pub(crate) final_scope_count: Option<i32>,
+    pub(crate) final_done_count: Option<i32>,
     pub(crate) carried_over_count: Option<i32>,
 }
 
@@ -796,6 +869,12 @@ pub(crate) struct Velocity {
     pub(crate) average_done_points: f64,
     /// Mean committed points at start over the sprints listed.
     pub(crate) average_started_points: f64,
+    /// Mean completed issue count over the sprints listed.
+    pub(crate) average_done_count: f64,
+    /// Mean committed issue count over the sprints listed.
+    pub(crate) average_started_count: f64,
+    /// Sprint predictability (done / committed points or count as a percentage).
+    pub(crate) predictability_pct: f64,
     pub(crate) sprints: Vec<VelocitySprint>,
 }
 
@@ -812,9 +891,12 @@ pub(crate) async fn velocity(
         return Err(bad("sprints must be between 1 and 20"));
     }
     let sprints: Vec<VelocitySprint> = sqlx::query_as(
-        "SELECT id AS sprint_id, name, team_id, closed_at, started_scope_points, final_scope_points, final_done_points, carried_over_count \
-         FROM sprints WHERE tenant_id=$1 AND project_id=$2 AND state='completed' AND final_done_points IS NOT NULL \
-         AND ($3::uuid IS NULL OR team_id=$3) ORDER BY closed_at DESC NULLS LAST LIMIT $4",
+        "SELECT s.id AS sprint_id, s.name, s.team_id, t.name AS team_name, s.closed_at, \
+         s.started_scope_points, s.final_scope_points, s.final_done_points, \
+         s.started_scope_count, s.final_scope_count, s.final_done_count, s.carried_over_count \
+         FROM sprints s LEFT JOIN teams t ON s.tenant_id = t.tenant_id AND s.team_id = t.id \
+         WHERE s.tenant_id=$1 AND s.project_id=$2 AND s.state='completed' AND s.final_done_points IS NOT NULL \
+         AND ($3::uuid IS NULL OR s.team_id=$3) ORDER BY s.closed_at DESC NULLS LAST LIMIT $4",
     )
     .bind(i.tenant_id)
     .bind(project)
@@ -827,18 +909,54 @@ pub(crate) async fn velocity(
     let average_done_points = if sprints.is_empty() {
         0.0
     } else {
-        sprints.iter().map(|s| f64::from(s.final_done_points.unwrap_or(0))).sum::<f64>() / n
+        sprints
+            .iter()
+            .map(|s| f64::from(s.final_done_points.unwrap_or(0)))
+            .sum::<f64>()
+            / n
     };
     let average_started_points = if sprints.is_empty() {
         0.0
     } else {
-        sprints.iter().map(|s| f64::from(s.started_scope_points.unwrap_or(0))).sum::<f64>() / n
+        sprints
+            .iter()
+            .map(|s| f64::from(s.started_scope_points.unwrap_or(0)))
+            .sum::<f64>()
+            / n
+    };
+    let average_done_count = if sprints.is_empty() {
+        0.0
+    } else {
+        sprints
+            .iter()
+            .map(|s| f64::from(s.final_done_count.unwrap_or(0)))
+            .sum::<f64>()
+            / n
+    };
+    let average_started_count = if sprints.is_empty() {
+        0.0
+    } else {
+        sprints
+            .iter()
+            .map(|s| f64::from(s.started_scope_count.unwrap_or(0)))
+            .sum::<f64>()
+            / n
+    };
+    let predictability_pct = if average_started_points > 0.0 {
+        (average_done_points / average_started_points) * 100.0
+    } else if average_started_count > 0.0 {
+        (average_done_count / average_started_count) * 100.0
+    } else {
+        0.0
     };
     Ok(Json(Velocity {
         team_id: q.team_id,
         window,
         average_done_points,
         average_started_points,
+        average_done_count,
+        average_started_count,
+        predictability_pct,
         sprints,
     }))
 }
@@ -942,11 +1060,7 @@ pub(crate) struct BoardView {
 
 const BOARD_LIMIT: usize = 2000;
 
-async fn board_inner(
-    mut tx: Tx,
-    project: Uuid,
-    q: BoardQuery,
-) -> ApiResult<Json<BoardView>> {
+async fn board_inner(mut tx: Tx, project: Uuid, q: BoardQuery) -> ApiResult<Json<BoardView>> {
     let i = tx.identity.clone();
     let group_by = q.group_by.clone().unwrap_or_else(|| "none".to_string());
     if !matches!(group_by.as_str(), "none" | "assignee" | "epic") {
@@ -959,10 +1073,14 @@ async fn board_inner(
     }
     let search = match q.q.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
         None => None,
-        Some(s) if s.chars().count() > 200 => return Err(bad("Search text is limited to 200 characters")),
+        Some(s) if s.chars().count() > 200 => {
+            return Err(bad("Search text is limited to 200 characters"))
+        }
         Some(s) => Some(format!(
             "%{}%",
-            s.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_")
+            s.replace('\\', "\\\\")
+                .replace('%', "\\%")
+                .replace('_', "\\_")
         )),
     };
     let rows: Vec<BoardIssue> = sqlx::query_as(
@@ -992,7 +1110,9 @@ async fn board_inner(
     // Work out each issue's lane key first, then fetch labels only for the keys that appear.
     let key_of = |r: &BoardIssue| -> String {
         match group_by.as_str() {
-            "assignee" => r.assignee_id.map_or("unassigned".to_string(), |u| u.to_string()),
+            "assignee" => r
+                .assignee_id
+                .map_or("unassigned".to_string(), |u| u.to_string()),
             "epic" => r.parent_id.map_or("no-epic".to_string(), |u| u.to_string()),
             _ => "all".to_string(),
         }
@@ -1023,7 +1143,11 @@ async fn board_inner(
             .fetch_all(&mut *tx)
             .await
             .map_err(db_err)?;
-            labels.extend(titles.into_iter().map(|(id, title)| (id.to_string(), title)));
+            labels.extend(
+                titles
+                    .into_iter()
+                    .map(|(id, title)| (id.to_string(), title)),
+            );
         }
         _ => {}
     }
@@ -1041,7 +1165,15 @@ async fn board_inner(
                     _ => (key.clone(), false),
                 };
                 let label = labels.get(&key).cloned().unwrap_or(fallback);
-                lanes.push((last, label.to_lowercase(), BoardLane { key: key.clone(), label, issues: Vec::new() }));
+                lanes.push((
+                    last,
+                    label.to_lowercase(),
+                    BoardLane {
+                        key: key.clone(),
+                        label,
+                        issues: Vec::new(),
+                    },
+                ));
                 index.insert(key.clone(), lanes.len() - 1);
                 lanes.len() - 1
             }
@@ -1108,7 +1240,10 @@ pub(crate) struct SprintReport {
 }
 
 #[utoipa::path(get, path = "/api/sprints/{id}/report", tag = "agile", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Sprint report with committed vs completed and items added mid-sprint", body = SprintReport), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn sprint_report(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<SprintReport>> {
+pub(crate) async fn sprint_report(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<SprintReport>> {
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "sprints", id).await?;
     let sprint = load_sprint(&mut tx, i.tenant_id, id).await?;
@@ -1123,7 +1258,7 @@ pub(crate) async fn sprint_report(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult
     .map_err(db_err)?;
 
     let done_keys: std::collections::HashSet<String> = sqlx::query_scalar(
-        "SELECT key FROM project_statuses WHERE tenant_id=$1 AND project_id=$2 AND category='done'"
+        "SELECT key FROM project_statuses WHERE tenant_id=$1 AND project_id=$2 AND category='done'",
     )
     .bind(i.tenant_id)
     .bind(sprint.project_id)
@@ -1133,7 +1268,8 @@ pub(crate) async fn sprint_report(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult
     .into_iter()
     .collect();
 
-    let mid_sprint_ids: std::collections::HashSet<Uuid> = if let Some(starts_at) = sprint.starts_at {
+    let mid_sprint_ids: std::collections::HashSet<Uuid> = if let Some(starts_at) = sprint.starts_at
+    {
         let ids: Vec<Uuid> = issues.iter().map(|it| it.id).collect();
         sqlx::query_scalar::<_, Uuid>(
             "SELECT i.id FROM issues i WHERE i.tenant_id=$1 AND i.id=ANY($2) AND \
@@ -1273,7 +1409,10 @@ pub(crate) struct UpdateSprintCapacityInput {
 }
 
 #[utoipa::path(get, path = "/api/sprints/{id}/capacity", tag = "agile", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Sprint capacity and member allocations", body = SprintCapacityView), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn sprint_capacity(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<SprintCapacityView>> {
+pub(crate) async fn sprint_capacity(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<SprintCapacityView>> {
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "sprints", id).await?;
     let _sprint = load_sprint(&mut tx, i.tenant_id, id).await?;
@@ -1351,9 +1490,15 @@ pub(crate) fn routes() -> axum::Router<App> {
         .route("/api/sprints/{id}/board", get(sprint_board))
         .route("/api/sprints/{id}/report", get(sprint_report))
         .route("/api/sprints/{id}/burnup", get(burnup))
-        .route("/api/sprints/{id}/capacity", get(sprint_capacity).put(update_sprint_capacity))
+        .route(
+            "/api/sprints/{id}/capacity",
+            get(sprint_capacity).put(update_sprint_capacity),
+        )
         .route("/api/sprints/{id}/issues", post(add_issues_to_sprint))
-        .route("/api/sprints/{id}/issues/{issue_id}", delete(remove_issue_from_sprint))
+        .route(
+            "/api/sprints/{id}/issues/{issue_id}",
+            delete(remove_issue_from_sprint),
+        )
         .route("/api/sprints/{id}/burndown", get(burndown))
         .route("/api/projects/{id}/velocity", get(velocity))
 }

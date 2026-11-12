@@ -39,7 +39,10 @@ async fn role_project(tx: &mut Tx, tenant: Uuid, role: Uuid) -> ApiResult<Uuid> 
 }
 
 #[utoipa::path(get, path = "/api/projects/{id}/roles", tag = "access", params(("id" = Uuid, Path, description = "Project id")), responses((status = 200, description = "The project's custom roles. Members are listed for project admins only", body = Vec<ProjectRole>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_roles(mut tx: Tx, Path(project): Path<Uuid>) -> ApiResult<Json<Vec<ProjectRole>>> {
+pub(crate) async fn list_roles(
+    mut tx: Tx,
+    Path(project): Path<Uuid>,
+) -> ApiResult<Json<Vec<ProjectRole>>> {
     let i = tx.identity.clone();
     ensure_access(&mut tx, project).await?;
     let admin = project_level(&mut tx, &i, project).await?.unwrap_or(0) >= 3;
@@ -84,7 +87,10 @@ pub(crate) async fn create_role(
         .await
         .map_err(db_err)?;
     if taken {
-        return Err(err(StatusCode::CONFLICT, "A role with this name already exists"));
+        return Err(err(
+            StatusCode::CONFLICT,
+            "A role with this name already exists",
+        ));
     }
     let row: ProjectRole = sqlx::query_as(
         "INSERT INTO project_roles(tenant_id,project_id,name,level) VALUES($1,$2,$3,$4) RETURNING id, name, level, ARRAY[]::uuid[] AS member_ids",
@@ -139,7 +145,9 @@ pub(crate) async fn set_role_members(
     .await
     .map_err(db_err)?;
     if known as usize != ids.len() {
-        return Err(bad("Every member must be an active member of this workspace"));
+        return Err(bad(
+            "Every member must be an active member of this workspace",
+        ));
     }
     sqlx::query("DELETE FROM project_role_members WHERE tenant_id=$1 AND role_id=$2")
         .bind(i.tenant_id)
@@ -162,7 +170,10 @@ pub(crate) async fn set_role_members(
 
 pub(crate) fn routes() -> axum::Router<App> {
     axum::Router::new()
-        .route("/api/projects/{id}/roles", get(list_roles).post(create_role))
+        .route(
+            "/api/projects/{id}/roles",
+            get(list_roles).post(create_role),
+        )
         .route("/api/roles/{id}", delete(delete_role))
         .route("/api/roles/{id}/members", put(set_role_members))
 }

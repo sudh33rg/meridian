@@ -81,13 +81,27 @@ function PageTree({
 }
 
 /** Blog posts: pages listed by publication date, with a box to publish a new one. */
-function BlogPanel({ token, projectId, pages, onOpen }: { token: string; projectId: string; pages: Page[]; onOpen: (p: Page) => void }) {
+function BlogPanel({
+  token,
+  projectId,
+  pages,
+  onOpen,
+}: {
+  token: string;
+  projectId: string;
+  pages: Page[];
+  onOpen: (p: Page) => void;
+}) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [title, setTitle] = useState("");
   const blogQ = useQuery({
     queryKey: ["blog-posts", projectId],
-    queryFn: () => api<{ page_id: string; title: string; published_at: string }[]>(`/projects/${projectId}/blog-posts`, token),
+    queryFn: () =>
+      api<{ page_id: string; title: string; published_at: string }[]>(
+        `/projects/${projectId}/blog-posts`,
+        token,
+      ),
     enabled: !!projectId,
   });
   const publish = useMutation({
@@ -120,7 +134,13 @@ function BlogPanel({ token, projectId, pages, onOpen }: { token: string; project
           if (title.trim()) publish.mutate();
         }}
       >
-        <input aria-label="Blog post title" maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="New blog post" />
+        <input
+          aria-label="Blog post title"
+          maxLength={200}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="New blog post"
+        />
         <button className="secondary" type="submit" disabled={!title.trim() || publish.isPending}>
           Publish
         </button>
@@ -154,7 +174,12 @@ export function KnowledgeTab() {
               onOpen={(p) => setActivePage(p)}
             />
             {!pages.length && <div className="panel-empty">No pages yet</div>}
-            <BlogPanel token={session.token} projectId={selected} pages={pages} onOpen={(p) => setActivePage(p)} />
+            <BlogPanel
+              token={session.token}
+              projectId={selected}
+              pages={pages}
+              onOpen={(p) => setActivePage(p)}
+            />
           </div>
           <div className="page-editor">
             {activePage ? (
@@ -191,7 +216,8 @@ function PageEditor() {
     enabled: !!selected,
   });
   const setHome = useMutation({
-    mutationFn: (pageId: string | null) => send(`/projects/${selected}/home-page`, session.token, "PUT", { page_id: pageId }),
+    mutationFn: (pageId: string | null) =>
+      send(`/projects/${selected}/home-page`, session.token, "PUT", { page_id: pageId }),
     onSuccess: (_r, pageId) => {
       toast(pageId ? "Set as the project home page" : "Home page cleared");
       void qc.invalidateQueries({ queryKey: ["home-page", selected] });
@@ -211,7 +237,8 @@ function PageEditor() {
     }
   }
   const moveTo = useMutation({
-    mutationFn: (parentId: string | null) => send<Page>(`/pages/${page.id}/parent`, session.token, "PUT", { parent_id: parentId }),
+    mutationFn: (parentId: string | null) =>
+      send<Page>(`/pages/${page.id}/parent`, session.token, "PUT", { parent_id: parentId }),
     onSuccess: () => {
       toast("Page moved");
       void qc.invalidateQueries({ queryKey: ["pages", selected] });
@@ -287,7 +314,9 @@ function PageEditor() {
         </div>
       </div>
       {showAccess && <PageAccessPanel pageId={page.id} onClose={() => setShowAccess(false)} />}
-      {showInline && <InlineCommentsDrawer pageId={page.id} pageTitle={page.title} onClose={() => setShowInline(false)} />}
+      {showInline && (
+        <InlineCommentsDrawer pageId={page.id} pageTitle={page.title} onClose={() => setShowInline(false)} />
+      )}
       <input
         className="page-title"
         value={title}

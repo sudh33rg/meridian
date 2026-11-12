@@ -8,12 +8,30 @@ import { useToast } from "../shared/Toast";
 import { invalidatePlanning } from "./agile-shared";
 
 type Component = { id: string; name: string; issue_count: number; default_assignee_id?: string | null };
-type Estimates = { original_minutes: number | null; remaining_minutes: number | null; logged_minutes: number };
-type Worklog = { id: string; author_id: string; author_name: string; minutes: number; started_on: string; comment: string };
+type Estimates = {
+  original_minutes: number | null;
+  remaining_minutes: number | null;
+  logged_minutes: number;
+};
+type Worklog = {
+  id: string;
+  author_id: string;
+  author_name: string;
+  minutes: number;
+  started_on: string;
+  comment: string;
+};
 type Person = { user_id: string; display_name: string };
 type Votes = { count: number; voted: boolean };
 type Checklist = { id: string; text: string; done: boolean; position: number };
-type Child = { id: string; number: number; title: string; status: string; done: boolean; story_points?: number | null };
+type Child = {
+  id: string;
+  number: number;
+  title: string;
+  status: string;
+  done: boolean;
+  story_points?: number | null;
+};
 type Rollup = {
   children: number;
   children_done: number;
@@ -112,9 +130,16 @@ export function IssueDepth({
 
   const refresh = async (message?: string) => {
     await Promise.all(
-      ["issue-components", "estimates", "worklogs", "watchers", "votes", "checklist", "children", "rollup"].map((k) =>
-        qc.invalidateQueries({ queryKey: [k, id] }),
-      ),
+      [
+        "issue-components",
+        "estimates",
+        "worklogs",
+        "watchers",
+        "votes",
+        "checklist",
+        "children",
+        "rollup",
+      ].map((k) => qc.invalidateQueries({ queryKey: [k, id] })),
     );
     await invalidatePlanning(qc, projectId);
     onChanged();
@@ -138,7 +163,9 @@ export function IssueDepth({
     <>
       <div className="drawer-section" aria-label="Components and estimates">
         <h3>Components</h3>
-        {(components.data ?? []).length === 0 && <p className="muted small">No components in this project yet.</p>}
+        {(components.data ?? []).length === 0 && (
+          <p className="muted small">No components in this project yet.</p>
+        )}
         <div className="chip-row">
           {(components.data ?? []).map((c) => (
             <label key={c.id} className="chip check-chip">
@@ -150,8 +177,8 @@ export function IssueDepth({
                   const next = new Set(attachedIds);
                   if (e.target.checked) next.add(c.id);
                   else next.delete(c.id);
-                  act(() =>
-                    send(`/issues/${id}/components`, token, "PUT", { component_ids: [...next] }),
+                  act(
+                    () => send(`/issues/${id}/components`, token, "PUT", { component_ids: [...next] }),
                     "Components updated",
                   );
                 }}
@@ -188,7 +215,9 @@ export function IssueDepth({
             disabled={archived || (estOriginal === null && estRemaining === null)}
             onClick={() => {
               const o = parseMinutes(estOriginal ?? formatMinutes(estimates.data?.original_minutes ?? null));
-              const r = parseMinutes(estRemaining ?? formatMinutes(estimates.data?.remaining_minutes ?? null));
+              const r = parseMinutes(
+                estRemaining ?? formatMinutes(estimates.data?.remaining_minutes ?? null),
+              );
               if (o === "invalid" || r === "invalid") {
                 setError("Use a duration such as 2h 30m, 90m or a number of minutes");
                 return;
@@ -260,7 +289,8 @@ export function IssueDepth({
         <ul className="plain-list" aria-label="Worklogs">
           {(worklogs.data ?? []).slice(0, 8).map((w) => (
             <li key={w.id} className="small">
-              <span className="muted">{w.started_on}</span> {w.author_name} logged <b>{formatMinutes(w.minutes)}</b>
+              <span className="muted">{w.started_on}</span> {w.author_name} logged{" "}
+              <b>{formatMinutes(w.minutes)}</b>
               {w.comment ? ` — ${w.comment}` : ""}
               {w.author_id === me?.user_id && !archived && (
                 <button
@@ -320,7 +350,9 @@ export function IssueDepth({
       <div className="drawer-section" aria-label="Checklist">
         <h3>
           <ListChecks size={15} aria-hidden /> Checklist
-          {checklist.data?.length ? ` · ${checklist.data.filter((c) => c.done).length}/${checklist.data.length}` : ""}
+          {checklist.data?.length
+            ? ` · ${checklist.data.filter((c) => c.done).length}/${checklist.data.length}`
+            : ""}
         </h3>
         <ul className="plain-list">
           {(checklist.data ?? []).map((c) => (
@@ -381,7 +413,8 @@ export function IssueDepth({
           <p className="small muted">
             Points {rollup.data.points_done}/{rollup.data.points_total} · estimate{" "}
             {formatMinutes(rollup.data.original_minutes_total)} · remaining{" "}
-            {formatMinutes(rollup.data.remaining_minutes_total)} · logged {formatMinutes(rollup.data.logged_minutes_total)}
+            {formatMinutes(rollup.data.remaining_minutes_total)} · logged{" "}
+            {formatMinutes(rollup.data.logged_minutes_total)}
           </p>
         )}
         <ul className="plain-list" aria-label="Subtask list">
@@ -390,7 +423,8 @@ export function IssueDepth({
               <button className="issue-number-button" onClick={() => setSelectedIssue(c.id)}>
                 #{c.number}
               </button>{" "}
-              <span className={c.done ? "done-text" : ""}>{c.title}</span> <span className="muted">{c.status}</span>
+              <span className={c.done ? "done-text" : ""}>{c.title}</span>{" "}
+              <span className="muted">{c.status}</span>
             </li>
           ))}
         </ul>
@@ -430,7 +464,12 @@ export function IssueDepth({
               className="secondary small-btn"
               onClick={async () => {
                 try {
-                  const copy = await send<{ id: string; number: number }>(`/issues/${id}/clone`, token, "POST", {});
+                  const copy = await send<{ id: string; number: number }>(
+                    `/issues/${id}/clone`,
+                    token,
+                    "POST",
+                    {},
+                  );
                   await refresh("Copied");
                   setSelectedIssue(copy.id);
                 } catch (e) {
@@ -454,17 +493,16 @@ export function IssueDepth({
               onClick={() => {
                 const target = moveTo;
                 setMoveTo("");
-                act(
-                  async () => {
-                    const res = await send<{ dropped_fields: string[] }>(`/issues/${id}/move`, token, "POST", {
-                      project_id: target,
-                    });
-                    if (res.dropped_fields.length) {
-                      toast(`Moved. Custom fields not in the target were dropped: ${res.dropped_fields.join(", ")}`);
-                    }
-                  },
-                  "Moved",
-                );
+                act(async () => {
+                  const res = await send<{ dropped_fields: string[] }>(`/issues/${id}/move`, token, "POST", {
+                    project_id: target,
+                  });
+                  if (res.dropped_fields.length) {
+                    toast(
+                      `Moved. Custom fields not in the target were dropped: ${res.dropped_fields.join(", ")}`,
+                    );
+                  }
+                }, "Moved");
               }}
             >
               <MoveRight size={14} /> Move
@@ -507,8 +545,20 @@ function IssueHistory({ token, issueId }: { token: string; issueId: string }) {
             ) : (
               <>
                 changed {h.field?.replaceAll("_", " ")}
-                {h.old_value ? <> from <b>{trimValue(h.old_value)}</b></> : null}
-                {h.new_value ? <> to <b>{trimValue(h.new_value)}</b></> : " (cleared)"}
+                {h.old_value ? (
+                  <>
+                    {" "}
+                    from <b>{trimValue(h.old_value)}</b>
+                  </>
+                ) : null}
+                {h.new_value ? (
+                  <>
+                    {" "}
+                    to <b>{trimValue(h.new_value)}</b>
+                  </>
+                ) : (
+                  " (cleared)"
+                )}
               </>
             )}
           </li>
@@ -533,7 +583,15 @@ function DevLinks({ token, issueId }: { token: string; issueId: string; projectK
     queryKey: ["dev-links", issueId],
     queryFn: () =>
       request<
-        { id: number; kind: string; reference: string; title: string; url: string; author: string; occurred_at: string }[]
+        {
+          id: number;
+          kind: string;
+          reference: string;
+          title: string;
+          url: string;
+          author: string;
+          occurred_at: string;
+        }[]
       >(token, `/issues/${issueId}/dev-links`),
   });
   const rows = links.data ?? [];
@@ -543,7 +601,9 @@ function DevLinks({ token, issueId }: { token: string; issueId: string; projectK
       <ul className="plain-list">
         {rows.map((l) => (
           <li key={l.id} className="small">
-            <span className="chip">{l.kind === "pull_request" ? `PR #${l.reference}` : l.reference.slice(0, 8)}</span>{" "}
+            <span className="chip">
+              {l.kind === "pull_request" ? `PR #${l.reference}` : l.reference.slice(0, 8)}
+            </span>{" "}
             {l.url ? (
               <a href={l.url} target="_blank" rel="noreferrer">
                 {l.title || l.url}
@@ -556,7 +616,9 @@ function DevLinks({ token, issueId }: { token: string; issueId: string; projectK
         ))}
       </ul>
       {!links.isLoading && rows.length === 0 && (
-        <p className="muted small">No commits or pull requests yet. Link a repository from the Integrations page.</p>
+        <p className="muted small">
+          No commits or pull requests yet. Link a repository from the Integrations page.
+        </p>
       )}
     </div>
   );

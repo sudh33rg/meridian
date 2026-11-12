@@ -56,8 +56,13 @@ pub(crate) async fn issue_details(
     .await
     .map_err(db_err)?;
     // Restricted field values are shown to project admins only.
-    if project_level(&mut tx, &i, row.project_id).await?.unwrap_or(0) < 3 {
-        let hidden = crate::api::fields::restricted_keys(&mut tx, i.tenant_id, row.project_id).await?;
+    if project_level(&mut tx, &i, row.project_id)
+        .await?
+        .unwrap_or(0)
+        < 3
+    {
+        let hidden =
+            crate::api::fields::restricted_keys(&mut tx, i.tenant_id, row.project_id).await?;
         row.custom_fields = crate::api::fields::without_keys(&row.custom_fields, &hidden);
     }
     let mut headers = HeaderMap::new();
@@ -164,15 +169,19 @@ pub(crate) async fn edit_issue(
     let restricted = crate::api::fields::restricted_keys(&mut tx, i.tenant_id, project).await?;
     let provided = match v.custom_fields.clone() {
         Some(c) if !admin && !restricted.is_empty() => {
-            let stored: Value = sqlx::query_scalar("SELECT custom_fields FROM issues WHERE tenant_id=$1 AND id=$2")
-                .bind(i.tenant_id)
-                .bind(id)
-                .fetch_one(&mut *tx)
-                .await
-                .map_err(db_err)?;
+            let stored: Value =
+                sqlx::query_scalar("SELECT custom_fields FROM issues WHERE tenant_id=$1 AND id=$2")
+                    .bind(i.tenant_id)
+                    .bind(id)
+                    .fetch_one(&mut *tx)
+                    .await
+                    .map_err(db_err)?;
             for key in &restricted {
                 if c.get(key).is_some_and(|next| Some(next) != stored.get(key)) {
-                    return Err(err(StatusCode::FORBIDDEN, &format!("“{key}” is restricted to project admins")));
+                    return Err(err(
+                        StatusCode::FORBIDDEN,
+                        &format!("“{key}” is restricted to project admins"),
+                    ));
                 }
             }
             let mut merged = crate::api::fields::without_keys(&c, &restricted);
@@ -188,7 +197,9 @@ pub(crate) async fn edit_issue(
         other => other,
     };
     let custom_fields = match provided {
-        Some(c) => Some(crate::api::fields::validate_values(&mut tx, i.tenant_id, project, &c).await?),
+        Some(c) => {
+            Some(crate::api::fields::validate_values(&mut tx, i.tenant_id, project, &c).await?)
+        }
         None => None,
     };
     if let Some(ref next) = v.status {
@@ -437,13 +448,16 @@ pub(crate) async fn bulk_update_issues(
         "set_team" => match v.value.as_deref() {
             None | Some("none") => Change::Team(None),
             Some(raw) => {
-                let team = Uuid::parse_str(raw).map_err(|_| bad("Team must be a team id, or none"))?;
-                let ok: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM teams WHERE tenant_id=$1 AND id=$2)")
-                    .bind(i.tenant_id)
-                    .bind(team)
-                    .fetch_one(&mut *tx)
-                    .await
-                    .map_err(db_err)?;
+                let team =
+                    Uuid::parse_str(raw).map_err(|_| bad("Team must be a team id, or none"))?;
+                let ok: bool = sqlx::query_scalar(
+                    "SELECT EXISTS(SELECT 1 FROM teams WHERE tenant_id=$1 AND id=$2)",
+                )
+                .bind(i.tenant_id)
+                .bind(team)
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(db_err)?;
                 if !ok {
                     return Err(bad("Team not found in this workspace"));
                 }
@@ -453,7 +467,8 @@ pub(crate) async fn bulk_update_issues(
         "set_sprint" => match v.value.as_deref() {
             None | Some("none") => Change::Sprint(None),
             Some(raw) => {
-                let sprint = Uuid::parse_str(raw).map_err(|_| bad("Sprint must be a sprint id, or none"))?;
+                let sprint =
+                    Uuid::parse_str(raw).map_err(|_| bad("Sprint must be a sprint id, or none"))?;
                 let ok: bool = sqlx::query_scalar(
                     "SELECT EXISTS(SELECT 1 FROM sprints WHERE tenant_id=$1 AND id=$2 AND project_id=$3 AND state<>'completed')",
                 )
@@ -470,7 +485,10 @@ pub(crate) async fn bulk_update_issues(
             }
         },
         "set_release" => {
-            let raw = v.value.as_deref().ok_or_else(|| bad("A release id is required"))?;
+            let raw = v
+                .value
+                .as_deref()
+                .ok_or_else(|| bad("A release id is required"))?;
             let release = Uuid::parse_str(raw).map_err(|_| bad("Release must be a release id"))?;
             let frozen: Option<Option<chrono::DateTime<chrono::Utc>>> = sqlx::query_scalar(
                 "SELECT frozen_at FROM releases WHERE tenant_id=$1 AND id=$2 AND project_id=$3 AND status='planned'",
@@ -501,7 +519,10 @@ pub(crate) async fn bulk_update_issues(
             }
         }
         "add_watcher" => {
-            let raw = v.value.as_deref().ok_or_else(|| bad("A member id is required"))?;
+            let raw = v
+                .value
+                .as_deref()
+                .ok_or_else(|| bad("A member id is required"))?;
             let user = Uuid::parse_str(raw).map_err(|_| bad("Watcher must be a member id"))?;
             if !crate::api::issue_depth::active_member(&mut tx, i.tenant_id, user).await? {
                 return Err(bad("Watcher must be an active member of this workspace"));
@@ -565,7 +586,8 @@ pub(crate) async fn bulk_update_issues(
                 .fetch_one(&mut *tx)
                 .await
                 .map_err(db_err)?;
-                blocked.then_some("Remove the issue from its team's sprint before changing its team")
+                blocked
+                    .then_some("Remove the issue from its team's sprint before changing its team")
             }
             Change::Sprint(target) => {
                 let closed: bool = sqlx::query_scalar(
@@ -580,20 +602,22 @@ pub(crate) async fn bulk_update_issues(
                 if closed {
                     Some("Issue is in a closed sprint")
                 } else if let Some(sp) = target {
-                    let sprint_team: Option<Uuid> =
-                        sqlx::query_scalar("SELECT team_id FROM sprints WHERE tenant_id=$1 AND id=$2")
-                            .bind(i.tenant_id)
-                            .bind(*sp)
-                            .fetch_one(&mut *tx)
-                            .await
-                            .map_err(db_err)?;
-                    let issue_team: Option<Uuid> =
-                        sqlx::query_scalar("SELECT team_id FROM issues WHERE tenant_id=$1 AND id=$2")
-                            .bind(i.tenant_id)
-                            .bind(id)
-                            .fetch_one(&mut *tx)
-                            .await
-                            .map_err(db_err)?;
+                    let sprint_team: Option<Uuid> = sqlx::query_scalar(
+                        "SELECT team_id FROM sprints WHERE tenant_id=$1 AND id=$2",
+                    )
+                    .bind(i.tenant_id)
+                    .bind(*sp)
+                    .fetch_one(&mut *tx)
+                    .await
+                    .map_err(db_err)?;
+                    let issue_team: Option<Uuid> = sqlx::query_scalar(
+                        "SELECT team_id FROM issues WHERE tenant_id=$1 AND id=$2",
+                    )
+                    .bind(i.tenant_id)
+                    .bind(id)
+                    .fetch_one(&mut *tx)
+                    .await
+                    .map_err(db_err)?;
                     if sprint_team.is_some() && issue_team != sprint_team {
                         Some("Issue belongs to another team; assign it to this team first")
                     } else {
@@ -628,22 +652,26 @@ pub(crate) async fn bulk_update_issues(
         let before_json = crate::api::history::issue_json(&mut tx, i.tenant_id, id).await?;
         match &change {
             Change::Team(team) => {
-                sqlx::query("UPDATE issues SET team_id=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3")
-                    .bind(*team)
-                    .bind(i.tenant_id)
-                    .bind(id)
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(db_err)?;
+                sqlx::query(
+                    "UPDATE issues SET team_id=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3",
+                )
+                .bind(*team)
+                .bind(i.tenant_id)
+                .bind(id)
+                .execute(&mut *tx)
+                .await
+                .map_err(db_err)?;
             }
             Change::Sprint(sprint) => {
-                sqlx::query("UPDATE issues SET sprint_id=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3")
-                    .bind(*sprint)
-                    .bind(i.tenant_id)
-                    .bind(id)
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(db_err)?;
+                sqlx::query(
+                    "UPDATE issues SET sprint_id=$1, updated_at=now() WHERE tenant_id=$2 AND id=$3",
+                )
+                .bind(*sprint)
+                .bind(i.tenant_id)
+                .bind(id)
+                .execute(&mut *tx)
+                .await
+                .map_err(db_err)?;
             }
             Change::Release(release, frozen) => {
                 sqlx::query(
@@ -1191,11 +1219,13 @@ pub(crate) async fn purge_expired_trash(db: &sqlx::PgPool) -> Result<u64, sqlx::
         .fetch_all(&mut *tx)
         .await?;
         for key in keys {
-            sqlx::query("INSERT INTO jobs(tenant_id,kind,payload) VALUES($1,'attachment.purge',$2)")
-                .bind(tenant)
-                .bind(json!({ "storage_key": key }))
-                .execute(&mut *tx)
-                .await?;
+            sqlx::query(
+                "INSERT INTO jobs(tenant_id,kind,payload) VALUES($1,'attachment.purge',$2)",
+            )
+            .bind(tenant)
+            .bind(json!({ "storage_key": key }))
+            .execute(&mut *tx)
+            .await?;
         }
         let removed = sqlx::query(
             "DELETE FROM issues WHERE tenant_id=$1 AND id=$2 AND trashed_at IS NOT NULL AND purge_after <= now()",

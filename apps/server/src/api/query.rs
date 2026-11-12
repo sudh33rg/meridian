@@ -277,14 +277,19 @@ impl Parser {
                 return Ok(None);
             }
             Field::Sprint => {
-                let valid = value == "none" || value == "openSprints()" || Uuid::parse_str(&value).is_ok();
+                let valid =
+                    value == "none" || value == "openSprints()" || Uuid::parse_str(&value).is_ok();
                 if !valid {
                     return Err(bad("Sprint must be none, openSprints() or a sprint id"));
                 }
             }
             _ => {}
         }
-        let term = Term { negate, field, value };
+        let term = Term {
+            negate,
+            field,
+            value,
+        };
         self.leaves.push(term.clone());
         if self.leaves.len() > MAX_TERMS {
             return Err(bad("A query can have up to 20 terms"));
@@ -357,7 +362,10 @@ pub(crate) async fn check_leaves(
         match &t.field {
             Field::Status => {
                 if !status_defined(db, tenant, project, &t.value).await? {
-                    return Err(bad(&format!("“{}” is not a status in this project", t.value)));
+                    return Err(bad(&format!(
+                        "“{}” is not a status in this project",
+                        t.value
+                    )));
                 }
             }
             Field::Kind => {
@@ -365,7 +373,10 @@ pub(crate) async fn check_leaves(
                     .await?
                     .is_none()
                 {
-                    return Err(bad(&format!("“{}” is not an issue type in this project", t.value)));
+                    return Err(bad(&format!(
+                        "“{}” is not an issue type in this project",
+                        t.value
+                    )));
                 }
             }
             Field::Custom(key) => {
@@ -381,8 +392,15 @@ pub(crate) async fn check_leaves(
                 .fetch_optional(&mut *db)
                 .await
                 .map_err(db_err)?;
-                let (field_type, options) = row.ok_or_else(|| bad(&format!("Unknown custom field “{key}”")))?;
-                defs.insert(key.clone(), CustomDef { field_type, options });
+                let (field_type, options) =
+                    row.ok_or_else(|| bad(&format!("Unknown custom field “{key}”")))?;
+                defs.insert(
+                    key.clone(),
+                    CustomDef {
+                        field_type,
+                        options,
+                    },
+                );
             }
             _ => {}
         }
@@ -424,42 +442,48 @@ fn push_leaf(
                     .push(" AND state<>'completed')");
             }
             id => {
-                let sprint = Uuid::parse_str(id).map_err(|_| bad("Sprint must be none, openSprints(), currentSprint() or a sprint id"))?;
+                let sprint = Uuid::parse_str(id).map_err(|_| {
+                    bad("Sprint must be none, openSprints(), currentSprint() or a sprint id")
+                })?;
                 qb.push("sprint_id = ").push_bind(sprint);
             }
         },
-        Field::Due => match t.value.as_str() {
-            "empty" | "none" => {
-                qb.push("due_at IS NULL");
-            }
-            "notEmpty" => {
-                qb.push("due_at IS NOT NULL");
-            }
-            "now()" | "today" => {
-                qb.push("due_at::date = CURRENT_DATE");
-            }
-            "startOfWeek()" => {
-                qb.push("due_at::date = date_trunc('week', CURRENT_DATE)::date");
-            }
-            "endOfWeek()" => {
-                qb.push("due_at::date = (date_trunc('week', CURRENT_DATE) + INTERVAL '6 days')::date");
-            }
-            "startOfMonth()" => {
-                qb.push("due_at::date = date_trunc('month', CURRENT_DATE)::date");
-            }
-            "endOfMonth()" => {
-                qb.push("due_at::date = (date_trunc('month', CURRENT_DATE) + INTERVAL '1 month - 1 day')::date");
-            }
-            "lastWeek()" => {
-                qb.push("due_at::date = (CURRENT_DATE - INTERVAL '7 days')::date");
-            }
-            val => {
-                if !is_date(val) {
-                    return Err(bad("due takes a date (YYYY-MM-DD), today, now(), startOfWeek(), endOfWeek(), startOfMonth(), endOfMonth(), lastWeek(), empty or notEmpty"));
+        Field::Due => {
+            match t.value.as_str() {
+                "empty" | "none" => {
+                    qb.push("due_at IS NULL");
                 }
-                qb.push("due_at::date = ").push_bind(val.to_string()).push("::date");
+                "notEmpty" => {
+                    qb.push("due_at IS NOT NULL");
+                }
+                "now()" | "today" => {
+                    qb.push("due_at::date = CURRENT_DATE");
+                }
+                "startOfWeek()" => {
+                    qb.push("due_at::date = date_trunc('week', CURRENT_DATE)::date");
+                }
+                "endOfWeek()" => {
+                    qb.push("due_at::date = (date_trunc('week', CURRENT_DATE) + INTERVAL '6 days')::date");
+                }
+                "startOfMonth()" => {
+                    qb.push("due_at::date = date_trunc('month', CURRENT_DATE)::date");
+                }
+                "endOfMonth()" => {
+                    qb.push("due_at::date = (date_trunc('month', CURRENT_DATE) + INTERVAL '1 month - 1 day')::date");
+                }
+                "lastWeek()" => {
+                    qb.push("due_at::date = (CURRENT_DATE - INTERVAL '7 days')::date");
+                }
+                val => {
+                    if !is_date(val) {
+                        return Err(bad("due takes a date (YYYY-MM-DD), today, now(), startOfWeek(), endOfWeek(), startOfMonth(), endOfMonth(), lastWeek(), empty or notEmpty"));
+                    }
+                    qb.push("due_at::date = ")
+                        .push_bind(val.to_string())
+                        .push("::date");
+                }
             }
-        },
+        }
         Field::Created => match t.value.as_str() {
             "now()" | "today" => {
                 qb.push("created_at::date = CURRENT_DATE");
@@ -477,7 +501,9 @@ fn push_leaf(
                 if !is_date(val) {
                     return Err(bad("created takes a date (YYYY-MM-DD), today, now(), startOfWeek(), startOfMonth() or lastWeek()"));
                 }
-                qb.push("created_at::date = ").push_bind(val.to_string()).push("::date");
+                qb.push("created_at::date = ")
+                    .push_bind(val.to_string())
+                    .push("::date");
             }
         },
         Field::Order => {}
@@ -488,7 +514,9 @@ fn push_leaf(
                 let who = if t.value == "me" || t.value == "currentUser()" {
                     user
                 } else {
-                    Uuid::parse_str(&t.value).map_err(|_| bad("Assignee must be a user id, me, currentUser(), none or empty"))?
+                    Uuid::parse_str(&t.value).map_err(|_| {
+                        bad("Assignee must be a user id, me, currentUser(), none or empty")
+                    })?
                 };
                 qb.push("assignee_id = ").push_bind(who);
             }
@@ -497,10 +525,15 @@ fn push_leaf(
             qb.push_bind(t.value.clone()).push(" = ANY(labels)");
         }
         Field::Title => {
-            qb.push("title ILIKE ").push_bind(escape_like(&t.value)).push(" ESCAPE '\\'");
+            qb.push("title ILIKE ")
+                .push_bind(escape_like(&t.value))
+                .push(" ESCAPE '\\'");
         }
         Field::Number => {
-            let n: i64 = t.value.parse().map_err(|_| bad("Number must be a whole number"))?;
+            let n: i64 = t
+                .value
+                .parse()
+                .map_err(|_| bad("Number must be a whole number"))?;
             qb.push("number = ").push_bind(n);
         }
         Field::Custom(key) => {
@@ -509,7 +542,10 @@ fn push_leaf(
                 .ok_or_else(|| bad(&format!("Unknown custom field “{key}”")))?;
             match def.field_type.as_str() {
                 "number" => {
-                    let n: f64 = t.value.parse().map_err(|_| bad("This field takes a number"))?;
+                    let n: f64 = t
+                        .value
+                        .parse()
+                        .map_err(|_| bad("This field takes a number"))?;
                     qb.push("(custom_fields->>")
                         .push_bind(key.clone())
                         .push("::text)::numeric = ")
@@ -517,23 +553,38 @@ fn push_leaf(
                 }
                 "date" => {
                     if t.value == "empty" || t.value == "none" {
-                        qb.push("(custom_fields->>").push_bind(key.clone()).push("::text) IS NULL");
+                        qb.push("(custom_fields->>")
+                            .push_bind(key.clone())
+                            .push("::text) IS NULL");
                     } else if t.value == "notEmpty" {
-                        qb.push("(custom_fields->>").push_bind(key.clone()).push("::text) IS NOT NULL");
+                        qb.push("(custom_fields->>")
+                            .push_bind(key.clone())
+                            .push("::text) IS NOT NULL");
                     } else if t.value == "now()" || t.value == "today" {
-                        qb.push("(custom_fields->>").push_bind(key.clone()).push("::text)::date = CURRENT_DATE");
+                        qb.push("(custom_fields->>")
+                            .push_bind(key.clone())
+                            .push("::text)::date = CURRENT_DATE");
                     } else if t.value == "startOfWeek()" {
-                        qb.push("(custom_fields->>").push_bind(key.clone()).push("::text)::date = date_trunc('week', CURRENT_DATE)::date");
+                        qb.push("(custom_fields->>")
+                            .push_bind(key.clone())
+                            .push("::text)::date = date_trunc('week', CURRENT_DATE)::date");
                     } else if t.value == "endOfWeek()" {
                         qb.push("(custom_fields->>").push_bind(key.clone()).push("::text)::date = (date_trunc('week', CURRENT_DATE) + INTERVAL '6 days')::date");
                     } else if t.value == "startOfMonth()" {
-                        qb.push("(custom_fields->>").push_bind(key.clone()).push("::text)::date = date_trunc('month', CURRENT_DATE)::date");
+                        qb.push("(custom_fields->>")
+                            .push_bind(key.clone())
+                            .push("::text)::date = date_trunc('month', CURRENT_DATE)::date");
                     } else if t.value == "endOfMonth()" {
                         qb.push("(custom_fields->>").push_bind(key.clone()).push("::text)::date = (date_trunc('month', CURRENT_DATE) + INTERVAL '1 month - 1 day')::date");
                     } else if t.value == "lastWeek()" {
-                        qb.push("(custom_fields->>").push_bind(key.clone()).push("::text)::date = (CURRENT_DATE - INTERVAL '7 days')::date");
+                        qb.push("(custom_fields->>")
+                            .push_bind(key.clone())
+                            .push("::text)::date = (CURRENT_DATE - INTERVAL '7 days')::date");
                     } else if is_date(&t.value) {
-                        qb.push("custom_fields->>").push_bind(key.clone()).push("::text = ").push_bind(t.value.clone());
+                        qb.push("custom_fields->>")
+                            .push_bind(key.clone())
+                            .push("::text = ")
+                            .push_bind(t.value.clone());
                     } else {
                         return Err(bad("This field takes a date (YYYY-MM-DD), today, now(), startOfWeek(), endOfWeek(), startOfMonth(), endOfMonth(), lastWeek(), empty or notEmpty"));
                     }
@@ -542,13 +593,22 @@ fn push_leaf(
                     if t.value != "true" && t.value != "false" {
                         return Err(bad("This field takes true or false"));
                     }
-                    qb.push("custom_fields->>").push_bind(key.clone()).push("::text = ").push_bind(t.value.clone());
+                    qb.push("custom_fields->>")
+                        .push_bind(key.clone())
+                        .push("::text = ")
+                        .push_bind(t.value.clone());
                 }
                 "select" => {
                     if !def.options.iter().any(|o| o == &t.value) {
-                        return Err(bad(&format!("“{}” is not one of this field's choices", t.value)));
+                        return Err(bad(&format!(
+                            "“{}” is not one of this field's choices",
+                            t.value
+                        )));
                     }
-                    qb.push("custom_fields->>").push_bind(key.clone()).push("::text = ").push_bind(t.value.clone());
+                    qb.push("custom_fields->>")
+                        .push_bind(key.clone())
+                        .push("::text = ")
+                        .push_bind(t.value.clone());
                 }
                 _ => {
                     // Text fields match a part of the value, like titles.
@@ -589,7 +649,11 @@ fn push_node(
             }
         }
         Node::And(children) | Node::Or(children) => {
-            let sep = if matches!(node, Node::And(_)) { " AND " } else { " OR " };
+            let sep = if matches!(node, Node::And(_)) {
+                " AND "
+            } else {
+                " OR "
+            };
             qb.push("(");
             for (idx, child) in children.iter().enumerate() {
                 if idx > 0 {
@@ -659,7 +723,10 @@ pub(crate) async fn search_issues(
         return Err(bad("limit must be between 1 and 200"));
     }
     let (mut qb, order) = build_search(&mut tx, &i, project, &p.query).await?;
-    qb.push(" ORDER BY ").push(order).push(" LIMIT ").push_bind(limit);
+    qb.push(" ORDER BY ")
+        .push(order)
+        .push(" LIMIT ")
+        .push_bind(limit);
     let rows: Vec<Issue> = qb
         .build_query_as::<Issue>()
         .fetch_all(&mut *tx)

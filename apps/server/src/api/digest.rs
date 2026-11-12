@@ -24,22 +24,28 @@ pub(crate) fn unsubscribe_token(secret: &[u8], tenant: Uuid, user: Uuid) -> Stri
 }
 
 fn token_ok(secret: &[u8], tenant: Uuid, user: Uuid, token: &str) -> bool {
-    let Ok(bytes) = hex::decode(token) else { return false };
+    let Ok(bytes) = hex::decode(token) else {
+        return false;
+    };
     let mut mac = <Hmac<Sha256> as Mac>::new_from_slice(secret).expect("HMAC takes any key length");
     mac.update(format!("digest-unsubscribe:{tenant}:{user}").as_bytes());
     mac.verify_slice(&bytes).is_ok()
 }
 
 #[utoipa::path(get, path = "/api/me/digest", tag = "notifications", responses((status = 200, description = "Your digest setting", body = DigestSetting), (status = 401, description = "Missing or invalid session", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn get_digest(mut tx: Tx, State(app): State<App>) -> ApiResult<Json<DigestSetting>> {
+pub(crate) async fn get_digest(
+    mut tx: Tx,
+    State(app): State<App>,
+) -> ApiResult<Json<DigestSetting>> {
     let i = tx.identity.clone();
-    let enabled: Option<bool> =
-        sqlx::query_scalar("SELECT enabled FROM email_digest_settings WHERE tenant_id=$1 AND user_id=$2")
-            .bind(i.tenant_id)
-            .bind(i.user_id)
-            .fetch_optional(&mut *tx)
-            .await
-            .map_err(db_err)?;
+    let enabled: Option<bool> = sqlx::query_scalar(
+        "SELECT enabled FROM email_digest_settings WHERE tenant_id=$1 AND user_id=$2",
+    )
+    .bind(i.tenant_id)
+    .bind(i.user_id)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(db_err)?;
     Ok(Json(DigestSetting {
         enabled: enabled.unwrap_or(false),
         email_available: app.cfg.email_notifications && app.cfg.smtp_url.is_some(),
@@ -95,13 +101,18 @@ pub(crate) async fn unsubscribe(
     .execute(&app.db)
     .await
     .map_err(db_err)?;
-    Ok(axum::response::Html("<p>You will no longer receive the Meridian digest.</p>"))
+    Ok(axum::response::Html(
+        "<p>You will no longer receive the Meridian digest.</p>",
+    ))
 }
 
 /// Queues one digest job for each opted-in member who has unread notifications and has not had a digest
 /// in the last day. Runs from the hourly maintenance loop on the system connection. Does nothing unless
 /// email is enabled.
-pub(crate) async fn enqueue_due_digests(db: &sqlx::PgPool, email_on: bool) -> Result<u64, sqlx::Error> {
+pub(crate) async fn enqueue_due_digests(
+    db: &sqlx::PgPool,
+    email_on: bool,
+) -> Result<u64, sqlx::Error> {
     if !email_on {
         return Ok(0);
     }
@@ -115,11 +126,13 @@ pub(crate) async fn enqueue_due_digests(db: &sqlx::PgPool, email_on: bool) -> Re
     .await?;
     let mut queued = 0u64;
     for (tenant, user) in rows {
-        sqlx::query("UPDATE email_digest_settings SET last_sent_at=now() WHERE tenant_id=$1 AND user_id=$2")
-            .bind(tenant)
-            .bind(user)
-            .execute(db)
-            .await?;
+        sqlx::query(
+            "UPDATE email_digest_settings SET last_sent_at=now() WHERE tenant_id=$1 AND user_id=$2",
+        )
+        .bind(tenant)
+        .bind(user)
+        .execute(db)
+        .await?;
         sqlx::query("INSERT INTO jobs(tenant_id,kind,payload) VALUES($1,'email.digest',$2)")
             .bind(tenant)
             .bind(serde_json::json!({ "tenant_id": tenant, "user_id": user }))
@@ -155,7 +168,8 @@ pub(crate) async fn digest_text(
         return Ok(None);
     }
     let token = unsubscribe_token(secret, tenant, user);
-    let link = format!("{public_url}/api/email/unsubscribe?tenant={tenant}&user={user}&token={token}");
+    let link =
+        format!("{public_url}/api/email/unsubscribe?tenant={tenant}&user={user}&token={token}");
     let mut body = String::from("Your unread Meridian notifications from the last day:\n\n");
     for t in &titles {
         body.push_str(&format!("- {t}\n"));

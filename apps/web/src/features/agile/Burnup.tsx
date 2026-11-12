@@ -62,12 +62,42 @@ export function Burnup({ data }: { data: BurnupData }) {
         aria-label={`Burnup: ${last.completed_points} points done of ${last.total_scope_points} scope on ${shortDay(last.day)}`}
         width="100%"
       >
-        <line x1={pad.l} y1={pad.t + plotH} x2={W - pad.r} y2={pad.t + plotH} className="bd-axis" stroke="currentColor" opacity={0.2} />
-        <line x1={pad.l} y1={pad.t} x2={pad.l} y2={pad.t + plotH} className="bd-axis" stroke="currentColor" opacity={0.2} />
-        <text x={pad.l - 4} y={pad.t + 4} textAnchor="end" className="bd-label" fontSize="10" fill="currentColor">
+        <line
+          x1={pad.l}
+          y1={pad.t + plotH}
+          x2={W - pad.r}
+          y2={pad.t + plotH}
+          className="bd-axis"
+          stroke="currentColor"
+          opacity={0.2}
+        />
+        <line
+          x1={pad.l}
+          y1={pad.t}
+          x2={pad.l}
+          y2={pad.t + plotH}
+          className="bd-axis"
+          stroke="currentColor"
+          opacity={0.2}
+        />
+        <text
+          x={pad.l - 4}
+          y={pad.t + 4}
+          textAnchor="end"
+          className="bd-label"
+          fontSize="10"
+          fill="currentColor"
+        >
           {maxY}
         </text>
-        <text x={pad.l - 4} y={pad.t + plotH} textAnchor="end" className="bd-label" fontSize="10" fill="currentColor">
+        <text
+          x={pad.l - 4}
+          y={pad.t + plotH}
+          textAnchor="end"
+          className="bd-label"
+          fontSize="10"
+          fill="currentColor"
+        >
           0
         </text>
         {/* Scope line (blue dashed) */}
@@ -85,8 +115,12 @@ export function Burnup({ data }: { data: BurnupData }) {
         </text>
       </svg>
       <figcaption className="small muted" style={{ display: "flex", gap: "12px", marginTop: "4px" }}>
-        <span><strong style={{ color: "#3b82f6" }}>--</strong> Total Scope: {last.total_scope_points} pts</span>
-        <span><strong style={{ color: "#10b981" }}>—</strong> Completed: {last.completed_points} pts</span>
+        <span>
+          <strong style={{ color: "#3b82f6" }}>--</strong> Total Scope: {last.total_scope_points} pts
+        </span>
+        <span>
+          <strong style={{ color: "#10b981" }}>—</strong> Completed: {last.completed_points} pts
+        </span>
       </figcaption>
     </figure>
   );

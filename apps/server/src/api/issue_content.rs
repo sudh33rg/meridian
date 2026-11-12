@@ -26,7 +26,10 @@ pub(crate) fn sanitize_markdown(source: &str) -> String {
     let chars: Vec<char> = no_control.chars().collect();
     let mut i = 0;
     while i < chars.len() {
-        if chars[i] == '<' && i + 1 < chars.len() && (chars[i + 1].is_ascii_alphabetic() || matches!(chars[i + 1], '/' | '!')) {
+        if chars[i] == '<'
+            && i + 1 < chars.len()
+            && (chars[i + 1].is_ascii_alphabetic() || matches!(chars[i + 1], '/' | '!'))
+        {
             if let Some(end) = chars[i..].iter().position(|c| *c == '>') {
                 i += end + 1;
                 continue;
@@ -40,7 +43,9 @@ pub(crate) fn sanitize_markdown(source: &str) -> String {
     for scheme in ["javascript:", "vbscript:", "data:"] {
         loop {
             let lower = result.to_ascii_lowercase();
-            let Some(pos) = lower.find(&format!("]({scheme}")) else { break };
+            let Some(pos) = lower.find(&format!("]({scheme}")) else {
+                break;
+            };
             let start = pos + 2;
             result.replace_range(start..start + scheme.len(), "#");
         }
@@ -92,7 +97,10 @@ async fn comment_issue(tx: &mut Tx, tenant: Uuid, comment: Uuid) -> ApiResult<Uu
 }
 
 #[utoipa::path(get, path = "/api/issues/{id}/reactions", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Reactions on the issue's comments", body = Vec<CommentReaction>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Issue not found for you", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_reactions(mut tx: Tx, Path(issue): Path<Uuid>) -> ApiResult<Json<Vec<CommentReaction>>> {
+pub(crate) async fn list_reactions(
+    mut tx: Tx,
+    Path(issue): Path<Uuid>,
+) -> ApiResult<Json<Vec<CommentReaction>>> {
     let i = tx.identity.clone();
     valid_issue(&mut tx, &i, issue).await?;
     let rows: Vec<CommentReaction> = sqlx::query_as(
@@ -110,7 +118,10 @@ pub(crate) async fn list_reactions(mut tx: Tx, Path(issue): Path<Uuid>) -> ApiRe
 }
 
 #[utoipa::path(put, path = "/api/comments/{id}/reactions/{reaction}", tag = "issues", params(("id" = Uuid, Path, description = "Comment id"), ("reaction" = String, Path, description = "thumbs_up, party, eyes, heart, rocket or check")), responses((status = 204, description = "Added"), (status = 400, description = "Unknown reaction", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Editors only", body = ErrorBody), (status = 404, description = "Comment not found for you", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn add_reaction(mut tx: Tx, Path((comment, reaction)): Path<(Uuid, String)>) -> ApiResult<StatusCode> {
+pub(crate) async fn add_reaction(
+    mut tx: Tx,
+    Path((comment, reaction)): Path<(Uuid, String)>,
+) -> ApiResult<StatusCode> {
     let i = tx.identity.clone();
     reaction_ok(&reaction)?;
     let issue = comment_issue(&mut tx, i.tenant_id, comment).await?;
@@ -129,7 +140,10 @@ pub(crate) async fn add_reaction(mut tx: Tx, Path((comment, reaction)): Path<(Uu
 }
 
 #[utoipa::path(delete, path = "/api/comments/{id}/reactions/{reaction}", tag = "issues", params(("id" = Uuid, Path, description = "Comment id"), ("reaction" = String, Path, description = "thumbs_up, party, eyes, heart, rocket or check")), responses((status = 204, description = "Removed, or was not there"), (status = 400, description = "Unknown reaction", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Comment not found for you", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn remove_reaction(mut tx: Tx, Path((comment, reaction)): Path<(Uuid, String)>) -> ApiResult<StatusCode> {
+pub(crate) async fn remove_reaction(
+    mut tx: Tx,
+    Path((comment, reaction)): Path<(Uuid, String)>,
+) -> ApiResult<StatusCode> {
     let i = tx.identity.clone();
     reaction_ok(&reaction)?;
     let issue = comment_issue(&mut tx, i.tenant_id, comment).await?;
@@ -148,7 +162,10 @@ pub(crate) async fn remove_reaction(mut tx: Tx, Path((comment, reaction)): Path<
 }
 
 #[utoipa::path(get, path = "/api/issues/{id}/reminders", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Your reminders on this issue", body = Vec<Reminder>), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Issue not found for you", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn list_reminders(mut tx: Tx, Path(issue): Path<Uuid>) -> ApiResult<Json<Vec<Reminder>>> {
+pub(crate) async fn list_reminders(
+    mut tx: Tx,
+    Path(issue): Path<Uuid>,
+) -> ApiResult<Json<Vec<Reminder>>> {
     let i = tx.identity.clone();
     valid_issue(&mut tx, &i, issue).await?;
     let rows: Vec<Reminder> = sqlx::query_as(
@@ -196,14 +213,15 @@ pub(crate) async fn add_reminder(
 #[utoipa::path(delete, path = "/api/reminders/{id}", tag = "issues", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 204, description = "Removed"), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 404, description = "Not found for you", body = ErrorBody)), security(("bearer" = [])))]
 pub(crate) async fn remove_reminder(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<StatusCode> {
     let i = tx.identity.clone();
-    let removed = sqlx::query("DELETE FROM issue_reminders WHERE tenant_id=$1 AND id=$2 AND user_id=$3")
-        .bind(i.tenant_id)
-        .bind(id)
-        .bind(i.user_id)
-        .execute(&mut *tx)
-        .await
-        .map_err(db_err)?
-        .rows_affected();
+    let removed =
+        sqlx::query("DELETE FROM issue_reminders WHERE tenant_id=$1 AND id=$2 AND user_id=$3")
+            .bind(i.tenant_id)
+            .bind(id)
+            .bind(i.user_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(db_err)?
+            .rows_affected();
     if removed == 0 {
         return Err(err(StatusCode::NOT_FOUND, "Reminder not found"));
     }
@@ -232,7 +250,9 @@ pub(crate) fn routes() -> axum::Router<App> {
             "/api/comments/{id}/reactions/{reaction}",
             put(add_reaction).delete(remove_reaction),
         )
-        .route("/api/issues/{id}/reminders", get(list_reminders).post(add_reminder))
+        .route(
+            "/api/issues/{id}/reminders",
+            get(list_reminders).post(add_reminder),
+        )
         .route("/api/reminders/{id}", delete(remove_reminder))
 }
-

@@ -93,17 +93,27 @@ pub(crate) struct ReleaseNotes {
     pub(crate) markdown: String,
 }
 
-pub(crate) async fn load_release(db: &mut PgConnection, tenant: Uuid, id: Uuid) -> ApiResult<Release> {
-    sqlx::query_as(&format!("SELECT {RELEASE_COLUMNS} FROM releases WHERE tenant_id=$1 AND id=$2"))
-        .bind(tenant)
-        .bind(id)
-        .fetch_optional(&mut *db)
-        .await
-        .map_err(db_err)?
-        .ok_or_else(|| err(StatusCode::NOT_FOUND, "Release not found"))
+pub(crate) async fn load_release(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    id: Uuid,
+) -> ApiResult<Release> {
+    sqlx::query_as(&format!(
+        "SELECT {RELEASE_COLUMNS} FROM releases WHERE tenant_id=$1 AND id=$2"
+    ))
+    .bind(tenant)
+    .bind(id)
+    .fetch_optional(&mut *db)
+    .await
+    .map_err(db_err)?
+    .ok_or_else(|| err(StatusCode::NOT_FOUND, "Release not found"))
 }
 
-async fn release_totals(db: &mut PgConnection, tenant: Uuid, release: Uuid) -> ApiResult<ReleaseTotals> {
+async fn release_totals(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    release: Uuid,
+) -> ApiResult<ReleaseTotals> {
     let done = done_predicate("i");
     let sql = format!(
         "SELECT count(*)::int4, count(*) FILTER (WHERE {done})::int4, COALESCE(sum(i.story_points),0)::int4, \
@@ -111,12 +121,13 @@ async fn release_totals(db: &mut PgConnection, tenant: Uuid, release: Uuid) -> A
          FROM release_issues ri JOIN issues i ON i.tenant_id=ri.tenant_id AND i.id=ri.issue_id \
          WHERE ri.tenant_id=$1 AND ri.release_id=$2 AND ri.removed_at IS NULL AND i.archived_at IS NULL"
     );
-    let (scope_count, done_count, scope_points, done_points): (i32, i32, i32, i32) = sqlx::query_as(&sql)
-        .bind(tenant)
-        .bind(release)
-        .fetch_one(&mut *db)
-        .await
-        .map_err(db_err)?;
+    let (scope_count, done_count, scope_points, done_points): (i32, i32, i32, i32) =
+        sqlx::query_as(&sql)
+            .bind(tenant)
+            .bind(release)
+            .fetch_one(&mut *db)
+            .await
+            .map_err(db_err)?;
     let (added_after_freeze, removed_count): (i64, i64) = sqlx::query_as(
         "SELECT count(*) FILTER (WHERE added_after_freeze AND removed_at IS NULL), count(*) FILTER (WHERE removed_at IS NOT NULL) \
          FROM release_issues WHERE tenant_id=$1 AND release_id=$2",
@@ -126,11 +137,21 @@ async fn release_totals(db: &mut PgConnection, tenant: Uuid, release: Uuid) -> A
     .fetch_one(&mut *db)
     .await
     .map_err(db_err)?;
-    Ok(ReleaseTotals { scope_count, done_count, scope_points, done_points, added_after_freeze, removed_count })
+    Ok(ReleaseTotals {
+        scope_count,
+        done_count,
+        scope_points,
+        done_points,
+        added_after_freeze,
+        removed_count,
+    })
 }
 
 #[utoipa::path(get, path = "/api/releases/{id}", tag = "releases", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = ReleaseDetail), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn release_detail(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<ReleaseDetail>> {
+pub(crate) async fn release_detail(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<ReleaseDetail>> {
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "releases", id).await?;
     let release = load_release(&mut tx, i.tenant_id, id).await?;
@@ -182,7 +203,10 @@ pub(crate) async fn update_release(
     }
     // Names, descriptions and dates stay editable after a release ships or is cancelled, so they can be corrected.
     if v.freeze == Some(true) && current.status != "planned" {
-        return Err(err(StatusCode::CONFLICT, "Only a planned release can freeze its scope"));
+        return Err(err(
+            StatusCode::CONFLICT,
+            "Only a planned release can freeze its scope",
+        ));
     }
     if let Some(name) = &v.name {
         sqlx::query("UPDATE releases SET name=$1 WHERE tenant_id=$2 AND id=$3")
@@ -224,7 +248,10 @@ pub(crate) async fn update_release(
         None => {}
         Some("cancelled") => {
             if current.status != "planned" {
-                return Err(err(StatusCode::CONFLICT, "Only a planned release can be cancelled"));
+                return Err(err(
+                    StatusCode::CONFLICT,
+                    "Only a planned release can be cancelled",
+                ));
             }
             sqlx::query("UPDATE releases SET status='cancelled' WHERE tenant_id=$1 AND id=$2")
                 .bind(i.tenant_id)
@@ -236,9 +263,13 @@ pub(crate) async fn update_release(
         }
         Some("released") => {
             if current.status != "planned" {
-                return Err(err(StatusCode::CONFLICT, "Only a planned release can be released"));
+                return Err(err(
+                    StatusCode::CONFLICT,
+                    "Only a planned release can be released",
+                ));
             }
-            let target = unfinished_target(&mut tx, &i, &current, v.move_unfinished_to.as_deref()).await?;
+            let target =
+                unfinished_target(&mut tx, &i, &current, v.move_unfinished_to.as_deref()).await?;
             move_unfinished(&mut tx, &i, &current, target).await?;
             sqlx::query("UPDATE releases SET status='released', released_at=now() WHERE tenant_id=$1 AND id=$2")
                 .bind(i.tenant_id)
@@ -279,7 +310,9 @@ async fn unfinished_target(
             .await
             .map_err(db_err)?;
             if !ok {
-                return Err(bad("The target release must be planned and in this project"));
+                return Err(bad(
+                    "The target release must be planned and in this project",
+                ));
             }
             Ok(Some(target))
         }
@@ -317,12 +350,13 @@ async fn move_unfinished(
         .await
         .map_err(db_err)?;
         if let Some(t) = target {
-            let frozen: Option<DateTime<Utc>> = sqlx::query_scalar("SELECT frozen_at FROM releases WHERE tenant_id=$1 AND id=$2")
-                .bind(i.tenant_id)
-                .bind(t)
-                .fetch_one(&mut *db)
-                .await
-                .map_err(db_err)?;
+            let frozen: Option<DateTime<Utc>> =
+                sqlx::query_scalar("SELECT frozen_at FROM releases WHERE tenant_id=$1 AND id=$2")
+                    .bind(i.tenant_id)
+                    .bind(t)
+                    .fetch_one(&mut *db)
+                    .await
+                    .map_err(db_err)?;
             sqlx::query(
                 "INSERT INTO release_issues(tenant_id,release_id,issue_id,added_by,added_after_freeze) VALUES($1,$2,$3,$4,$5)",
             )
@@ -340,7 +374,10 @@ async fn move_unfinished(
 }
 
 #[utoipa::path(get, path = "/api/releases/{id}/issues", tag = "releases", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Active scope in rank order", body = Vec<ReleaseScopeItem>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn release_scope(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Vec<ReleaseScopeItem>>> {
+pub(crate) async fn release_scope(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<Vec<ReleaseScopeItem>>> {
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "releases", id).await?;
     let done = done_predicate("i");
@@ -385,21 +422,27 @@ pub(crate) async fn add_release_issues(
     }
     let release = load_release(&mut tx, i.tenant_id, id).await?;
     if release.status != "planned" {
-        return Err(err(StatusCode::CONFLICT, "Scope can change only while the release is planned"));
+        return Err(err(
+            StatusCode::CONFLICT,
+            "Scope can change only while the release is planned",
+        ));
     }
     let mut results = Vec::with_capacity(ids.len());
     let mut changed = 0_i64;
     for issue in ids {
-        let row: Option<(Uuid, Option<DateTime<Utc>>)> =
-            sqlx::query_as("SELECT project_id, archived_at FROM issues WHERE tenant_id=$1 AND id=$2")
-                .bind(i.tenant_id)
-                .bind(issue)
-                .fetch_optional(&mut *tx)
-                .await
-                .map_err(db_err)?;
+        let row: Option<(Uuid, Option<DateTime<Utc>>)> = sqlx::query_as(
+            "SELECT project_id, archived_at FROM issues WHERE tenant_id=$1 AND id=$2",
+        )
+        .bind(i.tenant_id)
+        .bind(issue)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(db_err)?;
         let reason = match row {
             None => Some("Issue not found".to_string()),
-            Some((project, _)) if project != release.project_id => Some("Issue is in another project".into()),
+            Some((project, _)) if project != release.project_id => {
+                Some("Issue is in another project".into())
+            }
             Some((_, Some(_))) => Some("Issue is archived".into()),
             Some(_) => {
                 let active: bool = sqlx::query_scalar(
@@ -419,7 +462,11 @@ pub(crate) async fn add_release_issues(
             }
         };
         match reason {
-            Some(reason) => results.push(crate::api::issues::BulkItemResult { id: issue, ok: false, error: Some(reason) }),
+            Some(reason) => results.push(crate::api::issues::BulkItemResult {
+                id: issue,
+                ok: false,
+                error: Some(reason),
+            }),
             None => {
                 sqlx::query(
                     "INSERT INTO release_issues(tenant_id,release_id,issue_id,added_by,added_after_freeze) VALUES($1,$2,$3,$4,$5)",
@@ -433,12 +480,19 @@ pub(crate) async fn add_release_issues(
                 .await
                 .map_err(db_err)?;
                 changed += 1;
-                results.push(crate::api::issues::BulkItemResult { id: issue, ok: true, error: None });
+                results.push(crate::api::issues::BulkItemResult {
+                    id: issue,
+                    ok: true,
+                    error: None,
+                });
             }
         }
     }
     log_event(&mut tx, &i, "scope_changed", "release", id).await?;
-    Ok(Json(crate::api::agile::MembershipResult { changed, results }))
+    Ok(Json(crate::api::agile::MembershipResult {
+        changed,
+        results,
+    }))
 }
 
 #[utoipa::path(delete, path = "/api/releases/{id}/issues/{issue_id}", tag = "releases", params(("id" = Uuid, Path, description = "Resource id"), ("issue_id" = Uuid, Path, description = "Issue id")), responses((status = 200, description = "Removed from scope; the removal is recorded in the history", body = crate::api::agile::MembershipResult), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody), (status = 409, description = "The release is shipped or cancelled", body = ErrorBody)), security(("bearer" = [])))]
@@ -452,7 +506,10 @@ pub(crate) async fn remove_release_issue(
     ensure_action_on(&mut tx, "releases", id, "manage_releases").await?;
     let release = load_release(&mut tx, i.tenant_id, id).await?;
     if release.status != "planned" {
-        return Err(err(StatusCode::CONFLICT, "Scope can change only while the release is planned"));
+        return Err(err(
+            StatusCode::CONFLICT,
+            "Scope can change only while the release is planned",
+        ));
     }
     let affected = sqlx::query(
         "UPDATE release_issues SET removed_at=now(), removed_by=$1, removed_after_freeze=($2::timestamptz IS NOT NULL) \
@@ -473,12 +530,19 @@ pub(crate) async fn remove_release_issue(
     log_event(&mut tx, &i, "scope_changed", "release", id).await?;
     Ok(Json(crate::api::agile::MembershipResult {
         changed: 1,
-        results: vec![crate::api::issues::BulkItemResult { id: issue, ok: true, error: None }],
+        results: vec![crate::api::issues::BulkItemResult {
+            id: issue,
+            ok: true,
+            error: None,
+        }],
     }))
 }
 
 #[utoipa::path(get, path = "/api/releases/{id}/history", tag = "releases", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Additions and removals, oldest first", body = Vec<ScopeEvent>), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn release_history(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<Vec<ScopeEvent>>> {
+pub(crate) async fn release_history(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<Vec<ScopeEvent>>> {
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "releases", id).await?;
     let rows: Vec<ScopeEvent> = sqlx::query_as(
@@ -500,7 +564,10 @@ pub(crate) async fn release_history(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResu
 }
 
 #[utoipa::path(get, path = "/api/releases/{id}/notes", tag = "releases", params(("id" = Uuid, Path, description = "Resource id")), responses((status = 200, description = "Success", body = ReleaseNotes), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody), (status = 404, description = "Not found in this workspace", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn release_notes(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult<Json<ReleaseNotes>> {
+pub(crate) async fn release_notes(
+    mut tx: Tx,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<ReleaseNotes>> {
     let i = tx.identity.clone();
     ensure_entity_access(&mut tx, "releases", id).await?;
     let release = load_release(&mut tx, i.tenant_id, id).await?;
@@ -545,7 +612,11 @@ pub(crate) async fn release_notes(mut tx: Tx, Path(id): Path<Uuid>) -> ApiResult
     }))
 }
 
-async fn release_scope_rows(db: &mut PgConnection, tenant: Uuid, release: Uuid) -> ApiResult<Vec<ReleaseScopeItem>> {
+async fn release_scope_rows(
+    db: &mut PgConnection,
+    tenant: Uuid,
+    release: Uuid,
+) -> ApiResult<Vec<ReleaseScopeItem>> {
     let done = done_predicate("i");
     sqlx::query_as(&format!(
         "SELECT i.id, i.project_id, i.number, i.title, i.kind, i.status, i.priority, i.assignee_id, i.team_id, i.sprint_id, \
@@ -563,9 +634,18 @@ async fn release_scope_rows(db: &mut PgConnection, tenant: Uuid, release: Uuid) 
 
 pub(crate) fn routes() -> axum::Router<App> {
     axum::Router::new()
-        .route("/api/releases/{id}", get(release_detail).patch(update_release))
-        .route("/api/releases/{id}/issues", get(release_scope).post(add_release_issues))
-        .route("/api/releases/{id}/issues/{issue_id}", delete(remove_release_issue))
+        .route(
+            "/api/releases/{id}",
+            get(release_detail).patch(update_release),
+        )
+        .route(
+            "/api/releases/{id}/issues",
+            get(release_scope).post(add_release_issues),
+        )
+        .route(
+            "/api/releases/{id}/issues/{issue_id}",
+            delete(remove_release_issue),
+        )
         .route("/api/releases/{id}/history", get(release_history))
         .route("/api/releases/{id}/notes", get(release_notes))
 }

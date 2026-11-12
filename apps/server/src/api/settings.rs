@@ -75,13 +75,21 @@ pub(crate) struct WorkspaceSettingsInput {
 }
 
 #[utoipa::path(put, path = "/api/workspace/settings", tag = "org", request_body = WorkspaceSettingsInput, responses((status = 200, description = "Success", body = WorkspaceSettings), (status = 400, description = "Validation or domain error", body = ErrorBody), (status = 401, description = "Missing or invalid session", body = ErrorBody), (status = 403, description = "Insufficient permissions", body = ErrorBody)), security(("bearer" = [])))]
-pub(crate) async fn put_settings(mut tx: Tx, Json(v): Json<WorkspaceSettingsInput>) -> ApiResult<Json<WorkspaceSettings>> {
+pub(crate) async fn put_settings(
+    mut tx: Tx,
+    Json(v): Json<WorkspaceSettingsInput>,
+) -> ApiResult<Json<WorkspaceSettings>> {
     let i = tx.identity.clone();
     require_admin(&i)?;
     let tz = v.timezone.trim().to_string();
     let tz_ok = !tz.is_empty()
         && tz.len() <= 64
-        && tz.split('/').all(|part| !part.is_empty() && part.chars().all(|c| c.is_ascii_alphanumeric() || "_+-".contains(c)))
+        && tz.split('/').all(|part| {
+            !part.is_empty()
+                && part
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || "_+-".contains(c))
+        })
         && tz.chars().next().is_some_and(|c| c.is_ascii_alphabetic());
     if !tz_ok {
         return Err(bad("Time zone must look like Europe/London or UTC"));
@@ -90,7 +98,9 @@ pub(crate) async fn put_settings(mut tx: Tx, Json(v): Json<WorkspaceSettingsInpu
     days.sort_unstable();
     days.dedup();
     if days.is_empty() || days.iter().any(|d| !(1..=7).contains(d)) {
-        return Err(bad("Working days are numbers from 1 (Monday) to 7 (Sunday)"));
+        return Err(bad(
+            "Working days are numbers from 1 (Monday) to 7 (Sunday)",
+        ));
     }
     if !(0..=6).contains(&v.week_start) {
         return Err(bad("week_start is 0 (Sunday) to 6 (Saturday)"));
@@ -103,7 +113,12 @@ pub(crate) async fn put_settings(mut tx: Tx, Json(v): Json<WorkspaceSettingsInpu
             return Err(bad("trash_retention_days must be between 7 and 365"));
         }
     }
-    if let Some(name) = v.brand_name.as_deref().map(str::trim).filter(|n| !n.is_empty()) {
+    if let Some(name) = v
+        .brand_name
+        .as_deref()
+        .map(str::trim)
+        .filter(|n| !n.is_empty())
+    {
         if name.chars().count() > 60 {
             return Err(bad("The brand name is at most 60 characters"));
         }
@@ -155,5 +170,8 @@ pub(crate) async fn put_settings(mut tx: Tx, Json(v): Json<WorkspaceSettingsInpu
 }
 
 pub(crate) fn routes() -> axum::Router<App> {
-    axum::Router::new().route("/api/workspace/settings", get(get_settings).put(put_settings))
+    axum::Router::new().route(
+        "/api/workspace/settings",
+        get(get_settings).put(put_settings),
+    )
 }

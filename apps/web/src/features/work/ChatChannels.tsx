@@ -68,7 +68,9 @@ export function ChatChannels({ token, projectId }: { token: string; projectId: s
             type="checkbox"
             checked={data.slack_enabled}
             disabled={!data.slack_configured && !slackUrl}
-            onChange={(e) => save.mutate({ slack_enabled: e.target.checked, ...(slackUrl ? { slack_url: slackUrl } : {}) })}
+            onChange={(e) =>
+              save.mutate({ slack_enabled: e.target.checked, ...(slackUrl ? { slack_url: slackUrl } : {}) })
+            }
           />{" "}
           Post to Slack
         </label>
@@ -87,7 +89,9 @@ export function ChatChannels({ token, projectId }: { token: string; projectId: s
             type="checkbox"
             checked={data.teams_enabled}
             disabled={!data.teams_configured && !teamsUrl}
-            onChange={(e) => save.mutate({ teams_enabled: e.target.checked, ...(teamsUrl ? { teams_url: teamsUrl } : {}) })}
+            onChange={(e) =>
+              save.mutate({ teams_enabled: e.target.checked, ...(teamsUrl ? { teams_url: teamsUrl } : {}) })
+            }
           />{" "}
           Post to Teams
         </label>

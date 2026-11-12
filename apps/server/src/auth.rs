@@ -917,7 +917,11 @@ pub(crate) fn routes() -> Router<App> {
 
 /// Personal API tokens (`mtk_…`). The token maps to its owner's membership, so a removed or disabled
 /// member loses API access at once. A `read` token is refused for any method that changes data.
-async fn authenticate_api_token(parts: &Parts, app: &App, value: &str) -> ApiResult<(Identity, String)> {
+async fn authenticate_api_token(
+    parts: &Parts,
+    app: &App,
+    value: &str,
+) -> ApiResult<(Identity, String)> {
     let unauth = || err(StatusCode::UNAUTHORIZED, "Invalid API token");
     let hash = token_hash(value);
     let row: Option<(Uuid, Uuid, String, String, Option<DateTime<Utc>>, Option<DateTime<Utc>>)> = sqlx::query_as(
@@ -933,7 +937,10 @@ async fn authenticate_api_token(parts: &Parts, app: &App, value: &str) -> ApiRes
         return Err(unauth());
     };
     if revoked_at.is_some() || expires_at.is_some_and(|e| e <= Utc::now()) {
-        return Err(err(StatusCode::UNAUTHORIZED, "API token expired or revoked"));
+        return Err(err(
+            StatusCode::UNAUTHORIZED,
+            "API token expired or revoked",
+        ));
     }
     if scope == "read" && !is_safe_method(&parts.method) {
         return Err(err(StatusCode::FORBIDDEN, "This API token is read-only"));
@@ -944,5 +951,12 @@ async fn authenticate_api_token(parts: &Parts, app: &App, value: &str) -> ApiRes
     .bind(&hash)
     .execute(&app.db)
     .await;
-    Ok((Identity { tenant_id, user_id, role }, hash))
+    Ok((
+        Identity {
+            tenant_id,
+            user_id,
+            role,
+        },
+        hash,
+    ))
 }

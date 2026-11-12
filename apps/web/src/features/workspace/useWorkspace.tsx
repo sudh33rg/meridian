@@ -1,14 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
-import {
-  API_BASE,
-  ApiError,
-  api,
-  errorMessage,
-  newIdempotencyKey,
-  send,
-} from "../../lib/api";
+import { API_BASE, ApiError, api, errorMessage, newIdempotencyKey, send } from "../../lib/api";
 import { loadIssues } from "../../lib/issues";
 import { fallbackLabel, type ProjectStatus } from "../../lib/statuses";
 import { FALLBACK_TYPES, type IssueType } from "../../lib/issue-types";
@@ -19,7 +12,17 @@ import { setLocale } from "../../lib/i18n";
 import type { ExtraTab } from "../advanced/AdvancedWorkspace";
 import { useToast } from "../shared/Toast";
 
-export type Tab = "overview" | "board" | "backlog" | "reports" | "roadmap" | "service" | "issues" | "knowledge" | "appearance" | ExtraTab;
+export type Tab =
+  | "overview"
+  | "board"
+  | "backlog"
+  | "reports"
+  | "roadmap"
+  | "service"
+  | "issues"
+  | "knowledge"
+  | "appearance"
+  | ExtraTab;
 export type Modal = "project" | "issue" | "page" | null;
 
 const emptyDraft = {

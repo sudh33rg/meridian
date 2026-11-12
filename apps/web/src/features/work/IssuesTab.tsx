@@ -275,7 +275,7 @@ export function IssuesTab() {
             aria-label="Issue query"
             value={queryText}
             onChange={(e) => setQueryText(e.target.value)}
-            placeholder='Query, e.g. status:in_progress priority:high -label:legacy cf.region:EU'
+            placeholder="Query, e.g. status:in_progress priority:high -label:legacy cf.region:EU"
           />
           <button className="secondary" type="submit" disabled={!queryText.trim()}>
             Run
@@ -308,7 +308,13 @@ export function IssuesTab() {
             labelOf={statusLabel}
           />
           <Chip label="Priority" value={priority} set={setPriority} options={PRIORITIES} />
-          <Chip label="Type" value={kind} set={setKind} options={issueTypes.map((t) => t.key)} labelOf={(k) => typeName(issueTypes, k)} />
+          <Chip
+            label="Type"
+            value={kind}
+            set={setKind}
+            options={issueTypes.map((t) => t.key)}
+            labelOf={(k) => typeName(issueTypes, k)}
+          />
           {filtering && (
             <button
               className="clear-filters"
@@ -397,7 +403,11 @@ export function IssuesTab() {
                 placeholder="View name"
               />
               <label className="filter-chip">
-                <input type="checkbox" checked={sharedDraft} onChange={(e) => setSharedDraft(e.target.checked)} />
+                <input
+                  type="checkbox"
+                  checked={sharedDraft}
+                  onChange={(e) => setSharedDraft(e.target.checked)}
+                />
                 <span>Share with project</span>
               </label>
               <button className="primary" type="submit" disabled={!naming.trim()}>
@@ -695,7 +705,11 @@ function ViewSubscribe({ token, viewId }: { token: string; viewId: string }) {
   const { toast } = useToast();
   const sub = useQuery({
     queryKey: ["view-subscription", viewId],
-    queryFn: () => request<{ cadence: string; next_run_at: string; last_sent_at?: string | null } | null>(token, `/views/${viewId}/subscription`),
+    queryFn: () =>
+      request<{ cadence: string; next_run_at: string; last_sent_at?: string | null } | null>(
+        token,
+        `/views/${viewId}/subscription`,
+      ),
   });
   const change = useMutation({
     mutationFn: (cadence: string) => send(`/views/${viewId}/subscription`, token, "PUT", { cadence }),
@@ -721,4 +735,3 @@ function ViewSubscribe({ token, viewId }: { token: string; viewId: string }) {
     </label>
   );
 }
-

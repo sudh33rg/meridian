@@ -108,7 +108,8 @@ impl Config {
             email_notifications: env_bool("EMAIL_NOTIFICATIONS"),
             ai_api_key: opt_env("ANTHROPIC_API_KEY"),
             ai_model: std::env::var("AI_MODEL").unwrap_or_else(|_| "claude-haiku-5-5".into()),
-            ai_base_url: std::env::var("AI_API_URL").unwrap_or_else(|_| "https://api.anthropic.com".into()),
+            ai_base_url: std::env::var("AI_API_URL")
+                .unwrap_or_else(|_| "https://api.anthropic.com".into()),
             stripe_price_team: opt_env("STRIPE_PRICE_TEAM"),
             stripe_price_business: opt_env("STRIPE_PRICE_BUSINESS"),
             webhook_per_min: env_num("WEBHOOK_RATE_PER_MIN", 600),

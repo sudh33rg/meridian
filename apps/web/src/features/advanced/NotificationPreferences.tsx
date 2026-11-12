@@ -64,11 +64,7 @@ export function NotificationPreferences({
       <legend>Notify me about</legend>
       {prefs.map((p) => (
         <label key={p.kind} className="pref-row">
-          <input
-            type="checkbox"
-            checked={p.enabled}
-            onChange={(e) => change(p.kind, e.target.checked)}
-          />
+          <input type="checkbox" checked={p.enabled} onChange={(e) => change(p.kind, e.target.checked)} />
           <span>
             <b>{LABELS[p.kind].title}</b>
             <small>{LABELS[p.kind].caption}</small>

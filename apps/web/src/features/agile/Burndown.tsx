@@ -9,7 +9,9 @@ export function Burndown({ data }: { data: BurndownData }) {
     days.push({ day: data.today, ...data.current });
   }
   if (days.length === 0) {
-    return <p className="muted small">No burndown yet. The first point is recorded when the sprint starts.</p>;
+    return (
+      <p className="muted small">No burndown yet. The first point is recorded when the sprint starts.</p>
+    );
   }
   const W = 320;
   const H = 150;
@@ -21,14 +23,18 @@ export function Burndown({ data }: { data: BurndownData }) {
   const startRemaining = remaining(days[0]);
   const x = (i: number) => pad.l + (days.length === 1 ? 0 : (i / (days.length - 1)) * plotW);
   const y = (v: number) => pad.t + plotH - (v / maxY) * plotH;
-  const burn = days.map((d, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(remaining(d)).toFixed(1)}`).join(" ");
+  const burn = days
+    .map((d, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(remaining(d)).toFixed(1)}`)
+    .join(" ");
   const ideal = days
     .map((_, i) => {
       const v = days.length === 1 ? 0 : startRemaining * (1 - i / (days.length - 1));
       return `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(v).toFixed(1)}`;
     })
     .join(" ");
-  const scope = days.map((d, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(d.scope_points).toFixed(1)}`).join(" ");
+  const scope = days
+    .map((d, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(d.scope_points).toFixed(1)}`)
+    .join(" ");
   const last = days[days.length - 1];
   return (
     <figure className="burndown">

@@ -6221,14 +6221,29 @@ export interface components {
         Velocity: {
             /**
              * Format: double
+             * @description Mean completed issue count over the sprints listed.
+             */
+            average_done_count: number;
+            /**
+             * Format: double
              * @description Mean completed points over the sprints listed. 0 when none are closed yet.
              */
             average_done_points: number;
             /**
              * Format: double
+             * @description Mean committed issue count over the sprints listed.
+             */
+            average_started_count: number;
+            /**
+             * Format: double
              * @description Mean committed points at start over the sprints listed.
              */
             average_started_points: number;
+            /**
+             * Format: double
+             * @description Sprint predictability (done / committed points or count as a percentage).
+             */
+            predictability_pct: number;
             sprints: components["schemas"]["VelocitySprint"][];
             /** Format: uuid */
             team_id?: string | null;
@@ -6242,16 +6257,23 @@ export interface components {
             /** Format: date-time */
             closed_at?: string | null;
             /** Format: int32 */
+            final_done_count?: number | null;
+            /** Format: int32 */
             final_done_points?: number | null;
+            /** Format: int32 */
+            final_scope_count?: number | null;
             /** Format: int32 */
             final_scope_points?: number | null;
             name: string;
             /** Format: uuid */
             sprint_id: string;
             /** Format: int32 */
+            started_scope_count?: number | null;
+            /** Format: int32 */
             started_scope_points?: number | null;
             /** Format: uuid */
             team_id?: string | null;
+            team_name?: string | null;
         };
         VerifyChallengeInput: {
             challenge: string;

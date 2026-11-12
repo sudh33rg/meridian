@@ -87,7 +87,9 @@ pub(crate) async fn check_transition(
         .await
         .map_err(db_err)?;
         if held >= i64::from(limit) {
-            return Err(bad(&format!("“{to}” is full: its WIP limit is {limit} and it holds {held} issues")));
+            return Err(bad(&format!(
+                "“{to}” is full: its WIP limit is {limit} and it holds {held} issues"
+            )));
         }
     }
     let has_rules: bool = sqlx::query_scalar(
@@ -168,14 +170,15 @@ pub(crate) async fn run_post_functions(
                 let field = field
                     .ok_or_else(|| ApiError::Internal("A set_field action has no field".into()))?;
                 let value = value.unwrap_or(Value::Null);
-                let old: Option<String> =
-                    sqlx::query_scalar("SELECT custom_fields->>$1 FROM issues WHERE tenant_id=$2 AND id=$3")
-                        .bind(&field)
-                        .bind(tenant)
-                        .bind(issue)
-                        .fetch_one(&mut *db)
-                        .await
-                        .map_err(db_err)?;
+                let old: Option<String> = sqlx::query_scalar(
+                    "SELECT custom_fields->>$1 FROM issues WHERE tenant_id=$2 AND id=$3",
+                )
+                .bind(&field)
+                .bind(tenant)
+                .bind(issue)
+                .fetch_one(&mut *db)
+                .await
+                .map_err(db_err)?;
                 // Keeps updated_at: the post-function is part of the status change, not a separate edit.
                 sqlx::query(
                     "UPDATE issues SET custom_fields = jsonb_set(COALESCE(custom_fields,'{}'::jsonb), ARRAY[$1]::text[], $2, true) WHERE tenant_id=$3 AND id=$4",
@@ -193,8 +196,16 @@ pub(crate) async fn run_post_functions(
                     Value::String(text) => Some(text.clone()),
                     other => Some(other.to_string()),
                 };
-                crate::api::history::record_change(db, tenant, issue, actor, &format!("custom_fields.{field}"), old, new)
-                    .await?;
+                crate::api::history::record_change(
+                    db,
+                    tenant,
+                    issue,
+                    actor,
+                    &format!("custom_fields.{field}"),
+                    old,
+                    new,
+                )
+                .await?;
             }
             "notify_admins" => {
                 sqlx::query(
@@ -225,8 +236,9 @@ pub(crate) async fn run_post_functions(
                 .map_err(db_err)?;
             }
             "create_subtask" => {
-                let title = title
-                    .ok_or_else(|| ApiError::Internal("A create_subtask action has no title".into()))?;
+                let title = title.ok_or_else(|| {
+                    ApiError::Internal("A create_subtask action has no title".into())
+                })?;
                 create_subtask_in(db, tenant, actor, issue, &title).await?;
             }
             _ => {}
@@ -254,11 +266,15 @@ async fn create_subtask_in(
             .await
             .map_err(db_err)?;
     if parent_parent.is_some() {
-        return Err(bad("This transition creates a subtask, but the issue is already a subtask"));
+        return Err(bad(
+            "This transition creates a subtask, but the issue is already a subtask",
+        ));
     }
     let kind = crate::api::issue_types::default_type(db, tenant, project).await?;
     if crate::api::issue_types::type_level(db, tenant, project, &kind).await? != Some(0) {
-        return Err(bad("The project's default type is an epic level type, so no subtask can be created"));
+        return Err(bad(
+            "The project's default type is an epic level type, so no subtask can be created",
+        ));
     }
     // Same lock and numbering as a subtask made by hand, so two creates cannot take one number.
     sqlx::query("SELECT id FROM projects WHERE tenant_id=$1 AND id=$2 FOR UPDATE")
@@ -655,7 +671,9 @@ pub(crate) async fn set_screen(
         .await
         .map_err(db_err)?;
         if !defined {
-            return Err(bad(&format!("“{key}” is not a custom field in this project")));
+            return Err(bad(&format!(
+                "“{key}” is not a custom field in this project"
+            )));
         }
     }
     sqlx::query(

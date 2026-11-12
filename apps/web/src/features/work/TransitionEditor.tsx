@@ -63,7 +63,8 @@ export function TransitionEditor({
     onError: fail,
   });
   const remove = useMutation({
-    mutationFn: (r: TransitionRule) => send<void>(`/projects/${projectId}/transitions/${r.from}/${r.to}`, token, "DELETE"),
+    mutationFn: (r: TransitionRule) =>
+      send<void>(`/projects/${projectId}/transitions/${r.from}/${r.to}`, token, "DELETE"),
     onSuccess: () => {
       toast("Workflow rule removed");
       refresh();
@@ -86,7 +87,9 @@ export function TransitionEditor({
           <li key={`${r.from}>${r.to}`} className="workflow-row">
             <span>
               {name(r.from)} → {name(r.to)}
-              {r.requires_field && <span className="muted small"> · needs {fieldLabel(r.requires_field)}</span>}
+              {r.requires_field && (
+                <span className="muted small"> · needs {fieldLabel(r.requires_field)}</span>
+              )}
               {r.requires_admin && <span className="muted small"> · admins only</span>}
             </span>
             <button
@@ -99,7 +102,9 @@ export function TransitionEditor({
             </button>
           </li>
         ))}
-        {!rules.length && !rulesQ.isLoading && <li className="muted small">No rules: every move is allowed.</li>}
+        {!rules.length && !rulesQ.isLoading && (
+          <li className="muted small">No rules: every move is allowed.</li>
+        )}
       </ul>
       <form
         className="workflow-add"
@@ -126,7 +131,11 @@ export function TransitionEditor({
               </option>
             ))}
         </select>
-        <select aria-label="Field that must be filled" value={requires} onChange={(e) => setRequires(e.target.value)}>
+        <select
+          aria-label="Field that must be filled"
+          value={requires}
+          onChange={(e) => setRequires(e.target.value)}
+        >
           <option value="">No field needed</option>
           {(fieldsQ.data ?? []).map((f) => (
             <option key={f.key} value={f.key}>
@@ -135,7 +144,8 @@ export function TransitionEditor({
           ))}
         </select>
         <label className="muted small">
-          <input type="checkbox" checked={adminOnly} onChange={(e) => setAdminOnly(e.target.checked)} /> Admins only
+          <input type="checkbox" checked={adminOnly} onChange={(e) => setAdminOnly(e.target.checked)} />{" "}
+          Admins only
         </label>
         <button className="secondary" type="submit" disabled={!from || !to || add.isPending}>
           <Plus size={14} /> Add move

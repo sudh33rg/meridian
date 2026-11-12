@@ -21,7 +21,10 @@ export const FIELD_TYPE_LABEL: Record<FieldType, string> = {
 };
 
 /** Builds the `custom_fields` object for a save. Empty inputs become null, which clears the value. */
-export function toPayload(fields: FieldDefinition[], values: Record<string, unknown>): Record<string, unknown> {
+export function toPayload(
+  fields: FieldDefinition[],
+  values: Record<string, unknown>,
+): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const f of fields) {
     const raw = values[f.key];

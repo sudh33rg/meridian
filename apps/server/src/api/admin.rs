@@ -184,7 +184,9 @@ fn audit_day(raw: Option<&str>, end_of: bool) -> ApiResult<Option<DateTime<Utc>>
     } else {
         day
     };
-    Ok(Some(day.and_hms_opt(0, 0, 0).expect("midnight exists").and_utc()))
+    Ok(Some(
+        day.and_hms_opt(0, 0, 0).expect("midnight exists").and_utc(),
+    ))
 }
 
 /// Runs the filtered audit query for the caller's workspace. `to` is exclusive here: the caller
@@ -197,8 +199,14 @@ async fn audit_rows(
     cursor: Option<i64>,
 ) -> ApiResult<Vec<AuditEvent>> {
     let action = q.action.as_deref().map(str::trim).filter(|s| !s.is_empty());
-    let entity = q.entity_type.as_deref().map(str::trim).filter(|s| !s.is_empty());
-    if action.is_some_and(|s| s.chars().count() > 80) || entity.is_some_and(|s| s.chars().count() > 80) {
+    let entity = q
+        .entity_type
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+    if action.is_some_and(|s| s.chars().count() > 80)
+        || entity.is_some_and(|s| s.chars().count() > 80)
+    {
         return Err(bad("Action and entity type are limited to 80 characters"));
     }
     let from = audit_day(q.from.as_deref(), false)?;
@@ -208,7 +216,11 @@ async fn audit_rows(
             return Err(bad("'from' must be on or before 'to'"));
         }
     }
-    let search = q.q.as_deref().map(str::trim).filter(|s| !s.is_empty()).map(|s| format!("%{s}%"));
+    let search =
+        q.q.as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(|s| format!("%{s}%"));
     let rows: Vec<AuditEvent> = sqlx::query_as(
         "SELECT a.id, a.action, a.entity_type, a.entity_id, a.actor_id, u.display_name AS actor, a.occurred_at \
          FROM audit_events a JOIN users u ON u.id=a.actor_id \
@@ -246,7 +258,12 @@ pub(crate) async fn audit_events(
     }
     let cursor: Option<i64> = match q.cursor.as_deref().filter(|c| !c.is_empty()) {
         None => None,
-        Some(c) => Some(c.parse::<i64>().ok().filter(|n| *n > 0).ok_or_else(|| bad("Invalid cursor"))?),
+        Some(c) => Some(
+            c.parse::<i64>()
+                .ok()
+                .filter(|n| *n > 0)
+                .ok_or_else(|| bad("Invalid cursor"))?,
+        ),
     };
     let mut rows = audit_rows(&mut tx, i.tenant_id, &q, limit + 1, cursor).await?;
     let mut headers = axum::http::HeaderMap::new();
@@ -280,13 +297,22 @@ pub(crate) async fn audit_export(
             r.entity_type,
             r.entity_id.to_string(),
         ];
-        out.push_str(&cells.iter().map(|c| crate::api::reports::csv_cell(c)).collect::<Vec<_>>().join(","));
+        out.push_str(
+            &cells
+                .iter()
+                .map(|c| crate::api::reports::csv_cell(c))
+                .collect::<Vec<_>>()
+                .join(","),
+        );
         out.push('\n');
     }
     Ok((
         [
             (CONTENT_TYPE, "text/csv; charset=utf-8".to_string()),
-            (CONTENT_DISPOSITION, "attachment; filename=\"audit-events.csv\"".to_string()),
+            (
+                CONTENT_DISPOSITION,
+                "attachment; filename=\"audit-events.csv\"".to_string(),
+            ),
         ],
         out,
     )
