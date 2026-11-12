@@ -178,6 +178,7 @@ pub(crate) async fn stream(
             // Sleep until this tenant has news, or re-check the session on the heartbeat.
             loop {
                 tokio::select! {
+                    _ = tx.closed() => return,
                     got = wake.recv() => match got {
                         Ok(t) if t == i.tenant_id => break,
                         Ok(_) => continue,
