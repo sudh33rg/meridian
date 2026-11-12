@@ -24,9 +24,9 @@
 | Web | `apps/web` | React single-page app; typed client generated from `docs/openapi.json` |
 | Mobile | `apps/mobile` | Flutter companion app with secure token storage and offline drafts ([`SYNC_PROTOCOL.md`](SYNC_PROTOCOL.md)) |
 
-Domain modules: work and issues, workflow statuses and transitions, custom fields, sprints and releases, roadmaps,
-knowledge pages, collaboration (comments, approvals, inbox, automations), administration (audit, permission
-schemes, roles, security levels), and service management.
+Domain modules: work and issues, workflow statuses and transitions, custom fields, sprints, team velocity & predictability analytics, releases, roadmaps & RAID registers,
+knowledge pages and inline comments, collaboration (comments, approvals, inbox, automations), administration (audit, permission
+schemes, roles, security levels), service management (customer portal, queues, incidents), and OpenTelemetry telemetry.
 
 ## Data model
 
@@ -71,4 +71,4 @@ calls inside request handlers. Measure before claiming any of them.
 
 The provided foundation is not production software until these pass: tenant-isolation tests in CI, role and access
 regression tests, an independent security review, dependency and supply-chain checks, a backup restore drill, and
-audit-log verification. See [`SECURITY.md`](SECURITY.md) and [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md).
+audit-log verification. See [`SECURITY.md`](SECURITY.md).

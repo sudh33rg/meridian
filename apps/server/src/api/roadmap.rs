@@ -536,8 +536,7 @@ pub(crate) async fn link_initiative_epics(
         .bind(issue)
         .fetch_optional(&mut *tx)
         .await
-        .map_err(db_err)?
-        .map(|(p, k, a)| (p, k, a));
+        .map_err(db_err)?;
         let reason = match row {
             None => Some("Issue not found".to_string()),
             Some((_, _, Some(_))) => Some("Issue is archived".into()),

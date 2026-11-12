@@ -66,7 +66,7 @@ impl FromRequestParts<App> for Tx {
                 .execute(&mut *t)
                 .await
                 .map_err(db_err)?;
-            sqlx::query("SELECT set_config('app.tenant_id', $1, true)")
+            sqlx::query("SELECT set_config('app.tenant_id', $1, true), set_config('app.current_tenant_id', $1, true)")
                 .bind(identity.tenant_id.to_string())
                 .execute(&mut *t)
                 .await

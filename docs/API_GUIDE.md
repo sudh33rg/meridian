@@ -49,24 +49,49 @@ Browser clients send `X-Auth-Mode: cookie` on sign-in (tokens go into HttpOnly c
 | GET | `/pages/{id}/versions` | Previous revisions |
 | POST | `/pages/{id}/restore` | Restore a historical revision while preserving current content |
 | GET / POST | `/pages/{id}/comments` | Page discussions |
+| GET / POST | `/pages/{id}/inline-comments` | List and create inline comments on selected text |
+| PATCH / DELETE | `/pages/{id}/inline-comments/{comment_id}` | Resolve, edit or delete inline comments |
 | GET / POST | `/relations` | Typed connections between pages, work, goals, risks, decisions and releases |
 
-## Planning, analytics and collaboration
+## Planning, agile, and collaboration
 
 | Verb | Route | Description |
 |---|---|---|
 | GET / POST | `/projects/{id}/sprints`, `/projects/{id}/releases` | Iterations and releases |
 | PATCH | `/sprints/{id}` | Controlled planned→active→completed transitions |
+| GET | `/sprints/{id}/board` | Sprint board issues grouped by column |
+| GET | `/sprints/{id}/report` | Sprint performance report with scope changes |
+| GET / PUT | `/sprints/{id}/capacity` | Team capacity management and assigned points |
+| GET | `/sprints/{id}/burndown`, `/sprints/{id}/burnup` | Sprint daily scope and completion charts |
+| GET | `/projects/{id}/velocity` | Historical team velocity and predictability metrics |
+| GET / POST | `/projects/{id}/raid` | List and create RAID items (risks, assumptions, issues, dependencies) |
+| PATCH / DELETE | `/raid/{id}` | Update status/severity or delete RAID item |
+| GET | `/projects/{id}/timeline`, `/projects/{id}/critical-path` | Roadmap schedule, dependencies, and critical path |
 | GET / POST | `/projects/{id}/goals`, `/projects/{id}/risks`, `/projects/{id}/decisions` | Portfolio records |
 | GET / POST | `/projects/{id}/approvals` | Approval requests |
 | PATCH | `/approvals/{id}` | Assigned reviewer accepts or rejects pending request |
 | GET | `/approvals/mine` | Assigned approvals |
 | GET | `/projects/{id}/analytics`, `/projects/{id}/overview` | Project insights |
 | GET | `/projects/{id}/activity`, `/audit` | Activity and administrative audit (where emitted) |
-| GET | `/portfolio`, `/workload` | Organization planning |
+| GET | `/portfolio`, `/portfolio/overview`, `/workload` | Organization-level planning |
 | GET / POST | `/projects/{id}/automations` | Safe automation configurations |
 | GET / POST | `/notifications`, `/notifications/{id}/read` | Inbox; mark-read uses POST |
 | GET | `/search?q=keyword` | Tenant-scoped PostgreSQL full-text results |
+
+## Service management and customer portal
+
+| Verb | Route | Description |
+|---|---|---|
+| GET / POST | `/projects/{id}/service/queues` | List and create service queues |
+| DELETE | `/service/queues/{id}` | Delete service queue |
+| GET / POST | `/projects/{id}/service/request-types` | Define customer request types and forms |
+| POST | `/projects/{id}/service/requests` | Submit internal service request |
+| GET | `/projects/{id}/service/sla` | SLA compliance report |
+| GET | `/portal/projects/{id}` | Customer portal info (branding, request types) |
+| POST | `/portal/projects/{id}/requests` | Customer submits support ticket |
+| GET | `/portal/requests/{id}` | Customer checks request progress |
+| GET / POST | `/projects/{id}/incidents` | Incident tracking and escalation |
+| PATCH | `/incidents/{id}` | Update incident severity and status |
 
 ## Integration and administrative endpoints
 

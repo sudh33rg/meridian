@@ -16,10 +16,11 @@ From repository root: `docker compose -f infra/docker-compose.full.yml up --buil
 
 ## Verification
 
-- `./scripts/verify.sh` runs the checks for whichever local toolchains are installed.
-- With the API serving locally, `python3 tests/smoke.py` checks the tenant boundary, search, mutations and workflows.
+- `make test` runs both API integration/unit tests and Web Vitest test suites.
+- `./scripts/verify.sh` runs the full multi-toolchain checks: Rust formatting, Clippy (`-D warnings`), database-backed Rust tests, Web formatting, ESLint, Vitest tests, Vite production build, Flutter mobile analyzer, and Python script compilation.
+- With the API serving locally, `python3 tests/smoke.py` checks the tenant boundary, search, planning, velocity, RAID, inline comments, and workflows.
 - Database-backed Rust tests need `DATABASE_URL_TEST` pointing at a disposable PostgreSQL database; run `cargo test` in `apps/server`.
-- `.github/workflows/ci.yml` defines the CI jobs. It has not yet run on GitHub.
+- `.github/workflows/ci.yml` defines the CI jobs.
 
 API liveness: `GET /health`. Readiness (checks database): `GET /ready`. Neither requires a bearer token. The app sets and echoes `X-Request-ID` on every response and records it on the request's tracing span, so it appears on any log line emitted while a request is handled (including warnings such as refresh-token reuse) and Prometheus metrics (`meridian_http_requests_total`, `meridian_http_request_seconds{method,route}`, `meridian_http_in_flight`, `meridian_db_pool_size/idle`, job and rate-limit counters). There is no OTLP trace exporter or dashboard yet.
 

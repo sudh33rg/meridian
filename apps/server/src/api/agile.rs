@@ -1425,7 +1425,7 @@ pub(crate) async fn sprint_capacity(
          COALESCE((SELECT SUM(COALESCE(i2.story_points, 0))::int4 FROM issues i2 \
                    WHERE i2.tenant_id=$1 AND i2.sprint_id=$2 AND i2.assignee_id=u.id \
                    AND i2.archived_at IS NULL AND i2.trashed_at IS NULL), 0)::int4 AS assigned_points \
-         FROM members m \
+         FROM memberships m \
          JOIN users u ON u.id = m.user_id \
          LEFT JOIN sprint_capacities sc ON sc.tenant_id=$1 AND sc.sprint_id=$2 AND sc.user_id=u.id \
          WHERE m.tenant_id=$1 ORDER BY name"

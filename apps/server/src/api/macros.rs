@@ -109,3 +109,39 @@ fn validate_one(body: &str) -> ApiResult<()> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_valid_macros() {
+        let (name, args) = parse_macro("issues query=\"status:todo\" limit=10").unwrap();
+        assert_eq!(name, "issues");
+        assert_eq!(args.len(), 2);
+        assert_eq!(args[0], ("query".to_string(), "status:todo".to_string()));
+        assert_eq!(args[1], ("limit".to_string(), "10".to_string()));
+
+        let (name2, args2) = parse_macro("chart by=status").unwrap();
+        assert_eq!(name2, "chart");
+        assert_eq!(args2, vec![("by".to_string(), "status".to_string())]);
+    }
+
+    #[test]
+    fn validate_macros_in_content() {
+        let valid_content = "# Overview\n\n{{issues query=\"status:in_progress\" limit=5}}\n\n{{chart by=priority}}";
+        assert!(validate_macros(valid_content).is_ok());
+
+        let unclosed = "Some content {{issues query=\"test\"";
+        assert!(validate_macros(unclosed).is_err());
+
+        let invalid_by = "{{chart by=unknown}}";
+        assert!(validate_macros(invalid_by).is_err());
+
+        let invalid_limit = "{{table limit=100}}";
+        assert!(validate_macros(invalid_limit).is_err());
+
+        let too_many: String = (0..25).map(|_| "{{table limit=5}}\n").collect();
+        assert!(validate_macros(&too_many).is_err());
+    }
+}

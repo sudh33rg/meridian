@@ -222,3 +222,311 @@ fn tokens_are_sha256_only_in_storage() {
     assert_ne!(token_hash(&t), t);
     assert_eq!(token_hash(&t), token_hash(&t));
 }
+
+#[tokio::test]
+async fn sprint_velocity_and_capacity_lifecycle() {
+    let Some(app) = test_router().await else {
+        return;
+    };
+    let t = signup(&app, "vel").await;
+    let (s, proj) = call(
+        &app,
+        Method::POST,
+        "/api/projects",
+        Some(&t),
+        Some(json!({"name": "Agile Team", "key": "AGL"})),
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED);
+    let pid = proj["id"].as_str().unwrap();
+
+    // Create sprint
+    let (s, sprint) = call(
+        &app,
+        Method::POST,
+        &format!("/api/projects/{pid}/sprints"),
+        Some(&t),
+        Some(json!({"name": "Sprint 1", "goal": "Deliver velocity"})),
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED);
+    let sid = sprint["id"].as_str().unwrap();
+
+    // Check capacity before issues
+    let (s, cap) = call(
+        &app,
+        Method::GET,
+        &format!("/api/sprints/{sid}/capacity"),
+        Some(&t),
+        None,
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    assert!(!cap["members"].as_array().unwrap().is_empty());
+    let uid = cap["members"][0]["user_id"].as_str().unwrap();
+
+    // Update capacity
+    let (s, cap_updated) = call(
+        &app,
+        Method::PUT,
+        &format!("/api/sprints/{sid}/capacity"),
+        Some(&t),
+        Some(json!({
+            "capacities": [
+                {"user_id": uid, "capacity_hours": 35.0}
+            ]
+        })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(cap_updated["members"][0]["capacity_hours"], 35.0);
+
+    // Create issue
+    let (s, issue) = call(
+        &app,
+        Method::POST,
+        &format!("/api/projects/{pid}/issues"),
+        Some(&t),
+        Some(json!({"title": "Velocity item"})),
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED);
+    let iid = issue["id"].as_str().unwrap();
+
+    // Set story points and assignee via edit
+    let (s, _) = call(
+        &app,
+        Method::PATCH,
+        &format!("/api/issues/{iid}/edit"),
+        Some(&t),
+        Some(json!({"story_points": 5, "assignee_id": uid})),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+
+    // Add issue to sprint
+    let (s, _) = call(
+        &app,
+        Method::POST,
+        &format!("/api/sprints/{sid}/issues"),
+        Some(&t),
+        Some(json!({"issue_ids": [iid]})),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+
+    // Start sprint
+    let (s, _) = call(
+        &app,
+        Method::PATCH,
+        &format!("/api/sprints/{sid}"),
+        Some(&t),
+        Some(json!({"state": "active"})),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+
+    // Mark issue done
+    let (s, _) = call(
+        &app,
+        Method::PATCH,
+        &format!("/api/issues/{iid}"),
+        Some(&t),
+        Some(json!({"status": "done"})),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+
+    // Complete sprint
+    let (s, _) = call(
+        &app,
+        Method::PATCH,
+        &format!("/api/sprints/{sid}"),
+        Some(&t),
+        Some(json!({"state": "completed"})),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+
+    // Query velocity
+    let (s, vel) = call(
+        &app,
+        Method::GET,
+        &format!("/api/projects/{pid}/velocity"),
+        Some(&t),
+        None,
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(vel["sprints"].as_array().unwrap().len(), 1);
+    assert_eq!(vel["average_done_points"], 5.0);
+    assert_eq!(vel["predictability_pct"], 100.0);
+}
+
+#[tokio::test]
+async fn raid_register_and_milestones_lifecycle() {
+    let Some(app) = test_router().await else {
+        return;
+    };
+    let a = signup(&app, "ra").await;
+    let b = signup(&app, "rb").await;
+    let (s, proj) = call(
+        &app,
+        Method::POST,
+        "/api/projects",
+        Some(&a),
+        Some(json!({"name": "RAID Test", "key": "RAID"})),
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED);
+    let pid = proj["id"].as_str().unwrap();
+
+    // Create RAID item
+    let (s, item) = call(
+        &app,
+        Method::POST,
+        &format!("/api/projects/{pid}/raid"),
+        Some(&a),
+        Some(json!({
+            "kind": "risk",
+            "title": "Vendor API deprecation",
+            "description": "Upstream service breaking change",
+            "severity": "high",
+            "status": "open"
+        })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    let rid = item["id"].as_str().unwrap();
+
+    // Tenant B cannot access it
+    let (s, _) = call(
+        &app,
+        Method::GET,
+        &format!("/api/projects/{pid}/raid"),
+        Some(&b),
+        None,
+    )
+    .await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+
+    // Update RAID item
+    let (s, updated) = call(
+        &app,
+        Method::PATCH,
+        &format!("/api/raid/{rid}"),
+        Some(&a),
+        Some(json!({
+            "severity": "critical",
+            "status": "mitigated"
+        })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(updated["severity"], "critical");
+    assert_eq!(updated["status"], "mitigated");
+
+    // Delete RAID item
+    let (s, _) = call(
+        &app,
+        Method::DELETE,
+        &format!("/api/raid/{rid}"),
+        Some(&a),
+        None,
+    )
+    .await;
+    assert_eq!(s, StatusCode::NO_CONTENT);
+}
+
+#[tokio::test]
+async fn page_inline_comments_lifecycle() {
+    let Some(app) = test_router().await else {
+        return;
+    };
+    let t = signup(&app, "ic").await;
+    let (s, proj) = call(
+        &app,
+        Method::POST,
+        "/api/projects",
+        Some(&t),
+        Some(json!({"name": "Knowledge Proj", "key": "KNOW"})),
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED);
+    let pid = proj["id"].as_str().unwrap();
+
+    // Create page
+    let (s, page) = call(
+        &app,
+        Method::POST,
+        &format!("/api/projects/{pid}/pages"),
+        Some(&t),
+        Some(json!({"title": "Design Specs", "content": "The architecture uses Rust and React."})),
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED);
+    let gid = page["id"].as_str().unwrap();
+
+    // Create inline comment
+    let (s, comment) = call(
+        &app,
+        Method::POST,
+        &format!("/api/pages/{gid}/inline-comments"),
+        Some(&t),
+        Some(json!({
+            "selected_text": "Rust and React",
+            "content": "Verify version compatibility"
+        })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED);
+    let cid = comment["id"].as_str().unwrap();
+    assert_eq!(comment["selected_text"], "Rust and React");
+
+    // List inline comments
+    let (s, list) = call(
+        &app,
+        Method::GET,
+        &format!("/api/pages/{gid}/inline-comments"),
+        Some(&t),
+        None,
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(list.as_array().unwrap().len(), 1);
+
+    // Update comment (e.g. resolve)
+    let (s, updated) = call(
+        &app,
+        Method::PATCH,
+        &format!("/api/pages/{gid}/inline-comments/{cid}"),
+        Some(&t),
+        Some(json!({"resolved": true})),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(updated["resolved"], true);
+
+    // Delete comment
+    let (s, _) = call(
+        &app,
+        Method::DELETE,
+        &format!("/api/pages/{gid}/inline-comments/{cid}"),
+        Some(&t),
+        None,
+    )
+    .await;
+    assert_eq!(s, StatusCode::NO_CONTENT);
+
+    // List is now empty
+    let (s, list_after) = call(
+        &app,
+        Method::GET,
+        &format!("/api/pages/{gid}/inline-comments"),
+        Some(&t),
+        None,
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(list_after.as_array().unwrap().len(), 0);
+}

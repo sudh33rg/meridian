@@ -24,7 +24,8 @@
 
 ## Tests in package
 
-- `apps/server/src/tests.rs`: HTTP-level tests through the real router, run when `DATABASE_URL_TEST` is set.
-- `apps/server/src/api/common.rs`, `error.rs`, `openapi.rs`: unit tests (role guards, error mapping, OpenAPI coverage).
-- `tests/smoke.py`: API-level tenant boundary, search, mutation and workflow checks against a local API.
+- `apps/server/src/tests.rs`: HTTP-level integration tests through the real router (tenant boundary, auth/session lifecycle, sprint velocity & capacity planning, RAID register, and page inline comments).
+- `apps/server/src/api/`: unit tests (macro parsing & validation in `macros.rs`, role permissions in `common.rs`, error mapping in `error.rs`, OpenAPI coverage in `openapi.rs`).
+- `apps/web/src/`: Vitest and Testing Library unit and component test suites (`lib/api.test.ts`, `lib/session.test.ts`, `lib/datetime.test.ts`, `lib/fields.test.ts`, `lib/macros.test.ts`, `features/agile/TeamVelocityChart.test.tsx`, `features/auth/AuthScreen.test.tsx`).
+- `tests/smoke.py`: API-level tenant boundary, search, planning, velocity, RAID register, inline comments, mutation, and workflow checks against a local API.
 - `tests/load.js`: k6 sample with p95 and error-rate thresholds; no benchmark result is claimed.

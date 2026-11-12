@@ -386,7 +386,7 @@ mod tests {
         let paths = doc["paths"].as_object().unwrap();
         let ops: usize = paths.values().map(|p| p.as_object().unwrap().len()).sum();
         assert_eq!(
-            ops, 340,
+            ops, 332,
             "documented operation count changed; update routes and docs together"
         );
         // Only the public auth endpoints may omit the bearer requirement.

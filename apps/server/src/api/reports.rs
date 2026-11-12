@@ -143,7 +143,7 @@ fn median(mut xs: Vec<f64>) -> Option<f64> {
     }
     xs.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     let mid = xs.len() / 2;
-    Some(if xs.len() % 2 == 0 {
+    Some(if xs.len().is_multiple_of(2) {
         (xs[mid - 1] + xs[mid]) / 2.0
     } else {
         xs[mid]

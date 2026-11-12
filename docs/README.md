@@ -1,22 +1,22 @@
+# AUTHOR
+ ## Sudheer
+
 # Meridian documentation
 
 Meridian is a multi-tenant project delivery, knowledge and collaboration system. Its binding rules are in
 [`../CONSTITUTION.md`](../CONSTITUTION.md). This folder holds the reference documentation.
 
 **Status: Meridian 0.2 development preview. Not production-ready; do not put real customer data into it.**
-[`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md) is the ledger of what exists, what is verified and
-what is still open.
 
 ## Documents
 
 | Document | Contents |
 |---|---|
-| [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md) | Milestone ledger, verification status, open risks |
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Design principles, module boundaries, tenancy model, planned components |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Design principles, module boundaries, tenancy model, and components |
 | [`API_GUIDE.md`](API_GUIDE.md) | Route guide for the REST API |
 | [`openapi.json`](openapi.json) | Generated API contract (`make openapi`); also served at `/api/openapi.json` |
-| [`SECURITY.md`](SECURITY.md) | Security boundaries, remaining blockers, existing tests |
-| [`OPERATIONS.md`](OPERATIONS.md) | Local development, container preview, configuration, background jobs, verification |
+| [`SECURITY.md`](SECURITY.md) | Security boundaries, threat model, remaining blockers, and tests |
+| [`OPERATIONS.md`](OPERATIONS.md) | Local development, container preview, configuration, background jobs, and verification |
 | [`SYNC_PROTOCOL.md`](SYNC_PROTOCOL.md) | How the mobile app reads, drafts and changes issues offline |
 
 ## Stack
@@ -29,13 +29,15 @@ what is still open.
 
 ## Feature areas
 
-1. **Workspaces:** sign-up and sign-in, opaque sessions, invitations, teams, roles, workspace switching, login throttling.
-2. **Work:** projects, issues, board and list views, priorities, labels, comments, links, archive, custom fields, workflow statuses and transitions.
-3. **Knowledge:** project pages with versions and restore, page comments, collaborative editing, full-text search.
-4. **Planning:** sprints, releases, goals, risks, decisions, roadmaps, capacity and portfolio views.
-5. **Collaboration:** approvals, inbox, safe automation rules, audit log, typed relations between records.
-6. **Integrations:** bounded export, CSV import, webhook registration (delivery disabled), chat posts, optional AI drafts.
-7. **Mobile:** sign-in, issue list and details, status and comments, knowledge reader, inbox, search, offline drafts.
+1. **Workspaces & Security:** sign-up and sign-in, opaque bearer sessions, rotating refresh tokens, HttpOnly cookies, CSRF protection, invitations, teams, roles, TOTP 2FA, OIDC SSO, SCIM 2.0 provisioning.
+2. **Work Tracking:** projects, issues, board and list views, custom fields, issue types, workflow statuses, transition rules and validators, security levels, bulk updates, archive, and trash restore.
+3. **Knowledge Base:** hierarchical project pages with versions and snapshots, page restore, page templates, macros, inline comments, live collaborative editing (Yjs over WebSocket), and full-text search.
+4. **Agile & Planning:** sprints, sprint boards, team velocity charts & predictability metrics, sprint capacity planning, sprint reports, burndown and burnup charts, releases, and backlogs.
+5. **Portfolio & Roadmaps:** goals, RAID register (risks, assumptions, issues, dependencies), roadmaps, milestones, schedule baselines, critical path analysis, and cross-project portfolio overview.
+6. **Service Management:** service queues, request types, customer portal, customer request tracking, SLAs, and incident management workflows.
+7. **Collaboration:** approvals, notification inbox, notification preferences, safe automation rules, audit logging, and typed relations between entities.
+8. **Integrations & Ecosystem:** bounded JSON export, CSV issue import, CSV report exports, webhook registration, and optional AI drafts and summaries.
+9. **Mobile:** Flutter companion app with sign-in, issue management, status changes, comments, knowledge reader, inbox, search, and offline encrypted drafts.
 
 ## Run it locally
 

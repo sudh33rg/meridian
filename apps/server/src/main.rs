@@ -1,5 +1,5 @@
 //! Meridian API entry point: shared state, router assembly and process startup.
-#![allow(unused_imports)]
+#![allow(unused_imports, clippy::type_complexity, clippy::explicit_auto_deref)]
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
