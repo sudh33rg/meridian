@@ -84,7 +84,7 @@
       "type": "node",
       "request": "launch",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["test", "--", "--runInBand"],
+      "runtimeArgs": ["test", "--", "--no-file-parallelism"],
       "cwd": "${workspaceFolder}/apps/web",
       "console": "integratedTerminal"
     },
