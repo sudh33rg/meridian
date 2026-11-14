@@ -6,11 +6,14 @@
   "files": {
     ".dockerignore": "c324bf566f235e1d08183f5ef7673b26cd76a4a7946cdbce94c37f794a7a1e0d",
     ".github/workflows/ci.yml": "a68ab00889de594f651bec1e0b45f733d14675816473c22d0f1225fa8f70195e",
-    ".gitignore": "e6cae8e7916cd6b327afa25b56e879e666bf80c1769f52eeb751d483041cd8b7",
+    ".gitignore": "72b16c8a966ecdda3156f75ff5140f0072a5fd7560bba7872e9dd949f9da2ca1",
+    ".vscode/extensions.json": "5307df9a5008696dac433dbaab9beff2d08450fe41b35f22f958badd683577b8",
+    ".vscode/launch.json": "b0e21b27f4252bfebaf968369f0ece49d9d2dd664ed96d1a3780e36fb99f286b",
+    ".vscode/tasks.json": "6a50670fc966b34a4ecfdb1788f282abaa612b150ea4063f7966700da1132baf",
     "CLAUDE.md": "195e896eb7e41e7069d3719ffefe9e140613607c3941cd8487dbd9486885665a",
     "CONSTITUTION.md": "e9da814b9e68f21f75da67e9cf8a4d000d280f9a928c1b3f71b2f03bb016ce7c",
     "Makefile": "52b2daaa022fcebcd62e5ca270fd64cc39be744ea332d2ae4935b47598007844",
-    "README.md": "9f6123bc3a5ec7799ec2d96ab6099fcd89e717e93485104332d2edb8d90cad5a",
+    "README.md": "1876ed2d48843558b2838bc6f94670d21d2539292e28e95c21d7e2d009916272",
     "apps/mobile/analysis_options.yaml": "070db93f6540b5c9fb3758102afbe647e6860d98323ac993e4c9ceab1f71b133",
     "apps/mobile/lib/app.dart": "4e7dff0ef07267de6ad47ae706c2e0ccd4e44ecc184846e97eb4b7de525c50c3",
     "apps/mobile/lib/auth.dart": "6851bd2b7cd2e4b68b9cb0f5cfd82120da1882b847c0d0464f60985c1dfce834",
@@ -278,5 +281,5 @@
     "tests/load.js": "4cbcbb79e8df4eb4fd031d5e47f7f85919800d43f147d3208c858063903af954",
     "tests/smoke.py": "2a604dd7145dbae2f23bdc32e5dc27614cbbb8dd328af90fdc711330097588b1"
   },
-  "file_count": 273
+  "file_count": 276
 }

@@ -1,0 +1,130 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Server (Rust)",
+      "type": "lldb",
+      "request": "launch",
+      "cargo": {
+        "args": [
+          "build",
+          "--bin=meridian-api",
+          "--package=meridian-api"
+        ],
+        "filter": {
+          "name": "meridian-api",
+          "kind": "bin"
+        }
+      },
+      "cwd": "${workspaceFolder}/apps/server",
+      "env": {
+        "DATABASE_URL": "postgres://meridian:meridian_local_only@localhost:5432/meridian",
+        "BIND_ADDRESS": "127.0.0.1:9990",
+        "CORS_ORIGIN": "http://localhost:9991",
+        "RUST_LOG": "meridian_api=debug,tower_http=debug",
+        "PUBLIC_URL": "http://localhost:9991"
+      }
+    },
+    {
+      "name": "Debug Server Binary (Rust)",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/apps/server/target/debug/meridian-api",
+      "args": [],
+      "cwd": "${workspaceFolder}/apps/server",
+      "preLaunchTask": "cargo: build server",
+      "env": {
+        "DATABASE_URL": "postgres://meridian:meridian_local_only@localhost:5432/meridian",
+        "BIND_ADDRESS": "127.0.0.1:9990",
+        "CORS_ORIGIN": "http://localhost:9991",
+        "RUST_LOG": "meridian_api=debug,tower_http=debug",
+        "PUBLIC_URL": "http://localhost:9991"
+      }
+    },
+    {
+      "name": "Debug Server Tests (Rust)",
+      "type": "lldb",
+      "request": "launch",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--package=meridian-api"
+        ],
+        "filter": {
+          "name": "meridian-api",
+          "kind": "lib"
+        }
+      },
+      "cwd": "${workspaceFolder}/apps/server",
+      "env": {
+        "DATABASE_URL_TEST": "postgres://meridian:meridian_local_only@localhost:5432/meridian_test",
+        "RUST_LOG": "meridian_api=debug,tower_http=debug"
+      }
+    },
+    {
+      "name": "Debug Web (Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:9991",
+      "webRoot": "${workspaceFolder}/apps/web",
+      "sourceMaps": true
+    },
+    {
+      "name": "Start Web Dev Server (Vite)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "${workspaceFolder}/apps/web",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Debug Web Tests (Vitest)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["test", "--", "--runInBand"],
+      "cwd": "${workspaceFolder}/apps/web",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Debug Mobile (Flutter)",
+      "type": "dart",
+      "request": "launch",
+      "program": "apps/mobile/lib/main.dart",
+      "cwd": "apps/mobile"
+    },
+    {
+      "name": "Debug Smoke Tests (Python)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/tests/smoke.py",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "env": {
+        "MERIDIAN_API": "http://localhost:9990"
+      }
+    },
+    {
+      "name": "Debug Seed Demo (Python)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/seed_demo.py",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "env": {
+        "MERIDIAN_API": "http://localhost:9990"
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full Stack: Server + Web (Chrome)",
+      "configurations": [
+        "Debug Server (Rust)",
+        "Debug Web (Chrome)"
+      ]
+    }
+  ]
+}

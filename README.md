@@ -72,6 +72,15 @@ npm install
 npm run dev
 ```
 
+### Debugging in VS Code
+
+Pre-configured launch and task profiles are available in `.vscode/launch.json`:
+- **Debug Server (Rust):** Builds and runs `apps/server` with CodeLLDB, passing local development environment variables (`DATABASE_URL`, `BIND_ADDRESS`, `CORS_ORIGIN`).
+- **Debug Web (Chrome):** Launches Chrome with sourcemap debugging against the Vite dev server at `http://localhost:9991`.
+- **Full Stack: Server + Web (Chrome):** Compound profile launching both the API backend and Chrome frontend concurrently.
+- **Debug Mobile (Flutter):** Runs the Flutter mobile companion app in the Dart/Flutter debugger.
+- **Debug Smoke Tests / Seed Demo (Python):** Executes verification scripts in the Python debugger.
+
 Optionally populate a sample demo workspace:
 ```sh
 python3 scripts/seed_demo.py
