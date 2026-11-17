@@ -1,8 +1,9 @@
 import { formatDateTime } from "../../lib/datetime";
 import React, { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2 } from "lucide-react";
+import { Building2, Shield, KeyRound } from "lucide-react";
 import { api, errorMessage, send } from "../../lib/api";
+import { PageHeader, Card, CardHeader, CardTitle, CardContent } from "../shared/UiComponents";
 
 type Domain = { domain: string; verified: boolean; txt_name: string; txt_value: string; file_url: string };
 type Sso = {
@@ -119,202 +120,298 @@ export function IdentityPanel() {
 
   const s = sso.data;
   return (
-    <div className="ext-wrap">
+    <div className="ext-wrap space-y-6">
+      <PageHeader
+        title="Identity & Access"
+        subtitle="Configure verified domain ownership, single sign-on (OIDC), and automated SCIM provisioning."
+      />
+
       {error && (
-        <div className="error" role="alert">
+        <div
+          className="error p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs sm:text-sm"
+          role="alert"
+        >
           {error}
         </div>
       )}
       {notice && (
-        <div className="ok" role="status">
+        <div
+          className="ok p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm font-medium"
+          role="status"
+        >
           {notice}
         </div>
       )}
 
-      <div className="panel-card">
-        <h3>
-          <Building2 size={18} /> Verified domains
-        </h3>
-        <p className="muted">
-          Prove you control an email domain before using it for single sign-on or provisioning. Publish the
-          DNS TXT record (or the file) shown, then verify.
-        </p>
-        {(s?.domains ?? []).map((d) => (
-          <div key={d.domain} className="panel-card" style={{ background: "#fafbfe" }}>
-            <div className="row-gap" style={{ justifyContent: "space-between" }}>
-              <b>{d.domain}</b>
-              <span className="row-gap">
-                <span className={"tag"}>{d.verified ? "Verified" : "Not verified"}</span>
+      {/* Verified Domains Card */}
+      <Card className="panel-card space-y-4">
+        <CardHeader className="pb-2 border-b border-border">
+          <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle flex items-center gap-2">
+            <Building2 size={16} /> Verified domains
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-2">
+          <p className="muted text-xs sm:text-sm text-text-subtle">
+            Prove you control an email domain before using it for single sign-on or provisioning. Publish the
+            DNS TXT record (or the file) shown, then verify.
+          </p>
+          <div className="space-y-3">
+            {(s?.domains ?? []).map((d) => (
+              <div key={d.domain} className="p-3.5 rounded-xl border border-border bg-surface-2 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <b className="text-text-main text-sm font-semibold">{d.domain}</b>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`tag text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        d.verified
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                          : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                      }`}
+                    >
+                      {d.verified ? "Verified" : "Not verified"}
+                    </span>
+                    {!d.verified && (
+                      <button
+                        className="primary px-2.5 py-1 bg-accent hover:bg-accent-strong text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                        disabled={verify.isPending}
+                        onClick={() => verify.mutate(d.domain)}
+                      >
+                        Verify
+                      </button>
+                    )}
+                    <button
+                      className="secondary px-2.5 py-1 bg-surface hover:bg-danger/10 hover:text-danger border border-border rounded-lg text-xs font-medium text-text-main transition-colors"
+                      onClick={() => dropDomain.mutate(d.domain)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
                 {!d.verified && (
-                  <button
-                    className="primary"
-                    disabled={verify.isPending}
-                    onClick={() => verify.mutate(d.domain)}
-                  >
-                    Verify
-                  </button>
+                  <div className="muted small text-xs text-text-subtle font-mono p-2.5 bg-bg rounded-lg border border-border space-y-1">
+                    <div>
+                      DNS TXT <code>{d.txt_name}</code> = <code>{d.txt_value}</code>
+                    </div>
+                    <div>
+                      or serve <code>{d.txt_value}</code> at <code>{d.file_url}</code>
+                    </div>
+                  </div>
                 )}
-                <button className="secondary" onClick={() => dropDomain.mutate(d.domain)}>
-                  Remove
-                </button>
-              </span>
-            </div>
-            {!d.verified && (
-              <p className="muted small">
-                DNS TXT <code>{d.txt_name}</code> = <code>{d.txt_value}</code>
-                <br />
-                or serve <code>{d.txt_value}</code> at <code>{d.file_url}</code>
-              </p>
-            )}
-          </div>
-        ))}
-        <div className="row-gap">
-          <input
-            aria-label="Domain"
-            placeholder="example.com"
-            value={domain}
-            onChange={(e) => setDomain(e.target.value)}
-          />
-          <button
-            className="primary"
-            disabled={!domain || addDomain.isPending}
-            onClick={() => addDomain.mutate()}
-          >
-            Add domain
-          </button>
-        </div>
-      </div>
-
-      <div className="panel-card">
-        <h3>Single sign-on (OpenID Connect)</h3>
-        <p className="muted">
-          Register this redirect URL with your identity provider: <code>{s?.callback_url}</code>. Members sign
-          in at <code>{s?.login_url}</code>.
-        </p>
-        <label>
-          Issuer URL
-          <input
-            value={form.issuer}
-            placeholder="https://login.example.com"
-            onChange={(e) => setForm({ ...form, issuer: e.target.value })}
-          />
-        </label>
-        <label>
-          Client ID
-          <input value={form.client_id} onChange={(e) => setForm({ ...form, client_id: e.target.value })} />
-        </label>
-        <label>
-          Client secret {s?.configured && <span className="muted">(leave blank to keep the stored one)</span>}
-          <input
-            type="password"
-            autoComplete="off"
-            value={form.client_secret}
-            onChange={(e) => setForm({ ...form, client_secret: e.target.value })}
-          />
-        </label>
-        <label>
-          Role for newly provisioned people
-          <select
-            value={form.default_role}
-            onChange={(e) => setForm({ ...form, default_role: e.target.value })}
-          >
-            <option value="member">Member</option>
-            <option value="viewer">Viewer</option>
-            <option value="guest">Guest</option>
-          </select>
-        </label>
-        <label className="row-gap" style={{ fontWeight: 500 }}>
-          <input
-            type="checkbox"
-            checked={form.jit_provisioning}
-            onChange={(e) => setForm({ ...form, jit_provisioning: e.target.checked })}
-          />
-          Create accounts on first sign-in (verified domains only)
-        </label>
-        <label className="row-gap" style={{ fontWeight: 500 }}>
-          <input
-            type="checkbox"
-            checked={form.enforce_sso}
-            onChange={(e) => setForm({ ...form, enforce_sso: e.target.checked })}
-          />
-          Require SSO (password sign-in is refused; owners keep a break-glass password)
-        </label>
-        <label className="row-gap" style={{ fontWeight: 500 }}>
-          <input
-            type="checkbox"
-            checked={form.enabled}
-            onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
-          />
-          Enable single sign-on
-        </label>
-        <div className="row-gap" style={{ marginTop: 12 }}>
-          <button
-            className="primary"
-            disabled={save.isPending || !form.issuer || !form.client_id}
-            onClick={() => save.mutate()}
-          >
-            Save
-          </button>
-          {s?.configured && (
-            <button className="secondary" onClick={() => remove.mutate()}>
-              Remove SSO
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="panel-card">
-        <h3>SCIM provisioning</h3>
-        <p className="muted">
-          Let your identity provider create and deactivate members and teams automatically. Point it at{" "}
-          <code>/scim/v2</code> with a bearer token. Only emails from verified domains are accepted.
-        </p>
-        {fresh && (
-          <div className="ok" role="status">
-            <b>Copy this token now; it is shown once.</b>
-            <pre style={{ margin: "8px 0", wordBreak: "break-all", whiteSpace: "pre-wrap" }}>
-              {fresh.token}
-            </pre>
-            Base URL: <code>{fresh.base_url}</code>{" "}
-            <button className="secondary" onClick={() => setFresh(null)}>
-              Done
-            </button>
-          </div>
-        )}
-        <table className="panel-table">
-          <tbody>
-            {(tokens.data ?? []).map((t) => (
-              <tr key={t.id}>
-                <td>{t.name}</td>
-                <td className="muted">
-                  {t.last_used_at ? `last used ${formatDateTime(t.last_used_at)}` : "never used"}
-                </td>
-                <td style={{ textAlign: "right" }}>
-                  <button className="secondary" onClick={() => revoke.mutate(t.id)}>
-                    Revoke
-                  </button>
-                </td>
-              </tr>
+              </div>
             ))}
-            {!(tokens.data ?? []).length && (
-              <tr>
-                <td className="muted">No tokens yet.</td>
-              </tr>
+          </div>
+          <div className="row-gap flex flex-col sm:flex-row gap-2 pt-2">
+            <input
+              aria-label="Domain"
+              placeholder="company.com"
+              value={domain}
+              onChange={(e) => setDomain(e.target.value)}
+              className="flex-1 px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+            <button
+              className="primary px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors disabled:opacity-50"
+              disabled={!domain || addDomain.isPending}
+              onClick={() => addDomain.mutate()}
+            >
+              Add domain
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Single Sign-On (OpenID Connect) */}
+      <Card className="panel-card space-y-4">
+        <CardHeader className="pb-2 border-b border-border">
+          <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle flex items-center gap-2">
+            <Shield size={16} /> Single sign-on (OpenID Connect)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-2">
+          <p className="muted text-xs sm:text-sm text-text-subtle">
+            Register this redirect URL with your identity provider:{" "}
+            <code className="p-1 bg-surface-2 rounded text-text-main font-mono">{s?.callback_url}</code>.
+            Members sign in at{" "}
+            <code className="p-1 bg-surface-2 rounded text-text-main font-mono">{s?.login_url}</code>.
+          </p>
+          <div className="space-y-3">
+            <label className="block space-y-1 text-xs sm:text-sm font-medium text-text-main">
+              <span>Issuer URL</span>
+              <input
+                value={form.issuer}
+                placeholder="https://login.example.com"
+                onChange={(e) => setForm({ ...form, issuer: e.target.value })}
+                className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+            </label>
+            <label className="block space-y-1 text-xs sm:text-sm font-medium text-text-main">
+              <span>Client ID</span>
+              <input
+                value={form.client_id}
+                onChange={(e) => setForm({ ...form, client_id: e.target.value })}
+                className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+            </label>
+            <label className="block space-y-1 text-xs sm:text-sm font-medium text-text-main">
+              <span>
+                Client secret{" "}
+                {s?.configured && (
+                  <span className="muted text-text-subtle text-xs font-normal">
+                    (leave blank to keep stored)
+                  </span>
+                )}
+              </span>
+              <input
+                type="password"
+                autoComplete="off"
+                value={form.client_secret}
+                onChange={(e) => setForm({ ...form, client_secret: e.target.value })}
+                className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+            </label>
+            <label className="block space-y-1 text-xs sm:text-sm font-medium text-text-main">
+              <span>Role for newly provisioned people</span>
+              <select
+                value={form.default_role}
+                onChange={(e) => setForm({ ...form, default_role: e.target.value })}
+                className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+              >
+                <option value="member">Member</option>
+                <option value="viewer">Viewer</option>
+                <option value="guest">Guest</option>
+              </select>
+            </label>
+            <div className="space-y-2 pt-1">
+              <label className="row-gap flex items-center gap-2 text-xs sm:text-sm font-medium text-text-main cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.jit_provisioning}
+                  onChange={(e) => setForm({ ...form, jit_provisioning: e.target.checked })}
+                  className="rounded text-accent focus:ring-accent"
+                />
+                Create accounts on first sign-in (verified domains only)
+              </label>
+              <label className="row-gap flex items-center gap-2 text-xs sm:text-sm font-medium text-text-main cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.enforce_sso}
+                  onChange={(e) => setForm({ ...form, enforce_sso: e.target.checked })}
+                  className="rounded text-accent focus:ring-accent"
+                />
+                Require SSO (password sign-in is refused; owners keep break-glass password)
+              </label>
+              <label className="row-gap flex items-center gap-2 text-xs sm:text-sm font-medium text-text-main cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.enabled}
+                  onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
+                  className="rounded text-accent focus:ring-accent"
+                />
+                Enable single sign-on
+              </label>
+            </div>
+          </div>
+          <div className="row-gap flex flex-wrap items-center gap-2.5 pt-3 border-t border-border">
+            <button
+              className="primary px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 shadow-sm"
+              disabled={save.isPending || !form.issuer || !form.client_id}
+              onClick={() => save.mutate()}
+            >
+              Save SSO
+            </button>
+            {s?.configured && (
+              <button
+                className="secondary px-4 py-2 bg-surface-2 hover:bg-danger/10 hover:text-danger border border-border rounded-xl text-xs sm:text-sm font-medium text-text-main transition-colors"
+                onClick={() => remove.mutate()}
+              >
+                Remove SSO
+              </button>
             )}
-          </tbody>
-        </table>
-        <div className="row-gap" style={{ marginTop: 10 }}>
-          <input
-            aria-label="Token name"
-            placeholder="Okta production"
-            value={tokenName}
-            onChange={(e) => setTokenName(e.target.value)}
-          />
-          <button className="primary" disabled={!tokenName || mint.isPending} onClick={() => mint.mutate()}>
-            Create token
-          </button>
-        </div>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* SCIM Provisioning Card */}
+      <Card className="panel-card space-y-4">
+        <CardHeader className="pb-2 border-b border-border">
+          <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle flex items-center gap-2">
+            <KeyRound size={16} /> SCIM provisioning
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-2">
+          <p className="muted text-xs sm:text-sm text-text-subtle">
+            Let your identity provider create and deactivate members and teams automatically. Point it at{" "}
+            <code className="p-1 bg-surface-2 rounded text-text-main font-mono">/scim/v2</code> with a bearer
+            token. Only emails from verified domains are accepted.
+          </p>
+          {fresh && (
+            <div
+              className="ok p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 space-y-2 text-xs sm:text-sm"
+              role="status"
+            >
+              <b>Copy this token now; it is shown once.</b>
+              <pre className="p-3 bg-bg rounded-lg border border-border font-mono text-xs overflow-x-auto text-text-main">
+                {fresh.token}
+              </pre>
+              <div className="flex items-center justify-between">
+                <span>
+                  Base URL: <code>{fresh.base_url}</code>
+                </span>
+                <button
+                  className="secondary px-2.5 py-1 bg-surface border border-border rounded-lg text-xs"
+                  onClick={() => setFresh(null)}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
+          <div className="overflow-x-auto border border-border rounded-xl">
+            <table className="panel-table w-full text-left text-xs sm:text-sm">
+              <tbody className="divide-y divide-border/60">
+                {(tokens.data ?? []).map((t) => (
+                  <tr key={t.id} className="hover:bg-surface-2 transition-colors">
+                    <td className="p-3 font-medium text-text-main">{t.name}</td>
+                    <td className="p-3 muted text-text-subtle">
+                      {t.last_used_at ? `last used ${formatDateTime(t.last_used_at)}` : "never used"}
+                    </td>
+                    <td className="p-3 text-right">
+                      <button
+                        className="secondary px-2.5 py-1 bg-surface-2 hover:bg-danger/10 hover:text-danger border border-border rounded-lg text-xs transition-colors"
+                        onClick={() => revoke.mutate(t.id)}
+                      >
+                        Revoke
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {!(tokens.data ?? []).length && (
+                  <tr>
+                    <td colSpan={3} className="p-4 text-center muted text-xs text-text-subtle">
+                      No tokens yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="row-gap flex flex-col sm:flex-row gap-2 pt-2">
+            <input
+              aria-label="Token name"
+              placeholder="Token name (e.g. Okta production)"
+              value={tokenName}
+              onChange={(e) => setTokenName(e.target.value)}
+              className="flex-1 px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+            <button
+              className="primary px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors disabled:opacity-50"
+              disabled={!tokenName || mint.isPending}
+              onClick={() => mint.mutate()}
+            >
+              Create token
+            </button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

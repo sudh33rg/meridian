@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Play, Plus, RefreshCcw, Trash2 } from "lucide-react";
+import { Play, Plus, Trash2 } from "lucide-react";
 import { errorMessage, request, send } from "../../lib/api";
 import type { ProjectRef, Session } from "../../lib/types";
 import { useToast } from "../shared/Toast";
+import { PageHeader, Card, CardHeader, CardTitle, CardContent } from "../shared/UiComponents";
 
 type Condition = { field: string; op: string; value: string };
 type Action = { type: string; value: string };
@@ -59,356 +60,434 @@ export function AutomationBuilder({
 }: {
   project: ProjectRef;
   session: Session;
-  onError: (msg: string) => void;
+  onError: (message: string) => void;
 }) {
-  const { toast } = useToast();
   const qc = useQueryClient();
+  const { toast } = useToast();
   const token = session.token;
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
-  const [trigger, setTrigger] = useState("issue_status_changed");
-  const [schedule, setSchedule] = useState("daily");
+  const [trigger, setTrigger] = useState("issue_created");
+  const [schedule, setSchedule] = useState("day");
   const [conditions, setConditions] = useState<Condition[]>([]);
-  const [actions, setActions] = useState<Action[]>([{ type: "notify_admins", value: "" }]);
-  const [preview, setPreview] = useState<Preview | null>(null);
+  const [actions, setActions] = useState<Action[]>([emptyAction()]);
   const [openRuns, setOpenRuns] = useState<string | null>(null);
+  const [preview, setPreview] = useState<Preview | null>(null);
 
   const rules = useQuery({
-    queryKey: ["automations", project.id],
-    queryFn: () => request<Rule[]>(token, `/projects/${project.id}/automations`),
+    queryKey: ["automation-rules", project.id],
+    queryFn: () => request<Rule[]>(token, `/projects/${project.id}/automation/rules`),
   });
+
   const runs = useQuery({
     queryKey: ["automation-runs", openRuns],
-    queryFn: () => request<Run[]>(token, `/automations/${openRuns}/runs`),
+    queryFn: () => request<Run[]>(token, `/automation/rules/${openRuns}/runs`),
     enabled: !!openRuns,
   });
 
-  const refresh = () => qc.invalidateQueries({ queryKey: ["automations", project.id] });
-  const fail = (e: unknown) => onError(errorMessage(e));
+  const reset = () => {
+    setName("");
+    setTrigger("issue_created");
+    setSchedule("day");
+    setConditions([]);
+    setActions([emptyAction()]);
+    setPreview(null);
+    setCreating(false);
+  };
 
-  const toggle = async (rule: Rule) => {
+  const createRule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || actions.length === 0) return;
     try {
-      await send(`/automations/${rule.id}`, token, "PATCH", { enabled: !rule.enabled });
-      toast(rule.enabled ? "Rule turned off" : "Rule turned on");
-      await refresh();
-    } catch (e) {
-      fail(e);
+      await send(`/projects/${project.id}/automation/rules`, token, "POST", {
+        name: name.trim(),
+        trigger_event: trigger,
+        action_type: actions[0]?.type ?? "set_priority",
+        schedule: trigger === "scheduled" ? schedule : null,
+        conditions,
+        actions,
+      });
+      toast("Rule created");
+      reset();
+      await qc.invalidateQueries({ queryKey: ["automation-rules", project.id] });
+    } catch (err) {
+      onError(errorMessage(err));
     }
   };
-  const remove = async (rule: Rule) => {
-    if (!window.confirm(`Delete the rule “${rule.name}” and its run log? This cannot be undone.`)) return;
+
+  const toggle = async (r: Rule) => {
     try {
-      await send(`/automations/${rule.id}`, token, "DELETE");
+      await send(`/automation/rules/${r.id}`, token, "PATCH", { enabled: !r.enabled });
+      await qc.invalidateQueries({ queryKey: ["automation-rules", project.id] });
+    } catch (err) {
+      onError(errorMessage(err));
+    }
+  };
+
+  const remove = async (r: Rule) => {
+    if (!window.confirm(`Delete rule "${r.name}"?`)) return;
+    try {
+      await send(`/automation/rules/${r.id}`, token, "DELETE");
       toast("Rule deleted");
-      await refresh();
-    } catch (e) {
-      fail(e);
+      await qc.invalidateQueries({ queryKey: ["automation-rules", project.id] });
+    } catch (err) {
+      onError(errorMessage(err));
     }
   };
+
   const runPreview = async () => {
     try {
-      const res = await send<Preview>(`/projects/${project.id}/automations/preview`, token, "POST", {
+      const p = await send<Preview>(`/projects/${project.id}/automation/preview`, token, "POST", {
         conditions,
       });
-      setPreview(res);
-    } catch (e) {
-      fail(e);
-    }
-  };
-  const create = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const body: Record<string, unknown> = {
-        name,
-        trigger_event: trigger,
-        action_type: "custom",
-        conditions,
-        actions: actions.map((a) => (a.type === "notify_admins" ? { type: a.type } : a)),
-      };
-      if (trigger === "scheduled") body.schedule = schedule;
-      await send(`/projects/${project.id}/automations`, token, "POST", body);
-      toast("Rule created");
-      setCreating(false);
-      setName("");
-      setConditions([]);
-      setActions([{ type: "notify_admins", value: "" }]);
-      setPreview(null);
-      await refresh();
+      setPreview(p);
     } catch (err) {
-      fail(err);
+      onError(errorMessage(err));
     }
   };
 
-  const updateAt = <T,>(list: T[], idx: number, patch: Partial<T>) =>
-    list.map((item, i) => (i === idx ? { ...item, ...patch } : item));
+  function updateAt<T>(arr: T[], idx: number, patch: Partial<T>): T[] {
+    return arr.map((item, i) => (i === idx ? { ...item, ...patch } : item));
+  }
 
   return (
-    <section className="extended automation-builder">
-      <div className="ext-title">
-        <div>
-          <div className="eyebrow blue">MERIDIAN / {project.key}</div>
-          <h2>Automation rules</h2>
-          <p>
-            When something happens or on a schedule, check conditions and run up to five actions. Rules never
-            start other rules.
-          </p>
-        </div>
-        <div className="ext-actions">
-          <button className="secondary" onClick={() => void refresh()}>
-            <RefreshCcw size={15} /> Refresh
-          </button>
-          <button className="primary" onClick={() => setCreating(!creating)} aria-expanded={creating}>
-            <Plus size={16} /> New rule
-          </button>
-        </div>
+    <section className="automation-panel space-y-6" aria-labelledby="auto-title">
+      <div className="planning-head">
+        <PageHeader
+          title="Automation"
+          subtitle="Keep work moving automatically when issues change or on a recurring schedule."
+          actions={
+            <button
+              className="primary inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors shadow-sm"
+              onClick={() => setCreating((v) => !v)}
+              aria-expanded={creating}
+            >
+              <Plus size={16} /> {creating ? "Close builder" : "New rule"}
+            </button>
+          }
+        />
+        <h2 id="auto-title" className="sr-only">
+          Automation
+        </h2>
       </div>
 
       {creating && (
-        <form className="panel automation-form" onSubmit={create} aria-label="New automation rule">
-          <label>
-            Rule name
-            <input value={name} maxLength={120} required onChange={(e) => setName(e.target.value)} />
-          </label>
-          <label>
-            When
-            <select value={trigger} onChange={(e) => setTrigger(e.target.value)}>
-              {TRIGGERS.map(([v, label]) => (
-                <option key={v} value={v}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          {trigger === "scheduled" && (
-            <label>
-              Every
-              <select value={schedule} onChange={(e) => setSchedule(e.target.value)}>
-                <option value="hourly">hour</option>
-                <option value="daily">day</option>
-                <option value="weekly">week</option>
-              </select>
-            </label>
-          )}
-
-          <fieldset>
-            <legend>If all of these hold (optional)</legend>
-            {conditions.map((c, idx) => (
-              <div className="automation-row" key={idx}>
-                <select
-                  aria-label={`Condition ${idx + 1} field`}
-                  value={c.field}
-                  onChange={(e) => setConditions(updateAt(conditions, idx, { field: e.target.value }))}
-                >
-                  {FIELDS.map((f) => (
-                    <option key={f} value={f}>
-                      {f}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  aria-label={`Condition ${idx + 1} operator`}
-                  value={c.op}
-                  onChange={(e) => setConditions(updateAt(conditions, idx, { op: e.target.value }))}
-                >
-                  <option value="eq">is</option>
-                  <option value="neq">is not</option>
-                </select>
+        <Card className="automation-form space-y-5 p-4 sm:p-6">
+          <CardHeader className="pb-2 border-b border-border">
+            <CardTitle className="text-base font-bold text-text-main">Create Automation Rule</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-2">
+            <form onSubmit={createRule} className="space-y-4">
+              <label className="block space-y-1">
+                <span className="text-xs font-semibold text-text-subtle">Rule name</span>
                 <input
-                  aria-label={`Condition ${idx + 1} value`}
-                  value={c.value}
-                  maxLength={200}
-                  placeholder={c.field.endsWith("_id") ? "id (team or member)" : "value"}
-                  onChange={(e) => setConditions(updateAt(conditions, idx, { value: e.target.value }))}
+                  aria-label="Rule name"
+                  value={name}
+                  maxLength={120}
+                  placeholder="e.g. Escalate urgent bugs to triage"
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
                 />
-                <button
-                  type="button"
-                  className="secondary small-btn"
-                  onClick={() => setConditions(conditions.filter((_, i) => i !== idx))}
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-            {conditions.length < 10 && (
-              <button
-                type="button"
-                className="secondary small-btn"
-                onClick={() => setConditions([...conditions, emptyCondition()])}
-              >
-                Add condition
-              </button>
-            )}
-          </fieldset>
+              </label>
 
-          <fieldset>
-            <legend>Then do</legend>
-            {actions.map((a, idx) => (
-              <div className="automation-row" key={idx}>
-                <select
-                  aria-label={`Action ${idx + 1} type`}
-                  value={a.type}
-                  onChange={(e) => {
-                    const type = e.target.value;
-                    setActions(
-                      updateAt(actions, idx, { type, value: type === "set_priority" ? "high" : "" }),
-                    );
-                  }}
-                >
-                  {ACTIONS.map(([v, label]) => (
-                    <option key={v} value={v}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-                {a.type === "set_priority" ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="block space-y-1">
+                  <span className="text-xs font-semibold text-text-subtle">When this happens</span>
                   <select
-                    aria-label={`Action ${idx + 1} priority`}
-                    value={a.value}
-                    onChange={(e) => setActions(updateAt(actions, idx, { value: e.target.value }))}
+                    aria-label="Trigger"
+                    value={trigger}
+                    onChange={(e) => setTrigger(e.target.value)}
+                    className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main"
                   >
-                    {PRIORITIES.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
+                    {TRIGGERS.map(([v, label]) => (
+                      <option key={v} value={v}>
+                        {label}
                       </option>
                     ))}
                   </select>
-                ) : a.type === "notify_admins" ? null : (
-                  <input
-                    aria-label={`Action ${idx + 1} value`}
-                    value={a.value}
-                    maxLength={2000}
-                    placeholder={
-                      a.type === "set_assignee"
-                        ? "me, a member id, or empty to clear"
-                        : a.type === "set_status"
-                          ? "status key"
-                          : a.type === "add_label"
-                            ? "label"
-                            : "text"
-                    }
-                    onChange={(e) => setActions(updateAt(actions, idx, { value: e.target.value }))}
-                  />
+                </label>
+
+                {trigger === "scheduled" && (
+                  <label className="block space-y-1">
+                    <span className="text-xs font-semibold text-text-subtle">Schedule</span>
+                    <select
+                      aria-label="Schedule"
+                      value={schedule}
+                      onChange={(e) => setSchedule(e.target.value)}
+                      className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main"
+                    >
+                      <option value="hour">Every hour</option>
+                      <option value="day">Every day</option>
+                      <option value="week">Every week</option>
+                    </select>
+                  </label>
                 )}
+              </div>
+
+              {/* Conditions */}
+              <fieldset className="p-3 bg-surface-2 rounded-xl border border-border space-y-2">
+                <legend className="text-xs font-bold uppercase tracking-wider text-text-subtle px-1">
+                  And these match
+                </legend>
+                {conditions.map((c, idx) => (
+                  <div className="automation-row flex flex-wrap items-center gap-2" key={idx}>
+                    <select
+                      aria-label={`Condition ${idx + 1} field`}
+                      value={c.field}
+                      onChange={(e) => setConditions(updateAt(conditions, idx, { field: e.target.value }))}
+                      className="px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-main"
+                    >
+                      {FIELDS.map((f) => (
+                        <option key={f} value={f}>
+                          {f}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      aria-label={`Condition ${idx + 1} operator`}
+                      value={c.op}
+                      onChange={(e) => setConditions(updateAt(conditions, idx, { op: e.target.value }))}
+                      className="px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-main"
+                    >
+                      <option value="eq">is</option>
+                      <option value="neq">is not</option>
+                    </select>
+                    <input
+                      aria-label={`Condition ${idx + 1} value`}
+                      value={c.value}
+                      maxLength={200}
+                      placeholder={c.field.endsWith("_id") ? "id (team or member)" : "value"}
+                      onChange={(e) => setConditions(updateAt(conditions, idx, { value: e.target.value }))}
+                      className="flex-1 min-w-[120px] px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-main"
+                    />
+                    <button
+                      type="button"
+                      className="secondary small-btn px-2 py-1 bg-surface hover:bg-danger/10 hover:text-danger border border-border rounded-lg text-xs"
+                      onClick={() => setConditions(conditions.filter((_, i) => i !== idx))}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                {conditions.length < 10 && (
+                  <button
+                    type="button"
+                    className="secondary small-btn px-3 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main"
+                    onClick={() => setConditions([...conditions, emptyCondition()])}
+                  >
+                    Add condition
+                  </button>
+                )}
+              </fieldset>
+
+              {/* Actions */}
+              <fieldset className="p-3 bg-surface-2 rounded-xl border border-border space-y-2">
+                <legend className="text-xs font-bold uppercase tracking-wider text-text-subtle px-1">
+                  Then do
+                </legend>
+                {actions.map((a, idx) => (
+                  <div className="automation-row flex flex-wrap items-center gap-2" key={idx}>
+                    <select
+                      aria-label={`Action ${idx + 1} type`}
+                      value={a.type}
+                      onChange={(e) => {
+                        const type = e.target.value;
+                        setActions(
+                          updateAt(actions, idx, { type, value: type === "set_priority" ? "high" : "" }),
+                        );
+                      }}
+                      className="px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-main"
+                    >
+                      {ACTIONS.map(([v, label]) => (
+                        <option key={v} value={v}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                    {a.type === "set_priority" ? (
+                      <select
+                        aria-label={`Action ${idx + 1} priority`}
+                        value={a.value}
+                        onChange={(e) => setActions(updateAt(actions, idx, { value: e.target.value }))}
+                        className="px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-main"
+                      >
+                        {PRIORITIES.map((p) => (
+                          <option key={p} value={p}>
+                            {p}
+                          </option>
+                        ))}
+                      </select>
+                    ) : a.type === "notify_admins" ? null : (
+                      <input
+                        aria-label={`Action ${idx + 1} value`}
+                        value={a.value}
+                        maxLength={2000}
+                        placeholder={
+                          a.type === "set_assignee"
+                            ? "me, a member id, or empty to clear"
+                            : a.type === "set_status"
+                              ? "status key"
+                              : a.type === "add_label"
+                                ? "label"
+                                : "text"
+                        }
+                        onChange={(e) => setActions(updateAt(actions, idx, { value: e.target.value }))}
+                        className="flex-1 min-w-[120px] px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-main"
+                      />
+                    )}
+                    <button
+                      type="button"
+                      className="secondary small-btn px-2 py-1 bg-surface hover:bg-danger/10 hover:text-danger border border-border rounded-lg text-xs"
+                      onClick={() => setActions(actions.filter((_, i) => i !== idx))}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                {actions.length < 5 && (
+                  <button
+                    type="button"
+                    className="secondary small-btn px-3 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main"
+                    onClick={() => setActions([...actions, emptyAction()])}
+                  >
+                    Add action
+                  </button>
+                )}
+              </fieldset>
+
+              <div className="automation-buttons flex items-center gap-2 pt-2 border-t border-border">
                 <button
                   type="button"
-                  className="secondary small-btn"
-                  onClick={() => setActions(actions.filter((_, i) => i !== idx))}
+                  className="secondary inline-flex items-center gap-1.5 px-3 py-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs sm:text-sm font-medium text-text-main transition-colors"
+                  onClick={() => void runPreview()}
                 >
-                  Remove
+                  <Play size={14} /> Preview matches
+                </button>
+                <button
+                  className="primary px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 shadow-sm"
+                  type="submit"
+                  disabled={actions.length === 0}
+                >
+                  Create rule
                 </button>
               </div>
-            ))}
-            {actions.length < 5 && (
-              <button
-                type="button"
-                className="secondary small-btn"
-                onClick={() => setActions([...actions, emptyAction()])}
-              >
-                Add action
-              </button>
-            )}
-          </fieldset>
 
-          <div className="automation-buttons">
-            <button type="button" className="secondary" onClick={() => void runPreview()}>
-              <Play size={14} /> Preview matches
-            </button>
-            <button className="primary" type="submit" disabled={actions.length === 0}>
-              Create rule
-            </button>
-          </div>
-          {preview && (
-            <p className="small" role="status">
-              {preview.matching} of the last {preview.checked} open issues match now. Nothing has changed.
-              {preview.sample.length > 0 &&
-                ` For example: ${preview.sample.map((s) => `${s.key} ${s.title}`).join("; ")}`}
-            </p>
-          )}
-        </form>
+              {preview && (
+                <p
+                  className="small text-xs text-text-subtle p-3 bg-surface-2 rounded-xl border border-border"
+                  role="status"
+                >
+                  {preview.matching} of the last {preview.checked} open issues match now. Nothing has changed.
+                  {preview.sample.length > 0 &&
+                    ` For example: ${preview.sample.map((s) => `${s.key} ${s.title}`).join("; ")}`}
+                </p>
+              )}
+            </form>
+          </CardContent>
+        </Card>
       )}
 
+      {/* Rules Table */}
       {rules.isLoading ? (
-        <p className="muted">Loading rules…</p>
+        <p className="muted text-xs text-text-subtle p-6 text-center">Loading rules…</p>
       ) : (rules.data ?? []).length === 0 ? (
-        <p className="muted">No rules yet. Create one to automate routine changes.</p>
+        <Card className="p-8 text-center text-xs text-text-subtle">
+          No rules yet. Create one to automate routine changes.
+        </Card>
       ) : (
-        <div className="table-scroll">
-          <table className="automation-table">
-            <thead>
-              <tr>
-                <th scope="col">Rule</th>
-                <th scope="col">When</th>
-                <th scope="col">Status</th>
-                <th scope="col">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(rules.data ?? []).map((r) => (
-                <React.Fragment key={r.id}>
-                  <tr>
-                    <td>{r.name}</td>
-                    <td>
-                      {r.trigger_event === "scheduled"
-                        ? `Every ${r.schedule ?? "day"}`
-                        : r.trigger_event.replace(/_/g, " ")}
-                      {r.trigger_event === "scheduled" && r.next_run_at && (
-                        <span className="muted small">
-                          {" "}
-                          · next {new Date(r.next_run_at).toLocaleString()}
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      <label className="small">
-                        <input type="checkbox" checked={r.enabled} onChange={() => void toggle(r)} />{" "}
-                        {r.enabled ? "On" : "Off"}
-                      </label>
-                    </td>
-                    <td className="automation-cell-actions">
-                      <button
-                        className="secondary small-btn"
-                        aria-expanded={openRuns === r.id}
-                        onClick={() => setOpenRuns(openRuns === r.id ? null : r.id)}
-                      >
-                        Run log
-                      </button>
-                      <button
-                        className="secondary small-btn"
-                        onClick={() => void remove(r)}
-                        aria-label={`Delete rule ${r.name}`}
-                      >
-                        <Trash2 size={14} /> Delete
-                      </button>
-                    </td>
-                  </tr>
-                  {openRuns === r.id && (
-                    <tr>
-                      <td colSpan={4}>
-                        {runs.isLoading ? (
-                          <span className="muted">Loading…</span>
-                        ) : (runs.data ?? []).length === 0 ? (
-                          <span className="muted">This rule has not run yet.</span>
-                        ) : (
-                          <ul className="small">
-                            {(runs.data ?? []).map((run) => (
-                              <li key={run.id}>
-                                {new Date(run.at).toLocaleString()} ·{" "}
-                                {run.issue_number
-                                  ? `#${run.issue_number} ${run.issue_title ?? ""}`
-                                  : "issue removed"}{" "}
-                                · {run.result}
-                              </li>
-                            ))}
-                          </ul>
+        <Card className="overflow-hidden">
+          <div className="table-scroll overflow-x-auto">
+            <table className="automation-table w-full text-left text-xs sm:text-sm">
+              <thead className="bg-surface-2 border-b border-border text-text-subtle font-semibold uppercase text-[10px]">
+                <tr>
+                  <th scope="col" className="p-3">
+                    Rule
+                  </th>
+                  <th scope="col" className="p-3">
+                    When
+                  </th>
+                  <th scope="col" className="p-3">
+                    Status
+                  </th>
+                  <th scope="col" className="p-3 text-right">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {(rules.data ?? []).map((r) => (
+                  <React.Fragment key={r.id}>
+                    <tr className="hover:bg-surface-2 transition-colors">
+                      <td className="p-3 font-semibold text-text-main">{r.name}</td>
+                      <td className="p-3 text-text-subtle">
+                        {r.trigger_event === "scheduled"
+                          ? `Every ${r.schedule ?? "day"}`
+                          : r.trigger_event.replace(/_/g, " ")}
+                        {r.trigger_event === "scheduled" && r.next_run_at && (
+                          <span className="muted small text-text-subtle text-[11px] font-mono">
+                            {" "}
+                            · next {new Date(r.next_run_at).toLocaleString()}
+                          </span>
                         )}
                       </td>
+                      <td className="p-3">
+                        <label className="small inline-flex items-center gap-1.5 text-xs text-text-main cursor-pointer font-medium">
+                          <input
+                            type="checkbox"
+                            checked={r.enabled}
+                            onChange={() => void toggle(r)}
+                            className="rounded text-accent focus:ring-accent"
+                          />{" "}
+                          {r.enabled ? "On" : "Off"}
+                        </label>
+                      </td>
+                      <td className="automation-cell-actions p-3 text-right space-x-1.5">
+                        <button
+                          className="secondary small-btn px-2.5 py-1 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main"
+                          aria-expanded={openRuns === r.id}
+                          onClick={() => setOpenRuns(openRuns === r.id ? null : r.id)}
+                        >
+                          Run log
+                        </button>
+                        <button
+                          className="secondary small-btn inline-flex items-center gap-1 px-2.5 py-1 bg-surface-2 hover:bg-danger/10 hover:text-danger border border-border rounded-lg text-xs font-medium text-text-main transition-colors"
+                          onClick={() => void remove(r)}
+                          aria-label={`Delete rule ${r.name}`}
+                        >
+                          <Trash2 size={13} /> Delete
+                        </button>
+                      </td>
                     </tr>
-                  )}
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    {openRuns === r.id && (
+                      <tr className="bg-surface-2/60">
+                        <td colSpan={4} className="p-4">
+                          {runs.isLoading ? (
+                            <span className="muted text-xs text-text-subtle">Loading…</span>
+                          ) : (runs.data ?? []).length === 0 ? (
+                            <span className="muted text-xs text-text-subtle">This rule has not run yet.</span>
+                          ) : (
+                            <ul className="small space-y-1 font-mono text-xs text-text-main">
+                              {(runs.data ?? []).map((run) => (
+                                <li key={run.id} className="p-2 bg-surface rounded-lg border border-border">
+                                  {new Date(run.at).toLocaleString()} ·{" "}
+                                  {run.issue_number
+                                    ? `#${run.issue_number} ${run.issue_title ?? ""}`
+                                    : "issue removed"}{" "}
+                                  · {run.result}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
     </section>
   );

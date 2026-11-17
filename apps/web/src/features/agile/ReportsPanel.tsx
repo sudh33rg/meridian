@@ -8,6 +8,7 @@ import { useToast } from "../shared/Toast";
 import { formatMinutes } from "./IssueDepth";
 import { TeamVelocityChart, TeamVelocityModal } from "./TeamVelocityModal";
 import { type Velocity } from "./agile-shared";
+import { PageHeader, Card, CardHeader, CardTitle, CardContent } from "../shared/UiComponents";
 
 type FlowRow = { day: string; status: string; count: number };
 type CycleReport = {
@@ -49,34 +50,40 @@ const WIDGET_KINDS = [
 
 function Bars({ rows, label }: { rows: { label: string; value: number }[]; label: string }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
-  if (rows.length === 0) return <p className="muted small">No data in this range.</p>;
+  if (rows.length === 0)
+    return <p className="muted small text-xs text-text-subtle">No data in this range.</p>;
   return (
-    <ul className="bars" aria-label={label}>
+    <ul className="bars space-y-2 py-1" aria-label={label}>
       {rows.map((r) => (
-        <li key={r.label}>
-          <span className="bar-label">{r.label}</span>
-          <span className="bar-track">
-            <span className="bar-fill" style={{ width: `${Math.round((r.value / max) * 100)}%` }} />
+        <li key={r.label} className="flex items-center gap-2 text-xs">
+          <span className="bar-label w-24 sm:w-28 shrink-0 truncate text-text-main font-medium">
+            {r.label}
           </span>
-          <span className="small">{r.value}</span>
+          <span className="bar-track flex-1 h-2 bg-bg border border-border rounded-full overflow-hidden">
+            <span
+              className="bar-fill block h-full bg-accent rounded-full transition-all duration-300"
+              style={{ width: `${Math.round((r.value / max) * 100)}%` }}
+            />
+          </span>
+          <span className="shrink-0 w-8 text-right font-mono text-[11px] text-text-subtle">{r.value}</span>
         </li>
       ))}
     </ul>
   );
 }
 
-/** Reports (flow, cycle time, created versus resolved, time) and dashboards built from widgets. */
+/** Reports on flow, cycle time, created vs resolved, time logged, and custom dashboards. */
 export function ReportsPanel() {
   const { session, selected, project, tab, setError, setSelectedIssue } = useWorkspace();
-  const { toast } = useToast();
   const qc = useQueryClient();
+  const { toast } = useToast();
   const today = new Date().toISOString().slice(0, 10);
-  const monthAgo = new Date(Date.now() - 29 * 86_400_000).toISOString().slice(0, 10);
-  const [from, setFrom] = useState(monthAgo);
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
+  const [from, setFrom] = useState(thirtyDaysAgo);
   const [to, setTo] = useState(today);
-  const [dashName, setDashName] = useState("");
   const [chosen, setChosen] = useState("");
-  const [widgetKind, setWidgetKind] = useState<string>(WIDGET_KINDS[0][0]);
+  const [dashName, setDashName] = useState("");
+  const [widgetKind, setWidgetKind] = useState("status_counts");
   const [widgetTitle, setWidgetTitle] = useState("");
   const [showVelocityModal, setShowVelocityModal] = useState(false);
   const active = tab === "reports" && !!selected;
@@ -136,200 +143,291 @@ export function ReportsPanel() {
   const days = (n: number | null) => (n == null ? "–" : `${n.toFixed(1)} d`);
 
   return (
-    <section className="planning reports" aria-labelledby="reports-title">
+    <section className="planning reports space-y-6" aria-labelledby="reports-title">
       <div className="planning-head">
-        <div>
-          <h2 id="reports-title">Reports</h2>
-          <p className="muted small">
-            Built from status history and logged time. Ranges are inclusive, at most a year.
-          </p>
-        </div>
-        <label className="small">
-          From
-          <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} />
-        </label>
-        <label className="small">
-          To
-          <input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} />
-        </label>
-        <button
-          className="secondary"
-          onClick={() =>
-            downloadCsv(`/projects/${selected}/history.csv`, session.token, `${key}-history.csv`).catch((e) =>
-              setError(errorMessage(e)),
-            )
+        <PageHeader
+          title="Reports"
+          subtitle="Built from status history and logged time. Ranges are inclusive, at most a year."
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="small flex items-center gap-1.5 text-xs text-text-subtle">
+                <span>From</span>
+                <input
+                  type="date"
+                  value={from}
+                  max={to}
+                  onChange={(e) => setFrom(e.target.value)}
+                  className="px-2 py-1 bg-surface border border-border rounded-lg text-xs text-text-main"
+                />
+              </label>
+              <label className="small flex items-center gap-1.5 text-xs text-text-subtle">
+                <span>To</span>
+                <input
+                  type="date"
+                  value={to}
+                  min={from}
+                  onChange={(e) => setTo(e.target.value)}
+                  className="px-2 py-1 bg-surface border border-border rounded-lg text-xs text-text-main"
+                />
+              </label>
+              <button
+                className="secondary inline-flex items-center gap-1 px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors"
+                onClick={() =>
+                  downloadCsv(`/projects/${selected}/history.csv`, session.token, `${key}-history.csv`).catch(
+                    (e) => setError(errorMessage(e)),
+                  )
+                }
+              >
+                <Download size={14} /> History CSV
+              </button>
+              <a
+                className="secondary export-link inline-flex items-center gap-1 px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors cursor-pointer"
+                href={`/api/projects/${selected}/export.csv`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  apiResponse(`/projects/${selected}/export.csv`, session.token)
+                    .then((r) => r.blob())
+                    .then((blob) => {
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `${key}-issues.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    })
+                    .catch((err) => setError(errorMessage(err)));
+                }}
+              >
+                <Download size={14} /> Export CSV
+              </a>
+            </div>
           }
-        >
-          <Download size={14} /> History CSV
-        </button>
-        <a
-          className="secondary export-link"
-          href={`/api/projects/${selected}/export.csv`}
-          onClick={(e) => {
-            // The API needs the bearer or cookie session; fetch it and save the file instead of navigating.
-            e.preventDefault();
-            apiResponse(`/projects/${selected}/export.csv`, session.token)
-              .then((r) => r.blob())
-              .then((blob) => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `${key}-issues.csv`;
-                a.click();
-                URL.revokeObjectURL(url);
-              })
-              .catch((err) => setError(errorMessage(err)));
-          }}
-        >
-          <Download size={14} /> Export CSV
-        </a>
+        />
+        <h2 id="reports-title" className="sr-only">
+          Reports
+        </h2>
       </div>
 
-      <div className="report-grid">
-        <article className="panel report-card" style={{ gridColumn: "span 2" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h3>Team Velocity &amp; Predictability</h3>
+      <div className="report-grid grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+        {/* Team Velocity Card */}
+        <Card className="panel report-card md:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border">
+            <CardTitle className="text-base font-bold text-text-main">
+              Team Velocity &amp; Predictability
+            </CardTitle>
             <button
-              className="secondary small-btn"
+              className="secondary small-btn px-3 py-1 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors"
               onClick={() => setShowVelocityModal(true)}
-              style={{ fontSize: 12, padding: "3px 10px" }}
             >
               Full Velocity Report
             </button>
-          </div>
-          <p className="small">
-            {velocity.data?.sprints && velocity.data.sprints.length > 0 ? (
-              <>
-                <strong>{velocity.data.average_done_points.toFixed(1)} pts</strong> average over{" "}
-                {velocity.data.sprints.length} sprints ·{" "}
-                <strong>{Math.round(velocity.data.predictability_pct)}%</strong> commitment predictability
-              </>
-            ) : (
-              "No completed sprints with story points recorded yet."
-            )}
-          </p>
-          {velocity.data && velocity.data.sprints.length > 0 ? (
-            <div style={{ marginTop: 8 }}>
-              <TeamVelocityChart velocity={velocity.data} metric="points" height={190} />
-            </div>
-          ) : (
-            <p className="muted small">
-              Close a sprint with story points to track team velocity and commitment delivery.
+          </CardHeader>
+          <CardContent className="space-y-3 pt-3">
+            <p className="small text-xs sm:text-sm text-text-subtle">
+              {velocity.data?.sprints && velocity.data.sprints.length > 0 ? (
+                <>
+                  <strong className="text-text-main font-semibold">
+                    {velocity.data.average_done_points.toFixed(1)} pts
+                  </strong>{" "}
+                  average over {velocity.data.sprints.length} sprints ·{" "}
+                  <strong className="text-text-main font-semibold">
+                    {Math.round(velocity.data.predictability_pct)}%
+                  </strong>{" "}
+                  commitment predictability
+                </>
+              ) : (
+                "No completed sprints with story points recorded yet."
+              )}
             </p>
-          )}
-        </article>
-        <article className="panel report-card">
-          <h3>Status now</h3>
-          <Bars
-            label="Issues by status on the last day"
-            rows={latest.map((r) => ({ label: statusName(r.status), value: r.count }))}
-          />
-        </article>
-        <article className="panel report-card">
-          <h3>Cycle time</h3>
-          <dl className="stat-list">
-            <div>
-              <dt>Completed</dt>
-              <dd>{cycle.data?.completed ?? "–"}</dd>
-            </div>
-            <div>
-              <dt>Median lead time</dt>
-              <dd>{days(cycle.data?.median_lead_days ?? null)}</dd>
-            </div>
-            <div>
-              <dt>Median cycle time</dt>
-              <dd>{days(cycle.data?.median_cycle_days ?? null)}</dd>
-            </div>
-          </dl>
-          <Bars
-            label="Completed per week"
-            rows={(cycle.data?.throughput ?? []).map((t) => ({
-              label: `Week of ${t.week}`,
-              value: t.completed,
-            }))}
-          />
-        </article>
-        <article className="panel report-card">
-          <h3>Created and resolved</h3>
-          <p className="small">
-            {issueRange.created} created · {issueRange.resolved} resolved in this range
-          </p>
-          <Bars
-            label="Resolved per day"
-            rows={(cr.data ?? [])
-              .filter((r) => r.resolved > 0)
-              .map((r) => ({ label: r.day, value: r.resolved }))}
-          />
-        </article>
-        <article className="panel report-card">
-          <h3>Time logged</h3>
-          <p className="small">Total {formatMinutes(time.data?.total_minutes ?? 0)}</p>
-          <Bars
-            label="Time by person"
-            rows={(time.data?.by_person ?? []).map((p) => ({
-              label: p.name,
-              value: Math.round(p.minutes / 60),
-            }))}
-          />
-          <p className="muted small">Bars show whole hours.</p>
-          <ul className="plain-list">
-            {(time.data?.by_issue ?? []).slice(0, 8).map((x) => (
-              <li key={x.issue_id} className="small">
-                <button className="issue-number-button" onClick={() => setSelectedIssue(x.issue_id)}>
-                  {key}-{x.number}
-                </button>{" "}
-                {x.title} · {formatMinutes(x.minutes)}
-              </li>
-            ))}
-          </ul>
-        </article>
+            {velocity.data && velocity.data.sprints.length > 0 ? (
+              <div className="pt-2">
+                <TeamVelocityChart velocity={velocity.data} metric="points" height={190} />
+              </div>
+            ) : (
+              <p className="muted small text-xs text-text-subtle italic">
+                Close a sprint with story points to track team velocity and commitment delivery.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Status Now Card */}
+        <Card className="panel report-card">
+          <CardHeader className="pb-2 border-b border-border">
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle">
+              Status now
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-3">
+            <Bars
+              label="Issues by status on the last day"
+              rows={latest.map((r) => ({ label: statusName(r.status), value: r.count }))}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Cycle Time Card */}
+        <Card className="panel report-card">
+          <CardHeader className="pb-2 border-b border-border">
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle">
+              Cycle time
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-3">
+            <dl className="stat-list grid grid-cols-3 gap-2 p-3 bg-surface-2 rounded-xl text-center border border-border">
+              <div>
+                <dt className="text-[10px] uppercase font-bold text-text-subtle">Completed</dt>
+                <dd className="text-base sm:text-lg font-bold text-text-main mt-0.5">
+                  {cycle.data?.completed ?? "–"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[10px] uppercase font-bold text-text-subtle">Median lead</dt>
+                <dd className="text-base sm:text-lg font-bold text-text-main mt-0.5">
+                  {days(cycle.data?.median_lead_days ?? null)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[10px] uppercase font-bold text-text-subtle">Median cycle</dt>
+                <dd className="text-base sm:text-lg font-bold text-text-main mt-0.5">
+                  {days(cycle.data?.median_cycle_days ?? null)}
+                </dd>
+              </div>
+            </dl>
+            <Bars
+              label="Completed per week"
+              rows={(cycle.data?.throughput ?? []).map((t) => ({
+                label: `Week of ${t.week}`,
+                value: t.completed,
+              }))}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Created and Resolved Card */}
+        <Card className="panel report-card">
+          <CardHeader className="pb-2 border-b border-border">
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle">
+              Created and resolved
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-3">
+            <p className="small text-xs text-text-subtle font-medium">
+              {issueRange.created} created · {issueRange.resolved} resolved in this range
+            </p>
+            <Bars
+              label="Resolved per day"
+              rows={(cr.data ?? [])
+                .filter((r) => r.resolved > 0)
+                .map((r) => ({ label: r.day, value: r.resolved }))}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Time Logged Card */}
+        <Card className="panel report-card">
+          <CardHeader className="pb-2 border-b border-border">
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle">
+              Time logged
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-3">
+            <p className="small text-xs font-semibold text-text-main">
+              Total: {formatMinutes(time.data?.total_minutes ?? 0)}
+            </p>
+            <Bars
+              label="Time by person"
+              rows={(time.data?.by_person ?? []).map((p) => ({
+                label: p.name,
+                value: Math.round(p.minutes / 60),
+              }))}
+            />
+            <p className="muted small text-[11px] text-text-subtle italic">Bars show whole hours.</p>
+            <ul className="plain-list divide-y divide-border/60 pt-1">
+              {(time.data?.by_issue ?? []).slice(0, 8).map((x) => (
+                <li key={x.issue_id} className="small py-1.5 text-xs flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <button
+                      className="issue-number-button shrink-0 font-mono font-bold text-accent hover:underline"
+                      onClick={() => setSelectedIssue(x.issue_id)}
+                    >
+                      {key}-{x.number}
+                    </button>
+                    <span className="truncate text-text-main font-medium">{x.title}</span>
+                  </div>
+                  <span className="shrink-0 font-mono text-[11px] text-text-subtle">
+                    {formatMinutes(x.minutes)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
       </div>
 
-      <section className="panel dashboards" aria-labelledby="dash-title">
-        <h3 id="dash-title">Dashboards</h3>
-        <form
-          className="row-actions wrap"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (!dashName.trim() || !selected) return;
-            try {
-              const d = await send<Dashboard>(`/projects/${selected}/dashboards`, session.token, "POST", {
-                name: dashName.trim(),
-                shared: true,
-              });
-              setDashName("");
-              setChosen(d.id);
-              toast("Dashboard created");
-              await invalidate();
-            } catch (err) {
-              setError(errorMessage(err));
-            }
-          }}
-        >
-          <input
-            aria-label="Dashboard name"
-            placeholder="New dashboard name"
-            value={dashName}
-            maxLength={120}
-            onChange={(e) => setDashName(e.target.value)}
-          />
-          <button className="secondary small-btn" disabled={!dashName.trim()}>
-            <Plus size={14} /> Create
-          </button>
-        </form>
-        <div className="row-actions wrap">
-          <select aria-label="Dashboard" value={chosen} onChange={(e) => setChosen(e.target.value)}>
-            <option value="">Choose a dashboard…</option>
-            {(dashboards.data ?? []).map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-                {d.shared ? "" : " (private)"}
-              </option>
-            ))}
-          </select>
+      {/* Custom Dashboards Section */}
+      <Card className="panel dashboards" aria-labelledby="dash-title">
+        <CardHeader className="pb-3 border-b border-border">
+          <CardTitle id="dash-title" className="text-base font-bold text-text-main">
+            Dashboards
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-4">
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+            <form
+              className="row-actions wrap flex items-center gap-2"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!dashName.trim() || !selected) return;
+                try {
+                  const d = await send<Dashboard>(`/projects/${selected}/dashboards`, session.token, "POST", {
+                    name: dashName.trim(),
+                    shared: true,
+                  });
+                  setDashName("");
+                  setChosen(d.id);
+                  toast("Dashboard created");
+                  await invalidate();
+                } catch (err) {
+                  setError(errorMessage(err));
+                }
+              }}
+            >
+              <input
+                aria-label="Dashboard name"
+                placeholder="New dashboard name"
+                value={dashName}
+                maxLength={120}
+                onChange={(e) => setDashName(e.target.value)}
+                className="px-3 py-1.5 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+              <button
+                className="secondary small-btn inline-flex items-center gap-1 px-3 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors disabled:opacity-50"
+                disabled={!dashName.trim()}
+              >
+                <Plus size={14} /> Create
+              </button>
+            </form>
+
+            <select
+              aria-label="Dashboard"
+              value={chosen}
+              onChange={(e) => setChosen(e.target.value)}
+              className="px-3 py-1.5 bg-surface border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+            >
+              <option value="">Choose a dashboard…</option>
+              {(dashboards.data ?? []).map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                  {d.shared ? "" : " (private)"}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {chosen && (
             <form
-              className="row-actions wrap"
+              className="row-actions wrap flex flex-wrap gap-2 p-3 bg-surface-2 rounded-xl border border-border items-center"
               onSubmit={async (e) => {
                 e.preventDefault();
                 const title =
@@ -351,6 +449,7 @@ export function ReportsPanel() {
                 aria-label="Widget kind"
                 value={widgetKind}
                 onChange={(e) => setWidgetKind(e.target.value)}
+                className="px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-main"
               >
                 {WIDGET_KINDS.map(([k, label]) => (
                   <option key={k} value={k}>
@@ -364,20 +463,27 @@ export function ReportsPanel() {
                 value={widgetTitle}
                 maxLength={120}
                 onChange={(e) => setWidgetTitle(e.target.value)}
+                className="flex-1 min-w-[140px] px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-main"
               />
-              <button className="secondary small-btn">Add widget</button>
+              <button className="secondary small-btn px-3 py-1.5 bg-accent text-white rounded-lg text-xs font-medium hover:bg-accent-strong transition-colors">
+                Add widget
+              </button>
             </form>
           )}
-        </div>
-        <div className="report-grid">
-          {(view.data?.widgets ?? []).map((w) => (
-            <article key={w.id} className="panel report-card">
-              <h4>{w.title}</h4>
-              <WidgetBody kind={w.kind} data={w.data} />
-            </article>
-          ))}
-        </div>
-      </section>
+
+          <div className="report-grid grid grid-cols-1 md:grid-cols-2 gap-4">
+            {(view.data?.widgets ?? []).map((w) => (
+              <article
+                key={w.id}
+                className="panel report-card p-4 bg-surface-2 rounded-xl border border-border space-y-2"
+              >
+                <h4 className="text-xs font-bold uppercase tracking-wider text-text-subtle">{w.title}</h4>
+                <WidgetBody kind={w.kind} data={w.data} />
+              </article>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {showVelocityModal && selected && (
         <TeamVelocityModal
@@ -409,7 +515,7 @@ function WidgetBody({ kind, data }: { kind: string; data: unknown }) {
       median_cycle_days: number | null;
     };
     return (
-      <p className="small">
+      <p className="small text-xs text-text-subtle">
         {d.completed} completed · median lead{" "}
         {d.median_lead_days == null ? "–" : `${d.median_lead_days.toFixed(1)} d`} · median cycle{" "}
         {d.median_cycle_days == null ? "–" : `${d.median_cycle_days.toFixed(1)} d`}
@@ -426,12 +532,12 @@ function WidgetBody({ kind, data }: { kind: string; data: unknown }) {
     const count = d.sprints ?? d.sprints_count ?? 0;
     const recent = d.recent ?? [];
     return (
-      <div>
-        <p className="small" style={{ margin: "0 0 6px" }}>
+      <div className="space-y-2">
+        <p className="small text-xs font-medium text-text-main">
           <strong>{d.average_done_points.toFixed(1)} pts</strong> average over {count} sprints
         </p>
         {recent.length > 0 && (
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-end", height: 60, padding: "4px 0" }}>
+          <div className="flex gap-2.5 items-end h-16 py-1">
             {recent.map((s, idx) => {
               const max = Math.max(1, ...recent.map((r) => Math.max(r.started_points, r.done_points)));
               const commH = Math.max(4, (s.started_points / max) * 44);
@@ -439,14 +545,14 @@ function WidgetBody({ kind, data }: { kind: string; data: unknown }) {
               return (
                 <div
                   key={idx}
-                  style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}
+                  className="flex-1 flex flex-col items-center"
                   title={`${s.name}: ${s.done_points} done / ${s.started_points} committed`}
                 >
-                  <div style={{ display: "flex", gap: 2, alignItems: "flex-end", height: 46 }}>
-                    <div style={{ width: 8, height: commH, background: "#94a3b8", borderRadius: 2 }} />
-                    <div style={{ width: 8, height: doneH, background: "#10b981", borderRadius: 2 }} />
+                  <div className="flex gap-0.5 items-end h-12">
+                    <div className="w-2 bg-slate-400 rounded-xs" style={{ height: commH }} />
+                    <div className="w-2 bg-emerald-500 rounded-xs" style={{ height: doneH }} />
                   </div>
-                  <span style={{ fontSize: 9, color: "var(--text-3)", marginTop: 2, whiteSpace: "nowrap" }}>
+                  <span className="text-[9px] text-text-subtle mt-0.5 whitespace-nowrap">
                     {s.name.length > 6 ? `${s.name.slice(0, 5)}…` : s.name}
                   </span>
                 </div>
@@ -458,7 +564,7 @@ function WidgetBody({ kind, data }: { kind: string; data: unknown }) {
     );
   }
   if (kind === "flow") {
-    return <p className="small muted">Flow is shown on the Reports page.</p>;
+    return <p className="small muted text-xs text-text-subtle">Flow is shown on the Reports page.</p>;
   }
   return null;
 }

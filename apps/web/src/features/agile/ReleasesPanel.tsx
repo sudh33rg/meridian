@@ -15,6 +15,7 @@ import {
   invalidatePlanning,
   shortDay,
 } from "./agile-shared";
+import { PageHeader, Card, CardHeader, CardTitle, CardContent } from "../shared/UiComponents";
 
 const RELEASE_LABEL: Record<string, string> = {
   planned: "Planned",
@@ -82,291 +83,486 @@ export function ReleasesPanel() {
   };
 
   return (
-    <section className="planning releases" aria-labelledby="releases-title">
+    <section className="planning releases space-y-6" aria-labelledby="releases-title">
       <div className="planning-head">
-        <div>
-          <h2 id="releases-title">Releases</h2>
-          <p className="muted small">What ships, when scope froze, and what changed after that.</p>
-        </div>
+        <PageHeader title="Releases" subtitle="What ships, when scope froze, and what changed after that." />
+        <h2 id="releases-title" className="sr-only">
+          Releases
+        </h2>
       </div>
-      <div className="release-grid">
-        <aside className="release-list" aria-label="Releases">
-          <form
-            className="release-create"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!name.trim() || !selected) return;
-              run(async () => {
-                const created = await send<Release>(`/projects/${selected}/releases`, session.token, "POST", {
-                  name: name.trim(),
-                  description,
-                });
-                setChosen(created.id);
-                setName("");
-                setDescription("");
-              }, "Release created");
-            }}
-          >
-            <label className="small">
-              Release name
-              <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={250} />
-            </label>
-            <label className="small">
-              What is included
-              <input value={description} onChange={(e) => setDescription(e.target.value)} maxLength={5000} />
-            </label>
-            <button className="primary" disabled={!name.trim()}>
-              <Plus size={15} /> Create release
-            </button>
-          </form>
-          <ul>
-            {all.map((r) => (
-              <li key={r.id}>
-                <button
-                  className={"release-item" + (r.id === releaseId ? " active" : "")}
-                  aria-current={r.id === releaseId ? "true" : undefined}
-                  onClick={() => {
-                    setChosen(r.id);
-                    setNotes(null);
-                    setConfirming(null);
-                  }}
-                >
-                  <Flag size={14} aria-hidden /> <span>{r.name}</span>
-                  <span className="chip">{RELEASE_LABEL[r.status] ?? r.status}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-          {!releases.isLoading && all.length === 0 && <p className="muted small">No releases yet.</p>}
-        </aside>
-        {current ? (
-          <div className="release-detail">
-            <header className="release-head">
-              <h3>{current.name}</h3>
-              <span className="chip">{RELEASE_LABEL[current.status] ?? current.status}</span>
-              {current.frozen_at && (
-                <span className="chip" title={`Scope frozen ${shortDay(current.frozen_at)}`}>
-                  <Lock size={12} aria-hidden /> Scope frozen
-                </span>
-              )}
-              {current.target_at && <span className="small muted">Target {shortDay(current.target_at)}</span>}
-              {current.released_at && (
-                <span className="small muted">Released {shortDay(current.released_at)}</span>
-              )}
-            </header>
-            {current.description && <p className="muted">{current.description}</p>}
-            {totals && (
-              <div className="release-progress" aria-label="Release progress">
-                <div className="progress-track">
-                  <div
-                    style={{
-                      width: `${totals.scope_points ? Math.round((totals.done_points / totals.scope_points) * 100) : totals.scope_count ? Math.round((totals.done_count / totals.scope_count) * 100) : 0}%`,
-                    }}
-                  />
-                </div>
-                <span className="small">
-                  {totals.done_count}/{totals.scope_count} issues done · {totals.done_points}/
-                  {totals.scope_points} pts · {totals.added_after_freeze} added after freeze ·{" "}
-                  {totals.removed_count} removed in total
-                </span>
-              </div>
-            )}
-            <div className="release-actions">
-              <button
-                className="secondary"
-                onClick={() =>
-                  downloadCsv(
-                    `/releases/${releaseId}/export.csv`,
-                    session.token,
-                    `${current.name}-scope.csv`,
-                  ).catch((e) => setError(errorMessage(e)))
-                }
+
+      <div className="release-grid grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left column: Release list and creation */}
+        <aside className="release-list lg:col-span-4 space-y-4" aria-label="Releases">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle">
+                New Release
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form
+                className="release-create space-y-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!name.trim() || !selected) return;
+                  run(async () => {
+                    const created = await send<Release>(
+                      `/projects/${selected}/releases`,
+                      session.token,
+                      "POST",
+                      {
+                        name: name.trim(),
+                        description,
+                      },
+                    );
+                    setChosen(created.id);
+                    setName("");
+                    setDescription("");
+                  }, "Release created");
+                }}
               >
-                Export scope CSV
-              </button>
-              {open && !current.frozen_at && (
+                <label className="small block space-y-1">
+                  <span className="text-xs font-semibold text-text-subtle">Release name</span>
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    maxLength={250}
+                    placeholder="e.g. v2.4.0 Sprint Alpha"
+                    className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+                  />
+                </label>
+                <label className="small block space-y-1">
+                  <span className="text-xs font-semibold text-text-subtle">What is included</span>
+                  <input
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    maxLength={5000}
+                    placeholder="Key features, bug fixes, migration notes"
+                    className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+                  />
+                </label>
                 <button
-                  className="secondary"
+                  className="primary w-full py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50"
+                  disabled={!name.trim()}
+                >
+                  <Plus size={15} /> Create release
+                </button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-bold uppercase tracking-wider text-text-subtle">
+                Releases ({all.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-2">
+              <ul className="space-y-1">
+                {all.map((r) => {
+                  const isSelected = r.id === releaseId;
+                  return (
+                    <li key={r.id}>
+                      <button
+                        className={`release-item w-full flex items-center justify-between p-2.5 rounded-xl text-xs sm:text-sm transition-colors text-left ${
+                          isSelected
+                            ? "active bg-accent/10 border border-accent/30 text-accent font-semibold"
+                            : "hover:bg-surface-2 text-text-main"
+                        }`}
+                        aria-current={isSelected ? "true" : undefined}
+                        onClick={() => {
+                          setChosen(r.id);
+                          setNotes(null);
+                          setConfirming(null);
+                        }}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Flag
+                            size={14}
+                            className={isSelected ? "text-accent" : "text-text-subtle"}
+                            aria-hidden
+                          />
+                          <span className="truncate">{r.name}</span>
+                        </div>
+                        <span
+                          className={`chip shrink-0 ml-2 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
+                            r.status === "released"
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                              : r.status === "cancelled"
+                                ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
+                                : "bg-surface-2 text-text-muted border border-border"
+                          }`}
+                        >
+                          {RELEASE_LABEL[r.status] ?? r.status}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              {!releases.isLoading && all.length === 0 && (
+                <p className="muted small text-center py-6 text-xs text-text-subtle">No releases yet.</p>
+              )}
+            </CardContent>
+          </Card>
+        </aside>
+
+        {/* Right column: Release detail */}
+        <main className="lg:col-span-8">
+          {current ? (
+            <Card className="release-detail space-y-6 p-4 sm:p-6">
+              <header className="release-head flex flex-wrap items-center gap-3 pb-4 border-b border-border">
+                <div className="flex-1 min-w-[200px]">
+                  <h3 className="text-xl sm:text-2xl font-extrabold text-text-main font-display">
+                    {current.name}
+                  </h3>
+                  {current.description && (
+                    <p className="muted text-xs sm:text-sm text-text-subtle mt-1">{current.description}</p>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`chip text-xs font-semibold px-2.5 py-1 rounded-lg ${
+                      current.status === "released"
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                        : current.status === "cancelled"
+                          ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
+                          : "bg-surface-2 text-text-muted border border-border"
+                    }`}
+                  >
+                    {RELEASE_LABEL[current.status] ?? current.status}
+                  </span>
+                  {current.frozen_at && (
+                    <span
+                      className="chip inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-lg"
+                      title={`Scope frozen ${shortDay(current.frozen_at)}`}
+                    >
+                      <Lock size={12} aria-hidden /> Scope frozen
+                    </span>
+                  )}
+                  {current.target_at && (
+                    <span className="small muted text-xs text-text-subtle">
+                      Target: {shortDay(current.target_at)}
+                    </span>
+                  )}
+                  {current.released_at && (
+                    <span className="small muted text-xs text-text-subtle">
+                      Released: {shortDay(current.released_at)}
+                    </span>
+                  )}
+                </div>
+              </header>
+
+              {totals && (
+                <div
+                  className="release-progress bg-surface-2 p-4 rounded-xl border border-border space-y-2"
+                  aria-label="Release progress"
+                >
+                  <div className="progress-track w-full h-2.5 bg-bg rounded-full overflow-hidden border border-border/60">
+                    <div
+                      className="h-full bg-accent transition-all duration-300"
+                      style={{
+                        width: `${totals.scope_points ? Math.round((totals.done_points / totals.scope_points) * 100) : totals.scope_count ? Math.round((totals.done_count / totals.scope_count) * 100) : 0}%`,
+                      }}
+                    />
+                  </div>
+                  <span className="small text-xs text-text-subtle block font-medium">
+                    {totals.done_count}/{totals.scope_count} issues done · {totals.done_points}/
+                    {totals.scope_points} pts · {totals.added_after_freeze} added after freeze ·{" "}
+                    {totals.removed_count} removed in total
+                  </span>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="release-actions flex flex-wrap items-center gap-2 pt-2 border-t border-border">
+                <button
+                  className="secondary px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors"
                   onClick={() =>
-                    run(
-                      () => send(`/releases/${releaseId}`, session.token, "PATCH", { freeze: true }),
-                      "Scope frozen",
-                    )
+                    downloadCsv(
+                      `/releases/${releaseId}/export.csv`,
+                      session.token,
+                      `${current.name}-scope.csv`,
+                    ).catch((e) => setError(errorMessage(e)))
                   }
                 >
-                  <Lock size={14} /> Freeze scope
+                  Export scope CSV
                 </button>
-              )}
-              {open && confirming !== "release" && (
-                <button className="primary" onClick={() => setConfirming("release")}>
-                  Release…
+                {open && !current.frozen_at && (
+                  <button
+                    className="secondary inline-flex items-center gap-1 px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors"
+                    onClick={() =>
+                      run(
+                        () => send(`/releases/${releaseId}`, session.token, "PATCH", { freeze: true }),
+                        "Scope frozen",
+                      )
+                    }
+                  >
+                    <Lock size={14} /> Freeze scope
+                  </button>
+                )}
+                {open && confirming !== "release" && (
+                  <button
+                    className="primary px-3.5 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors shadow-sm"
+                    onClick={() => setConfirming("release")}
+                  >
+                    Release…
+                  </button>
+                )}
+                {open && confirming !== "cancel" && (
+                  <button
+                    className="secondary px-3 py-1.5 bg-surface-2 hover:bg-danger/10 hover:text-danger border border-border rounded-xl text-xs font-medium text-text-main transition-colors"
+                    onClick={() => setConfirming("cancel")}
+                  >
+                    Cancel release
+                  </button>
+                )}
+
+                {open && confirming === "release" && (
+                  <div
+                    className="release-confirm flex flex-wrap items-center gap-2 p-3 bg-surface-2 rounded-xl border border-accent/30 w-full"
+                    role="group"
+                    aria-label="Confirm release"
+                  >
+                    <label className="small flex items-center gap-2 text-xs text-text-subtle">
+                      <span>Unfinished work goes to:</span>
+                      <select
+                        value={moveTo}
+                        onChange={(e) => setMoveTo(e.target.value)}
+                        className="px-2.5 py-1 bg-surface border border-border rounded-lg text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+                      >
+                        <option value="backlog">Backlog (leaves this release)</option>
+                        {plannedOthers.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      className="primary inline-flex items-center gap-1 px-3 py-1 bg-accent hover:bg-accent-strong text-white rounded-lg text-xs font-medium"
+                      onClick={() => {
+                        setConfirming(null);
+                        run(
+                          () =>
+                            send(`/releases/${releaseId}`, session.token, "PATCH", {
+                              status: "released",
+                              move_unfinished_to: moveTo,
+                            }),
+                          `${current.name} released`,
+                        );
+                      }}
+                    >
+                      <Check size={14} /> Confirm release
+                    </button>
+                    <button
+                      className="secondary px-2.5 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs"
+                      onClick={() => setConfirming(null)}
+                    >
+                      Back
+                    </button>
+                  </div>
+                )}
+
+                {open && confirming === "cancel" && (
+                  <div
+                    className="release-confirm flex flex-wrap items-center gap-2 p-3 bg-danger/10 rounded-xl border border-danger/30 w-full"
+                    role="group"
+                    aria-label="Confirm cancel"
+                  >
+                    <span className="small text-xs text-danger font-medium">
+                      Cancel this release? Its scope history is kept.
+                    </span>
+                    <button
+                      className="danger inline-flex items-center gap-1 px-3 py-1 bg-danger hover:bg-danger/90 text-white rounded-lg text-xs font-medium"
+                      onClick={() => {
+                        setConfirming(null);
+                        run(
+                          () =>
+                            send(`/releases/${releaseId}`, session.token, "PATCH", { status: "cancelled" }),
+                          "Release cancelled",
+                        );
+                      }}
+                    >
+                      <X size={14} /> Cancel release
+                    </button>
+                    <button
+                      className="secondary px-2.5 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs"
+                      onClick={() => setConfirming(null)}
+                    >
+                      Back
+                    </button>
+                  </div>
+                )}
+
+                <button
+                  className="secondary ml-auto px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors"
+                  onClick={async () => {
+                    try {
+                      setNotes(await request<ReleaseNotes>(session.token, `/releases/${releaseId}/notes`));
+                    } catch (e) {
+                      setError(errorMessage(e));
+                    }
+                  }}
+                >
+                  Release notes
                 </button>
+              </div>
+
+              {notes && (
+                <div className="release-notes bg-surface-2 p-4 rounded-xl border border-border space-y-3">
+                  <div className="release-notes-head flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-text-main">Release notes</h4>
+                    <button
+                      className="secondary small-btn inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-border rounded-lg text-xs font-medium text-text-main hover:bg-surface-3"
+                      onClick={() =>
+                        navigator.clipboard?.writeText(notes.markdown).then(() => toast("Copied"))
+                      }
+                    >
+                      <Copy size={13} /> Copy
+                    </button>
+                  </div>
+                  <pre className="p-3 bg-bg border border-border rounded-xl text-xs font-mono whitespace-pre-wrap text-text-main max-h-60 overflow-y-auto">
+                    {notes.markdown}
+                  </pre>
+                </div>
               )}
-              {open && confirming !== "cancel" && (
-                <button className="secondary" onClick={() => setConfirming("cancel")}>
-                  Cancel release
-                </button>
-              )}
-              {open && confirming === "release" && (
-                <div className="release-confirm" role="group" aria-label="Confirm release">
-                  <label className="small">
-                    Unfinished work goes to
-                    <select value={moveTo} onChange={(e) => setMoveTo(e.target.value)}>
-                      <option value="backlog">Backlog (leaves this release)</option>
-                      {plannedOthers.map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.name}
-                        </option>
-                      ))}
+
+              {open && (
+                <form
+                  className="release-add flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-3 bg-surface-2 rounded-xl border border-border"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!addIssue) return;
+                    run(async () => {
+                      await send(`/releases/${releaseId}/issues`, session.token, "POST", {
+                        issue_ids: [addIssue],
+                      });
+                      setAddIssue("");
+                    }, "Added to release");
+                  }}
+                >
+                  <label className="small flex-1 flex flex-col sm:flex-row items-start sm:items-center gap-2 text-xs text-text-subtle">
+                    <span className="font-semibold text-text-main whitespace-nowrap">Add issue:</span>
+                    <select
+                      value={addIssue}
+                      onChange={(e) => setAddIssue(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-surface border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+                    >
+                      <option value="">Choose an issue…</option>
+                      {(candidates.data ?? [])
+                        .filter((i) => !inScope.has(i.id))
+                        .map((i) => (
+                          <option key={i.id} value={i.id}>
+                            {key}-{i.number} {i.title}
+                          </option>
+                        ))}
                     </select>
                   </label>
                   <button
-                    className="primary"
-                    onClick={() => {
-                      setConfirming(null);
-                      run(
-                        () =>
-                          send(`/releases/${releaseId}`, session.token, "PATCH", {
-                            status: "released",
-                            move_unfinished_to: moveTo,
-                          }),
-                        `${current.name} released`,
-                      );
-                    }}
+                    className="secondary shrink-0 px-3.5 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors disabled:opacity-50"
+                    disabled={!addIssue}
                   >
-                    <Check size={14} /> Confirm release
+                    Add to scope
                   </button>
-                  <button className="secondary" onClick={() => setConfirming(null)}>
-                    Back
-                  </button>
-                </div>
+                </form>
               )}
-              {open && confirming === "cancel" && (
-                <div className="release-confirm" role="group" aria-label="Confirm cancel">
-                  <span className="small">Cancel this release? Its scope history is kept.</span>
-                  <button
-                    className="danger"
-                    onClick={() => {
-                      setConfirming(null);
-                      run(
-                        () => send(`/releases/${releaseId}`, session.token, "PATCH", { status: "cancelled" }),
-                        "Release cancelled",
-                      );
-                    }}
-                  >
-                    <X size={14} /> Cancel release
-                  </button>
-                  <button className="secondary" onClick={() => setConfirming(null)}>
-                    Back
-                  </button>
-                </div>
-              )}
-              <button
-                className="secondary"
-                onClick={async () => {
-                  try {
-                    setNotes(await request<ReleaseNotes>(session.token, `/releases/${releaseId}/notes`));
-                  } catch (e) {
-                    setError(errorMessage(e));
-                  }
-                }}
-              >
-                Release notes
-              </button>
-            </div>
-            {notes && (
-              <div className="release-notes">
-                <div className="release-notes-head">
-                  <h4>Release notes</h4>
-                  <button
-                    className="secondary small-btn"
-                    onClick={() => navigator.clipboard?.writeText(notes.markdown).then(() => toast("Copied"))}
-                  >
-                    <Copy size={14} /> Copy
-                  </button>
-                </div>
-                <pre>{notes.markdown}</pre>
-              </div>
-            )}
-            {open && (
-              <form
-                className="release-add"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!addIssue) return;
-                  run(async () => {
-                    await send(`/releases/${releaseId}/issues`, session.token, "POST", {
-                      issue_ids: [addIssue],
-                    });
-                    setAddIssue("");
-                  }, "Added to release");
-                }}
-              >
-                <label className="small">
-                  Add an issue to this release
-                  <select value={addIssue} onChange={(e) => setAddIssue(e.target.value)}>
-                    <option value="">Choose an issue…</option>
-                    {(candidates.data ?? [])
-                      .filter((i) => !inScope.has(i.id))
-                      .map((i) => (
-                        <option key={i.id} value={i.id}>
-                          {key}-{i.number} {i.title}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-                <button className="secondary" disabled={!addIssue}>
-                  Add to scope
-                </button>
-              </form>
-            )}
-            <h4 className="section-title">Scope</h4>
-            <ul className="release-scope" aria-label="Release scope">
-              {(scope.data ?? []).map((s) => (
-                <li key={s.id} className={s.done ? "done" : ""}>
-                  <button className="issue-number-button" onClick={() => setSelectedIssue(s.id)}>
-                    {key}-{s.number}
-                  </button>
-                  <span className="release-scope-title">{s.title}</span>
-                  {s.added_after_freeze && <span className="chip warn">After freeze</span>}
-                  <span className="small muted">{s.done ? "Done" : s.status}</span>
-                  {open && (
-                    <button
-                      className="icon-ghost"
-                      aria-label={`Remove ${key}-${s.number} from scope`}
-                      onClick={() =>
-                        run(
-                          () => send(`/releases/${releaseId}/issues/${s.id}`, session.token, "DELETE"),
-                          "Removed from scope",
-                        )
-                      }
+
+              {/* Scope */}
+              <div className="space-y-3 pt-2">
+                <h4 className="section-title text-sm font-bold uppercase tracking-wider text-text-subtle">
+                  Scope
+                </h4>
+                <ul
+                  className="release-scope divide-y divide-border/60 border border-border rounded-xl bg-surface overflow-hidden"
+                  aria-label="Release scope"
+                >
+                  {(scope.data ?? []).map((s) => (
+                    <li
+                      key={s.id}
+                      className={`flex items-center gap-3 p-3 text-xs sm:text-sm hover:bg-surface-2 transition-colors ${s.done ? "done opacity-75" : ""}`}
                     >
-                      <X size={14} />
-                    </button>
+                      <button
+                        className="issue-number-button shrink-0 font-bold text-accent hover:underline font-mono text-xs px-1.5 py-0.5 rounded bg-accent/10"
+                        onClick={() => setSelectedIssue(s.id)}
+                      >
+                        {key}-{s.number}
+                      </button>
+                      <span className="release-scope-title flex-1 font-medium text-text-main truncate">
+                        {s.title}
+                      </span>
+                      {s.added_after_freeze && (
+                        <span className="chip warn shrink-0 text-[10px] font-bold px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-full">
+                          After freeze
+                        </span>
+                      )}
+                      <span className="small muted shrink-0 text-xs text-text-subtle font-medium">
+                        {s.done ? "Done" : s.status}
+                      </span>
+                      {open && (
+                        <button
+                          className="icon-ghost shrink-0 p-1 text-text-subtle hover:text-danger rounded-lg transition-colors"
+                          aria-label={`Remove ${key}-${s.number} from scope`}
+                          onClick={() =>
+                            run(
+                              () => send(`/releases/${releaseId}/issues/${s.id}`, session.token, "DELETE"),
+                              "Removed from scope",
+                            )
+                          }
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                  {!scope.isLoading && (scope.data ?? []).length === 0 && (
+                    <li className="muted small p-4 text-center text-xs text-text-subtle">
+                      No issues in scope yet.
+                    </li>
                   )}
-                </li>
-              ))}
-              {!scope.isLoading && (scope.data ?? []).length === 0 && (
-                <li className="muted small">No issues in scope yet.</li>
-              )}
-            </ul>
-            <h4 className="section-title">History</h4>
-            <ol className="release-history" aria-label="Scope history">
-              {(history.data ?? []).map((h, n) => (
-                <li key={`${h.issue_id}-${h.action}-${n}`}>
-                  <span className="small muted">{shortDay(h.at)}</span>{" "}
-                  {h.action === "added" ? "Added" : "Removed"} {key}-{h.number} {h.title}
-                  {h.after_freeze && <span className="chip warn">After freeze</span>}
-                </li>
-              ))}
-              {!history.isLoading && (history.data ?? []).length === 0 && (
-                <li className="muted small">No changes recorded yet.</li>
-              )}
-            </ol>
-          </div>
-        ) : (
-          <div className="release-detail muted">Create a release, or pick one to see its scope.</div>
-        )}
+                </ul>
+              </div>
+
+              {/* History */}
+              <div className="space-y-3 pt-2">
+                <h4 className="section-title text-sm font-bold uppercase tracking-wider text-text-subtle">
+                  History
+                </h4>
+                <ol className="release-history space-y-2 text-xs" aria-label="Scope history">
+                  {(history.data ?? []).map((h, n) => (
+                    <li
+                      key={`${h.issue_id}-${h.action}-${n}`}
+                      className="flex items-center gap-2 p-2 bg-surface-2 rounded-lg border border-border/60"
+                    >
+                      <span className="small muted font-mono text-text-subtle">{shortDay(h.at)}</span>{" "}
+                      <span className="text-text-main">
+                        {h.action === "added" ? "Added" : "Removed"}{" "}
+                        <strong>
+                          {key}-{h.number}
+                        </strong>{" "}
+                        {h.title}
+                      </span>
+                      {h.after_freeze && (
+                        <span className="chip warn ml-auto text-[10px] font-bold px-1.5 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded">
+                          After freeze
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                  {!history.isLoading && (history.data ?? []).length === 0 && (
+                    <li className="muted small text-text-subtle py-2">No changes recorded yet.</li>
+                  )}
+                </ol>
+              </div>
+            </Card>
+          ) : (
+            <Card className="release-detail muted p-12 text-center text-sm text-text-subtle">
+              Create a release, or pick one to see its scope.
+            </Card>
+          )}
+        </main>
       </div>
     </section>
   );

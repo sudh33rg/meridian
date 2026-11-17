@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Activity, Download } from "lucide-react";
+import { Activity, Download, Filter } from "lucide-react";
 import { apiResponse } from "../../lib/api";
 import type { AuditEvent } from "../../lib/types";
 import { day, Empty, str } from "./shared";
+import { PageHeader, Card, CardHeader, CardTitle, CardContent } from "../shared/UiComponents";
 
 /** Filters as the user types them. They apply only when "Apply" is pressed. */
 type Filters = { action: string; entity_type: string; actor_id: string; from: string; to: string };
@@ -118,68 +119,155 @@ export function AuditPanel({ token, onError }: { token: string; onError: (messag
     setDraft({ ...draft, [key]: e.target.value });
 
   return (
-    <div className="panel audit-panel">
-      <form
-        className="audit-filters"
-        onSubmit={(e) => {
-          e.preventDefault();
-          apply();
-        }}
-      >
-        <label>
-          <span className="muted small">Action</span>
-          <input value={draft.action} onChange={set("action")} placeholder="issue_created" maxLength={80} />
-        </label>
-        <label>
-          <span className="muted small">Entity type</span>
-          <input value={draft.entity_type} onChange={set("entity_type")} placeholder="issue" maxLength={80} />
-        </label>
-        <label>
-          <span className="muted small">Member ID</span>
-          <input value={draft.actor_id} onChange={set("actor_id")} placeholder="Optional" />
-        </label>
-        <label>
-          <span className="muted small">From</span>
-          <input type="date" value={draft.from} onChange={set("from")} />
-        </label>
-        <label>
-          <span className="muted small">To</span>
-          <input type="date" value={draft.to} onChange={set("to")} />
-        </label>
-        <div className="audit-actions">
-          <button type="submit" disabled={busy}>
-            Apply
-          </button>
-          <button type="button" className="secondary" onClick={clear} disabled={busy}>
-            Clear
-          </button>
-          <button type="button" className="secondary" onClick={exportCsv} disabled={exporting || !loaded}>
+    <div className="panel audit-panel space-y-6">
+      <PageHeader
+        title="Audit Log"
+        subtitle="Immutable security audit trail of all workspace and project events."
+        actions={
+          <button
+            type="button"
+            className="secondary inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs sm:text-sm font-medium text-text-main transition-colors disabled:opacity-50"
+            onClick={exportCsv}
+            disabled={exporting || !loaded}
+          >
             <Download size={15} /> Export CSV
           </button>
-        </div>
-      </form>
-      {rows.map((r) => (
-        <div className="ext-line" key={r.id}>
-          <Activity size={17} />
-          <div>
-            <b>
-              {str(r.actor)} {str(r.action)} {str(r.entity_type)}
-            </b>
-            <small>
-              {str(r.entity_id)} · {day(r.occurred_at)}
-            </small>
+        }
+      />
+
+      {/* Filter Card */}
+      <Card className="p-4 sm:p-5">
+        <form
+          className="audit-filters space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            apply();
+          }}
+        >
+          <div className="flex items-center gap-1.5 text-xs font-bold text-text-subtle uppercase tracking-wider pb-2 border-b border-border">
+            <Filter size={14} /> Filter Events
           </div>
-        </div>
-      ))}
-      {loadError && <p className="error">{loadError}</p>}
-      {loaded && !rows.length && (
-        <Empty title="No matching events" caption="Change the filters or clear them to see more." />
-      )}
-      {next && (
-        <button type="button" className="secondary" onClick={() => void run(applied, next)} disabled={busy}>
-          Load more
-        </button>
-      )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <label className="block space-y-1">
+              <span className="muted small text-xs font-medium text-text-subtle">Action</span>
+              <input
+                value={draft.action}
+                onChange={set("action")}
+                placeholder="e.g. issue_created"
+                maxLength={80}
+                className="w-full px-3 py-1.5 bg-bg border border-border rounded-xl text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+            </label>
+            <label className="block space-y-1">
+              <span className="muted small text-xs font-medium text-text-subtle">Entity type</span>
+              <input
+                value={draft.entity_type}
+                onChange={set("entity_type")}
+                placeholder="e.g. issue"
+                maxLength={80}
+                className="w-full px-3 py-1.5 bg-bg border border-border rounded-xl text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+            </label>
+            <label className="block space-y-1">
+              <span className="muted small text-xs font-medium text-text-subtle">Member ID</span>
+              <input
+                value={draft.actor_id}
+                onChange={set("actor_id")}
+                placeholder="Optional"
+                className="w-full px-3 py-1.5 bg-bg border border-border rounded-xl text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+            </label>
+            <label className="block space-y-1">
+              <span className="muted small text-xs font-medium text-text-subtle">From</span>
+              <input
+                type="date"
+                value={draft.from}
+                onChange={set("from")}
+                className="w-full px-3 py-1.5 bg-bg border border-border rounded-xl text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+            </label>
+            <label className="block space-y-1">
+              <span className="muted small text-xs font-medium text-text-subtle">To</span>
+              <input
+                type="date"
+                value={draft.to}
+                onChange={set("to")}
+                className="w-full px-3 py-1.5 bg-bg border border-border rounded-xl text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+            </label>
+          </div>
+          <div className="audit-actions flex items-center gap-2 pt-2 border-t border-border">
+            <button
+              type="submit"
+              disabled={busy}
+              className="px-4 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors shadow-sm disabled:opacity-50"
+            >
+              Apply
+            </button>
+            <button
+              type="button"
+              className="secondary px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors disabled:opacity-50"
+              onClick={clear}
+              disabled={busy}
+            >
+              Clear
+            </button>
+          </div>
+        </form>
+      </Card>
+
+      {/* Events List */}
+      <Card className="p-0 overflow-hidden">
+        <CardHeader className="p-4 border-b border-border">
+          <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle">
+            Events ({rows.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="divide-y divide-border/60">
+            {rows.map((r) => (
+              <div
+                className="ext-line flex items-center gap-3 p-3.5 hover:bg-surface-2 transition-colors"
+                key={r.id}
+              >
+                <div className="w-8 h-8 rounded-lg bg-surface-3 flex items-center justify-center shrink-0 text-text-subtle">
+                  <Activity size={16} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <b className="text-xs sm:text-sm font-semibold text-text-main block truncate">
+                    {str(r.actor)} {str(r.action)} {str(r.entity_type)}
+                  </b>
+                  <small className="text-xs text-text-subtle font-mono block">
+                    {str(r.entity_id)} · {day(r.occurred_at)}
+                  </small>
+                </div>
+              </div>
+            ))}
+          </div>
+          {loadError && (
+            <p className="error p-4 text-xs text-danger bg-danger/10 border-t border-danger/20 font-medium">
+              {loadError}
+            </p>
+          )}
+          {loaded && !rows.length && (
+            <div className="p-12">
+              <Empty title="No matching events" caption="Change the filters or clear them to see more." />
+            </div>
+          )}
+          {next && (
+            <div className="p-4 text-center border-t border-border">
+              <button
+                type="button"
+                className="secondary px-4 py-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors"
+                onClick={() => void run(applied, next)}
+                disabled={busy}
+              >
+                Load more
+              </button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { request, send, errorMessage } from "../../lib/api";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { useToast } from "../shared/Toast";
 import { Globe, ExternalLink, Send, Search } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "../shared/UiComponents";
 
 export type PortalInfo = {
   project_id: string;
@@ -76,122 +77,139 @@ export function CustomerPortalView({ projectId }: { projectId: string }) {
   const data = portal.data;
 
   return (
-    <section className="panel" aria-label="Customer Portal" style={{ marginTop: 16 }}>
-      <div
-        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}
-      >
+    <Card className="panel mt-4 space-y-4 p-4 sm:p-6" aria-label="Customer Portal">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
         <div>
-          <h4 style={{ display: "flex", alignItems: "center", gap: 6, margin: 0 }}>
-            <Globe size={18} color="#3b82f6" /> Customer Support Portal
-          </h4>
-          <p className="small muted" style={{ margin: "4px 0 0" }}>
+          <CardTitle className="flex items-center gap-2 text-base font-bold text-text-main">
+            <Globe size={18} className="text-blue-500" /> Customer Support Portal
+          </CardTitle>
+          <p className="small muted text-xs sm:text-sm text-text-subtle mt-1">
             Self-service intake for non-authenticated clients, customers, and partners.
           </p>
         </div>
-        <span className="chip success">
-          <ExternalLink size={12} style={{ marginRight: 4 }} /> Portal Active
+        <span className="chip success inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-semibold">
+          <ExternalLink size={12} /> Portal Active
         </span>
-      </div>
+      </CardHeader>
 
-      {portal.isLoading && <p className="small muted">Loading portal settings…</p>}
+      <CardContent className="p-0">
+        {portal.isLoading && (
+          <p className="small muted text-xs text-text-subtle p-6 text-center">Loading portal settings…</p>
+        )}
 
-      {data && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-          <div style={{ background: "var(--bg-subtle)", padding: 14, borderRadius: 6 }}>
-            <h5 style={{ margin: "0 0 8px" }}>Intake Ticket Form</h5>
-            <p className="small muted" style={{ margin: "0 0 12px" }}>
-              {data.welcome_message || `Welcome to the ${data.portal_name}. Submit a request below.`}
-            </p>
-            <form onSubmit={submitPublicRequest}>
-              <label className="small" style={{ display: "block", marginBottom: 8 }}>
-                Request Type
-                <select value={requestTypeId} onChange={(e) => setRequestTypeId(e.target.value)} required>
-                  <option value="">Select a service category…</option>
-                  {data.request_types.map((rt) => (
-                    <option key={rt.id} value={rt.id}>
-                      {rt.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="small" style={{ display: "block", marginBottom: 8 }}>
-                Contact Email
-                <input
-                  type="email"
-                  placeholder="customer@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </label>
-              <label className="small" style={{ display: "block", marginBottom: 8 }}>
-                Summary
+        {data && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+            {/* Intake Ticket Form */}
+            <div className="bg-surface-2 p-4 sm:p-5 rounded-xl border border-border space-y-3">
+              <h5 className="text-sm font-bold text-text-main">Intake Ticket Form</h5>
+              <p className="small muted text-xs text-text-subtle">
+                {data.welcome_message || `Welcome to the ${data.portal_name}. Submit a request below.`}
+              </p>
+              <form onSubmit={submitPublicRequest} className="space-y-3">
+                <label className="small block space-y-1 text-xs">
+                  <span className="font-semibold text-text-subtle">Request Type</span>
+                  <select
+                    value={requestTypeId}
+                    onChange={(e) => setRequestTypeId(e.target.value)}
+                    required
+                    className="w-full px-3 py-1.5 bg-surface border border-border rounded-xl text-xs text-text-main"
+                  >
+                    <option value="">Select a service category…</option>
+                    {data.request_types.map((rt) => (
+                      <option key={rt.id} value={rt.id}>
+                        {rt.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="small block space-y-1 text-xs">
+                  <span className="font-semibold text-text-subtle">Contact Email</span>
+                  <input
+                    type="email"
+                    placeholder="customer@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full px-3 py-1.5 bg-surface border border-border rounded-xl text-xs text-text-main"
+                  />
+                </label>
+                <label className="small block space-y-1 text-xs">
+                  <span className="font-semibold text-text-subtle">Summary</span>
+                  <input
+                    type="text"
+                    placeholder="Short description of the issue"
+                    value={summary}
+                    onChange={(e) => setSummary(e.target.value)}
+                    required
+                    className="w-full px-3 py-1.5 bg-surface border border-border rounded-xl text-xs text-text-main"
+                  />
+                </label>
+                <label className="small block space-y-1 text-xs">
+                  <span className="font-semibold text-text-subtle">Details</span>
+                  <textarea
+                    rows={2}
+                    placeholder="Additional context, steps to reproduce..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-surface border border-border rounded-xl text-xs text-text-main"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  className="primary small-btn inline-flex items-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors shadow-sm disabled:opacity-50"
+                  disabled={!email.trim() || !summary.trim() || !requestTypeId}
+                >
+                  <Send size={12} /> Submit Request
+                </button>
+              </form>
+            </div>
+
+            {/* Track Ticket Status */}
+            <div className="bg-surface-2 p-4 sm:p-5 rounded-xl border border-border space-y-3">
+              <h5 className="text-sm font-bold text-text-main">Track Ticket Status</h5>
+              <p className="small muted text-xs text-text-subtle">
+                Customers can look up their ticket status at any time using their ticket reference UUID.
+              </p>
+              <form onSubmit={lookupRequest} className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Short description of the issue"
-                  value={summary}
-                  onChange={(e) => setSummary(e.target.value)}
+                  placeholder="Paste Request UUID"
+                  value={trackId}
+                  onChange={(e) => setTrackId(e.target.value)}
                   required
+                  className="flex-1 px-3 py-1.5 bg-surface border border-border rounded-xl text-xs text-text-main"
                 />
-              </label>
-              <label className="small" style={{ display: "block", marginBottom: 12 }}>
-                Details
-                <textarea
-                  rows={2}
-                  placeholder="Additional context, steps to reproduce..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </label>
-              <button
-                type="submit"
-                className="primary small-btn"
-                disabled={!email.trim() || !summary.trim() || !requestTypeId}
-              >
-                <Send size={12} /> Submit Request
-              </button>
-            </form>
-          </div>
+                <button
+                  type="submit"
+                  className="secondary small-btn inline-flex items-center gap-1 px-3 py-1.5 bg-surface hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main"
+                  disabled={!trackId.trim()}
+                >
+                  <Search size={14} /> Look up
+                </button>
+              </form>
 
-          <div style={{ background: "var(--bg-subtle)", padding: 14, borderRadius: 6 }}>
-            <h5 style={{ margin: "0 0 8px" }}>Track Ticket Status</h5>
-            <p className="small muted" style={{ margin: "0 0 12px" }}>
-              Customers can look up their ticket status at any time using their ticket reference UUID.
-            </p>
-            <form onSubmit={lookupRequest} style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-              <input
-                type="text"
-                placeholder="Paste Request UUID"
-                value={trackId}
-                onChange={(e) => setTrackId(e.target.value)}
-                required
-                style={{ flex: 1 }}
-              />
-              <button type="submit" className="secondary small-btn" disabled={!trackId.trim()}>
-                <Search size={14} /> Look up
-              </button>
-            </form>
-
-            {trackingResult && (
-              <div
-                style={{
-                  background: "var(--bg)",
-                  border: "1px solid var(--border)",
-                  padding: 12,
-                  borderRadius: 6,
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                  <strong>Ticket #{trackingResult.number}</strong>
-                  <span className="chip small success">{trackingResult.status}</span>
+              {trackingResult && (
+                <div className="p-3.5 bg-surface border border-border rounded-xl space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <strong className="text-sm font-bold text-text-main">
+                      Ticket #{trackingResult.number}
+                    </strong>
+                    <span className="chip small success text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      {trackingResult.status}
+                    </span>
+                  </div>
+                  <div className="text-xs sm:text-sm font-medium text-text-main">
+                    {trackingResult.summary}
+                  </div>
+                  <div className="small muted font-mono text-[11px] text-text-subtle">
+                    ID: {trackingResult.id}
+                  </div>
                 </div>
-                <div style={{ fontSize: 13, marginBottom: 4 }}>{trackingResult.summary}</div>
-                <div className="small muted">ID: {trackingResult.id}</div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
-      )}
-    </section>
+        )}
+      </CardContent>
+    </Card>
   );
 }

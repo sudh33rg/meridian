@@ -7,6 +7,7 @@ import { formatDateTime } from "../../lib/datetime";
 import type { FieldDefinition } from "../../lib/fields";
 import { IncidentsView } from "./IncidentsView";
 import { CustomerPortalView } from "./CustomerPortalView";
+import { PageHeader, Card, CardHeader, CardTitle, CardContent } from "../shared/UiComponents";
 
 type Queue = { id: string; name: string; default_assignee_id: string | null };
 type RequestType = {
@@ -60,7 +61,6 @@ export function ServicePanel() {
   const [reqText, setReqText] = useState("");
   const [typeNeedsApproval, setTypeNeedsApproval] = useState(false);
   const [typeApprover, setTypeApprover] = useState("");
-  // The form being built: field key to whether it is required, in the order chosen.
   const [typeForm, setTypeForm] = useState<Record<string, boolean>>({});
   const [reqValues, setReqValues] = useState<Record<string, string>>({});
   const active = tab === "service" && !!selected;
@@ -75,9 +75,9 @@ export function ServicePanel() {
     queryFn: () => request<RequestType[]>(token, `/projects/${selected}/service/request-types`),
     enabled: active,
   });
-  const slaQ = useQuery({
-    queryKey: ["service-sla", selected],
-    queryFn: () => request<Sla[]>(token, `/projects/${selected}/service/sla`),
+  const membersQ = useQuery({
+    queryKey: ["members"],
+    queryFn: () => request<Member[]>(token, "/members"),
     enabled: active,
   });
   const fieldsQ = useQuery({
@@ -85,15 +85,17 @@ export function ServicePanel() {
     queryFn: () => request<FieldDefinition[]>(token, `/projects/${selected}/fields`),
     enabled: active,
   });
-  const membersQ = useQuery({
-    queryKey: ["members"],
-    queryFn: () => request<Member[]>(token, "/members"),
+  const slaQ = useQuery({
+    queryKey: ["service-sla", selected],
+    queryFn: () => request<Sla[]>(token, `/projects/${selected}/service/sla`),
     enabled: active,
   });
+
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ["service-queues", selected] });
     void qc.invalidateQueries({ queryKey: ["service-types", selected] });
     void qc.invalidateQueries({ queryKey: ["service-sla", selected] });
+    void qc.invalidateQueries({ queryKey: ["issues", selected] });
   };
   const fail = (e: unknown) => toast(errorMessage(e), { kind: "error" });
 
@@ -106,41 +108,45 @@ export function ServicePanel() {
     onSuccess: () => {
       setQueueName("");
       setQueueAssignee("");
-      toast("Queue added");
+      toast("Queue created");
       refresh();
     },
     onError: fail,
   });
+
   const addType = useMutation({
     mutationFn: () =>
       send(`/projects/${selected}/service/request-types`, token, "POST", {
         name: typeName.trim(),
-        description: typeDesc,
+        description: typeDesc.trim(),
         flow: typeFlow,
         queue_id: typeQueue,
         target_hours: Number(typeHours),
         requires_approval: typeNeedsApproval,
-        approver_id: typeNeedsApproval ? typeApprover : null,
+        approver_id: typeNeedsApproval && typeApprover ? typeApprover : null,
         fields: Object.entries(typeForm).map(([key, required]) => ({ key, required })),
       }),
     onSuccess: () => {
       setTypeName("");
       setTypeDesc("");
+      setTypeQueue("");
+      setTypeHours("72");
       setTypeNeedsApproval(false);
       setTypeApprover("");
       setTypeForm({});
-      toast("Request type added");
+      toast("Request type created");
       refresh();
     },
     onError: fail,
   });
+
   const submit = useMutation({
     mutationFn: () =>
       send(`/projects/${selected}/service/requests`, token, "POST", {
         request_type_id: reqType,
         title: reqTitle.trim(),
-        description: reqText,
-        values: formValues(),
+        description: reqText.trim() || undefined,
+        custom_fields: formValues(),
       }),
     onSuccess: () => {
       setReqTitle("");
@@ -152,12 +158,12 @@ export function ServicePanel() {
     onError: fail,
   });
 
-  // The chosen request type's form, with each field's definition.
   const chosen = (typesQ.data ?? []).find((t) => t.id === reqType);
   const formFields = (chosen?.fields ?? [])
     .map((ff) => ({ def: (fieldsQ.data ?? []).find((f) => f.key === ff.key), required: ff.required }))
     .filter((x): x is { def: FieldDefinition; required: boolean } => !!x.def)
     .map((x) => ({ ...x.def, required: x.required }));
+
   function formValues(): Record<string, unknown> {
     const out: Record<string, unknown> = {};
     for (const f of formFields) {
@@ -177,300 +183,426 @@ export function ServicePanel() {
   const breached = sla.filter((r) => r.state === "breached" || r.state === "missed").length;
 
   return (
-    <div className="service-panel">
+    <div className="service-panel space-y-6">
       <div className="panel-head">
-        <h3>Service management</h3>
-        <span className="muted small">
-          {sla.length} requests · {breached} past target
-        </span>
+        <PageHeader
+          title="Service management"
+          subtitle={`${sla.length} requests · ${breached} past target`}
+        />
+        <h3 className="sr-only">Service management</h3>
       </div>
-      <div className="ext-two-cols">
-        <section className="panel" aria-label="Queues">
-          <h4>Queues</h4>
-          <ul className="workflow-list">
-            {queues.map((q) => (
-              <li key={q.id} className="workflow-row">
-                <span>
-                  {q.name}
-                  <span className="muted small">
-                    {" "}
-                    · assigns to{" "}
-                    {membersQ.data?.find((m) => m.id === q.default_assignee_id)?.name ?? "nobody"}
-                  </span>
-                </span>
-              </li>
-            ))}
-            {!queues.length && <li className="muted small">No queues yet.</li>}
-          </ul>
-          <form
-            className="workflow-add"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (queueName.trim()) addQueue.mutate();
-            }}
-          >
-            <input
-              aria-label="Queue name"
-              maxLength={80}
-              value={queueName}
-              onChange={(e) => setQueueName(e.target.value)}
-              placeholder="Queue name"
-            />
-            <select
-              aria-label="Default assignee"
-              value={queueAssignee}
-              onChange={(e) => setQueueAssignee(e.target.value)}
-            >
-              <option value="">No default assignee</option>
-              {(membersQ.data ?? []).map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-            <button className="secondary" type="submit" disabled={!queueName.trim() || addQueue.isPending}>
-              Add queue
-            </button>
-          </form>
-        </section>
-        <section className="panel" aria-label="Request types">
-          <h4>Request types</h4>
-          <ul className="workflow-list">
-            {types.map((t) => (
-              <li key={t.id} className="workflow-row">
-                <span>
-                  {t.name}
-                  <span className="muted small">
-                    {" "}
-                    · {t.flow} · {t.target_hours} h ·{" "}
-                    {queues.find((q) => q.id === t.queue_id)?.name ?? "queue"}
-                  </span>
-                </span>
-              </li>
-            ))}
-            {!types.length && <li className="muted small">No request types yet.</li>}
-          </ul>
-          <form
-            className="workflow-add"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (typeName.trim() && typeQueue) addType.mutate();
-            }}
-          >
-            <input
-              aria-label="Request type name"
-              maxLength={80}
-              value={typeName}
-              onChange={(e) => setTypeName(e.target.value)}
-              placeholder="Name"
-            />
-            <input
-              aria-label="Request type description"
-              maxLength={2000}
-              value={typeDesc}
-              onChange={(e) => setTypeDesc(e.target.value)}
-              placeholder="Description"
-            />
-            <select aria-label="Flow" value={typeFlow} onChange={(e) => setTypeFlow(e.target.value)}>
-              <option value="request">Request</option>
-              <option value="incident">Incident</option>
-              <option value="change">Change</option>
-            </select>
-            <select aria-label="Queue" value={typeQueue} onChange={(e) => setTypeQueue(e.target.value)}>
-              <option value="">Queue…</option>
+
+      <div className="ext-two-cols grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* Queues Section */}
+        <Card className="panel" aria-label="Queues">
+          <CardHeader className="pb-2 border-b border-border">
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle">
+              Queues
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-3">
+            <ul className="workflow-list divide-y divide-border/60">
               {queues.map((q) => (
-                <option key={q.id} value={q.id}>
-                  {q.name}
-                </option>
+                <li key={q.id} className="workflow-row py-2 text-xs flex items-center justify-between">
+                  <span className="font-medium text-text-main">
+                    {q.name}
+                    <span className="muted small text-text-subtle">
+                      {" "}
+                      · assigns to{" "}
+                      {membersQ.data?.find((m) => m.id === q.default_assignee_id)?.name ?? "nobody"}
+                    </span>
+                  </span>
+                </li>
               ))}
-            </select>
-            <input
-              aria-label="Target hours"
-              type="number"
-              min={1}
-              max={8760}
-              value={typeHours}
-              onChange={(e) => setTypeHours(e.target.value)}
-            />
-            <label className="inline-check">
+              {!queues.length && (
+                <li className="muted small text-xs text-text-subtle py-2">No queues yet.</li>
+              )}
+            </ul>
+
+            <form
+              className="workflow-add flex flex-col sm:flex-row gap-2 pt-2 border-t border-border"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (queueName.trim()) addQueue.mutate();
+              }}
+            >
               <input
-                type="checkbox"
-                checked={typeNeedsApproval}
-                onChange={(e) => setTypeNeedsApproval(e.target.checked)}
-              />{" "}
-              Needs approval
-            </label>
-            {typeNeedsApproval && (
+                aria-label="Queue name"
+                maxLength={80}
+                value={queueName}
+                onChange={(e) => setQueueName(e.target.value)}
+                placeholder="Queue name"
+                className="flex-1 px-3 py-1.5 bg-bg border border-border rounded-xl text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+              />
               <select
-                aria-label="Approver"
-                value={typeApprover}
-                onChange={(e) => setTypeApprover(e.target.value)}
+                aria-label="Default assignee"
+                value={queueAssignee}
+                onChange={(e) => setQueueAssignee(e.target.value)}
+                className="px-2.5 py-1.5 bg-bg border border-border rounded-xl text-xs text-text-main"
               >
-                <option value="">Approver…</option>
+                <option value="">No default assignee</option>
                 {(membersQ.data ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.name}
                   </option>
                 ))}
               </select>
-            )}
-            <fieldset className="screen-fields">
-              <legend className="muted small">Form fields (in the order chosen)</legend>
-              {(fieldsQ.data ?? []).map((f) => {
-                const on = f.key in typeForm;
-                return (
-                  <span key={f.key} className="inline-check">
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={on}
-                        onChange={() =>
-                          setTypeForm((old) => {
-                            const next = { ...old };
-                            if (f.key in next) delete next[f.key];
-                            else next[f.key] = false;
-                            return next;
-                          })
-                        }
-                      />{" "}
-                      {f.label}
-                    </label>
-                    {on && (
-                      <label>
-                        {" "}
-                        <input
-                          type="checkbox"
-                          checked={!!typeForm[f.key]}
-                          onChange={(e) => setTypeForm((old) => ({ ...old, [f.key]: e.target.checked }))}
-                        />{" "}
-                        required
-                      </label>
-                    )}
+              <button
+                className="secondary px-3 py-1.5 bg-accent text-white rounded-xl text-xs font-medium hover:bg-accent-strong transition-colors disabled:opacity-50"
+                type="submit"
+                disabled={!queueName.trim() || addQueue.isPending}
+              >
+                Add queue
+              </button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Request Types Section */}
+        <Card className="panel" aria-label="Request types">
+          <CardHeader className="pb-2 border-b border-border">
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle">
+              Request types
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-3">
+            <ul className="workflow-list divide-y divide-border/60">
+              {types.map((t) => (
+                <li key={t.id} className="workflow-row py-2 text-xs flex items-center justify-between">
+                  <span className="font-medium text-text-main">
+                    {t.name}
+                    <span className="muted small text-text-subtle">
+                      {" "}
+                      · {t.flow} · {t.target_hours} h ·{" "}
+                      {queues.find((q) => q.id === t.queue_id)?.name ?? "queue"}
+                    </span>
                   </span>
-                );
-              })}
-              {!(fieldsQ.data ?? []).length && (
-                <span className="muted small">
-                  Define custom fields in the board's workflow section first.
-                </span>
+                </li>
+              ))}
+              {!types.length && (
+                <li className="muted small text-xs text-text-subtle py-2">No request types yet.</li>
               )}
-            </fieldset>
-            <button
-              className="secondary"
-              type="submit"
-              disabled={!typeName.trim() || !typeQueue || addType.isPending}
+            </ul>
+
+            <form
+              className="workflow-add space-y-2.5 pt-2 border-t border-border"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (typeName.trim() && typeQueue) addType.mutate();
+              }}
             >
-              Add request type
-            </button>
-          </form>
-        </section>
-      </div>
-      <section className="panel" aria-label="Submit a request">
-        <h4>Submit a request</h4>
-        <form
-          className="workflow-add"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (reqType && reqTitle.trim()) submit.mutate();
-          }}
-        >
-          <select aria-label="Request type" value={reqType} onChange={(e) => setReqType(e.target.value)}>
-            <option value="">Choose a request type…</option>
-            {types.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-          <input
-            aria-label="Request title"
-            maxLength={200}
-            value={reqTitle}
-            onChange={(e) => setReqTitle(e.target.value)}
-            placeholder="What do you need?"
-          />
-          <input
-            aria-label="Request details"
-            maxLength={20000}
-            value={reqText}
-            onChange={(e) => setReqText(e.target.value)}
-            placeholder="Details (optional)"
-          />
-          {formFields.map((f) => (
-            <label key={f.key} className="inline-check">
-              {f.label}
-              {f.required ? " *" : ""}
-              {f.field_type === "select" ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input
+                  aria-label="Request type name"
+                  maxLength={80}
+                  value={typeName}
+                  onChange={(e) => setTypeName(e.target.value)}
+                  placeholder="Name"
+                  className="px-3 py-1.5 bg-bg border border-border rounded-xl text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+                <input
+                  aria-label="Request type description"
+                  maxLength={2000}
+                  value={typeDesc}
+                  onChange={(e) => setTypeDesc(e.target.value)}
+                  placeholder="Description"
+                  className="px-3 py-1.5 bg-bg border border-border rounded-xl text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <select
-                  value={reqValues[f.key] ?? ""}
-                  onChange={(e) => setReqValues({ ...reqValues, [f.key]: e.target.value })}
+                  aria-label="Flow"
+                  value={typeFlow}
+                  onChange={(e) => setTypeFlow(e.target.value)}
+                  className="px-2.5 py-1.5 bg-bg border border-border rounded-xl text-xs text-text-main"
                 >
-                  <option value="">—</option>
-                  {f.options.map((o) => (
-                    <option key={o} value={o}>
-                      {o}
+                  <option value="request">Request</option>
+                  <option value="incident">Incident</option>
+                  <option value="change">Change</option>
+                </select>
+                <select
+                  aria-label="Queue"
+                  value={typeQueue}
+                  onChange={(e) => setTypeQueue(e.target.value)}
+                  className="px-2.5 py-1.5 bg-bg border border-border rounded-xl text-xs text-text-main"
+                >
+                  <option value="">Queue…</option>
+                  {queues.map((q) => (
+                    <option key={q.id} value={q.id}>
+                      {q.name}
                     </option>
                   ))}
                 </select>
-              ) : f.field_type === "boolean" ? (
                 <input
-                  type="checkbox"
-                  checked={reqValues[f.key] === "true"}
-                  onChange={(e) =>
-                    setReqValues({ ...reqValues, [f.key]: e.target.checked ? "true" : "false" })
-                  }
+                  aria-label="Target hours"
+                  type="number"
+                  min={1}
+                  max={8760}
+                  value={typeHours}
+                  onChange={(e) => setTypeHours(e.target.value)}
+                  placeholder="Target hours"
+                  className="px-3 py-1.5 bg-bg border border-border rounded-xl text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
                 />
-              ) : (
-                <input
-                  type={f.field_type === "number" ? "number" : f.field_type === "date" ? "date" : "text"}
-                  required={f.required}
-                  value={reqValues[f.key] ?? ""}
-                  onChange={(e) => setReqValues({ ...reqValues, [f.key]: e.target.value })}
-                />
-              )}
-            </label>
-          ))}
-          <button
-            className="primary"
-            type="submit"
-            disabled={!reqType || !reqTitle.trim() || submit.isPending}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <label className="inline-check flex items-center gap-1.5 text-xs text-text-subtle cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={typeNeedsApproval}
+                    onChange={(e) => setTypeNeedsApproval(e.target.checked)}
+                    className="rounded text-accent"
+                  />{" "}
+                  Needs approval
+                </label>
+                {typeNeedsApproval && (
+                  <select
+                    aria-label="Approver"
+                    value={typeApprover}
+                    onChange={(e) => setTypeApprover(e.target.value)}
+                    className="flex-1 px-2.5 py-1.5 bg-bg border border-border rounded-xl text-xs text-text-main"
+                  >
+                    <option value="">Approver…</option>
+                    {(membersQ.data ?? []).map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <fieldset className="screen-fields p-3 bg-surface-2 rounded-xl border border-border space-y-1.5">
+                <legend className="muted small text-[11px] font-semibold text-text-subtle px-1">
+                  Form fields (in order)
+                </legend>
+                <div className="flex flex-wrap gap-2">
+                  {(fieldsQ.data ?? []).map((f) => {
+                    const on = f.key in typeForm;
+                    return (
+                      <span
+                        key={f.key}
+                        className="inline-check inline-flex items-center gap-1.5 p-1 bg-surface rounded-lg border border-border text-xs"
+                      >
+                        <label className="flex items-center gap-1 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={on}
+                            onChange={() =>
+                              setTypeForm((old) => {
+                                const next = { ...old };
+                                if (f.key in next) delete next[f.key];
+                                else next[f.key] = false;
+                                return next;
+                              })
+                            }
+                            className="rounded text-accent"
+                          />{" "}
+                          {f.label}
+                        </label>
+                        {on && (
+                          <label className="flex items-center gap-1 text-[10px] text-text-subtle ml-1 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={!!typeForm[f.key]}
+                              onChange={(e) => setTypeForm((old) => ({ ...old, [f.key]: e.target.checked }))}
+                              className="rounded text-accent"
+                            />{" "}
+                            required
+                          </label>
+                        )}
+                      </span>
+                    );
+                  })}
+                  {!(fieldsQ.data ?? []).length && (
+                    <span className="muted small text-xs text-text-subtle italic">
+                      Define custom fields in the board's workflow section first.
+                    </span>
+                  )}
+                </div>
+              </fieldset>
+
+              <button
+                className="secondary w-full py-2 bg-accent text-white rounded-xl text-xs font-medium hover:bg-accent-strong transition-colors disabled:opacity-50"
+                type="submit"
+                disabled={!typeName.trim() || !typeQueue || addType.isPending}
+              >
+                Add request type
+              </button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Submit Request Section */}
+      <Card className="panel" aria-label="Submit a request">
+        <CardHeader className="pb-2 border-b border-border">
+          <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle">
+            Submit a request
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-3">
+          <form
+            className="workflow-add space-y-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (reqType && reqTitle.trim()) submit.mutate();
+            }}
           >
-            Submit
-          </button>
-        </form>
-      </section>
-      <section className="panel" aria-label="Service level report">
-        <h4>SLA</h4>
-        {sla.length === 0 && <p className="muted small">No requests yet.</p>}
-        {sla.length > 0 && (
-          <table className="sla-table">
-            <thead>
-              <tr>
-                <th scope="col">Request</th>
-                <th scope="col">Type</th>
-                <th scope="col">Elapsed</th>
-                <th scope="col">Target</th>
-                <th scope="col">State</th>
-                <th scope="col">Started</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sla.map((r) => (
-                <tr key={r.id}>
-                  <td>
-                    #{r.number} {r.title}
-                  </td>
-                  <td>{r.request_type}</td>
-                  <td>{r.elapsed_hours.toFixed(1)} h</td>
-                  <td>{r.target_hours} h</td>
-                  <td>{STATE_LABEL[r.state]}</td>
-                  <td>{formatDateTime(r.started_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <select
+                aria-label="Request type"
+                value={reqType}
+                onChange={(e) => setReqType(e.target.value)}
+                className="px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main"
+              >
+                <option value="">Choose a request type…</option>
+                {types.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                aria-label="Request title"
+                maxLength={200}
+                value={reqTitle}
+                onChange={(e) => setReqTitle(e.target.value)}
+                placeholder="What do you need?"
+                className="px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+            </div>
+            <input
+              aria-label="Request details"
+              maxLength={20000}
+              value={reqText}
+              onChange={(e) => setReqText(e.target.value)}
+              placeholder="Details (optional)"
+              className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+            {formFields.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-surface-2 rounded-xl border border-border">
+                {formFields.map((f) => (
+                  <label key={f.key} className="inline-check block space-y-1 text-xs">
+                    <span className="font-semibold text-text-subtle">
+                      {f.label}
+                      {f.required ? " *" : ""}
+                    </span>
+                    {f.field_type === "select" ? (
+                      <select
+                        value={reqValues[f.key] ?? ""}
+                        onChange={(e) => setReqValues({ ...reqValues, [f.key]: e.target.value })}
+                        className="w-full px-3 py-1.5 bg-surface border border-border rounded-xl text-xs text-text-main"
+                      >
+                        <option value="">—</option>
+                        {f.options.map((o) => (
+                          <option key={o} value={o}>
+                            {o}
+                          </option>
+                        ))}
+                      </select>
+                    ) : f.field_type === "boolean" ? (
+                      <input
+                        type="checkbox"
+                        checked={reqValues[f.key] === "true"}
+                        onChange={(e) =>
+                          setReqValues({ ...reqValues, [f.key]: e.target.checked ? "true" : "false" })
+                        }
+                        className="rounded text-accent ml-2"
+                      />
+                    ) : (
+                      <input
+                        type={
+                          f.field_type === "number" ? "number" : f.field_type === "date" ? "date" : "text"
+                        }
+                        required={f.required}
+                        value={reqValues[f.key] ?? ""}
+                        onChange={(e) => setReqValues({ ...reqValues, [f.key]: e.target.value })}
+                        className="w-full px-3 py-1.5 bg-surface border border-border rounded-xl text-xs text-text-main"
+                      />
+                    )}
+                  </label>
+                ))}
+              </div>
+            )}
+            <button
+              className="primary px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50"
+              type="submit"
+              disabled={!reqType || !reqTitle.trim() || submit.isPending}
+            >
+              Submit
+            </button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* SLA Service Level Report Table */}
+      <Card className="panel overflow-hidden" aria-label="Service level report">
+        <CardHeader className="pb-2 border-b border-border">
+          <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle">SLA</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {sla.length === 0 && (
+            <p className="muted small p-6 text-center text-xs text-text-subtle">No requests yet.</p>
+          )}
+          {sla.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="sla-table w-full text-left text-xs">
+                <thead className="bg-surface-2 border-b border-border text-text-subtle font-semibold uppercase text-[10px]">
+                  <tr>
+                    <th scope="col" className="p-3">
+                      Request
+                    </th>
+                    <th scope="col" className="p-3">
+                      Type
+                    </th>
+                    <th scope="col" className="p-3">
+                      Elapsed
+                    </th>
+                    <th scope="col" className="p-3">
+                      Target
+                    </th>
+                    <th scope="col" className="p-3">
+                      State
+                    </th>
+                    <th scope="col" className="p-3">
+                      Started
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {sla.map((r) => (
+                    <tr key={r.id} className="hover:bg-surface-2 transition-colors">
+                      <td className="p-3 font-medium text-text-main">
+                        #{r.number} {r.title}
+                      </td>
+                      <td className="p-3 text-text-subtle">{r.request_type}</td>
+                      <td className="p-3 font-mono">{r.elapsed_hours.toFixed(1)} h</td>
+                      <td className="p-3 font-mono">{r.target_hours} h</td>
+                      <td className="p-3">
+                        <span
+                          className={`chip text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            r.state === "met"
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                              : r.state === "on_track"
+                                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                                : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                          }`}
+                        >
+                          {STATE_LABEL[r.state]}
+                        </span>
+                      </td>
+                      <td className="p-3 text-text-subtle font-mono">{formatDateTime(r.started_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <CustomerPortalView projectId={selected} />
       <IncidentsView projectId={selected} />
     </div>

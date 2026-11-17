@@ -7,6 +7,7 @@ import { useToast } from "../shared/Toast";
 import { formatMinutes } from "./IssueDepth";
 import { PortfolioOverviewView } from "./PortfolioOverviewView";
 import { RaidRegisterView } from "./RaidRegisterView";
+import { PageHeader, Card, CardHeader, CardTitle, CardContent } from "../shared/UiComponents";
 
 type Timeline = {
   kind: string;
@@ -126,7 +127,6 @@ export function RoadmapPanel() {
     }
   };
 
-  // Timeline scale: the span of every dated item, with a margin on each side.
   const dated = (timeline.data ?? [])
     .flatMap((t) => [t.start, t.end])
     .filter((d): d is string => !!d)
@@ -137,397 +137,577 @@ export function RoadmapPanel() {
   const at = (d: string) => `${Math.min(100, Math.max(0, ((Date.parse(d) - lo) / span) * 100))}%`;
 
   return (
-    <section className="planning roadmap" aria-labelledby="roadmap-title">
-      <div
-        className="planning-head"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 12,
-        }}
-      >
-        <div>
-          <h2 id="roadmap-title">Roadmap & Governance</h2>
-          <p className="muted small">
-            {project?.name}. Project timeline, portfolio roll-up, and RAID register.
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: 6 }}>
-          <button
-            className={subView === "roadmap" ? "primary small-btn" : "secondary small-btn"}
-            onClick={() => setSubView("roadmap")}
-          >
-            Project Roadmap
-          </button>
-          <button
-            className={subView === "portfolio" ? "primary small-btn" : "secondary small-btn"}
-            onClick={() => setSubView("portfolio")}
-          >
-            Portfolio Roll-up
-          </button>
-          <button
-            className={subView === "raid" ? "primary small-btn" : "secondary small-btn"}
-            onClick={() => setSubView("raid")}
-          >
-            RAID Register
-          </button>
-        </div>
+    <section className="planning roadmap space-y-6" aria-labelledby="roadmap-title">
+      <div className="planning-head">
+        <PageHeader
+          title="Roadmap & Governance"
+          subtitle={`${project?.name ?? "Project"}. Project timeline, portfolio roll-up, and RAID register.`}
+          actions={
+            <div className="flex flex-wrap items-center gap-1.5 p-1 bg-surface-2 border border-border rounded-xl">
+              <button
+                className={`small-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  subView === "roadmap"
+                    ? "primary bg-accent text-white shadow-xs"
+                    : "secondary text-text-subtle hover:text-text-main"
+                }`}
+                onClick={() => setSubView("roadmap")}
+              >
+                Project Roadmap
+              </button>
+              <button
+                className={`small-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  subView === "portfolio"
+                    ? "primary bg-accent text-white shadow-xs"
+                    : "secondary text-text-subtle hover:text-text-main"
+                }`}
+                onClick={() => setSubView("portfolio")}
+              >
+                Portfolio Roll-up
+              </button>
+              <button
+                className={`small-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  subView === "raid"
+                    ? "primary bg-accent text-white shadow-xs"
+                    : "secondary text-text-subtle hover:text-text-main"
+                }`}
+                onClick={() => setSubView("raid")}
+              >
+                RAID Register
+              </button>
+            </div>
+          }
+        />
+        <h2 id="roadmap-title" className="sr-only">
+          Roadmap & Governance
+        </h2>
       </div>
 
       {subView === "portfolio" && <PortfolioOverviewView />}
       {subView === "raid" && <RaidRegisterView projectId={selected} />}
 
       {subView === "roadmap" && (
-        <>
-          <section className="panel" aria-labelledby="timeline-title">
-            <h3 id="timeline-title">Timeline</h3>
-            {(timeline.data ?? []).filter((t) => t.start || t.end).length === 0 && (
-              <p className="muted small">
-                Add due dates to epics, target dates to releases, and sprint dates to see them here.
-              </p>
-            )}
-            <ul className="timeline" aria-label="Timeline items">
-              {(timeline.data ?? []).map((t) => (
-                <li key={`${t.kind}-${t.id}`} className="timeline-row">
-                  <span className="timeline-name">
-                    <span className="chip">{t.kind}</span> {t.name}
-                    {t.progress != null && <span className="small muted"> · {t.progress}%</span>}
-                  </span>
-                  <span className="timeline-track" aria-hidden>
-                    {t.kind === "milestone" && t.end ? (
-                      <span className="milestone-mark" style={{ left: at(t.end) }} />
-                    ) : t.start && t.end ? (
-                      <span
-                        className="timeline-bar"
-                        style={{ left: at(t.start), width: `calc(${at(t.end)} - ${at(t.start)})` }}
-                      >
-                        {t.progress != null && (
-                          <span className="timeline-progress" style={{ width: `${t.progress}%` }} />
-                        )}
-                      </span>
-                    ) : t.end ? (
-                      <span className="milestone-mark" style={{ left: at(t.end) }} />
-                    ) : null}
-                  </span>
-                  <span className="small muted">{t.end ?? t.start ?? "no date"}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <div className="roadmap-grid">
-            <section className="panel" aria-labelledby="ms-title">
-              <h3 id="ms-title">Milestones</h3>
-              <form
-                className="row-actions wrap"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!msName.trim() || !msDate || !selected) return;
-                  run(async () => {
-                    await send(`/projects/${selected}/milestones`, token, "POST", {
-                      name: msName.trim(),
-                      target_on: msDate,
-                    });
-                    setMsName("");
-                    setMsDate("");
-                  }, "Milestone added");
-                }}
+        <div className="space-y-6">
+          {/* Gantt Timeline Card */}
+          <Card className="panel overflow-hidden" aria-labelledby="timeline-title">
+            <CardHeader className="border-b border-border pb-3">
+              <CardTitle
+                id="timeline-title"
+                className="text-sm font-bold uppercase tracking-wider text-text-subtle"
               >
-                <input
-                  aria-label="Milestone name"
-                  placeholder="Milestone"
-                  value={msName}
-                  maxLength={120}
-                  onChange={(e) => setMsName(e.target.value)}
-                />
-                <input
-                  aria-label="Milestone date"
-                  type="date"
-                  value={msDate}
-                  onChange={(e) => setMsDate(e.target.value)}
-                />
-                <button className="secondary small-btn" disabled={!msName.trim() || !msDate}>
-                  Add
-                </button>
-              </form>
-              <ul className="plain-list">
-                {(milestones.data ?? []).map((m) => (
-                  <li key={m.id} className="small">
-                    <b>{m.name}</b> · {m.target_on}{" "}
-                    {m.reached_on ? <span className="chip success">Reached {m.reached_on}</span> : null}
-                    <button
-                      className="secondary small-btn"
-                      onClick={() =>
-                        run(() => send(`/milestones/${m.id}`, token, "PATCH", { reached: !m.reached_on }))
-                      }
+                Timeline
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 space-y-3">
+              {(timeline.data ?? []).filter((t) => t.start || t.end).length === 0 && (
+                <p className="muted small text-xs text-text-subtle">
+                  Add due dates to epics, target dates to releases, and sprint dates to see them here.
+                </p>
+              )}
+              <ul className="timeline space-y-2.5 overflow-x-auto" aria-label="Timeline items">
+                {(timeline.data ?? []).map((t) => (
+                  <li
+                    key={`${t.kind}-${t.id}`}
+                    className="timeline-row flex items-center gap-3 p-2 rounded-lg hover:bg-surface-2 transition-colors text-xs"
+                  >
+                    <span className="timeline-name w-48 sm:w-64 shrink-0 truncate font-medium text-text-main">
+                      <span className="chip uppercase text-[10px] font-bold px-1.5 py-0.5 rounded bg-surface-3 text-text-muted border border-border mr-1.5">
+                        {t.kind}
+                      </span>{" "}
+                      {t.name}
+                      {t.progress != null && (
+                        <span className="small muted text-text-subtle"> · {t.progress}%</span>
+                      )}
+                    </span>
+                    <span
+                      className="timeline-track flex-1 h-3 bg-bg border border-border rounded-full relative overflow-hidden"
+                      aria-hidden
                     >
-                      {m.reached_on ? "Reopen" : "Mark reached"}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <section className="panel" aria-labelledby="crit-title">
-              <h3 id="crit-title">Critical path</h3>
-              {critical.data?.has_cycle && (
-                <p className="error small">Dependencies form a loop. Break one link to see the path.</p>
-              )}
-              {critical.data && !critical.data.has_cycle && critical.data.path.length === 0 && (
-                <p className="muted small">No blocking links between open issues yet.</p>
-              )}
-              {critical.data && critical.data.path.length > 0 && (
-                <>
-                  <p className="small">
-                    {critical.data.path.length} steps · {formatMinutes(critical.data.total_minutes)} of
-                    remaining work
-                  </p>
-                  <ol className="plain-list" aria-label="Critical path">
-                    {critical.data.path.map((p) => (
-                      <li key={p.issue_id} className="small">
-                        <button className="issue-number-button" onClick={() => setSelectedIssue(p.issue_id)}>
-                          {project?.key}-{p.number}
-                        </button>{" "}
-                        {p.title} <span className="muted">· {formatMinutes(p.minutes)}</span>
-                      </li>
-                    ))}
-                  </ol>
-                </>
-              )}
-            </section>
-
-            <section className="panel" aria-labelledby="upd-title">
-              <h3 id="upd-title">Project updates</h3>
-              <form
-                className="row-actions wrap"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!body.trim() || !selected) return;
-                  run(async () => {
-                    await send(`/projects/${selected}/updates`, token, "POST", { health, body: body.trim() });
-                    setBody("");
-                  }, "Update posted");
-                }}
-              >
-                <select aria-label="Health" value={health} onChange={(e) => setHealth(e.target.value)}>
-                  {Object.entries(HEALTH).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  aria-label="Update"
-                  placeholder="What changed?"
-                  value={body}
-                  maxLength={5000}
-                  onChange={(e) => setBody(e.target.value)}
-                />
-                <button className="secondary small-btn" disabled={!body.trim()}>
-                  Post
-                </button>
-              </form>
-              <ul className="plain-list">
-                {(updates.data ?? []).slice(0, 10).map((u) => (
-                  <li key={u.id} className="small">
-                    <span className={"chip " + (u.health === "on_track" ? "success" : "warn")}>
-                      {HEALTH[u.health] ?? u.health}
-                    </span>{" "}
-                    {u.body}{" "}
-                    <span className="muted">
-                      — {u.author_name}, {formatDate(u.created_at)}
+                      {t.kind === "milestone" && t.end ? (
+                        <span
+                          className="milestone-mark absolute top-0 bottom-0 w-2.5 bg-amber-500 rounded-full -ml-1"
+                          style={{ left: at(t.end) }}
+                        />
+                      ) : t.start && t.end ? (
+                        <span
+                          className="timeline-bar absolute top-0 bottom-0 bg-accent/40 rounded-full overflow-hidden"
+                          style={{ left: at(t.start), width: `calc(${at(t.end)} - ${at(t.start)})` }}
+                        >
+                          {t.progress != null && (
+                            <span
+                              className="timeline-progress h-full bg-accent block"
+                              style={{ width: `${t.progress}%` }}
+                            />
+                          )}
+                        </span>
+                      ) : t.end ? (
+                        <span
+                          className="milestone-mark absolute top-0 bottom-0 w-2.5 bg-accent rounded-full -ml-1"
+                          style={{ left: at(t.end) }}
+                        />
+                      ) : null}
+                    </span>
+                    <span className="small muted shrink-0 text-text-subtle font-mono text-[11px] w-24 text-right">
+                      {t.end ?? t.start ?? "no date"}
                     </span>
                   </li>
                 ))}
               </ul>
-            </section>
+            </CardContent>
+          </Card>
 
-            <section className="panel" aria-labelledby="init-title">
-              <h3 id="init-title">Initiatives</h3>
-              <form
-                className="row-actions wrap"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!initName.trim()) return;
-                  run(async () => {
-                    await send(`/initiatives`, token, "POST", {
-                      name: initName.trim(),
-                      target_on: initDate || null,
-                    });
-                    setInitName("");
-                    setInitDate("");
-                  }, "Initiative created");
-                }}
-              >
-                <input
-                  aria-label="Initiative name"
-                  placeholder="Initiative"
-                  value={initName}
-                  maxLength={120}
-                  onChange={(e) => setInitName(e.target.value)}
-                />
-                <input
-                  aria-label="Initiative target"
-                  type="date"
-                  value={initDate}
-                  onChange={(e) => setInitDate(e.target.value)}
-                />
-                <button className="secondary small-btn" disabled={!initName.trim()}>
-                  Add
-                </button>
-              </form>
-              <ul className="plain-list">
-                {(initiatives.data ?? []).map((n) => {
-                  const pct = n.epics ? Math.round((n.epics_done / n.epics) * 100) : 0;
-                  return (
-                    <li key={n.id} className="small">
-                      <b>{n.name}</b> · {n.status} · {n.epics_done}/{n.epics} epics done
-                      <div className="progress-track" aria-hidden>
-                        <div style={{ width: `${pct}%` }} />
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-              {epics.length > 0 && (initiatives.data ?? []).length > 0 && (
+          {/* Grid of Roadmap Governance Sub-Panels */}
+          <div className="roadmap-grid grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            {/* Milestones Card */}
+            <Card className="panel" aria-labelledby="ms-title">
+              <CardHeader className="pb-2">
+                <CardTitle
+                  id="ms-title"
+                  className="text-sm font-bold uppercase tracking-wider text-text-subtle"
+                >
+                  Milestones
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
                 <form
-                  className="row-actions wrap"
+                  className="row-actions wrap flex flex-wrap gap-2"
                   onSubmit={(e) => {
                     e.preventDefault();
-                    if (!initPick || !epicPick) return;
-                    run(
-                      () => send(`/initiatives/${initPick}/epics`, token, "PUT", { issue_ids: [epicPick] }),
-                      "Epic linked",
-                    );
-                    setEpicPick("");
+                    if (!msName.trim() || !msDate || !selected) return;
+                    run(async () => {
+                      await send(`/projects/${selected}/milestones`, token, "POST", {
+                        name: msName.trim(),
+                        target_on: msDate,
+                      });
+                      setMsName("");
+                      setMsDate("");
+                    }, "Milestone added");
+                  }}
+                >
+                  <input
+                    aria-label="Milestone name"
+                    placeholder="Milestone"
+                    value={msName}
+                    maxLength={120}
+                    onChange={(e) => setMsName(e.target.value)}
+                    className="flex-1 min-w-[120px] px-2.5 py-1.5 bg-bg border border-border rounded-lg text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+                  />
+                  <input
+                    aria-label="Milestone date"
+                    type="date"
+                    value={msDate}
+                    onChange={(e) => setMsDate(e.target.value)}
+                    className="px-2.5 py-1.5 bg-bg border border-border rounded-lg text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+                  />
+                  <button
+                    className="secondary small-btn px-3 py-1.5 bg-accent text-white rounded-lg text-xs font-medium hover:bg-accent-strong transition-colors disabled:opacity-50"
+                    disabled={!msName.trim() || !msDate}
+                  >
+                    Add
+                  </button>
+                </form>
+                <ul className="plain-list divide-y divide-border/60">
+                  {(milestones.data ?? []).map((m) => (
+                    <li key={m.id} className="small flex items-center justify-between py-2 text-xs">
+                      <div>
+                        <b className="text-text-main font-semibold">{m.name}</b>{" "}
+                        <span className="text-text-subtle font-mono">· {m.target_on}</span>{" "}
+                        {m.reached_on ? (
+                          <span className="chip success text-[10px] font-bold px-1.5 py-0.5 bg-emerald-500/10 text-emerald-600 rounded">
+                            Reached {m.reached_on}
+                          </span>
+                        ) : null}
+                      </div>
+                      <button
+                        className="secondary small-btn px-2 py-1 bg-surface-2 hover:bg-surface-3 border border-border rounded text-[11px] font-medium"
+                        onClick={() =>
+                          run(() => send(`/milestones/${m.id}`, token, "PATCH", { reached: !m.reached_on }))
+                        }
+                      >
+                        {m.reached_on ? "Reopen" : "Mark reached"}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+
+            {/* Critical Path Card */}
+            <Card className="panel" aria-labelledby="crit-title">
+              <CardHeader className="pb-2">
+                <CardTitle
+                  id="crit-title"
+                  className="text-sm font-bold uppercase tracking-wider text-text-subtle"
+                >
+                  Critical path
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {critical.data?.has_cycle && (
+                  <p className="error small text-xs text-danger bg-danger/10 p-2.5 rounded-lg border border-danger/20">
+                    Dependencies form a loop. Break one link to see the path.
+                  </p>
+                )}
+                {critical.data && !critical.data.has_cycle && critical.data.path.length === 0 && (
+                  <p className="muted small text-xs text-text-subtle">
+                    No blocking links between open issues yet.
+                  </p>
+                )}
+                {critical.data && critical.data.path.length > 0 && (
+                  <>
+                    <p className="small text-xs font-semibold text-text-subtle">
+                      {critical.data.path.length} steps · {formatMinutes(critical.data.total_minutes)} of
+                      remaining work
+                    </p>
+                    <ol className="plain-list divide-y divide-border/60" aria-label="Critical path">
+                      {critical.data.path.map((p) => (
+                        <li key={p.issue_id} className="small py-2 text-xs flex items-center justify-between">
+                          <div>
+                            <button
+                              className="issue-number-button font-mono font-bold text-accent hover:underline mr-1.5"
+                              onClick={() => setSelectedIssue(p.issue_id)}
+                            >
+                              {project?.key}-{p.number}
+                            </button>
+                            <span className="text-text-main font-medium">{p.title}</span>
+                          </div>
+                          <span className="muted text-text-subtle font-mono text-[11px]">
+                            {formatMinutes(p.minutes)}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Project Updates Card */}
+            <Card className="panel" aria-labelledby="upd-title">
+              <CardHeader className="pb-2">
+                <CardTitle
+                  id="upd-title"
+                  className="text-sm font-bold uppercase tracking-wider text-text-subtle"
+                >
+                  Project updates
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <form
+                  className="row-actions wrap flex flex-wrap gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!body.trim() || !selected) return;
+                    run(async () => {
+                      await send(`/projects/${selected}/updates`, token, "POST", {
+                        health,
+                        body: body.trim(),
+                      });
+                      setBody("");
+                    }, "Update posted");
                   }}
                 >
                   <select
-                    aria-label="Initiative to link"
-                    value={initPick}
-                    onChange={(e) => setInitPick(e.target.value)}
+                    aria-label="Health"
+                    value={health}
+                    onChange={(e) => setHealth(e.target.value)}
+                    className="px-2.5 py-1.5 bg-bg border border-border rounded-lg text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
                   >
-                    <option value="">Initiative…</option>
-                    {(initiatives.data ?? []).map((n) => (
-                      <option key={n.id} value={n.id}>
-                        {n.name}
+                    {Object.entries(HEALTH).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v}
                       </option>
                     ))}
                   </select>
-                  <select
-                    aria-label="Epic to link"
-                    value={epicPick}
-                    onChange={(e) => setEpicPick(e.target.value)}
+                  <input
+                    aria-label="Update"
+                    placeholder="What changed?"
+                    value={body}
+                    maxLength={5000}
+                    onChange={(e) => setBody(e.target.value)}
+                    className="flex-1 min-w-[140px] px-2.5 py-1.5 bg-bg border border-border rounded-lg text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+                  />
+                  <button
+                    className="secondary small-btn px-3 py-1.5 bg-accent text-white rounded-lg text-xs font-medium hover:bg-accent-strong transition-colors disabled:opacity-50"
+                    disabled={!body.trim()}
                   >
-                    <option value="">Epic…</option>
-                    {epics.map((ep) => (
-                      <option key={ep.id} value={ep.id}>
-                        {ep.name}
-                      </option>
-                    ))}
-                  </select>
-                  <button className="secondary small-btn" disabled={!initPick || !epicPick}>
-                    Link epic
+                    Post
                   </button>
                 </form>
-              )}
-            </section>
-
-            <section className="panel" aria-labelledby="cap-title">
-              <h3 id="cap-title">Capacity</h3>
-              <table className="simple-table" aria-label="Capacity by member">
-                <thead>
-                  <tr>
-                    <th scope="col">Member</th>
-                    <th scope="col">Hours a week</th>
-                    <th scope="col">Open work</th>
-                    <th scope="col">Load</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(capacity.data ?? []).map((c) => (
-                    <tr key={c.user_id}>
-                      <td>{c.name}</td>
-                      <td>
-                        <input
-                          aria-label={`Hours a week for ${c.name}`}
-                          type="number"
-                          min={0}
-                          max={168}
-                          step={0.5}
-                          defaultValue={c.hours_per_week ?? ""}
-                          style={{ width: 80 }}
-                          onBlur={(e) => {
-                            const v = Number(e.target.value);
-                            if (e.target.value === "" || v === c.hours_per_week) return;
-                            run(
-                              () =>
-                                send(`/members/${c.user_id}/capacity`, token, "PUT", { hours_per_week: v }),
-                              "Capacity saved",
-                            );
-                          }}
-                        />
-                      </td>
-                      <td>
-                        {c.open_issues} issues · {c.remaining_hours.toFixed(1)} h left
-                      </td>
-                      <td>{c.utilisation_pct == null ? "–" : `${Math.round(c.utilisation_pct)}%`}</td>
-                    </tr>
+                <ul className="plain-list divide-y divide-border/60">
+                  {(updates.data ?? []).slice(0, 10).map((u) => (
+                    <li key={u.id} className="small py-2 text-xs space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`chip text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                            u.health === "on_track"
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                              : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                          }`}
+                        >
+                          {HEALTH[u.health] ?? u.health}
+                        </span>
+                        <span className="text-text-main font-medium">{u.body}</span>
+                      </div>
+                      <span className="muted block text-[11px] text-text-subtle">
+                        — {u.author_name}, {formatDate(u.created_at)}
+                      </span>
+                    </li>
                   ))}
-                </tbody>
-              </table>
-            </section>
+                </ul>
+              </CardContent>
+            </Card>
 
-            <section className="panel" aria-labelledby="base-title">
-              <h3 id="base-title">Baselines</h3>
-              <form
-                className="row-actions wrap"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!baseName.trim() || !selected) return;
-                  run(async () => {
-                    const created = await send<Baseline>(`/projects/${selected}/baselines`, token, "POST", {
-                      name: baseName.trim(),
-                    });
-                    setBaseName("");
-                    setBaseChoice(created.id);
-                  }, "Baseline saved");
-                }}
-              >
-                <input
-                  aria-label="Baseline name"
-                  placeholder="Baseline name"
-                  value={baseName}
-                  maxLength={120}
-                  onChange={(e) => setBaseName(e.target.value)}
-                />
-                <button className="secondary small-btn" disabled={!baseName.trim()}>
-                  Save baseline
-                </button>
-              </form>
-              <select
-                aria-label="Baseline to compare"
-                value={baseChoice}
-                onChange={(e) => setBaseChoice(e.target.value)}
-              >
-                <option value="">Compare with…</option>
-                {(baselines.data ?? []).map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name} ({b.items} issues)
-                  </option>
-                ))}
-              </select>
-              {variance.data && (
-                <p className="small">
-                  {variance.data.filter((v) => (v.variance_days ?? 0) > 0 && !v.done).length} open issues
-                  later than baseline · {variance.data.filter((v) => v.done).length} done
-                </p>
-              )}
-            </section>
+            {/* Initiatives Card */}
+            <Card className="panel" aria-labelledby="init-title">
+              <CardHeader className="pb-2">
+                <CardTitle
+                  id="init-title"
+                  className="text-sm font-bold uppercase tracking-wider text-text-subtle"
+                >
+                  Initiatives
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <form
+                  className="row-actions wrap flex flex-wrap gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!initName.trim()) return;
+                    run(async () => {
+                      await send(`/initiatives`, token, "POST", {
+                        name: initName.trim(),
+                        target_on: initDate || null,
+                      });
+                      setInitName("");
+                      setInitDate("");
+                    }, "Initiative created");
+                  }}
+                >
+                  <input
+                    aria-label="Initiative name"
+                    placeholder="Initiative"
+                    value={initName}
+                    maxLength={120}
+                    onChange={(e) => setInitName(e.target.value)}
+                    className="flex-1 min-w-[120px] px-2.5 py-1.5 bg-bg border border-border rounded-lg text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+                  />
+                  <input
+                    aria-label="Initiative target"
+                    type="date"
+                    value={initDate}
+                    onChange={(e) => setInitDate(e.target.value)}
+                    className="px-2.5 py-1.5 bg-bg border border-border rounded-lg text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+                  />
+                  <button
+                    className="secondary small-btn px-3 py-1.5 bg-accent text-white rounded-lg text-xs font-medium hover:bg-accent-strong transition-colors disabled:opacity-50"
+                    disabled={!initName.trim()}
+                  >
+                    Add
+                  </button>
+                </form>
+                <ul className="plain-list divide-y divide-border/60">
+                  {(initiatives.data ?? []).map((n) => {
+                    const pct = n.epics ? Math.round((n.epics_done / n.epics) * 100) : 0;
+                    return (
+                      <li key={n.id} className="small py-2 text-xs space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <b className="text-text-main font-semibold">{n.name}</b>
+                          <span className="text-text-subtle">
+                            {n.epics_done}/{n.epics} epics done
+                          </span>
+                        </div>
+                        <div
+                          className="progress-track w-full h-1.5 bg-bg rounded-full overflow-hidden border border-border/60"
+                          aria-hidden
+                        >
+                          <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+                {epics.length > 0 && (initiatives.data ?? []).length > 0 && (
+                  <form
+                    className="row-actions wrap flex flex-wrap gap-2 pt-2 border-t border-border"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (!initPick || !epicPick) return;
+                      run(
+                        () => send(`/initiatives/${initPick}/epics`, token, "PUT", { issue_ids: [epicPick] }),
+                        "Epic linked",
+                      );
+                      setEpicPick("");
+                    }}
+                  >
+                    <select
+                      aria-label="Initiative to link"
+                      value={initPick}
+                      onChange={(e) => setInitPick(e.target.value)}
+                      className="flex-1 px-2.5 py-1.5 bg-bg border border-border rounded-lg text-xs text-text-main"
+                    >
+                      <option value="">Initiative…</option>
+                      {(initiatives.data ?? []).map((n) => (
+                        <option key={n.id} value={n.id}>
+                          {n.name}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      aria-label="Epic to link"
+                      value={epicPick}
+                      onChange={(e) => setEpicPick(e.target.value)}
+                      className="flex-1 px-2.5 py-1.5 bg-bg border border-border rounded-lg text-xs text-text-main"
+                    >
+                      <option value="">Epic…</option>
+                      {epics.map((ep) => (
+                        <option key={ep.id} value={ep.id}>
+                          {ep.name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      className="secondary small-btn px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg text-xs font-medium"
+                      disabled={!initPick || !epicPick}
+                    >
+                      Link epic
+                    </button>
+                  </form>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Capacity Card */}
+            <Card className="panel overflow-hidden" aria-labelledby="cap-title">
+              <CardHeader className="pb-2">
+                <CardTitle
+                  id="cap-title"
+                  className="text-sm font-bold uppercase tracking-wider text-text-subtle"
+                >
+                  Capacity
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="simple-table w-full text-left text-xs" aria-label="Capacity by member">
+                    <thead className="bg-surface-2 border-b border-border text-text-subtle font-semibold uppercase text-[10px]">
+                      <tr>
+                        <th scope="col" className="p-3">
+                          Member
+                        </th>
+                        <th scope="col" className="p-3">
+                          Hours a week
+                        </th>
+                        <th scope="col" className="p-3">
+                          Open work
+                        </th>
+                        <th scope="col" className="p-3">
+                          Load
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/60">
+                      {(capacity.data ?? []).map((c) => (
+                        <tr key={c.user_id} className="hover:bg-surface-2 transition-colors">
+                          <td className="p-3 font-medium text-text-main">{c.name}</td>
+                          <td className="p-3">
+                            <input
+                              aria-label={`Hours a week for ${c.name}`}
+                              type="number"
+                              min={0}
+                              max={168}
+                              step={0.5}
+                              defaultValue={c.hours_per_week ?? ""}
+                              className="w-20 px-2 py-1 bg-bg border border-border rounded text-xs text-text-main"
+                              onBlur={(e) => {
+                                const v = Number(e.target.value);
+                                if (e.target.value === "" || v === c.hours_per_week) return;
+                                run(
+                                  () =>
+                                    send(`/members/${c.user_id}/capacity`, token, "PUT", {
+                                      hours_per_week: v,
+                                    }),
+                                  "Capacity saved",
+                                );
+                              }}
+                            />
+                          </td>
+                          <td className="p-3 text-text-subtle">
+                            {c.open_issues} issues · {c.remaining_hours.toFixed(1)} h left
+                          </td>
+                          <td className="p-3 font-mono font-semibold text-accent">
+                            {c.utilisation_pct == null ? "–" : `${Math.round(c.utilisation_pct)}%`}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Baselines Card */}
+            <Card className="panel" aria-labelledby="base-title">
+              <CardHeader className="pb-2">
+                <CardTitle
+                  id="base-title"
+                  className="text-sm font-bold uppercase tracking-wider text-text-subtle"
+                >
+                  Baselines
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <form
+                  className="row-actions wrap flex flex-wrap gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!baseName.trim() || !selected) return;
+                    run(async () => {
+                      const created = await send<Baseline>(`/projects/${selected}/baselines`, token, "POST", {
+                        name: baseName.trim(),
+                      });
+                      setBaseName("");
+                      setBaseChoice(created.id);
+                    }, "Baseline saved");
+                  }}
+                >
+                  <input
+                    aria-label="Baseline name"
+                    placeholder="Baseline name"
+                    value={baseName}
+                    maxLength={120}
+                    onChange={(e) => setBaseName(e.target.value)}
+                    className="flex-1 min-w-[140px] px-2.5 py-1.5 bg-bg border border-border rounded-lg text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+                  />
+                  <button
+                    className="secondary small-btn px-3 py-1.5 bg-accent text-white rounded-lg text-xs font-medium hover:bg-accent-strong transition-colors disabled:opacity-50"
+                    disabled={!baseName.trim()}
+                  >
+                    Save baseline
+                  </button>
+                </form>
+                <select
+                  aria-label="Baseline to compare"
+                  value={baseChoice}
+                  onChange={(e) => setBaseChoice(e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-bg border border-border rounded-lg text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+                >
+                  <option value="">Compare with…</option>
+                  {(baselines.data ?? []).map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name} ({b.items} issues)
+                    </option>
+                  ))}
+                </select>
+                {variance.data && (
+                  <p className="small text-xs text-text-subtle">
+                    {variance.data.filter((v) => (v.variance_days ?? 0) > 0 && !v.done).length} open issues
+                    later than baseline · {variance.data.filter((v) => v.done).length} done
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           </div>
-        </>
+        </div>
       )}
     </section>
   );

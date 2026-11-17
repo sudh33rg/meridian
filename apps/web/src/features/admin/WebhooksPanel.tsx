@@ -1,8 +1,9 @@
 import { formatTime, formatDateTime } from "../../lib/datetime";
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Webhook } from "lucide-react";
+import { Webhook, Plus } from "lucide-react";
 import { api, errorMessage, send } from "../../lib/api";
+import { PageHeader, Card, CardHeader, CardTitle, CardContent } from "../shared/UiComponents";
 
 type Hook = {
   id: string;
@@ -36,42 +37,56 @@ function Deliveries({ hookId }: { hookId: string }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["deliveries", hookId] }),
   });
   return (
-    <table className="panel-table">
-      <thead>
-        <tr>
-          <th>Event</th>
-          <th>Result</th>
-          <th>Attempts</th>
-          <th>When</th>
-          <th />
-        </tr>
-      </thead>
-      <tbody>
-        {(q.data ?? []).map((d) => (
-          <tr key={d.id}>
-            <td>{d.event_type}</td>
-            <td>
-              <span className="tag">{d.state}</span> {d.last_status ?? ""}{" "}
-              <span className="muted small">{d.last_error ?? ""}</span>
-            </td>
-            <td>{d.attempts}</td>
-            <td>{formatTime(d.created_at)}</td>
-            <td style={{ textAlign: "right" }}>
-              <button className="secondary" onClick={() => again.mutate(d.id)}>
-                Redeliver
-              </button>
-            </td>
-          </tr>
-        ))}
-        {!(q.data ?? []).length && (
+    <div className="overflow-x-auto border border-border rounded-xl mt-3 bg-bg">
+      <table className="panel-table w-full text-left text-xs">
+        <thead className="bg-surface-2 border-b border-border text-text-subtle font-semibold uppercase text-[10px]">
           <tr>
-            <td colSpan={5} className="muted">
-              No deliveries yet. Use "Send test event".
-            </td>
+            <th className="p-2.5">Event</th>
+            <th className="p-2.5">Result</th>
+            <th className="p-2.5">Attempts</th>
+            <th className="p-2.5">When</th>
+            <th className="p-2.5" />
           </tr>
-        )}
-      </tbody>
-    </table>
+        </thead>
+        <tbody className="divide-y divide-border/60">
+          {(q.data ?? []).map((d) => (
+            <tr key={d.id} className="hover:bg-surface-2 transition-colors">
+              <td className="p-2.5 font-mono text-text-main">{d.event_type}</td>
+              <td className="p-2.5">
+                <span
+                  className={`tag text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                    d.state === "delivered"
+                      ? "bg-emerald-500/10 text-emerald-600"
+                      : "bg-rose-500/10 text-rose-600"
+                  }`}
+                >
+                  {d.state}
+                </span>{" "}
+                <span className="font-mono text-text-main font-semibold">{d.last_status ?? ""}</span>{" "}
+                <span className="muted small text-text-subtle">{d.last_error ?? ""}</span>
+              </td>
+              <td className="p-2.5 font-mono">{d.attempts}</td>
+              <td className="p-2.5 font-mono text-text-subtle">{formatTime(d.created_at)}</td>
+              <td className="p-2.5 text-right">
+                <button
+                  className="secondary px-2 py-0.5 bg-surface hover:bg-surface-3 border border-border rounded text-[11px] font-medium"
+                  onClick={() => again.mutate(d.id)}
+                >
+                  Redeliver
+                </button>
+              </td>
+            </tr>
+          ))}
+          {!(q.data ?? []).length && (
+            <tr>
+              <td colSpan={5} className="p-3 text-center muted text-xs text-text-subtle">
+                No deliveries yet. Use "Send test event".
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -126,104 +141,180 @@ export function WebhooksPanel() {
     },
     onError: fail,
   });
+
   return (
-    <div className="ext-wrap">
+    <div className="ext-wrap space-y-6">
+      <PageHeader
+        title="Webhooks"
+        subtitle="Deliver signed real-time HTTPS webhooks when issues, projects, or knowledge documents change."
+      />
+
       {error && (
-        <div className="error" role="alert">
+        <div
+          className="error p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs sm:text-sm"
+          role="alert"
+        >
           {error}
         </div>
       )}
+
       {secret && (
-        <div className="ok" role="status">
+        <div
+          className="ok p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 space-y-2 text-xs sm:text-sm"
+          role="status"
+        >
           <b>Signing secret — copy it now; it is shown once.</b>
-          <pre style={{ margin: "8px 0", wordBreak: "break-all", whiteSpace: "pre-wrap" }}>
+          <pre className="p-3 bg-bg border border-border rounded-lg font-mono text-xs overflow-x-auto text-text-main">
             {secret.secret}
           </pre>
-          Verify requests with the <code>webhook-signature</code> header (HMAC-SHA256 of{" "}
-          <code>id.timestamp.body</code>, Standard Webhooks).{" "}
-          <button className="secondary" onClick={() => setSecret(null)}>
-            Done
-          </button>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span>
+              Verify requests with the <code>webhook-signature</code> header (HMAC-SHA256 of{" "}
+              <code>id.timestamp.body</code>).
+            </span>
+            <button
+              className="secondary px-3 py-1 bg-surface border border-border rounded-lg text-xs"
+              onClick={() => setSecret(null)}
+            >
+              Done
+            </button>
+          </div>
         </div>
       )}
-      <div className="panel-card">
-        <h3>
-          <Webhook size={18} /> Webhook endpoints
-        </h3>
-        <p className="muted">
-          Meridian POSTs signed JSON to your public HTTPS URL when things change. Private and internal
-          addresses are refused. Failed deliveries are retried with backoff.
-        </p>
-        {(hooks.data ?? []).map((h) => (
-          <div key={h.id} className="panel-card" style={{ background: "#fafbfe" }}>
-            <div className="row-gap" style={{ justifyContent: "space-between" }}>
-              <div>
-                <b>{h.name}</b> <span className="tag">{h.enabled ? "Enabled" : "Disabled"}</span>
-                <div className="muted small">
-                  {h.url} · {h.events.length ? h.events.join(", ") : "all events"}
-                  {h.last_success_at ? ` · last success ${formatDateTime(h.last_success_at)}` : ""}
-                </div>
-                {h.disabled_reason && (
-                  <div className="error small" style={{ marginTop: 6 }}>
-                    {h.disabled_reason}
+
+      {/* Existing Webhooks List */}
+      <Card className="panel-card space-y-4">
+        <CardHeader className="pb-2 border-b border-border">
+          <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle flex items-center gap-2">
+            <Webhook size={16} /> Webhook endpoints
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-2">
+          <p className="muted text-xs sm:text-sm text-text-subtle">
+            Meridian POSTs signed JSON to your public HTTPS URL when things change. Private and internal
+            addresses are refused. Failed deliveries are retried with backoff.
+          </p>
+          <div className="space-y-3">
+            {(hooks.data ?? []).map((h) => (
+              <div key={h.id} className="p-4 rounded-xl border border-border bg-surface-2 space-y-3">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <b className="text-text-main text-sm font-semibold">{h.name}</b>
+                      <span
+                        className={`tag text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          h.enabled
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                            : "bg-surface text-text-subtle border border-border"
+                        }`}
+                      >
+                        {h.enabled ? "Enabled" : "Disabled"}
+                      </span>
+                    </div>
+                    <div className="muted small text-xs text-text-subtle font-mono">
+                      {h.url} · {h.events.length ? h.events.join(", ") : "all events"}
+                      {h.last_success_at ? ` · last success ${formatDateTime(h.last_success_at)}` : ""}
+                    </div>
+                    {h.disabled_reason && (
+                      <div className="error small text-xs text-danger font-medium mt-1">
+                        {h.disabled_reason}
+                      </div>
+                    )}
                   </div>
-                )}
+                  <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                    <button
+                      className="secondary px-2.5 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors"
+                      onClick={() => test.mutate(h.id)}
+                    >
+                      Send test
+                    </button>
+                    <button
+                      className="secondary px-2.5 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors"
+                      onClick={() => setOpen(open === h.id ? null : h.id)}
+                    >
+                      {open === h.id ? "Hide log" : "Delivery log"}
+                    </button>
+                    <button
+                      className="secondary px-2.5 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors"
+                      onClick={() => patch.mutate({ id: h.id, enabled: !h.enabled })}
+                    >
+                      {h.enabled ? "Disable" : "Enable"}
+                    </button>
+                    <button
+                      className="secondary px-2.5 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors"
+                      onClick={() => rotate.mutate(h.id)}
+                    >
+                      Rotate secret
+                    </button>
+                    <button
+                      className="secondary px-2.5 py-1 bg-surface hover:bg-danger/10 hover:text-danger border border-border rounded-lg text-xs font-medium transition-colors"
+                      onClick={() => del.mutate(h.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+                {open === h.id && <Deliveries hookId={h.id} />}
               </div>
-              <span className="row-gap">
-                <button className="secondary" onClick={() => test.mutate(h.id)}>
-                  Send test event
-                </button>
-                <button className="secondary" onClick={() => setOpen(open === h.id ? null : h.id)}>
-                  {open === h.id ? "Hide log" : "Delivery log"}
-                </button>
-                <button className="secondary" onClick={() => patch.mutate({ id: h.id, enabled: !h.enabled })}>
-                  {h.enabled ? "Disable" : "Enable"}
-                </button>
-                <button className="secondary" onClick={() => rotate.mutate(h.id)}>
-                  Rotate secret
-                </button>
-                <button className="secondary" onClick={() => del.mutate(h.id)}>
-                  Delete
-                </button>
-              </span>
-            </div>
-            {open === h.id && <Deliveries hookId={h.id} />}
+            ))}
+            {!(hooks.data ?? []).length && (
+              <p className="muted text-xs text-text-subtle p-6 text-center">No endpoints yet.</p>
+            )}
           </div>
-        ))}
-        {!(hooks.data ?? []).length && <p className="muted">No endpoints yet.</p>}
-      </div>
-      <div className="panel-card">
-        <h3>Add an endpoint</h3>
-        <label>
-          Name
-          <input
-            value={form.name}
-            placeholder="CI notifier"
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-          />
-        </label>
-        <label>
-          URL (https)
-          <input
-            value={form.url}
-            placeholder="https://example.com/hooks/meridian"
-            onChange={(e) => setForm({ ...form, url: e.target.value })}
-          />
-        </label>
-        <label>
-          Events <span className="muted">(comma separated, e.g. issue.created, page.*; empty = all)</span>
-          <input value={form.events} onChange={(e) => setForm({ ...form, events: e.target.value })} />
-        </label>
-        <div style={{ marginTop: 12 }}>
-          <button
-            className="primary"
-            disabled={!form.name || !form.url || create.isPending}
-            onClick={() => create.mutate()}
-          >
-            Add endpoint
-          </button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
+
+      {/* Add Endpoint Form */}
+      <Card className="panel-card space-y-4">
+        <CardHeader className="pb-2 border-b border-border">
+          <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle flex items-center gap-2">
+            <Plus size={16} /> Add an endpoint
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 pt-2">
+          <label className="block space-y-1 text-xs sm:text-sm font-medium text-text-main">
+            <span>Name</span>
+            <input
+              value={form.name}
+              placeholder="e.g. CI / Slack Notifier"
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+          </label>
+          <label className="block space-y-1 text-xs sm:text-sm font-medium text-text-main">
+            <span>URL (https)</span>
+            <input
+              value={form.url}
+              placeholder="https://example.com/hooks/meridian"
+              onChange={(e) => setForm({ ...form, url: e.target.value })}
+              className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+          </label>
+          <label className="block space-y-1 text-xs sm:text-sm font-medium text-text-main">
+            <span>
+              Events{" "}
+              <span className="muted text-text-subtle font-normal text-xs">
+                (comma separated, e.g. issue.created, page.*; empty = all)
+              </span>
+            </span>
+            <input
+              value={form.events}
+              placeholder="issue.*, sprint.*"
+              onChange={(e) => setForm({ ...form, events: e.target.value })}
+              className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+          </label>
+          <div className="pt-2">
+            <button
+              className="primary px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 shadow-sm"
+              disabled={!form.name || !form.url || create.isPending}
+              onClick={() => create.mutate()}
+            >
+              Add endpoint
+            </button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

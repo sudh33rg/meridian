@@ -5,6 +5,7 @@ import { useWorkspace } from "../workspace/useWorkspace";
 import { useToast } from "../shared/Toast";
 import { formatDateTime } from "../../lib/datetime";
 import { Flame, Plus, CheckCircle } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "../shared/UiComponents";
 
 export type ServiceIncident = {
   id: string;
@@ -78,153 +79,181 @@ export function IncidentsView({ projectId }: { projectId: string }) {
   const list = incidents.data ?? [];
 
   return (
-    <section className="panel" aria-label="ITIL Incidents" style={{ marginTop: 16 }}>
-      <div
-        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}
-      >
+    <Card className="panel mt-4 space-y-4 p-4 sm:p-6" aria-label="ITIL Incidents">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
         <div>
-          <h4 style={{ display: "flex", alignItems: "center", gap: 6, margin: 0 }}>
-            <Flame size={18} color="#ef4444" /> ITIL Incident Management
-          </h4>
-          <p className="small muted" style={{ margin: "4px 0 0" }}>
+          <CardTitle className="flex items-center gap-2 text-base font-bold text-text-main">
+            <Flame size={18} className="text-red-500" /> ITIL Incident Management
+          </CardTitle>
+          <p className="small muted text-xs sm:text-sm text-text-subtle mt-1">
             Track major outages, service degradation, root cause analysis and resolution SLAs.
           </p>
         </div>
-        <button className="primary small-btn" onClick={() => setCreating((v) => !v)}>
+        <button
+          className="primary small-btn inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors shadow-sm"
+          onClick={() => setCreating((v) => !v)}
+        >
           <Plus size={14} /> {creating ? "Cancel" : "Declare Incident"}
         </button>
-      </div>
+      </CardHeader>
 
-      {creating && (
-        <form
-          onSubmit={createIncident}
-          style={{ background: "var(--bg-subtle)", padding: 12, borderRadius: 6, marginBottom: 16 }}
-        >
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12, marginBottom: 12 }}>
-            <label className="small">
-              Issue ID / UUID
-              <input
-                type="text"
-                placeholder="Enter issue ID for this incident"
-                value={issueId}
-                onChange={(e) => setIssueId(e.target.value)}
-                required
-              />
-            </label>
-            <label className="small">
-              Severity
-              <select value={severity} onChange={(e) => setSeverity(e.target.value)}>
-                <option value="p1">P1 - Critical Outage</option>
-                <option value="p2">P2 - Major Impairment</option>
-                <option value="p3">P3 - Minor Incident</option>
-                <option value="p4">P4 - Low Impact</option>
-              </select>
-            </label>
+      <CardContent className="space-y-4 p-0">
+        {creating && (
+          <form
+            onSubmit={createIncident}
+            className="p-4 bg-surface-2 rounded-xl border border-border space-y-3"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label className="small block space-y-1 text-xs sm:col-span-2">
+                <span className="font-semibold text-text-subtle">Issue ID / UUID</span>
+                <input
+                  type="text"
+                  placeholder="Enter issue ID for this incident"
+                  value={issueId}
+                  onChange={(e) => setIssueId(e.target.value)}
+                  required
+                  className="w-full px-3 py-1.5 bg-surface border border-border rounded-xl text-xs text-text-main"
+                />
+              </label>
+              <label className="small block space-y-1 text-xs">
+                <span className="font-semibold text-text-subtle">Severity</span>
+                <select
+                  value={severity}
+                  onChange={(e) => setSeverity(e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-xl text-xs text-text-main"
+                >
+                  <option value="p1">P1 - Critical Outage</option>
+                  <option value="p2">P2 - Major Impairment</option>
+                  <option value="p3">P3 - Minor Incident</option>
+                  <option value="p4">P4 - Low Impact</option>
+                </select>
+              </label>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="small block space-y-1 text-xs">
+                <span className="font-semibold text-text-subtle">Customer Impact</span>
+                <input
+                  type="text"
+                  placeholder="e.g. 15% checkout transactions failing"
+                  value={impact}
+                  onChange={(e) => setImpact(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-surface border border-border rounded-xl text-xs text-text-main"
+                />
+              </label>
+              <label className="small block space-y-1 text-xs">
+                <span className="font-semibold text-text-subtle">Root Cause Hypothesis</span>
+                <input
+                  type="text"
+                  placeholder="e.g. Upstream DNS resolution failure"
+                  value={rootCause}
+                  onChange={(e) => setRootCause(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-surface border border-border rounded-xl text-xs text-text-main"
+                />
+              </label>
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                className="secondary small-btn px-3 py-1.5 bg-surface hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main"
+                onClick={() => setCreating(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="primary small-btn px-4 py-1.5 bg-danger hover:bg-danger/90 text-white rounded-xl text-xs font-medium transition-colors disabled:opacity-50"
+                disabled={!issueId.trim()}
+              >
+                Confirm &amp; Alert
+              </button>
+            </div>
+          </form>
+        )}
+
+        {incidents.isLoading && (
+          <p className="small muted text-xs text-text-subtle p-6 text-center">Loading incidents…</p>
+        )}
+
+        {list.length === 0 && !incidents.isLoading && (
+          <p className="small muted text-xs text-text-subtle p-8 text-center">
+            No incidents reported. All systems operating normally.
+          </p>
+        )}
+
+        {list.length > 0 && (
+          <div className="overflow-x-auto border border-border rounded-xl">
+            <table className="simple-table w-full text-left text-xs sm:text-sm">
+              <thead className="bg-surface-2 border-b border-border text-text-subtle font-semibold uppercase text-[10px]">
+                <tr>
+                  <th className="p-3">Severity</th>
+                  <th className="p-3">Incident &amp; Issue</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Impact</th>
+                  <th className="p-3">Started</th>
+                  <th className="p-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {list.map((inc) => (
+                  <tr key={inc.id} className="hover:bg-surface-2 transition-colors">
+                    <td className="p-3">
+                      <span
+                        className="chip small uppercase text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{
+                          background: `${SEVERITY_COLORS[inc.severity] ?? "#6b7280"}20`,
+                          color: SEVERITY_COLORS[inc.severity] ?? "#6b7280",
+                        }}
+                      >
+                        {inc.severity.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="p-3">
+                      <button
+                        className="issue-number-button font-mono font-bold text-accent hover:underline mr-2"
+                        onClick={() => setSelectedIssue(inc.issue_id)}
+                      >
+                        #{inc.issue_number}
+                      </button>
+                      <span className="font-medium text-text-main">{inc.title}</span>
+                      {inc.root_cause && (
+                        <div className="small muted text-xs text-text-subtle mt-0.5">
+                          RCA: {inc.root_cause}
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      <select
+                        value={inc.status}
+                        onChange={(e) => updateIncident(inc.id, { status: e.target.value })}
+                        className="px-2 py-1 bg-surface border border-border rounded-lg text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+                      >
+                        <option value="investigating">Investigating</option>
+                        <option value="identified">Identified</option>
+                        <option value="monitoring">Monitoring</option>
+                        <option value="resolved">Resolved</option>
+                      </select>
+                    </td>
+                    <td className="p-3 small text-text-subtle">{inc.impact || "—"}</td>
+                    <td className="p-3 small muted font-mono text-[11px] text-text-subtle">
+                      {formatDateTime(inc.started_at)}
+                    </td>
+                    <td className="p-3 text-right">
+                      {inc.status !== "resolved" && (
+                        <button
+                          className="secondary small-btn inline-flex items-center gap-1 px-2.5 py-1 bg-surface-2 hover:bg-emerald-500/10 hover:text-emerald-600 border border-border rounded-lg text-xs font-medium transition-colors"
+                          onClick={() => updateIncident(inc.id, { status: "resolved" })}
+                        >
+                          <CheckCircle size={12} /> Resolve
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-            <label className="small">
-              Customer Impact
-              <input
-                type="text"
-                placeholder="e.g. 15% checkout transactions failing"
-                value={impact}
-                onChange={(e) => setImpact(e.target.value)}
-              />
-            </label>
-            <label className="small">
-              Root Cause Hypothesis
-              <input
-                type="text"
-                placeholder="e.g. Upstream DNS resolution failure"
-                value={rootCause}
-                onChange={(e) => setRootCause(e.target.value)}
-              />
-            </label>
-          </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-            <button type="button" className="secondary small-btn" onClick={() => setCreating(false)}>
-              Cancel
-            </button>
-            <button type="submit" className="primary small-btn" disabled={!issueId.trim()}>
-              Confirm & Alert
-            </button>
-          </div>
-        </form>
-      )}
-
-      {incidents.isLoading && <p className="small muted">Loading incidents…</p>}
-
-      {list.length === 0 && !incidents.isLoading && (
-        <p className="small muted">No incidents reported. All systems operating normally.</p>
-      )}
-
-      {list.length > 0 && (
-        <table className="simple-table" style={{ width: "100%", fontSize: 13 }}>
-          <thead>
-            <tr>
-              <th>Severity</th>
-              <th>Incident & Issue</th>
-              <th>Status</th>
-              <th>Impact</th>
-              <th>Started</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.map((inc) => (
-              <tr key={inc.id}>
-                <td>
-                  <span
-                    className="chip small"
-                    style={{
-                      background: `${SEVERITY_COLORS[inc.severity] ?? "#6b7280"}20`,
-                      color: SEVERITY_COLORS[inc.severity] ?? "#6b7280",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {inc.severity.toUpperCase()}
-                  </span>
-                </td>
-                <td>
-                  <button
-                    className="issue-number-button"
-                    style={{ fontWeight: 600, marginRight: 6 }}
-                    onClick={() => setSelectedIssue(inc.issue_id)}
-                  >
-                    #{inc.issue_number}
-                  </button>
-                  <span>{inc.title}</span>
-                  {inc.root_cause && <div className="small muted">RCA: {inc.root_cause}</div>}
-                </td>
-                <td>
-                  <select
-                    value={inc.status}
-                    onChange={(e) => updateIncident(inc.id, { status: e.target.value })}
-                    style={{ fontSize: 12, padding: "2px 6px" }}
-                  >
-                    <option value="investigating">Investigating</option>
-                    <option value="identified">Identified</option>
-                    <option value="monitoring">Monitoring</option>
-                    <option value="resolved">Resolved</option>
-                  </select>
-                </td>
-                <td className="small">{inc.impact || "—"}</td>
-                <td className="small muted">{formatDateTime(inc.started_at)}</td>
-                <td>
-                  {inc.status !== "resolved" && (
-                    <button
-                      className="secondary small-btn"
-                      onClick={() => updateIncident(inc.id, { status: "resolved" })}
-                    >
-                      <CheckCircle size={12} /> Resolve
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </section>
+        )}
+      </CardContent>
+    </Card>
   );
 }

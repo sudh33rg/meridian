@@ -4,6 +4,7 @@ import { request, send, errorMessage } from "../../lib/api";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { useToast } from "../shared/Toast";
 import { ShieldAlert, Plus, Trash2 } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "../shared/UiComponents";
 
 export type RaidItem = {
   id: string;
@@ -89,31 +90,22 @@ export function RaidRegisterView({ projectId }: { projectId: string }) {
   const items = (raid.data ?? []).filter((i) => (kindFilter === "all" ? true : i.kind === kindFilter));
 
   return (
-    <div className="raid-register" style={{ marginTop: 16 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
-          flexWrap: "wrap",
-          gap: 12,
-        }}
-      >
+    <Card className="raid-register mt-4 space-y-4 p-4 sm:p-6">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
         <div>
-          <h3 style={{ display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
-            <ShieldAlert size={20} /> RAID Register
-          </h3>
-          <p className="muted small" style={{ margin: "4px 0 0" }}>
+          <CardTitle className="flex items-center gap-2 text-base font-bold text-text-main">
+            <ShieldAlert size={18} /> RAID Register
+          </CardTitle>
+          <p className="muted small text-xs sm:text-sm text-text-subtle mt-1">
             Comprehensive governance of Risks, Assumptions, Issues, and Dependencies.
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div className="flex flex-wrap items-center gap-2">
           <select
             value={kindFilter}
             onChange={(e) => setKindFilter(e.target.value)}
-            style={{ padding: "4px 8px" }}
+            className="px-2.5 py-1.5 bg-bg border border-border rounded-xl text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
           >
             <option value="all">All Types</option>
             <option value="risk">Risks</option>
@@ -121,151 +113,177 @@ export function RaidRegisterView({ projectId }: { projectId: string }) {
             <option value="issue">Issues</option>
             <option value="dependency">Dependencies</option>
           </select>
-          <button className="primary small-btn" onClick={() => setCreating((v) => !v)}>
+          <button
+            className="primary small-btn inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors shadow-sm"
+            onClick={() => setCreating((v) => !v)}
+          >
             <Plus size={14} /> {creating ? "Cancel" : "Add RAID Item"}
           </button>
         </div>
-      </div>
+      </CardHeader>
 
-      {creating && (
-        <form
-          onSubmit={addItem}
-          style={{ background: "var(--bg-subtle)", padding: 16, borderRadius: 8, marginBottom: 16 }}
-        >
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
-            <label className="small">
-              Type
-              <select value={newKind} onChange={(e) => setNewKind(e.target.value)}>
-                <option value="risk">Risk</option>
-                <option value="assumption">Assumption</option>
-                <option value="issue">Issue</option>
-                <option value="dependency">Dependency</option>
-              </select>
+      <CardContent className="space-y-4 p-0">
+        {creating && (
+          <form onSubmit={addItem} className="p-4 bg-surface-2 rounded-xl border border-border space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label className="small block space-y-1 text-xs">
+                <span className="font-semibold text-text-subtle">Type</span>
+                <select
+                  value={newKind}
+                  onChange={(e) => setNewKind(e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-main"
+                >
+                  <option value="risk">Risk</option>
+                  <option value="assumption">Assumption</option>
+                  <option value="issue">Issue</option>
+                  <option value="dependency">Dependency</option>
+                </select>
+              </label>
+              <label className="small block space-y-1 text-xs">
+                <span className="font-semibold text-text-subtle">Severity</span>
+                <select
+                  value={newSeverity}
+                  onChange={(e) => setNewSeverity(e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-main"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </label>
+              <label className="small block space-y-1 text-xs">
+                <span className="font-semibold text-text-subtle">Due Date</span>
+                <input
+                  type="date"
+                  value={newDueDate}
+                  onChange={(e) => setNewDueDate(e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-main"
+                />
+              </label>
+            </div>
+            <label className="small block space-y-1 text-xs">
+              <span className="font-semibold text-text-subtle">Title</span>
+              <input
+                type="text"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="e.g. Third-party payment gateway API rate limits during launch"
+                required
+                className="w-full px-3 py-1.5 bg-surface border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+              />
             </label>
-            <label className="small">
-              Severity
-              <select value={newSeverity} onChange={(e) => setNewSeverity(e.target.value)}>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
-              </select>
+            <label className="small block space-y-1 text-xs">
+              <span className="font-semibold text-text-subtle">Mitigation / Description</span>
+              <textarea
+                value={newDesc}
+                onChange={(e) => setNewDesc(e.target.value)}
+                placeholder="Detailed description and mitigation strategy..."
+                rows={2}
+                className="w-full px-3 py-1.5 bg-surface border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+              />
             </label>
-            <label className="small">
-              Due Date
-              <input type="date" value={newDueDate} onChange={(e) => setNewDueDate(e.target.value)} />
-            </label>
-          </div>
-          <label className="small" style={{ display: "block", marginBottom: 12 }}>
-            Title
-            <input
-              type="text"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="e.g. Third-party payment gateway API rate limits during launch"
-              required
-              style={{ width: "100%" }}
-            />
-          </label>
-          <label className="small" style={{ display: "block", marginBottom: 12 }}>
-            Mitigation / Description
-            <textarea
-              value={newDesc}
-              onChange={(e) => setNewDesc(e.target.value)}
-              placeholder="Detailed description and mitigation strategy..."
-              rows={2}
-              style={{ width: "100%" }}
-            />
-          </label>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-            <button type="button" className="secondary small-btn" onClick={() => setCreating(false)}>
-              Cancel
-            </button>
-            <button type="submit" className="primary small-btn" disabled={!newTitle.trim()}>
-              Save RAID Item
-            </button>
-          </div>
-        </form>
-      )}
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                className="secondary small-btn px-3 py-1.5 bg-surface hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main"
+                onClick={() => setCreating(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="primary small-btn px-4 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors disabled:opacity-50"
+                disabled={!newTitle.trim()}
+              >
+                Save RAID Item
+              </button>
+            </div>
+          </form>
+        )}
 
-      {raid.isLoading && <p className="muted small">Loading RAID items…</p>}
+        {raid.isLoading && (
+          <p className="muted small text-xs text-text-subtle p-6 text-center">Loading RAID items…</p>
+        )}
 
-      {raid.data && (
-        <div style={{ overflowX: "auto" }}>
-          <table className="simple-table" style={{ width: "100%", fontSize: 13 }}>
-            <thead>
-              <tr>
-                <th>Type</th>
-                <th>Title & Description</th>
-                <th>Severity</th>
-                <th>Status</th>
-                <th>Due</th>
-                <th style={{ textAlign: "right" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((i) => (
-                <tr key={i.id}>
-                  <td>
-                    <span className="chip small" style={{ textTransform: "capitalize", fontWeight: 600 }}>
-                      {i.kind}
-                    </span>
-                  </td>
-                  <td>
-                    <strong>{i.title}</strong>
-                    {i.description && (
-                      <div className="small muted" style={{ marginTop: 2 }}>
-                        {i.description}
-                      </div>
-                    )}
-                  </td>
-                  <td>
-                    <span
-                      className="chip small"
-                      style={{
-                        background: `${SEVERITY_COLORS[i.severity] ?? "#6b7280"}20`,
-                        color: SEVERITY_COLORS[i.severity] ?? "#6b7280",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {i.severity}
-                    </span>
-                  </td>
-                  <td>
-                    <select
-                      value={i.status}
-                      onChange={(e) => updateStatus(i.id, e.target.value)}
-                      style={{ fontSize: 12, padding: "2px 6px" }}
-                    >
-                      <option value="open">Open</option>
-                      <option value="mitigated">Mitigated</option>
-                      <option value="closed">Closed</option>
-                    </select>
-                  </td>
-                  <td className="small muted">{i.due_date || "—"}</td>
-                  <td style={{ textAlign: "right" }}>
-                    <button
-                      className="icon-ghost"
-                      onClick={() => deleteItem(i.id)}
-                      title="Delete item"
-                      aria-label="Delete RAID item"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {items.length === 0 && (
+        {raid.data && (
+          <div className="overflow-x-auto border border-border rounded-xl">
+            <table className="simple-table w-full text-left text-xs sm:text-sm">
+              <thead className="bg-surface-2 border-b border-border text-text-subtle font-semibold uppercase text-[10px]">
                 <tr>
-                  <td colSpan={6} style={{ textAlign: "center", padding: 24 }} className="muted">
-                    No RAID items recorded for this filter.
-                  </td>
+                  <th className="p-3">Type</th>
+                  <th className="p-3">Title &amp; Description</th>
+                  <th className="p-3">Severity</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Due</th>
+                  <th className="p-3 text-right">Actions</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {items.map((i) => (
+                  <tr key={i.id} className="hover:bg-surface-2 transition-colors">
+                    <td className="p-3">
+                      <span className="chip small uppercase text-[10px] font-bold px-2 py-0.5 rounded-full bg-surface-3 text-text-muted border border-border">
+                        {i.kind}
+                      </span>
+                    </td>
+                    <td className="p-3">
+                      <strong className="text-text-main">{i.title}</strong>
+                      {i.description && (
+                        <div className="small muted text-xs text-text-subtle mt-0.5 leading-relaxed">
+                          {i.description}
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      <span
+                        className="chip small text-[10px] uppercase font-bold px-2 py-0.5 rounded-full"
+                        style={{
+                          background: `${SEVERITY_COLORS[i.severity] ?? "#6b7280"}20`,
+                          color: SEVERITY_COLORS[i.severity] ?? "#6b7280",
+                        }}
+                      >
+                        {i.severity}
+                      </span>
+                    </td>
+                    <td className="p-3">
+                      <select
+                        value={i.status}
+                        onChange={(e) => updateStatus(i.id, e.target.value)}
+                        className="px-2 py-1 bg-surface border border-border rounded-lg text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+                      >
+                        <option value="open">Open</option>
+                        <option value="mitigated">Mitigated</option>
+                        <option value="closed">Closed</option>
+                      </select>
+                    </td>
+                    <td className="p-3 small muted font-mono text-xs text-text-subtle">
+                      {i.due_date || "—"}
+                    </td>
+                    <td className="p-3 text-right">
+                      <button
+                        className="icon-ghost p-1.5 text-text-subtle hover:text-danger rounded-lg transition-colors"
+                        onClick={() => deleteItem(i.id)}
+                        title="Delete item"
+                        aria-label="Delete RAID item"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {items.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center muted text-xs text-text-subtle">
+                      No RAID items recorded for this filter.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

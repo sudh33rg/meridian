@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { request } from "../../lib/api";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { Briefcase } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "../shared/UiComponents";
 
 export type PortfolioProjectItem = {
   id: string;
@@ -38,125 +39,124 @@ export function PortfolioOverviewView() {
   const data = overview.data;
 
   return (
-    <div className="portfolio-overview" style={{ marginTop: 16 }}>
-      <div
-        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}
-      >
+    <Card className="portfolio-overview mt-4 space-y-4 p-4 sm:p-6">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
         <div>
-          <h3 style={{ display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
-            <Briefcase size={20} /> Cross-Project Portfolio
-          </h3>
-          <p className="muted small" style={{ margin: "4px 0 0" }}>
+          <CardTitle className="flex items-center gap-2 text-base font-bold text-text-main">
+            <Briefcase size={18} /> Cross-Project Portfolio
+          </CardTitle>
+          <p className="muted small text-xs sm:text-sm text-text-subtle mt-1">
             Aggregated health, velocity and delivery progress across all active projects.
           </p>
         </div>
         {data && (
-          <div style={{ display: "flex", gap: 12 }}>
-            <span className="chip">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="chip px-2.5 py-1 bg-surface-2 rounded-lg border border-border text-xs text-text-main font-medium">
               <strong>{data.projects.length}</strong> projects
             </span>
-            <span className="chip">
-              <strong>{data.total_open_issues}</strong> open issues
+            <span className="chip px-2.5 py-1 bg-surface-2 rounded-lg border border-border text-xs text-text-main font-medium">
+              <strong>{data.total_open_issues}</strong> open
             </span>
-            <span className="chip success">
+            <span className="chip success px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg border border-emerald-500/20 text-xs font-medium">
               <strong>{data.total_done_issues}</strong> resolved
             </span>
           </div>
         )}
-      </div>
+      </CardHeader>
 
-      {overview.isLoading && <p className="muted small">Loading portfolio roll-up…</p>}
+      <CardContent className="p-0">
+        {overview.isLoading && (
+          <p className="muted small text-xs text-text-subtle p-6 text-center">Loading portfolio roll-up…</p>
+        )}
 
-      {data && (
-        <div style={{ overflowX: "auto" }}>
-          <table className="simple-table" style={{ width: "100%", fontSize: 13 }}>
-            <thead>
-              <tr>
-                <th>Project</th>
-                <th>Health</th>
-                <th>Open Work</th>
-                <th>Resolved</th>
-                <th>Total Points</th>
-                <th>Active Sprint</th>
-                <th>Next Release</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.projects.map((p) => {
-                const total = p.open_issues + p.done_issues;
-                const progressPct = total > 0 ? Math.round((p.done_issues / total) * 100) : 0;
-                return (
-                  <tr
-                    key={p.id}
-                    style={{ cursor: "pointer" }}
-                    onClick={() => setSelected(p.id)}
-                    title={`Switch to ${p.name}`}
-                  >
-                    <td>
-                      <strong>{p.name}</strong> <span className="mono muted">({p.key})</span>
-                    </td>
-                    <td>
-                      {p.health ? (
-                        <span
-                          className="chip small"
-                          style={{
-                            background: `${HEALTH_COLORS[p.health] ?? "#6b7280"}20`,
-                            color: HEALTH_COLORS[p.health] ?? "#6b7280",
-                            fontWeight: 600,
-                          }}
-                        >
-                          {p.health.replace("_", " ")}
-                        </span>
-                      ) : (
-                        <span className="muted small">—</span>
-                      )}
-                    </td>
-                    <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span>{p.open_issues} open</span>
-                        <div
-                          style={{
-                            width: 60,
-                            height: 6,
-                            background: "var(--border)",
-                            borderRadius: 3,
-                            overflow: "hidden",
-                          }}
-                        >
-                          <div style={{ width: `${progressPct}%`, height: "100%", background: "#10b981" }} />
+        {data && (
+          <div className="overflow-x-auto border border-border rounded-xl">
+            <table className="simple-table w-full text-left text-xs sm:text-sm">
+              <thead className="bg-surface-2 border-b border-border text-text-subtle font-semibold uppercase text-[10px]">
+                <tr>
+                  <th className="p-3">Project</th>
+                  <th className="p-3">Health</th>
+                  <th className="p-3">Open Work</th>
+                  <th className="p-3">Resolved</th>
+                  <th className="p-3">Total Points</th>
+                  <th className="p-3">Active Sprint</th>
+                  <th className="p-3">Next Release</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {data.projects.map((p) => {
+                  const total = p.open_issues + p.done_issues;
+                  const progressPct = total > 0 ? Math.round((p.done_issues / total) * 100) : 0;
+                  return (
+                    <tr
+                      key={p.id}
+                      className="hover:bg-surface-2 transition-colors cursor-pointer"
+                      onClick={() => setSelected(p.id)}
+                      title={`Switch to ${p.name}`}
+                    >
+                      <td className="p-3">
+                        <strong className="text-text-main">{p.name}</strong>{" "}
+                        <span className="mono muted text-xs text-text-subtle">({p.key})</span>
+                      </td>
+                      <td className="p-3">
+                        {p.health ? (
+                          <span
+                            className="chip small text-[10px] uppercase font-bold px-2 py-0.5 rounded-full"
+                            style={{
+                              background: `${HEALTH_COLORS[p.health] ?? "#6b7280"}20`,
+                              color: HEALTH_COLORS[p.health] ?? "#6b7280",
+                            }}
+                          >
+                            {p.health.replace("_", " ")}
+                          </span>
+                        ) : (
+                          <span className="muted small text-text-subtle">—</span>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-text-main">{p.open_issues} open</span>
+                          <div className="w-16 h-1.5 bg-bg border border-border rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-emerald-500 rounded-full"
+                              style={{ width: `${progressPct}%` }}
+                            />
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td>{p.done_issues} done</td>
-                    <td>{p.total_points} pts</td>
-                    <td>
-                      {p.active_sprint ? (
-                        <span className="chip small success">{p.active_sprint}</span>
-                      ) : (
-                        <span className="muted small">—</span>
-                      )}
-                    </td>
-                    <td>
-                      {p.next_release ? (
-                        <span className="chip small">{p.next_release}</span>
-                      ) : (
-                        <span className="muted small">—</span>
-                      )}
+                      </td>
+                      <td className="p-3 text-text-subtle font-mono">{p.done_issues} done</td>
+                      <td className="p-3 text-text-subtle font-mono">{p.total_points} pts</td>
+                      <td className="p-3">
+                        {p.active_sprint ? (
+                          <span className="chip small success text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                            {p.active_sprint}
+                          </span>
+                        ) : (
+                          <span className="muted small text-text-subtle">—</span>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        {p.next_release ? (
+                          <span className="chip small text-xs font-medium text-accent">{p.next_release}</span>
+                        ) : (
+                          <span className="muted small text-text-subtle">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {data.projects.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center muted text-xs text-text-subtle">
+                      No accessible projects found in this workspace.
                     </td>
                   </tr>
-                );
-              })}
-              {data.projects.length === 0 && (
-                <tr>
-                  <td colSpan={7} style={{ textAlign: "center", padding: 24 }} className="muted">
-                    No accessible projects found in this workspace.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

@@ -64,9 +64,16 @@ export function CardHeader({ children, className = "" }: { children: React.React
   );
 }
 
-export function CardTitle({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+export function CardTitle({
+  children,
+  className = "",
+  id,
+  ...props
+}: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h3
+      id={id}
+      {...props}
       className={`text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 m-0 ${className}`}
     >
       {children}

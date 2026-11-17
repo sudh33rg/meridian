@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, KeyRound, Trash2 } from "lucide-react";
+import { Copy, KeyRound, Trash2, GitBranch } from "lucide-react";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { errorMessage, request, send } from "../../lib/api";
 import { useToast } from "../shared/Toast";
 import { shortDay } from "./agile-shared";
+import { Card, CardHeader, CardTitle, CardContent } from "../shared/UiComponents";
 
 type ApiToken = {
   id: string;
@@ -32,102 +33,149 @@ export function ApiTokensPanel() {
     queryKey: ["api-tokens"],
     queryFn: () => request<ApiToken[]>(session.token, "/me/tokens"),
   });
+
   return (
-    <section className="panel integrations" aria-labelledby="tokens-title">
-      <h3 id="tokens-title">
-        <KeyRound size={16} aria-hidden /> Personal API tokens
-      </h3>
-      <p className="muted small">
-        Use a token as <code>Authorization: Bearer mtk_…</code>. A read token can only read. Tokens are shown
-        once and can be revoked at any time.
-      </p>
-      <form
-        className="row-actions wrap"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          if (!name.trim()) return;
-          try {
-            const created = await send<Created>("/me/tokens", session.token, "POST", {
-              name: name.trim(),
-              scope,
-              expires_days: days ? Number(days) : null,
-            });
-            setFresh(created.token);
-            setName("");
-            await qc.invalidateQueries({ queryKey: ["api-tokens"] });
-          } catch (err) {
-            setError(errorMessage(err));
-          }
-        }}
-      >
-        <input
-          aria-label="Token name"
-          placeholder="Name, e.g. CI reader"
-          value={name}
-          maxLength={80}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <select aria-label="Token scope" value={scope} onChange={(e) => setScope(e.target.value)}>
-          <option value="read">Read only</option>
-          <option value="write">Read and write</option>
-        </select>
-        <select aria-label="Expiry" value={days} onChange={(e) => setDays(e.target.value)}>
-          <option value="">No expiry</option>
-          <option value="30">30 days</option>
-          <option value="90">90 days</option>
-          <option value="365">365 days</option>
-        </select>
-        <button className="primary small-btn" disabled={!name.trim()}>
-          Create token
-        </button>
-      </form>
-      {fresh && (
-        <div className="similar-hint" role="status">
-          <b>Copy this token now. It will not be shown again.</b>
-          <div className="row-actions">
-            <code className="token-secret">{fresh}</code>
-            <button
-              className="secondary small-btn"
-              onClick={() => navigator.clipboard?.writeText(fresh).then(() => toast("Token copied"))}
-            >
-              <Copy size={14} /> Copy
-            </button>
-            <button className="secondary small-btn" onClick={() => setFresh(null)}>
-              Done
-            </button>
-          </div>
-        </div>
-      )}
-      <ul className="plain-list" aria-label="API tokens">
-        {(tokens.data ?? []).map((t) => (
-          <li key={t.id} className="small checklist-row">
-            <span>
-              <b>{t.name}</b> <span className="mono">{t.prefix}…</span> · {t.scope} · created{" "}
-              {shortDay(t.created_at)}
-              {t.last_used_at ? ` · last used ${shortDay(t.last_used_at)}` : " · never used"}
-              {t.revoked_at ? " · revoked" : t.expires_at ? ` · expires ${shortDay(t.expires_at)}` : ""}
-            </span>
-            {!t.revoked_at && (
+    <Card className="panel integrations space-y-4 p-4 sm:p-6" aria-labelledby="tokens-title">
+      <CardHeader className="pb-2 border-b border-border">
+        <CardTitle id="tokens-title" className="text-base font-bold text-text-main flex items-center gap-2">
+          <KeyRound size={18} className="text-accent" aria-hidden /> Personal API tokens
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4 pt-2">
+        <p className="muted small text-xs sm:text-sm text-text-subtle">
+          Use a token as <code>Authorization: Bearer mtk_…</code>. A read token can only read. Tokens are
+          shown once and can be revoked at any time.
+        </p>
+
+        <form
+          className="row-actions wrap flex flex-col sm:flex-row gap-2"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (!name.trim()) return;
+            try {
+              const created = await send<Created>("/me/tokens", session.token, "POST", {
+                name: name.trim(),
+                scope,
+                expires_days: days ? Number(days) : null,
+              });
+              setFresh(created.token);
+              setName("");
+              await qc.invalidateQueries({ queryKey: ["api-tokens"] });
+            } catch (err) {
+              setError(errorMessage(err));
+            }
+          }}
+        >
+          <input
+            aria-label="Token name"
+            placeholder="Name, e.g. CI reader"
+            value={name}
+            maxLength={80}
+            onChange={(e) => setName(e.target.value)}
+            className="flex-1 px-3 py-1.5 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+          />
+          <select
+            aria-label="Token scope"
+            value={scope}
+            onChange={(e) => setScope(e.target.value)}
+            className="px-2.5 py-1.5 bg-bg border border-border rounded-xl text-xs text-text-main"
+          >
+            <option value="read">Read only</option>
+            <option value="write">Read and write</option>
+          </select>
+          <select
+            aria-label="Expiry"
+            value={days}
+            onChange={(e) => setDays(e.target.value)}
+            className="px-2.5 py-1.5 bg-bg border border-border rounded-xl text-xs text-text-main"
+          >
+            <option value="">No expiry</option>
+            <option value="30">30 days</option>
+            <option value="90">90 days</option>
+            <option value="365">365 days</option>
+          </select>
+          <button
+            className="primary small-btn px-4 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors shadow-sm disabled:opacity-50"
+            disabled={!name.trim()}
+          >
+            Create token
+          </button>
+        </form>
+
+        {fresh && (
+          <div
+            className="similar-hint p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 space-y-2 text-xs"
+            role="status"
+          >
+            <b className="block font-semibold">Copy this token now. It will not be shown again.</b>
+            <div className="row-actions flex flex-wrap items-center gap-2">
+              <code className="token-secret p-2 bg-bg border border-border rounded-lg font-mono text-xs text-text-main select-all flex-1 min-w-[200px]">
+                {fresh}
+              </code>
               <button
-                className="icon-ghost"
-                aria-label={`Revoke ${t.name}`}
-                onClick={async () => {
-                  try {
-                    await send(`/me/tokens/${t.id}`, session.token, "DELETE");
-                    await qc.invalidateQueries({ queryKey: ["api-tokens"] });
-                    toast("Token revoked");
-                  } catch (err) {
-                    setError(errorMessage(err));
-                  }
-                }}
+                className="secondary small-btn inline-flex items-center gap-1 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-medium text-text-main hover:bg-surface-3"
+                onClick={() => navigator.clipboard?.writeText(fresh).then(() => toast("Token copied"))}
               >
-                <Trash2 size={14} />
+                <Copy size={13} /> Copy
               </button>
-            )}
-          </li>
-        ))}
-      </ul>
-    </section>
+              <button
+                className="secondary small-btn px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-medium text-text-main"
+                onClick={() => setFresh(null)}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        )}
+
+        <ul
+          className="plain-list divide-y divide-border/60 border border-border rounded-xl overflow-hidden"
+          aria-label="API tokens"
+        >
+          {(tokens.data ?? []).map((t) => (
+            <li
+              key={t.id}
+              className="small checklist-row flex items-center justify-between p-3 text-xs hover:bg-surface-2 transition-colors"
+            >
+              <div>
+                <b className="text-text-main font-semibold mr-1.5">{t.name}</b>{" "}
+                <span className="mono font-mono text-text-subtle">{t.prefix}…</span> ·{" "}
+                <span className="text-accent font-medium">{t.scope}</span> · created{" "}
+                <span className="font-mono">{shortDay(t.created_at)}</span>
+                {t.last_used_at ? ` · last used ${shortDay(t.last_used_at)}` : " · never used"}
+                {t.revoked_at ? (
+                  <span className="text-rose-500 ml-1 font-semibold">· revoked</span>
+                ) : t.expires_at ? (
+                  <span className="text-text-subtle ml-1 font-mono">· expires {shortDay(t.expires_at)}</span>
+                ) : (
+                  ""
+                )}
+              </div>
+              {!t.revoked_at && (
+                <button
+                  className="icon-ghost p-1.5 text-text-subtle hover:text-danger rounded-lg transition-colors"
+                  aria-label={`Revoke ${t.name}`}
+                  onClick={async () => {
+                    try {
+                      await send(`/me/tokens/${t.id}`, session.token, "DELETE");
+                      await qc.invalidateQueries({ queryKey: ["api-tokens"] });
+                      toast("Token revoked");
+                    } catch (err) {
+                      setError(errorMessage(err));
+                    }
+                  }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </li>
+          ))}
+          {!(tokens.data ?? []).length && (
+            <li className="p-4 text-center text-xs text-text-subtle">No personal tokens created yet.</li>
+          )}
+        </ul>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -144,46 +192,62 @@ export function GitLinkPanel() {
   });
   if (!selected || !project) return null;
   const url = `${window.location.origin}${status.data?.webhook_path ?? `/api/integrations/git/${selected}`}`;
+
   return (
-    <section className="panel integrations" aria-labelledby="git-title">
-      <h3 id="git-title">Git linking · {project.name}</h3>
-      <p className="muted small">
-        Commits and pull requests that name an issue key ({project.key}-123) link to that issue. Point your
-        repository’s webhook at the address below, with JSON content and the same secret, and send push and
-        pull request events.
-      </p>
-      <p className="small">
-        Address: <code className="token-secret">{url}</code>
-      </p>
-      <form
-        className="row-actions wrap"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          if (secret.length < 16) return;
-          try {
-            await send(`/projects/${selected}/git-secret`, session.token, "PUT", { secret });
-            setSecret("");
-            await qc.invalidateQueries({ queryKey: ["git-secret", selected] });
-            toast("Signing secret saved");
-          } catch (err) {
-            setError(errorMessage(err));
-          }
-        }}
-      >
-        <input
-          aria-label="Signing secret"
-          type="password"
-          autoComplete="new-password"
-          placeholder={status.data?.configured ? "Replace the secret" : "Signing secret (16+ characters)"}
-          value={secret}
-          maxLength={200}
-          onChange={(e) => setSecret(e.target.value)}
-        />
-        <button className="secondary small-btn" disabled={secret.length < 16}>
-          Save secret
-        </button>
-        <span className="small muted">{status.data?.configured ? "A secret is set." : "No secret yet."}</span>
-      </form>
-    </section>
+    <Card className="panel integrations space-y-4 p-4 sm:p-6" aria-labelledby="git-title">
+      <CardHeader className="pb-2 border-b border-border">
+        <CardTitle id="git-title" className="text-base font-bold text-text-main flex items-center gap-2">
+          <GitBranch size={18} className="text-accent" /> Git linking · {project.name}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4 pt-2">
+        <p className="muted small text-xs sm:text-sm text-text-subtle">
+          Commits and pull requests that name an issue key ({project.key}-123) link to that issue. Point your
+          repository’s webhook at the address below, with JSON content and the same secret, and send push and
+          pull request events.
+        </p>
+        <p className="small text-xs sm:text-sm text-text-main">
+          Address:{" "}
+          <code className="token-secret p-1.5 bg-bg border border-border rounded font-mono text-xs select-all text-accent">
+            {url}
+          </code>
+        </p>
+        <form
+          className="row-actions wrap flex flex-col sm:flex-row gap-2"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (secret.length < 16) return;
+            try {
+              await send(`/projects/${selected}/git-secret`, session.token, "PUT", { secret });
+              setSecret("");
+              await qc.invalidateQueries({ queryKey: ["git-secret", selected] });
+              toast("Signing secret saved");
+            } catch (err) {
+              setError(errorMessage(err));
+            }
+          }}
+        >
+          <input
+            aria-label="Signing secret"
+            type="password"
+            autoComplete="new-password"
+            placeholder={status.data?.configured ? "Replace the secret" : "Signing secret (16+ characters)"}
+            value={secret}
+            maxLength={200}
+            onChange={(e) => setSecret(e.target.value)}
+            className="flex-1 px-3 py-1.5 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+          />
+          <button
+            className="secondary small-btn px-4 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors shadow-sm disabled:opacity-50"
+            disabled={secret.length < 16}
+          >
+            Save secret
+          </button>
+          <span className="small muted text-xs text-text-subtle flex items-center">
+            {status.data?.configured ? "A secret is set." : "No secret yet."}
+          </span>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
