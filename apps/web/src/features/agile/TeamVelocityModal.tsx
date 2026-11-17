@@ -33,10 +33,10 @@ export function TeamVelocityChart({
 
   if (sprints.length === 0) {
     return (
-      <div className="panel-empty" style={{ padding: "36px 16px", textAlign: "center" }}>
-        <BarChart3 size={32} className="muted" style={{ marginBottom: 8, opacity: 0.6 }} />
-        <p style={{ margin: 0, fontWeight: 500 }}>No completed sprints yet</p>
-        <p className="muted small" style={{ margin: "4px 0 0" }}>
+      <div className="panel-empty py-10 px-4 text-center flex flex-col items-center justify-center">
+        <BarChart3 size={32} className="muted text-muted mb-2 opacity-60" />
+        <p className="font-semibold text-text text-sm">No completed sprints yet</p>
+        <p className="muted small text-xs text-muted mt-1 max-w-sm">
           Close an active sprint with story points to record historical velocity.
         </p>
       </div>
@@ -81,10 +81,10 @@ export function TeamVelocityChart({
   const ticks = [0, Math.round(maxY * 0.33), Math.round(maxY * 0.66), maxY];
 
   return (
-    <div style={{ position: "relative", width: "100%", overflowX: "auto" }}>
+    <div className="relative w-full overflow-x-auto">
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        style={{ width: "100%", minWidth: 540, display: "block" }}
+        className="w-full min-w-[540px] block"
         role="img"
         aria-label="Team Velocity Chart: Commitment vs Completed by Sprint"
       >
@@ -92,34 +92,40 @@ export function TeamVelocityChart({
         {ticks.map((tick) => {
           const ty = y(tick);
           return (
-            <g key={tick} className="grid-line">
+            <g key={tick} className="grid-line opacity-20 dark:opacity-30">
               <line
                 x1={pad.l}
                 y1={ty}
                 x2={W - pad.r}
                 y2={ty}
-                stroke="var(--border)"
-                strokeDasharray={tick === 0 ? undefined : "3 3"}
-                strokeWidth={tick === 0 ? 1.5 : 1}
+                stroke="currentColor"
+                strokeDasharray={tick === 0 ? undefined : "3,3"}
               />
-              <text x={pad.l - 8} y={ty + 4} textAnchor="end" fontSize={10} fill="var(--text-3)">
+              <text
+                x={pad.l - 8}
+                y={ty + 4}
+                textAnchor="end"
+                fontSize={10}
+                fill="currentColor"
+                className="text-muted opacity-80"
+              >
                 {tick}
               </text>
             </g>
           );
         })}
 
-        {/* Average Velocity Line */}
+        {/* Average line */}
         {avgCompleted > 0 && (
-          <g className="avg-line">
+          <g>
             <line
               x1={pad.l}
               y1={avgY}
               x2={W - pad.r}
               y2={avgY}
               stroke="#6366f1"
-              strokeDasharray="4 4"
-              strokeWidth={2}
+              strokeWidth={1.5}
+              strokeDasharray="4,4"
             />
             <rect x={W - pad.r + 4} y={avgY - 9} width={54} height={18} rx={4} fill="#6366f1" />
             <text
@@ -136,39 +142,38 @@ export function TeamVelocityChart({
         )}
 
         {/* Sprint Bars */}
-        {sprints.map((s, i) => {
-          const cx = pad.l + (i + 0.5) * groupWidth;
-          const comm = getCommitted(s);
-          const done = getCompleted(s);
+        {sprints.map((s, idx) => {
+          const groupCenter = pad.l + idx * groupWidth + groupWidth / 2;
+          const commVal = getCommitted(s);
+          const doneVal = getCompleted(s);
 
-          const commH = (comm / maxY) * plotH;
-          const doneH = (done / maxY) * plotH;
+          const commX = groupCenter - barWidth - barGap / 2;
+          const doneX = groupCenter + barGap / 2;
 
-          const commX = cx - barWidth - barGap / 2;
-          const doneX = cx + barGap / 2;
+          const commY = y(commVal);
+          const doneY = y(doneVal);
+          const commH = pad.t + plotH - commY;
+          const doneH = pad.t + plotH - doneY;
 
-          const commY = pad.t + plotH - commH;
-          const doneY = pad.t + plotH - doneH;
-
-          const isHovered = hoveredIdx === i;
+          const isHovered = hoveredIdx === idx;
 
           return (
             <g
               key={s.sprint_id}
-              className="sprint-bar-group"
-              style={{ cursor: "pointer" }}
-              onMouseEnter={() => setHoveredIdx(i)}
+              className="cursor-pointer"
+              onMouseEnter={() => setHoveredIdx(idx)}
               onMouseLeave={() => setHoveredIdx(null)}
             >
               {/* Highlight background on hover */}
               {isHovered && (
                 <rect
-                  x={cx - groupWidth / 2 + 2}
+                  x={pad.l + idx * groupWidth + 2}
                   y={pad.t}
                   width={groupWidth - 4}
                   height={plotH}
-                  fill="var(--accent-subtle, rgba(99, 102, 241, 0.08))"
-                  rx={6}
+                  fill="currentColor"
+                  className="text-indigo-500/10"
+                  rx={4}
                 />
               )}
 
@@ -177,194 +182,87 @@ export function TeamVelocityChart({
                 x={commX}
                 y={commY}
                 width={barWidth}
-                height={Math.max(2, commH)}
-                rx={3}
+                height={Math.max(1, commH)}
                 fill="#94a3b8"
+                rx={2}
                 opacity={isHovered ? 1 : 0.85}
               />
-              {comm > 0 && (
-                <text
-                  x={commX + barWidth / 2}
-                  y={commY - 4}
-                  textAnchor="middle"
-                  fontSize={10}
-                  fontWeight={500}
-                  fill="var(--text-2)"
-                >
-                  {comm}
-                </text>
-              )}
 
               {/* Completed Bar */}
               <rect
                 x={doneX}
                 y={doneY}
                 width={barWidth}
-                height={Math.max(2, doneH)}
-                rx={3}
+                height={Math.max(1, doneH)}
                 fill="#10b981"
+                rx={2}
                 opacity={isHovered ? 1 : 0.9}
               />
-              {done > 0 && (
-                <text
-                  x={doneX + barWidth / 2}
-                  y={doneY - 4}
-                  textAnchor="middle"
-                  fontSize={10}
-                  fontWeight={600}
-                  fill="#10b981"
-                >
-                  {done}
-                </text>
+
+              {/* Values above bars on hover */}
+              {isHovered && (
+                <>
+                  <text
+                    x={commX + barWidth / 2}
+                    y={Math.max(pad.t + 10, commY - 3)}
+                    textAnchor="middle"
+                    fontSize={10}
+                    fill="#64748b"
+                    fontWeight={600}
+                  >
+                    {commVal}
+                  </text>
+                  <text
+                    x={doneX + barWidth / 2}
+                    y={Math.max(pad.t + 10, doneY - 3)}
+                    textAnchor="middle"
+                    fontSize={10}
+                    fill="#10b981"
+                    fontWeight={600}
+                  >
+                    {doneVal}
+                  </text>
+                </>
               )}
 
-              {/* Sprint label */}
+              {/* Sprint label under chart */}
               <text
-                x={cx}
-                y={pad.t + plotH + 16}
+                x={groupCenter}
+                y={H - pad.b + 14}
                 textAnchor="middle"
-                fontSize={11}
-                fontWeight={isHovered ? 600 : 500}
-                fill={isHovered ? "var(--text-1)" : "var(--text-2)"}
+                fontSize={10}
+                fill="currentColor"
+                className="text-muted font-medium"
               >
                 {s.name.length > 12 ? `${s.name.slice(0, 10)}…` : s.name}
               </text>
-
-              {/* Date label */}
-              {s.closed_at && (
-                <text x={cx} y={pad.t + plotH + 30} textAnchor="middle" fontSize={9} fill="var(--text-3)">
-                  {shortDay(s.closed_at)}
-                </text>
-              )}
+              <text
+                x={groupCenter}
+                y={H - pad.b + 26}
+                textAnchor="middle"
+                fontSize={9}
+                fill="currentColor"
+                className="text-muted opacity-60"
+              >
+                {shortDay(s.closed_at)}
+              </text>
             </g>
           );
         })}
       </svg>
 
-      {/* Hover tooltip */}
-      {hoveredIdx !== null && sprints[hoveredIdx] && (
-        <div
-          style={{
-            position: "absolute",
-            top: 8,
-            right: 8,
-            background: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: 6,
-            padding: "8px 12px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-            fontSize: 12,
-            zIndex: 10,
-            pointerEvents: "none",
-            minWidth: 180,
-          }}
-        >
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>{sprints[hoveredIdx].name}</div>
-          {sprints[hoveredIdx].team_name && (
-            <div className="muted small" style={{ marginBottom: 4 }}>
-              Team: {sprints[hoveredIdx].team_name}
-            </div>
-          )}
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, color: "#94a3b8" }}>
-            <span>Committed:</span>
-            <strong>
-              {getCommitted(sprints[hoveredIdx])} {isPoints ? "pts" : "issues"}
-            </strong>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, color: "#10b981" }}>
-            <span>Completed:</span>
-            <strong>
-              {getCompleted(sprints[hoveredIdx])} {isPoints ? "pts" : "issues"}
-            </strong>
-          </div>
-          {getFinalScope(sprints[hoveredIdx]) !== getCommitted(sprints[hoveredIdx]) && (
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, color: "var(--text-3)" }}>
-              <span>Final Scope:</span>
-              <span>
-                {getFinalScope(sprints[hoveredIdx])} (
-                {getFinalScope(sprints[hoveredIdx]) - getCommitted(sprints[hoveredIdx]) > 0 ? "+" : ""}
-                {getFinalScope(sprints[hoveredIdx]) - getCommitted(sprints[hoveredIdx])})
-              </span>
-            </div>
-          )}
-          {sprints[hoveredIdx].carried_over_count != null && (
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, color: "var(--text-3)" }}>
-              <span>Carried Over:</span>
-              <span>{sprints[hoveredIdx].carried_over_count} issues</span>
-            </div>
-          )}
-          <div
-            style={{
-              marginTop: 6,
-              paddingTop: 6,
-              borderTop: "1px solid var(--border)",
-              display: "flex",
-              justifyContent: "space-between",
-              fontWeight: 500,
-            }}
-          >
-            <span>Predictability:</span>
-            <span
-              style={{
-                color:
-                  getCommitted(sprints[hoveredIdx]) > 0 &&
-                  getCompleted(sprints[hoveredIdx]) / getCommitted(sprints[hoveredIdx]) >= 0.85
-                    ? "#10b981"
-                    : "#f59e0b",
-              }}
-            >
-              {getCommitted(sprints[hoveredIdx]) > 0
-                ? `${Math.round((getCompleted(sprints[hoveredIdx]) / getCommitted(sprints[hoveredIdx])) * 100)}%`
-                : "–"}
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Legend */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: 20,
-          marginTop: 8,
-          fontSize: 12,
-        }}
-      >
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span
-            style={{
-              display: "inline-block",
-              width: 12,
-              height: 12,
-              borderRadius: 2,
-              background: "#94a3b8",
-            }}
-          />
+      <div className="flex flex-wrap items-center justify-center gap-5 mt-2 text-xs text-muted">
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-xs bg-slate-400" />
           Committed Scope
         </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span
-            style={{
-              display: "inline-block",
-              width: 12,
-              height: 12,
-              borderRadius: 2,
-              background: "#10b981",
-            }}
-          />
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-xs bg-emerald-500" />
           Completed Scope
         </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span
-            style={{
-              display: "inline-block",
-              width: 18,
-              height: 2,
-              borderTop: "2px dashed #6366f1",
-            }}
-          />
+        <span className="flex items-center gap-1.5">
+          <span className="w-4.5 h-0.5 border-t-2 border-dashed border-indigo-500" />
           Average Velocity
         </span>
       </div>
@@ -414,60 +312,43 @@ export function TeamVelocityModal({
 
   return (
     <div
-      className="overlay"
+      className="overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
       aria-label="Team Velocity & Predictability"
     >
-      <div
-        className="modal"
-        style={{
-          maxWidth: 880,
-          width: "95vw",
-          maxHeight: "90vh",
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
-        }}
-      >
+      <div className="modal max-w-4xl w-full max-h-[90vh] flex flex-col gap-4 p-4 sm:p-6 bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="modal-head" style={{ marginBottom: 0 }}>
+        <div className="modal-head flex items-start justify-between gap-4 pb-2 border-b border-border">
           <div>
-            <h3 style={{ display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
-              <BarChart3 size={20} className="accent" />
+            <h3 className="flex items-center gap-2 text-base sm:text-lg font-bold text-text">
+              <BarChart3 size={20} className="accent text-indigo-500" />
               Team Velocity &amp; Predictability
             </h3>
-            <p className="muted small" style={{ margin: "4px 0 0" }}>
+            <p className="muted small text-xs sm:text-sm text-muted mt-0.5">
               {projectName || projectKey} · Measure commitment reliability, delivery throughput, and sprint
               capacity.
             </p>
           </div>
-          <button className="icon-btn" onClick={onClose} aria-label="Close">
+          <button
+            className="icon-btn p-1.5 rounded-lg text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer"
+            onClick={onClose}
+            aria-label="Close"
+          >
             <X size={18} />
           </button>
         </div>
 
         {/* Filters and Controls */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 12,
-            padding: "8px 12px",
-            background: "var(--bg-subtle, rgba(0,0,0,0.03))",
-            borderRadius: 8,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <label className="small" style={{ display: "flex", alignItems: "center", gap: 6, margin: 0 }}>
-              <Users size={14} className="muted" /> Team
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-surface-2 rounded-xl border border-border">
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="small flex items-center gap-1.5 text-xs font-medium text-text">
+              <Users size={14} className="muted text-muted" /> Team
               <select
                 value={teamFilter}
                 onChange={(e) => setTeamFilter(e.target.value)}
-                style={{ padding: "4px 8px", fontSize: 13 }}
+                className="px-2.5 py-1.5 rounded-lg border border-border bg-surface text-text text-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
               >
                 <option value="">All Teams (Project Aggregate)</option>
                 {(teams.data ?? []).map((t) => (
@@ -478,12 +359,12 @@ export function TeamVelocityModal({
               </select>
             </label>
 
-            <label className="small" style={{ display: "flex", alignItems: "center", gap: 6, margin: 0 }}>
-              <Calendar size={14} className="muted" /> Window
+            <label className="small flex items-center gap-1.5 text-xs font-medium text-text">
+              <Calendar size={14} className="muted text-muted" /> Window
               <select
                 value={sprintWindow}
                 onChange={(e) => setSprintWindow(Number(e.target.value))}
-                style={{ padding: "4px 8px", fontSize: 13 }}
+                className="px-2.5 py-1.5 rounded-lg border border-border bg-surface text-text text-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
               >
                 <option value={3}>Last 3 sprints</option>
                 <option value={5}>Last 5 sprints</option>
@@ -494,17 +375,23 @@ export function TeamVelocityModal({
           </div>
 
           {/* Metric toggle */}
-          <div style={{ display: "flex", gap: 4, background: "var(--border)", padding: 2, borderRadius: 6 }}>
+          <div className="inline-flex p-0.5 rounded-lg bg-surface border border-border">
             <button
-              className={`small-btn ${metric === "points" ? "primary" : "secondary"}`}
-              style={{ padding: "3px 10px", fontSize: 12, border: "none" }}
+              className={`small-btn px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
+                metric === "points"
+                  ? "primary bg-indigo-600 text-white shadow-xs"
+                  : "secondary text-muted hover:text-text"
+              }`}
               onClick={() => setMetric("points")}
             >
               Story Points
             </button>
             <button
-              className={`small-btn ${metric === "count" ? "primary" : "secondary"}`}
-              style={{ padding: "3px 10px", fontSize: 12, border: "none" }}
+              className={`small-btn px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
+                metric === "count"
+                  ? "primary bg-indigo-600 text-white shadow-xs"
+                  : "secondary text-muted hover:text-text"
+              }`}
               onClick={() => setMetric("count")}
             >
               Issue Count
@@ -513,189 +400,95 @@ export function TeamVelocityModal({
         </div>
 
         {/* Content Body */}
-        <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className="overflow-y-auto space-y-4 pr-1">
           {/* Summary KPI Cards */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-              gap: 12,
-            }}
-          >
-            <div
-              className="stat-card"
-              style={{
-                padding: 12,
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 4,
-                }}
-              >
-                <span className="small muted">Average Velocity</span>
-                <TrendingUp size={16} color="#10b981" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="stat-card p-3 bg-surface border border-border rounded-xl">
+              <div className="flex justify-between items-center mb-1">
+                <span className="small muted text-xs text-muted font-medium">Average Velocity</span>
+                <TrendingUp size={16} className="text-emerald-500" />
               </div>
-              <strong style={{ fontSize: 20, color: "#10b981" }}>
+              <strong className="text-base sm:text-lg font-bold text-emerald-600 dark:text-emerald-400 block">
                 {avgDone.toFixed(1)} {isPoints ? "pts" : "issues"}
               </strong>
-              <small className="muted" style={{ display: "block", marginTop: 2 }}>
-                Delivered / sprint
-              </small>
+              <small className="muted text-[11px] text-muted block mt-0.5">Delivered / sprint</small>
             </div>
 
-            <div
-              className="stat-card"
-              style={{
-                padding: 12,
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 4,
-                }}
-              >
-                <span className="small muted">Predictability</span>
+            <div className="stat-card p-3 bg-surface border border-border rounded-xl">
+              <div className="flex justify-between items-center mb-1">
+                <span className="small muted text-xs text-muted font-medium">Predictability</span>
                 <Target
                   size={16}
-                  color={predictability >= 85 ? "#10b981" : predictability >= 70 ? "#f59e0b" : "#ef4444"}
+                  className={
+                    predictability >= 85
+                      ? "text-emerald-500"
+                      : predictability >= 70
+                        ? "text-amber-500"
+                        : "text-rose-500"
+                  }
                 />
               </div>
               <strong
-                style={{
-                  fontSize: 20,
-                  color: predictability >= 85 ? "#10b981" : predictability >= 70 ? "#f59e0b" : "#ef4444",
-                }}
+                className={`text-base sm:text-lg font-bold block ${
+                  predictability >= 85
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : predictability >= 70
+                      ? "text-amber-600 dark:text-amber-400"
+                      : "text-rose-600 dark:text-rose-400"
+                }`}
               >
                 {Math.round(predictability)}%
               </strong>
-              <small className="muted" style={{ display: "block", marginTop: 2 }}>
-                Target: 85% - 100%
-              </small>
+              <small className="muted text-[11px] text-muted block mt-0.5">Target: 85% - 100%</small>
             </div>
 
-            <div
-              className="stat-card"
-              style={{
-                padding: 12,
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 4,
-                }}
-              >
-                <span className="small muted">Avg Commitment</span>
-                <Zap size={16} color="#6366f1" />
+            <div className="stat-card p-3 bg-surface border border-border rounded-xl">
+              <div className="flex justify-between items-center mb-1">
+                <span className="small muted text-xs text-muted font-medium">Avg Commitment</span>
+                <Zap size={16} className="text-indigo-500" />
               </div>
-              <strong style={{ fontSize: 20, color: "#6366f1" }}>
+              <strong className="text-base sm:text-lg font-bold text-indigo-600 dark:text-indigo-400 block">
                 {avgStarted.toFixed(1)} {isPoints ? "pts" : "issues"}
               </strong>
-              <small className="muted" style={{ display: "block", marginTop: 2 }}>
-                Planned at sprint start
-              </small>
+              <small className="muted text-[11px] text-muted block mt-0.5">Planned at sprint start</small>
             </div>
 
-            <div
-              className="stat-card"
-              style={{
-                padding: 12,
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 4,
-                }}
-              >
-                <span className="small muted">Avg Carry-Over</span>
-                <AlertCircle size={16} color="#f59e0b" />
+            <div className="stat-card p-3 bg-surface border border-border rounded-xl">
+              <div className="flex justify-between items-center mb-1">
+                <span className="small muted text-xs text-muted font-medium">Avg Carry-Over</span>
+                <AlertCircle size={16} className="text-amber-500" />
               </div>
-              <strong style={{ fontSize: 20, color: "#f59e0b" }}>{avgCarriedOver} items</strong>
-              <small className="muted" style={{ display: "block", marginTop: 2 }}>
-                Unfinished work / sprint
-              </small>
+              <strong className="text-base sm:text-lg font-bold text-amber-600 dark:text-amber-400 block">
+                {avgCarriedOver} items
+              </strong>
+              <small className="muted text-[11px] text-muted block mt-0.5">Unfinished work / sprint</small>
             </div>
 
-            <div
-              className="stat-card"
-              style={{
-                padding: 12,
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 4,
-                }}
-              >
-                <span className="small muted">Recommended Target</span>
-                <CheckCircle2 size={16} color="#3b82f6" />
+            <div className="stat-card p-3 bg-surface border border-border rounded-xl col-span-2 sm:col-span-1">
+              <div className="flex justify-between items-center mb-1">
+                <span className="small muted text-xs text-muted font-medium">Target</span>
+                <CheckCircle2 size={16} className="text-blue-500" />
               </div>
-              <strong style={{ fontSize: 20, color: "#3b82f6" }}>
+              <strong className="text-base sm:text-lg font-bold text-blue-600 dark:text-blue-400 block">
                 ~{Math.round(avgDone)} {isPoints ? "pts" : "issues"}
               </strong>
-              <small className="muted" style={{ display: "block", marginTop: 2 }}>
-                For next sprint planning
-              </small>
+              <small className="muted text-[11px] text-muted block mt-0.5">For next sprint planning</small>
             </div>
           </div>
 
           {/* Chart Container */}
-          <div
-            style={{
-              padding: 16,
-              background: "var(--surface)",
-              border: "1px solid var(--border)",
-              borderRadius: 8,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 12,
-              }}
-            >
-              <h4 style={{ margin: 0, fontSize: 14 }}>Commitment vs. Completed Throughput</h4>
-              <span className="muted small">
+          <div className="p-4 bg-surface border border-border rounded-xl">
+            <div className="flex justify-between items-center mb-3">
+              <h4 className="text-xs sm:text-sm font-semibold text-text">
+                Commitment vs. Completed Throughput
+              </h4>
+              <span className="muted small text-xs text-muted">
                 Showing {sprints.length} completed {sprints.length === 1 ? "sprint" : "sprints"}
               </span>
             </div>
 
             {velocityQuery.isLoading ? (
-              <p className="muted small" style={{ padding: 24, textAlign: "center" }}>
-                Loading velocity history…
-              </p>
+              <p className="muted small text-xs text-muted text-center py-8">Loading velocity history…</p>
             ) : data ? (
               <TeamVelocityChart velocity={data} metric={metric} height={230} />
             ) : null}
@@ -703,30 +496,23 @@ export function TeamVelocityModal({
 
           {/* Sprints Breakdown Table */}
           {sprints.length > 0 && (
-            <div
-              style={{
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                padding: 12,
-              }}
-            >
-              <h4 style={{ margin: "0 0 8px", fontSize: 14 }}>Sprint Performance History</h4>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
+            <div className="p-4 bg-surface border border-border rounded-xl space-y-3">
+              <h4 className="text-xs sm:text-sm font-semibold text-text">Sprint Performance History</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
                   <thead>
-                    <tr style={{ borderBottom: "1px solid var(--border)", textAlign: "left" }}>
-                      <th style={{ padding: "6px 8px" }}>Sprint</th>
-                      <th style={{ padding: "6px 8px" }}>Team</th>
-                      <th style={{ padding: "6px 8px" }}>Closed</th>
-                      <th style={{ padding: "6px 8px", textAlign: "right" }}>Committed</th>
-                      <th style={{ padding: "6px 8px", textAlign: "right" }}>Final Scope</th>
-                      <th style={{ padding: "6px 8px", textAlign: "right" }}>Completed</th>
-                      <th style={{ padding: "6px 8px", textAlign: "right" }}>Carried Over</th>
-                      <th style={{ padding: "6px 8px", textAlign: "right" }}>Predictability</th>
+                    <tr className="border-b border-border text-muted font-medium">
+                      <th className="py-2 px-2.5">Sprint</th>
+                      <th className="py-2 px-2.5">Team</th>
+                      <th className="py-2 px-2.5">Closed</th>
+                      <th className="py-2 px-2.5 text-right">Committed</th>
+                      <th className="py-2 px-2.5 text-right">Final Scope</th>
+                      <th className="py-2 px-2.5 text-right">Completed</th>
+                      <th className="py-2 px-2.5 text-right">Carried Over</th>
+                      <th className="py-2 px-2.5 text-right">Predictability</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-border">
                     {sprints.map((s) => {
                       const comm = isPoints ? (s.started_scope_points ?? 0) : (s.started_scope_count ?? 0);
                       const done = isPoints ? (s.final_done_points ?? 0) : (s.final_done_count ?? 0);
@@ -735,66 +521,50 @@ export function TeamVelocityModal({
                       const unit = isPoints ? " pts" : "";
 
                       return (
-                        <tr
-                          key={s.sprint_id}
-                          style={{ borderBottom: "1px solid var(--border-subtle, rgba(0,0,0,0.05))" }}
-                        >
-                          <td style={{ padding: "8px 8px", fontWeight: 500 }}>{s.name}</td>
-                          <td style={{ padding: "8px 8px" }}>
+                        <tr key={s.sprint_id} className="hover:bg-surface-2 transition-colors">
+                          <td className="py-2 px-2.5 font-semibold text-text">{s.name}</td>
+                          <td className="py-2 px-2.5">
                             {s.team_name ? (
-                              <span className="chip small">{s.team_name}</span>
+                              <span className="chip small px-2 py-0.5 rounded-full text-[11px] font-medium bg-surface-2 text-text border border-border">
+                                {s.team_name}
+                              </span>
                             ) : (
-                              <span className="muted small">Project</span>
+                              <span className="muted small text-muted">Project</span>
                             )}
                           </td>
-                          <td style={{ padding: "8px 8px" }} className="muted small">
-                            {shortDay(s.closed_at)}
-                          </td>
-                          <td style={{ padding: "8px 8px", textAlign: "right", color: "#94a3b8" }}>
+                          <td className="py-2 px-2.5 text-muted">{shortDay(s.closed_at)}</td>
+                          <td className="py-2 px-2.5 text-right text-muted">
                             {comm}
                             {unit}
                           </td>
-                          <td style={{ padding: "8px 8px", textAlign: "right" }}>
+                          <td className="py-2 px-2.5 text-right text-text">
                             {finalScope}
                             {unit}
                             {finalScope !== comm && (
                               <span
-                                style={{
-                                  fontSize: 11,
-                                  marginLeft: 4,
-                                  color: finalScope > comm ? "#ef4444" : "#10b981",
-                                }}
+                                className={`text-[11px] ml-1 font-medium ${
+                                  finalScope > comm ? "text-rose-500" : "text-emerald-500"
+                                }`}
                               >
                                 ({finalScope > comm ? "+" : ""}
                                 {finalScope - comm})
                               </span>
                             )}
                           </td>
-                          <td
-                            style={{
-                              padding: "8px 8px",
-                              textAlign: "right",
-                              fontWeight: 600,
-                              color: "#10b981",
-                            }}
-                          >
+                          <td className="py-2 px-2.5 text-right font-semibold text-emerald-600 dark:text-emerald-400">
                             {done}
                             {unit}
                           </td>
-                          <td style={{ padding: "8px 8px", textAlign: "right" }}>
-                            {s.carried_over_count ?? 0}
-                          </td>
-                          <td style={{ padding: "8px 8px", textAlign: "right" }}>
+                          <td className="py-2 px-2.5 text-right text-muted">{s.carried_over_count ?? 0}</td>
+                          <td className="py-2 px-2.5 text-right">
                             <span
-                              className={`chip small ${
-                                pred >= 85 ? "success" : pred >= 70 ? "warning" : "danger"
+                              className={`chip small px-2 py-0.5 rounded-full text-[11px] font-bold inline-block min-w-[48px] text-center ${
+                                pred >= 85
+                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                                  : pred >= 70
+                                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                                    : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
                               }`}
-                              style={{
-                                display: "inline-block",
-                                minWidth: 48,
-                                textAlign: "center",
-                                fontWeight: 600,
-                              }}
                             >
                               {comm > 0 ? `${pred}%` : "–"}
                             </span>

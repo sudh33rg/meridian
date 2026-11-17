@@ -490,6 +490,11 @@ label select:focus {
   grid-template-columns: 1fr 1fr;
   gap: 13px;
 }
+@media (max-width: 640px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
 .modal-actions {
   display: flex;
   justify-content: flex-end;

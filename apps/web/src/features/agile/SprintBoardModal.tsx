@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { request } from "../../lib/api";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { X, Kanban } from "lucide-react";
+import { PriorityBadge } from "../shared/UiComponents";
 
 export type BoardIssue = {
   id: string;
@@ -48,113 +49,72 @@ export function SprintBoardModal({
 
   return (
     <div
-      className="overlay"
+      className="overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
       aria-label="Sprint Board"
     >
-      <div
-        className="modal"
-        style={{ maxWidth: 960, width: "90vw", maxHeight: "85vh", display: "flex", flexDirection: "column" }}
-      >
-        <div className="modal-head">
-          <h3 style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Kanban size={18} /> Sprint Board: {sprintName}
+      <div className="modal max-w-5xl w-full max-h-[85vh] flex flex-col gap-4 p-4 sm:p-6 bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
+        <div className="modal-head flex items-start justify-between gap-4 pb-2 border-b border-border">
+          <h3 className="flex items-center gap-2 text-base sm:text-lg font-bold text-text">
+            <Kanban size={18} className="text-indigo-500" /> Sprint Board: {sprintName}
           </h3>
-          <button className="icon-btn" onClick={onClose} aria-label="Close">
+          <button
+            className="icon-btn p-1.5 rounded-lg text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer"
+            onClick={onClose}
+            aria-label="Close"
+          >
             <X size={18} />
           </button>
         </div>
 
-        {board.isLoading && <p className="muted small">Loading sprint board…</p>}
+        {board.isLoading && <p className="muted small text-xs text-muted">Loading sprint board…</p>}
 
         {data && (
-          <div
-            style={{
-              display: "grid",
-              gridAutoColumns: "minmax(200px, 1fr)",
-              gridAutoFlow: "column",
-              gap: 12,
-              overflowX: "auto",
-              flex: 1,
-              paddingBottom: 8,
-            }}
-          >
+          <div className="grid grid-flow-col auto-cols-[minmax(240px,1fr)] gap-3 overflow-x-auto flex-1 pb-2">
             {data.lanes.map((lane) => {
               const laneIssues = lane.issues || [];
               return (
                 <div
                   key={lane.key}
-                  style={{
-                    background: "var(--bg-subtle)",
-                    borderRadius: 8,
-                    padding: 10,
-                    display: "flex",
-                    flexDirection: "column",
-                    minWidth: 220,
-                  }}
+                  className="bg-surface-2 rounded-xl p-3 flex flex-col min-w-[240px] max-h-[65vh] border border-border"
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 8,
-                      fontWeight: 600,
-                      fontSize: 13,
-                    }}
-                  >
-                    <span>{lane.label}</span>
-                    <span className="chip small">{laneIssues.length}</span>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-xs font-semibold text-text uppercase tracking-wider">
+                      {lane.label}
+                    </span>
+                    <span className="chip small px-2 py-0.5 rounded-full text-[11px] font-bold bg-surface text-text border border-border">
+                      {laneIssues.length}
+                    </span>
                   </div>
-                  <div
-                    style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, overflowY: "auto" }}
-                  >
+                  <div className="flex flex-col gap-2 flex-1 overflow-y-auto pr-1">
                     {laneIssues.map((issue) => (
                       <div
                         key={issue.id}
-                        style={{
-                          background: "var(--bg)",
-                          border: "1px solid var(--border)",
-                          borderRadius: 6,
-                          padding: 8,
-                          boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-                        }}
+                        className="bg-surface border border-border rounded-lg p-3 shadow-xs space-y-2 hover:border-indigo-500/40 transition-colors"
                       >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            fontSize: 11,
-                            marginBottom: 4,
-                          }}
-                          className="muted"
-                        >
-                          <span className="mono">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="mono font-mono text-[11px] text-muted font-medium">
                             {projectKey}-{issue.number}
                           </span>
-                          <span className={`chip small priority-${issue.priority}`}>{issue.priority}</span>
+                          <PriorityBadge priority={issue.priority} />
                         </div>
-                        <p style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 500 }}>{issue.title}</p>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            fontSize: 11,
-                          }}
-                          className="muted"
-                        >
-                          <span>{issue.assignee_name || "Unassigned"}</span>
-                          {issue.story_points != null && <span>{issue.story_points} pt</span>}
+                        <p className="text-xs sm:text-sm font-medium text-text line-clamp-2 leading-snack">
+                          {issue.title}
+                        </p>
+                        <div className="flex justify-between items-center text-[11px] text-muted pt-1 border-t border-border">
+                          <span className="truncate max-w-[120px]">
+                            {issue.assignee_name || "Unassigned"}
+                          </span>
+                          {issue.story_points != null && (
+                            <span className="font-semibold text-text">{issue.story_points} pt</span>
+                          )}
                         </div>
                       </div>
                     ))}
                     {laneIssues.length === 0 && (
-                      <div className="muted small" style={{ textAlign: "center", padding: "16px 8px" }}>
-                        Empty
-                      </div>
+                      <div className="muted small text-xs text-muted text-center py-8">Empty</div>
                     )}
                   </div>
                 </div>

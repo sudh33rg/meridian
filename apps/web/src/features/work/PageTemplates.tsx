@@ -41,12 +41,13 @@ export function PageTemplates({
   });
 
   return (
-    <div className="page-templates">
-      <label>
-        Start from a template
+    <div className="page-templates space-y-3 p-3 bg-surface-2 rounded-xl border border-border">
+      <label className="block text-xs font-medium text-text space-y-1">
+        <span>Start from a template</span>
         <select
           value=""
           aria-label="Page template"
+          className="w-full px-3 py-1.5 rounded-lg border border-border bg-surface text-text text-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
           onChange={(e) => {
             const t = templates.find((x) => x.id === e.target.value);
             if (t) onApply(t.body);
@@ -60,17 +61,18 @@ export function PageTemplates({
           ))}
         </select>
       </label>
-      <div className="inline-form">
+      <div className="inline-form flex items-center gap-2">
         <input
           aria-label="Template name"
           value={name}
           maxLength={80}
+          className="flex-1 px-3 py-1.5 rounded-lg border border-border bg-surface text-text text-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
           placeholder="Save this content as a template…"
           onChange={(e) => setName(e.target.value)}
         />
         <button
           type="button"
-          className="secondary"
+          className="secondary px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
           disabled={!name.trim() || !content.trim() || save.isPending}
           onClick={() => save.mutate()}
         >

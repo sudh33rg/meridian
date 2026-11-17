@@ -2,6 +2,8 @@ import React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { errorMessage, request, send } from "../../lib/api";
 import { useToast } from "../shared/Toast";
+import { Card, CardHeader, CardTitle, CardContent } from "../shared/UiComponents";
+import { Bot } from "lucide-react";
 
 type AiSettings = { enabled: boolean; configured: boolean; model: string };
 
@@ -26,27 +28,39 @@ export function AiSettingsCard({ token, admin }: { token: string; admin: boolean
     },
     onError: (e) => toast(errorMessage(e), { kind: "error" }),
   });
+
   if (!q.data) return null;
+
   return (
-    <section className="panel" aria-label="AI assistance">
-      <h4>AI summaries and triage</h4>
-      <p className="muted small">
-        When on, an issue's title, description and comments, and the titles of the project's other open
-        issues, are sent to the model the server is configured with. Only text you can already see is sent.
-        Nothing the model returns is stored.
-      </p>
-      {!q.data.configured && (
-        <p className="muted small">The server has no AI key, so this cannot be turned on here.</p>
-      )}
-      <label className="inline-check">
-        <input
-          type="checkbox"
-          checked={q.data.enabled}
-          disabled={!admin || !q.data.configured || save.isPending}
-          onChange={(e) => save.mutate(e.target.checked)}
-        />{" "}
-        Allow AI for this workspace ({q.data.model})
-      </label>
-    </section>
+    <Card className="panel" aria-label="AI assistance">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Bot size={18} className="text-indigo-500" />
+          AI summaries and triage
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="muted small text-xs sm:text-sm text-muted">
+          When on, an issue's title, description and comments, and the titles of the project's other open
+          issues, are sent to the model the server is configured with. Only text you can already see is sent.
+          Nothing the model returns is stored.
+        </p>
+        {!q.data.configured && (
+          <p className="muted small text-xs text-amber-600 dark:text-amber-400">
+            The server has no AI key, so this cannot be turned on here.
+          </p>
+        )}
+        <label className="inline-check flex items-center gap-2.5 text-xs sm:text-sm font-medium text-text cursor-pointer">
+          <input
+            type="checkbox"
+            className="rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:opacity-50"
+            checked={q.data.enabled}
+            disabled={!admin || !q.data.configured || save.isPending}
+            onChange={(e) => save.mutate(e.target.checked)}
+          />
+          <span>Allow AI for this workspace ({q.data.model})</span>
+        </label>
+      </CardContent>
+    </Card>
   );
 }

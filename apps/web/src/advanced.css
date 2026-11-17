@@ -552,6 +552,17 @@
   gap: 6px;
   align-items: center;
 }
+@media (max-width: 640px) {
+  .workflow-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .workflow-row input,
+  .workflow-row select {
+    flex: 1 1 120px;
+  }
+}
 .workflow-row input,
 .workflow-row select {
   min-width: 0;

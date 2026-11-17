@@ -70,95 +70,101 @@ export function SprintCapacityModal({
 
   return (
     <div
-      className="overlay"
+      className="overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
       aria-label="Sprint Capacity"
     >
-      <div className="modal" style={{ maxWidth: 560 }}>
-        <div className="modal-head">
-          <h3>Sprint Capacity: {sprintName}</h3>
-          <button className="icon-btn" onClick={onClose} aria-label="Close">
+      <div className="modal max-w-lg w-full max-h-[90vh] flex flex-col gap-4 p-4 sm:p-6 bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
+        <div className="modal-head flex items-start justify-between gap-4 pb-2 border-b border-border">
+          <h3 className="text-base sm:text-lg font-bold text-text">Sprint Capacity: {sprintName}</h3>
+          <button
+            className="icon-btn p-1.5 rounded-lg text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer"
+            onClick={onClose}
+            aria-label="Close"
+          >
             <X size={18} />
           </button>
         </div>
 
-        {cap.isLoading && <p className="muted small">Loading capacities…</p>}
+        {cap.isLoading && <p className="muted small text-xs text-muted">Loading capacities…</p>}
 
         {data && (
-          <div>
-            <div
-              style={{
-                display: "flex",
-                gap: 16,
-                marginBottom: 16,
-                padding: 12,
-                background: "var(--bg-subtle)",
-                borderRadius: 6,
-              }}
-            >
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 p-3 bg-surface-2 rounded-xl border border-border">
               <div>
-                <span className="small muted">Total Team Capacity</span>
-                <strong style={{ display: "block", fontSize: 18 }}>
-                  <Clock size={16} style={{ verticalAlign: "middle", marginRight: 4 }} />
+                <span className="small muted text-xs text-muted font-medium block">Total Team Capacity</span>
+                <strong className="text-base sm:text-lg font-bold text-text flex items-center gap-1.5 mt-0.5">
+                  <Clock size={16} className="text-indigo-500" />
                   {data.total_capacity_hours} hrs
                 </strong>
               </div>
               <div>
-                <span className="small muted">Assigned Scope</span>
-                <strong style={{ display: "block", fontSize: 18 }}>{data.total_assigned_points} pts</strong>
+                <span className="small muted text-xs text-muted font-medium block">Assigned Scope</span>
+                <strong className="text-base sm:text-lg font-bold text-text block mt-0.5">
+                  {data.total_assigned_points} pts
+                </strong>
               </div>
             </div>
 
-            <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse", marginBottom: 16 }}>
-              <thead>
-                <tr style={{ borderBottom: "1px solid var(--border)", textAlign: "left" }}>
-                  <th style={{ padding: "6px 8px" }}>Member</th>
-                  <th style={{ padding: "6px 8px" }}>Assigned Pts</th>
-                  <th style={{ padding: "6px 8px", width: 140 }}>Available Hours</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.members.map((m) => (
-                  <tr key={m.user_id} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
-                    <td style={{ padding: "6px 8px" }}>
-                      <strong>{m.name}</strong>
-                      <div className="small muted">{m.email}</div>
-                    </td>
-                    <td style={{ padding: "6px 8px" }}>{m.assigned_points} pts</td>
-                    <td style={{ padding: "6px 8px" }}>
-                      <input
-                        type="number"
-                        min="0"
-                        max="200"
-                        step="0.5"
-                        value={capacities[m.user_id] ?? m.capacity_hours}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setCapacities((prev) => ({ ...prev, [m.user_id]: val }));
-                          setDirty(true);
-                        }}
-                        style={{ width: "100%", padding: "4px 8px" }}
-                      />
-                    </td>
+            <div className="overflow-x-auto max-h-[50vh] rounded-xl border border-border">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-surface-2 border-b border-border sticky top-0">
+                  <tr className="text-muted font-medium">
+                    <th className="py-2.5 px-3">Member</th>
+                    <th className="py-2.5 px-3">Assigned Pts</th>
+                    <th className="py-2.5 px-3 w-36">Available Hours</th>
                   </tr>
-                ))}
-                {data.members.length === 0 && (
-                  <tr>
-                    <td colSpan={3} style={{ padding: 12, textAlign: "center" }} className="muted">
-                      No team members found for this sprint.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {data.members.map((m) => (
+                    <tr key={m.user_id} className="hover:bg-surface-2 transition-colors">
+                      <td className="py-2 px-3">
+                        <strong className="font-semibold text-text block">{m.name}</strong>
+                        <div className="small muted text-[11px] text-muted">{m.email}</div>
+                      </td>
+                      <td className="py-2 px-3 font-medium text-text">{m.assigned_points} pts</td>
+                      <td className="py-2 px-3">
+                        <input
+                          type="number"
+                          min="0"
+                          max="200"
+                          step="0.5"
+                          value={capacities[m.user_id] ?? m.capacity_hours}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            setCapacities((prev) => ({ ...prev, [m.user_id]: val }));
+                            setDirty(true);
+                          }}
+                          className="w-full px-2.5 py-1.5 rounded-lg border border-border bg-surface text-text text-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                  {data.members.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="py-8 text-center text-xs text-muted">
+                        No team members found for this sprint.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-              <button className="secondary small-btn" onClick={onClose}>
+            <div className="flex justify-end gap-2 pt-2 border-t border-border">
+              <button
+                className="secondary small-btn px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer"
+                onClick={onClose}
+              >
                 Cancel
               </button>
-              <button className="primary small-btn" onClick={saveCapacities} disabled={!dirty}>
+              <button
+                className="primary small-btn inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer disabled:opacity-50"
+                onClick={saveCapacities}
+                disabled={!dirty}
+              >
                 <Save size={14} /> Save Capacities
               </button>
             </div>

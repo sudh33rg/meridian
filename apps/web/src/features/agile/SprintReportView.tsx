@@ -44,123 +44,120 @@ export function SprintReportView({
 
   return (
     <div
-      className="overlay"
+      className="overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
       aria-label="Sprint Report"
     >
-      <div className="modal" style={{ maxWidth: 640 }}>
-        <div className="modal-head">
-          <h3>Sprint Report: {data?.sprint_name ?? "Loading..."}</h3>
-          <button className="icon-btn" onClick={onClose} aria-label="Close">
+      <div className="modal max-w-2xl w-full max-h-[90vh] flex flex-col gap-4 p-4 sm:p-6 bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
+        <div className="modal-head flex items-start justify-between gap-4 pb-2 border-b border-border">
+          <h3 className="text-base sm:text-lg font-bold text-text">
+            Sprint Report: {data?.sprint_name ?? "Loading..."}
+          </h3>
+          <button
+            className="icon-btn p-1.5 rounded-lg text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer"
+            onClick={onClose}
+            aria-label="Close"
+          >
             <X size={18} />
           </button>
         </div>
 
-        {rep.isLoading && <p className="muted small">Loading sprint report…</p>}
+        {rep.isLoading && <p className="muted small text-xs text-muted">Loading sprint report…</p>}
 
         {data && (
-          <div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }}>
-              <div
-                className="stat-card"
-                style={{ padding: 12, background: "var(--bg-subtle)", borderRadius: 6 }}
-              >
-                <span className="small muted">Committed</span>
-                <strong style={{ display: "block", fontSize: 18 }}>{data.committed_points} pts</strong>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="stat-card p-3 bg-surface-2 rounded-xl border border-border">
+                <span className="small muted text-xs text-muted font-medium block">Committed</span>
+                <strong className="text-base sm:text-lg font-bold text-text block mt-0.5">
+                  {data.committed_points} pts
+                </strong>
               </div>
-              <div
-                className="stat-card"
-                style={{ padding: 12, background: "var(--bg-subtle)", borderRadius: 6 }}
-              >
-                <span className="small muted">Completed</span>
-                <strong style={{ display: "block", fontSize: 18, color: "#10b981" }}>
+              <div className="stat-card p-3 bg-surface-2 rounded-xl border border-border">
+                <span className="small muted text-xs text-muted font-medium block">Completed</span>
+                <strong className="text-base sm:text-lg font-bold text-emerald-600 dark:text-emerald-400 block mt-0.5">
                   {data.completed_points} pts
                 </strong>
               </div>
-              <div
-                className="stat-card"
-                style={{ padding: 12, background: "var(--bg-subtle)", borderRadius: 6 }}
-              >
-                <span className="small muted">Incomplete</span>
-                <strong style={{ display: "block", fontSize: 18, color: "#f59e0b" }}>
+              <div className="stat-card p-3 bg-surface-2 rounded-xl border border-border">
+                <span className="small muted text-xs text-muted font-medium block">Incomplete</span>
+                <strong className="text-base sm:text-lg font-bold text-amber-600 dark:text-amber-400 block mt-0.5">
                   {data.incomplete_points} pts
                 </strong>
               </div>
-              <div
-                className="stat-card"
-                style={{ padding: 12, background: "var(--bg-subtle)", borderRadius: 6 }}
-              >
-                <span className="small muted">Scope Creep</span>
-                <strong style={{ display: "block", fontSize: 18, color: "#ef4444" }}>
+              <div className="stat-card p-3 bg-surface-2 rounded-xl border border-border">
+                <span className="small muted text-xs text-muted font-medium block">Scope Creep</span>
+                <strong className="text-base sm:text-lg font-bold text-rose-600 dark:text-rose-400 block mt-0.5">
                   +{data.scope_creep_points} pts
                 </strong>
               </div>
             </div>
 
-            <h4 style={{ margin: "16px 0 8px" }}>Sprint Scope & Tracking</h4>
-            <div style={{ maxHeight: 320, overflowY: "auto" }}>
-              <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ borderBottom: "1px solid var(--border)", textAlign: "left" }}>
-                    <th style={{ padding: "6px 8px" }}>Key</th>
-                    <th style={{ padding: "6px 8px" }}>Title</th>
-                    <th style={{ padding: "6px 8px" }}>Type</th>
-                    <th style={{ padding: "6px 8px" }}>Status</th>
-                    <th style={{ padding: "6px 8px", textAlign: "right" }}>Pts</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.items.map((item) => (
-                    <tr key={item.id} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
-                      <td style={{ padding: "6px 8px" }} className="mono small">
-                        {projectKey}-{item.number}
-                      </td>
-                      <td style={{ padding: "6px 8px" }}>{item.title}</td>
-                      <td style={{ padding: "6px 8px" }}>
-                        <span className={`chip small ${item.category === "added" ? "warning" : ""}`}>
-                          {item.category === "added" ? (
-                            <>
-                              <PlusCircle size={10} style={{ marginRight: 2 }} /> Added mid-sprint
-                            </>
+            <div className="space-y-2">
+              <h4 className="text-xs sm:text-sm font-semibold text-text">Sprint Scope &amp; Tracking</h4>
+              <div className="max-h-72 overflow-y-auto rounded-xl border border-border">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-surface-2 border-b border-border sticky top-0">
+                    <tr className="text-muted font-medium">
+                      <th className="py-2.5 px-3">Key</th>
+                      <th className="py-2.5 px-3">Title</th>
+                      <th className="py-2.5 px-3">Type</th>
+                      <th className="py-2.5 px-3">Status</th>
+                      <th className="py-2.5 px-3 text-right">Pts</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {data.items.map((item) => (
+                      <tr key={item.id} className="hover:bg-surface-2 transition-colors">
+                        <td className="py-2 px-3 mono font-mono text-[11px] text-muted">
+                          {projectKey}-{item.number}
+                        </td>
+                        <td className="py-2 px-3 font-medium text-text max-w-xs truncate">{item.title}</td>
+                        <td className="py-2 px-3">
+                          <span
+                            className={`chip small inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                              item.category === "added"
+                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                                : "bg-surface-2 text-text border border-border"
+                            }`}
+                          >
+                            {item.category === "added" ? (
+                              <>
+                                <PlusCircle size={10} /> Added mid-sprint
+                              </>
+                            ) : (
+                              "Committed"
+                            )}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3">
+                          {item.completed ? (
+                            <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                              <CheckCircle size={12} /> {item.status}
+                            </span>
                           ) : (
-                            "Committed"
+                            <span className="inline-flex items-center gap-1 text-muted">
+                              <AlertCircle size={12} /> {item.status}
+                            </span>
                           )}
-                        </span>
-                      </td>
-                      <td style={{ padding: "6px 8px" }}>
-                        {item.completed ? (
-                          <span
-                            style={{ color: "#10b981", display: "inline-flex", alignItems: "center", gap: 3 }}
-                          >
-                            <CheckCircle size={12} /> {item.status}
-                          </span>
-                        ) : (
-                          <span
-                            style={{
-                              color: "var(--muted)",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 3,
-                            }}
-                          >
-                            <AlertCircle size={12} /> {item.status}
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ padding: "6px 8px", textAlign: "right" }}>{item.story_points ?? "—"}</td>
-                    </tr>
-                  ))}
-                  {data.items.length === 0 && (
-                    <tr>
-                      <td colSpan={5} style={{ padding: 12, textAlign: "center" }} className="muted">
-                        No issues tracked in this sprint.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                        </td>
+                        <td className="py-2 px-3 text-right font-semibold text-text">
+                          {item.story_points ?? "—"}
+                        </td>
+                      </tr>
+                    ))}
+                    {data.items.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-xs text-muted">
+                          No issues tracked in this sprint.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
