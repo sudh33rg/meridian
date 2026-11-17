@@ -44,7 +44,7 @@ export function SprintReportView({
 
   return (
     <div
-      className="overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+      className="overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay backdrop-blur-xs"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"

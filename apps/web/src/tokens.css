@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *, [data-theme="contrast"], [data-theme="contrast"] *, .dark, .dark *));
+
 @theme {
   --font-sans: "DM Sans", system-ui, -apple-system, sans-serif;
   --font-display: "Manrope", "DM Sans", system-ui, sans-serif;
@@ -12,20 +14,38 @@
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
   --color-divider: var(--divider);
+  --color-text: var(--text);
   --color-text-main: var(--text);
   --color-text-muted: var(--text-2);
+  --color-muted: var(--text-2);
   --color-text-subtle: var(--text-3);
+  --color-subtle: var(--text-3);
+  --color-text-4: var(--text-4);
+  --color-text-inverse: var(--text-inverse);
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
   --color-accent-soft: var(--accent-soft);
   --color-accent-soft-2: var(--accent-soft-2);
   --color-accent-text: var(--accent-text);
+  --color-accent-ring: var(--accent-ring);
+  --color-on-accent: var(--on-accent);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
+  --color-success-border: var(--success-border);
+  --color-success-text: var(--success-text);
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
+  --color-warning-border: var(--warning-border);
+  --color-warning-text: var(--warning-text);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-danger-border: var(--danger-border);
+  --color-danger-text: var(--danger-text);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-text: var(--info-text);
+  --color-overlay: var(--overlay);
+  --color-glass: var(--glass);
 }
 
 /* Design tokens. Every color in the app comes from here.

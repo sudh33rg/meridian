@@ -41,11 +41,11 @@ export function Topbar() {
   const pageLabel = NAV_BY_ID[tab]?.label ?? "Overview";
 
   return (
-    <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between gap-3 sticky top-0 z-30 shrink-0">
+    <header className="h-16 border-b border-border bg-surface/85 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between gap-3 sticky top-0 z-30 shrink-0">
       {/* Left: Hamburger (Mobile) + Breadcrumbs */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <button
-          className="p-2 -ml-1 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors md:hidden cursor-pointer"
+          className="p-2 -ml-1 rounded-lg text-text-muted hover:text-text-main hover:bg-surface-3 transition-colors md:hidden cursor-pointer"
           aria-label="Open menu"
           onClick={() => setMobileMenu(true)}
         >
@@ -54,24 +54,24 @@ export function Topbar() {
 
         <nav
           aria-label="Breadcrumb"
-          className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium truncate"
+          className="flex items-center gap-1.5 text-xs sm:text-sm text-text-muted font-medium truncate"
         >
           <button
-            className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer truncate max-w-[100px] sm:max-w-[150px]"
+            className="hover:text-text-main transition-colors cursor-pointer truncate max-w-[100px] sm:max-w-[150px]"
             onClick={() => setTab("overview")}
           >
             {session.organization}
           </button>
           {project && (
             <>
-              <ChevronRight size={14} className="text-slate-400 shrink-0" />
-              <span className="text-slate-700 dark:text-slate-300 font-semibold truncate max-w-[120px] sm:max-w-[180px]">
+              <ChevronRight size={14} className="text-text-subtle shrink-0" />
+              <span className="text-text-main font-semibold truncate max-w-[120px] sm:max-w-[180px]">
                 {project.name}
               </span>
             </>
           )}
-          <ChevronRight size={14} className="text-slate-400 shrink-0" />
-          <span className="text-indigo-600 dark:text-indigo-400 font-bold truncate" aria-current="page">
+          <ChevronRight size={14} className="text-text-subtle shrink-0" />
+          <span className="text-accent font-bold truncate" aria-current="page">
             {pageLabel}
           </span>
         </nav>
@@ -79,7 +79,7 @@ export function Topbar() {
 
       {/* Middle: Command Search Trigger (Desktop) */}
       <button
-        className="hidden md:flex items-center justify-between gap-4 px-3.5 py-1.5 rounded-xl bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200/70 dark:hover:bg-slate-750 text-slate-500 dark:text-slate-400 text-xs w-64 lg:w-80 border border-slate-200/60 dark:border-slate-700/60 transition-colors cursor-pointer"
+        className="hidden md:flex items-center justify-between gap-4 px-3.5 py-1.5 rounded-xl bg-surface-2 hover:bg-surface-3 text-text-muted text-xs w-64 lg:w-80 border border-border transition-colors cursor-pointer"
         onClick={() => setPaletteOpen(true)}
         aria-label="Open command palette"
       >
@@ -87,7 +87,7 @@ export function Topbar() {
           <Search size={14} className="shrink-0" />
           <span className="truncate">Search or jump to…</span>
         </div>
-        <kbd className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-300 shadow-2xs">
+        <kbd className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-surface border border-border text-text-muted shadow-2xs">
           ⌘K
         </kbd>
       </button>
@@ -96,7 +96,7 @@ export function Topbar() {
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         {/* Search icon (Mobile only) */}
         <button
-          className="flex md:hidden p-2 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          className="flex md:hidden p-2 rounded-lg text-text-muted hover:text-text-main hover:bg-surface-3 transition-colors cursor-pointer"
           aria-label="Search"
           onClick={() => setPaletteOpen(true)}
         >
@@ -106,7 +106,7 @@ export function Topbar() {
         {/* Create Button Popover */}
         <div className="relative" ref={createRef}>
           <button
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 shadow-xs transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold text-white bg-accent hover:bg-accent-strong active:bg-accent-strong shadow-xs transition-colors cursor-pointer"
             aria-haspopup="menu"
             aria-expanded={createOpen}
             onClick={() => setCreateOpen((o) => !o)}
@@ -117,7 +117,7 @@ export function Topbar() {
 
           {createOpen && (
             <div
-              className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-1.5 z-50 animate-fadeIn"
+              className="absolute right-0 mt-2 w-48 bg-surface rounded-xl shadow-xl border border-border p-1.5 z-50 animate-fadeIn"
               role="menu"
               aria-label="Create"
             >
@@ -128,13 +128,13 @@ export function Topbar() {
                   setCreateOpen(false);
                   setModal("issue");
                 }}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors cursor-pointer"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold text-text-main hover:bg-surface-3 disabled:opacity-50 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-2">
-                  <ListPlus size={15} className="text-indigo-600 dark:text-indigo-400" />
+                  <ListPlus size={15} className="text-accent" />
                   <span>New issue</span>
                 </div>
-                <kbd className="text-[10px] text-slate-400">C</kbd>
+                <kbd className="text-[10px] text-text-muted">C</kbd>
               </button>
 
               <button
@@ -144,9 +144,9 @@ export function Topbar() {
                   setCreateOpen(false);
                   setModal("page");
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-text-main hover:bg-surface-3 disabled:opacity-50 transition-colors cursor-pointer"
               >
-                <FileText size={15} className="text-emerald-600 dark:text-emerald-400" />
+                <FileText size={15} className="text-success" />
                 <span>New page</span>
               </button>
 
@@ -156,9 +156,9 @@ export function Topbar() {
                   setCreateOpen(false);
                   setModal("project");
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-text-main hover:bg-surface-3 transition-colors cursor-pointer"
               >
-                <FolderKanban size={15} className="text-amber-600 dark:text-amber-400" />
+                <FolderKanban size={15} className="text-warning" />
                 <span>New project</span>
               </button>
             </div>
@@ -167,7 +167,7 @@ export function Topbar() {
 
         {/* Shortcuts (?) trigger (Desktop) */}
         <button
-          className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold transition-colors cursor-pointer"
+          className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg text-text-muted hover:text-text-main hover:bg-surface-3 text-xs font-bold transition-colors cursor-pointer"
           aria-label="Keyboard shortcuts"
           title="Keyboard shortcuts (?)"
           onClick={() => setHelpOpen(true)}
@@ -181,7 +181,7 @@ export function Topbar() {
         {/* User Account Popover */}
         <div className="relative" ref={userRef}>
           <button
-            className="p-0.5 rounded-full ring-2 ring-transparent hover:ring-indigo-500/30 transition-all cursor-pointer flex items-center"
+            className="p-0.5 rounded-full ring-2 ring-transparent hover:ring-accent-ring transition-all cursor-pointer flex items-center"
             aria-label="Account menu"
             aria-haspopup="menu"
             aria-expanded={userOpen}
@@ -192,23 +192,21 @@ export function Topbar() {
 
           {userOpen && (
             <div
-              className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-2 z-50 animate-fadeIn"
+              className="absolute right-0 mt-2 w-56 bg-surface rounded-xl shadow-xl border border-border p-2 z-50 animate-fadeIn"
               role="menu"
               aria-label="Account"
             >
-              <div className="px-3 py-2.5 border-b border-slate-100 dark:border-slate-800/80 mb-1 flex items-center gap-2.5">
+              <div className="px-3 py-2.5 border-b border-border mb-1 flex items-center gap-2.5">
                 <Avatar name={session.name} size={34} />
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                    {session.name}
-                  </div>
-                  <div className="text-[11px] text-slate-400 dark:text-slate-500 truncate">{me?.email}</div>
+                  <div className="text-xs font-bold text-text-main truncate">{session.name}</div>
+                  <div className="text-[11px] text-text-muted truncate">{me?.email}</div>
                 </div>
               </div>
 
               <button
                 role="menuitem"
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-text-main hover:bg-surface-3 transition-colors cursor-pointer"
                 onClick={() => {
                   setUserOpen(false);
                   setTab("appearance");
@@ -218,11 +216,11 @@ export function Topbar() {
                 <span>Appearance</span>
               </button>
 
-              <div className="my-1 border-t border-slate-100 dark:border-slate-800/80" />
+              <div className="my-1 border-t border-border" />
 
               <button
                 role="menuitem"
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-danger hover:bg-danger-soft transition-colors cursor-pointer"
                 onClick={logout}
               >
                 <LogOut size={15} />

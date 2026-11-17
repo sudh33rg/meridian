@@ -92,13 +92,10 @@ export function BacklogTab() {
         <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3 min-w-0">
             <div>
-              <h2
-                id="backlog-title"
-                className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white m-0"
-              >
+              <h2 id="backlog-title" className="text-lg sm:text-xl font-bold text-text-main m-0">
                 Backlog
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 m-0">
+              <p className="text-xs text-text-muted m-0">
                 Prioritize work and drag items directly into active or planned sprints.
               </p>
             </div>
@@ -106,12 +103,12 @@ export function BacklogTab() {
 
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Team Filter */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <div className="flex items-center gap-1.5 text-xs text-text-muted">
               <span className="font-semibold hidden sm:inline">Team:</span>
               <select
                 value={teamFilter}
                 onChange={(e) => setTeamFilter(e.target.value)}
-                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-border bg-surface-2 text-text-main"
               >
                 <option value="">All teams</option>
                 {teamList.map((t) => (
@@ -124,18 +121,18 @@ export function BacklogTab() {
 
             {/* Search Input */}
             <div className="relative min-w-[160px] sm:w-56">
-              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search backlog…"
                 maxLength={200}
-                className="w-full pl-8 pr-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden"
+                className="w-full pl-8 pr-3 py-1.5 rounded-lg text-xs border border-border bg-surface-2 text-text-main placeholder-text-muted focus:outline-hidden"
               />
             </div>
 
             <button
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border border-border bg-surface-2 hover:bg-surface-3 text-text-main transition-colors cursor-pointer"
               onClick={() => setTab("sprints")}
             >
               <span>Sprints</span>
@@ -150,10 +147,10 @@ export function BacklogTab() {
         {/* Left 2 Cols: Backlog List */}
         <div className="lg:col-span-2 space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">
               Product Backlog ({items.length})
             </h3>
-            <span className="text-xs text-slate-400">Drag to rank · Alt + ↑/↓ to move</span>
+            <span className="text-xs text-text-muted">Drag to rank · Alt + ↑/↓ to move</span>
           </div>
 
           <Card
@@ -171,28 +168,26 @@ export function BacklogTab() {
             }}
           >
             {backlog.isLoading && (
-              <div className="p-8 text-center text-xs text-slate-400">Loading backlog…</div>
+              <div className="p-8 text-center text-xs text-text-muted">Loading backlog…</div>
             )}
             {backlog.isError && (
-              <div className="p-4 text-xs text-rose-600 bg-rose-50 dark:bg-rose-950/50">
-                Could not load the backlog.
-              </div>
+              <div className="p-4 text-xs text-danger-text bg-danger-soft">Could not load the backlog.</div>
             )}
 
-            <ol className="divide-y divide-slate-100 dark:divide-slate-800/80 m-0 p-0 list-none">
+            <ol className="divide-y divide-border m-0 p-0 list-none">
               {items.map((item, index) => (
                 <li
                   key={item.id}
                   draggable
                   tabIndex={0}
                   aria-label={`${key}-${item.number} ${item.title}, rank ${index + 1} of ${items.length}`}
-                  className={`p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 transition-colors cursor-grab active:cursor-grabbing hover:bg-slate-50/80 dark:hover:bg-slate-850/60 ${
-                    dragId === item.id ? "opacity-30 bg-indigo-50 dark:bg-indigo-950/40" : ""
+                  className={`p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 transition-colors cursor-grab active:cursor-grabbing hover:bg-surface-2 ${
+                    dragId === item.id ? "opacity-30 bg-accent-soft" : ""
                   } ${
                     overRow?.id === item.id
                       ? overRow.pos === "before"
-                        ? "border-t-2 border-t-indigo-500"
-                        : "border-b-2 border-b-indigo-500"
+                        ? "border-t-2 border-t-accent"
+                        : "border-b-2 border-b-accent"
                       : ""
                   }`}
                   onDragStart={(e) => {
@@ -239,38 +234,38 @@ export function BacklogTab() {
                 >
                   {/* Left info */}
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <span className="text-slate-300 dark:text-slate-600 hover:text-slate-500 cursor-grab shrink-0">
+                    <span className="text-text-subtle hover:text-text-main cursor-grab shrink-0">
                       <GripVertical size={16} />
                     </span>
 
                     <KindIcon kind={item.kind} size={15} />
 
                     <button
-                      className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline shrink-0"
+                      className="font-mono text-xs font-bold text-accent hover:underline shrink-0"
                       onClick={() => setSelectedIssue(item.id)}
                       tabIndex={-1}
                     >
                       {key}-{item.number}
                     </button>
 
-                    <span className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white truncate">
+                    <span className="text-xs sm:text-sm font-semibold text-text-main truncate">
                       {item.title}
                     </span>
                   </div>
 
                   {/* Right metadata and sprint assigner */}
-                  <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border">
                     <div className="flex items-center gap-2">
                       {item.team_id && (
-                        <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-surface-2 text-text-muted">
                           {teamName(teamList, item.team_id)}
                         </span>
                       )}
-                      <span className="text-[11px] text-slate-400 font-medium">
+                      <span className="text-[11px] text-text-muted font-medium">
                         {statusLabel(item.status)}
                       </span>
                       <PriorityIcon priority={item.priority} />
-                      <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300">
+                      <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-accent-soft text-accent">
                         {item.story_points != null ? `${item.story_points} pt` : "–"}
                       </span>
                     </div>
@@ -282,7 +277,7 @@ export function BacklogTab() {
                       onChange={(e) => {
                         if (e.target.value) addToSprint(item.id, e.target.value);
                       }}
-                      className="px-2 py-1 rounded-md text-[11px] font-medium border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-hidden"
+                      className="px-2 py-1 rounded-md text-[11px] font-medium border border-border bg-surface-2 text-text-main focus:outline-hidden"
                     >
                       <option value="">{laneSprints.length ? "To sprint…" : "No sprint"}</option>
                       {laneSprints.map((s) => (
@@ -297,7 +292,7 @@ export function BacklogTab() {
             </ol>
 
             {!backlog.isLoading && items.length === 0 && (
-              <div className="py-16 text-center text-xs sm:text-sm text-slate-400 dark:text-slate-500">
+              <div className="py-16 text-center text-xs sm:text-sm text-text-muted">
                 {search || teamFilter
                   ? "Nothing matches these filters."
                   : "The backlog is empty. Every issue is in a sprint, or completed."}
@@ -309,7 +304,7 @@ export function BacklogTab() {
         {/* Right 1 Col: Open Sprints */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-text-muted">
               Open Sprints ({laneSprints.length})
             </h3>
           </div>
@@ -327,7 +322,7 @@ export function BacklogTab() {
               />
             ))}
             {!sprints.isLoading && laneSprints.length === 0 && (
-              <div className="p-8 text-center text-xs text-slate-400 dark:text-slate-500 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+              <div className="p-8 text-center text-xs text-text-muted border border-dashed border-border rounded-xl">
                 No active or planned sprint. Create one on the Sprints page.
               </div>
             )}

@@ -54,7 +54,7 @@ function PageTree({
           {kids.length > 0 ? (
             <button
               type="button"
-              className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
+              className="p-1 rounded text-text-muted hover:text-text-main transition-colors cursor-pointer"
               aria-expanded={open}
               aria-label={`${open ? "Collapse" : "Expand"} ${p.title}`}
               onClick={() => toggle(p.id)}
@@ -67,20 +67,15 @@ function PageTree({
 
           <button
             className={`flex-1 flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors text-left cursor-pointer truncate ${
-              isActive
-                ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold"
-                : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              isActive ? "bg-accent-soft text-accent font-bold" : "text-text-main hover:bg-surface-3"
             }`}
             aria-current={isActive ? "page" : undefined}
             onClick={() => onOpen(p)}
           >
-            <FileText
-              size={15}
-              className={`shrink-0 ${isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}`}
-            />
+            <FileText size={15} className={`shrink-0 ${isActive ? "text-accent" : "text-text-muted"}`} />
             <span className="truncate flex-1">{p.title}</span>
             {homeId === p.id && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 shrink-0">
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-warning-soft text-warning-text border border-warning-border shrink-0">
                 <Home size={10} /> Home
               </span>
             )}
@@ -133,27 +128,26 @@ function BlogPanel({
   });
 
   return (
-    <section
-      className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3"
-      aria-label="Blog"
-    >
-      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 m-0">Blog & Announcements</h4>
+    <section className="mt-6 pt-4 border-t border-border space-y-3" aria-label="Blog">
+      <h4 className="text-xs font-bold uppercase tracking-wider text-text-subtle m-0">
+        Blog & Announcements
+      </h4>
       <div className="space-y-1">
         {(blogQ.data ?? []).map((b) => {
           const page = pages.find((p) => p.id === b.page_id);
           return page ? (
             <button
               key={b.page_id}
-              className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left cursor-pointer"
+              className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-text-main hover:bg-surface-3 transition-colors text-left cursor-pointer"
               onClick={() => onOpen(page)}
             >
               <span className="truncate">{b.title}</span>
-              <span className="text-[10px] text-slate-400 shrink-0">{formatDate(b.published_at)}</span>
+              <span className="text-[10px] text-text-muted shrink-0">{formatDate(b.published_at)}</span>
             </button>
           ) : null;
         })}
         {!(blogQ.data ?? []).length && (
-          <div className="py-2 text-xs text-slate-400 italic">No blog posts yet</div>
+          <div className="py-2 text-xs text-text-muted italic">No blog posts yet</div>
         )}
       </div>
 
@@ -170,10 +164,10 @@ function BlogPanel({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="New post title…"
-          className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+          className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg text-xs border border-border bg-surface-2 text-text-main"
         />
         <button
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-border bg-surface-2 text-text-main hover:bg-surface-3 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
           type="submit"
           disabled={!title.trim() || publish.isPending}
         >
@@ -199,11 +193,11 @@ export function KnowledgeTab() {
   return (
     <div className="space-y-4">
       {/* Mobile switcher: Document vs Pages Tree */}
-      <div className="flex sm:hidden items-center justify-between bg-white dark:bg-slate-900 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+      <div className="flex sm:hidden items-center justify-between bg-surface p-1.5 rounded-xl border border-border">
         <button
           onClick={() => setMobileTab("sidebar")}
           className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
-            mobileTab === "sidebar" ? "bg-indigo-600 text-white" : "text-slate-600 dark:text-slate-400"
+            mobileTab === "sidebar" ? "bg-accent text-white" : "text-text-muted"
           }`}
         >
           Pages Directory ({pages.length})
@@ -211,7 +205,7 @@ export function KnowledgeTab() {
         <button
           onClick={() => setMobileTab("doc")}
           className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
-            mobileTab === "doc" ? "bg-indigo-600 text-white" : "text-slate-600 dark:text-slate-400"
+            mobileTab === "doc" ? "bg-accent text-white" : "text-text-muted"
           }`}
         >
           Document Viewer
@@ -224,13 +218,13 @@ export function KnowledgeTab() {
           <Card>
             <CardHeader className="py-3 px-4">
               <CardTitle className="text-sm">
-                <FileText size={16} className="text-indigo-600 dark:text-indigo-400" />
+                <FileText size={16} className="text-accent" />
                 Knowledge Pages
               </CardTitle>
               <button
                 onClick={() => setModal("page")}
                 aria-label="New page"
-                className="p-1 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="p-1 rounded-lg text-text-muted hover:text-text-main hover:bg-surface-3 transition-colors cursor-pointer"
               >
                 <Plus size={16} />
               </button>
@@ -246,7 +240,7 @@ export function KnowledgeTab() {
                   setMobileTab("doc");
                 }}
               />
-              {!pages.length && <div className="py-8 text-center text-xs text-slate-400">No pages yet</div>}
+              {!pages.length && <div className="py-8 text-center text-xs text-text-muted">No pages yet</div>}
 
               <BlogPanel
                 token={session.token}
@@ -267,18 +261,18 @@ export function KnowledgeTab() {
             <PageEditor key={activePage.id} />
           ) : (
             <Card className="py-16 px-6 text-center">
-              <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-accent-soft text-accent flex items-center justify-center">
                 <BookOpen size={28} />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1.5">
+              <h3 className="text-lg font-bold text-text-main mb-1.5">
                 Knowledge belongs right next to work.
               </h3>
-              <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto mb-6">
+              <p className="text-xs sm:text-sm text-text-muted max-w-sm mx-auto mb-6">
                 Select a document from the left directory or create a new page to write notes, RFCs, and
                 release specs.
               </p>
               <button
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold text-white bg-accent hover:bg-accent-strong transition-colors cursor-pointer"
                 onClick={() => setModal("page")}
               >
                 <Plus size={16} /> New page
@@ -357,11 +351,11 @@ function PageEditor() {
   return (
     <Card className="overflow-hidden">
       {/* Top Document Header Controls */}
-      <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-xs text-slate-500">
+      <div className="p-4 sm:p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-xs text-text-muted">
           <span>Document · Version {page.version}</span>
           {access.data?.restricted && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-warning-soft text-warning-text border border-warning-border">
               <Lock size={10} /> Restricted
             </span>
           )}
@@ -379,14 +373,14 @@ function PageEditor() {
             }}
           />
 
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+          <div className="flex items-center gap-1.5 text-xs text-text-muted">
             <span className="hidden sm:inline">Parent:</span>
             <select
               aria-label="Parent page"
               value={page.parent_id ?? ""}
               disabled={moveTo.isPending}
               onChange={(e) => moveTo.mutate(e.target.value || null)}
-              className="px-2 py-1 rounded-md text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+              className="px-2 py-1 rounded-md text-xs border border-border bg-surface-2 text-text-main"
             >
               <option value="">Top level</option>
               {pages
@@ -402,8 +396,8 @@ function PageEditor() {
           <button
             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
               homeQ.data?.page_id === page.id
-                ? "bg-amber-50 dark:bg-amber-950/60 border-amber-300 text-amber-700 dark:text-amber-300"
-                : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-700 dark:text-slate-300"
+                ? "bg-warning-soft border-warning-border text-warning-text"
+                : "border-border bg-surface-2 hover:bg-surface-3 text-text-main"
             }`}
             aria-pressed={homeQ.data?.page_id === page.id}
             disabled={setHome.isPending}
@@ -413,14 +407,14 @@ function PageEditor() {
           </button>
 
           <button
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border border-border bg-surface-2 hover:bg-surface-3 text-text-main transition-colors cursor-pointer"
             onClick={() => setShowAccess((v) => !v)}
           >
             <Lock size={13} /> Access
           </button>
 
           <button
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border border-border bg-surface-2 hover:bg-surface-3 text-text-main transition-colors cursor-pointer"
             onClick={() => setShowInline((v) => !v)}
           >
             <MessageSquare size={13} /> Comments
@@ -436,7 +430,7 @@ function PageEditor() {
       {/* Editor Body */}
       <CardContent className="p-4 sm:p-8 space-y-6">
         <input
-          className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white font-display border-0 bg-transparent focus:outline-hidden w-full m-0 p-0"
+          className="text-2xl sm:text-3xl font-extrabold tracking-tight text-text-main font-display border-0 bg-transparent focus:outline-hidden w-full m-0 p-0"
           value={title}
           readOnly={!canEdit}
           onChange={(e) => setTitle(e.target.value)}
@@ -449,23 +443,22 @@ function PageEditor() {
         )}
 
         {page.content.includes("{{") && (
-          <section
-            className="pt-6 border-t border-slate-100 dark:border-slate-800"
-            aria-label="Rendered page"
-          >
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Rendered view</h4>
+          <section className="pt-6 border-t border-border" aria-label="Rendered page">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-text-subtle mb-3">
+              Rendered view
+            </h4>
             <div className="prose dark:prose-invert max-w-none">
               <PageBody content={page.content} token={session.token} projectId={selected} />
             </div>
           </section>
         )}
 
-        <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+        <div className="pt-6 border-t border-border">
           <Attachments entityType="page" entityId={page.id} canEdit={canEdit} />
         </div>
 
-        <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-3">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 m-0">
+        <div className="pt-6 border-t border-border space-y-3">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-text-subtle m-0">
             Connected Work & Issues
           </h4>
           <EntityRelations

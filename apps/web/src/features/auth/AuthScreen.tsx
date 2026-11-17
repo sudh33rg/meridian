@@ -64,26 +64,26 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (s: Session) 
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col lg:flex-row antialiased">
+    <div className="min-h-screen bg-bg text-text-main flex flex-col lg:flex-row antialiased">
       {/* Brand Hero Side (Desktop & Tablet) */}
       <div className="w-full lg:w-5/12 xl:w-1/2 bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white p-6 sm:p-10 lg:p-16 flex flex-col justify-between relative overflow-hidden">
         {/* Subtle decorative glow */}
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Top: Logo */}
         <div className="flex items-center gap-3 relative z-10">
-          <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-display font-extrabold text-2xl text-white shadow-lg -rotate-3">
+          <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center font-display font-extrabold text-2xl text-on-accent shadow-lg -rotate-3">
             M
           </div>
           <span className="font-display font-black text-2xl tracking-tight text-white">
-            meridian<span className="text-indigo-400">.</span>
+            meridian<span className="text-accent">.</span>
           </span>
         </div>
 
         {/* Center: Hero copy */}
         <div className="my-10 lg:my-0 relative z-10 max-w-lg">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-accent/20 text-white border border-accent/30 mb-6">
             <Sparkles size={13} /> ONE SPACE. TOTAL CLARITY.
           </div>
           <h1 className="text-3xl sm:text-4xl xl:text-5xl font-extrabold tracking-tight font-display leading-[1.15] text-white">
@@ -92,47 +92,47 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (s: Session) 
               connects.
             </span>
           </h1>
-          <p className="mt-4 text-base sm:text-lg text-slate-300 leading-relaxed">
+          <p className="mt-4 text-base sm:text-lg text-white/80 leading-relaxed">
             Projects, people, and knowledge — beautifully connected in a workspace built for high-velocity
             teams.
           </p>
 
           <div className="mt-8 space-y-3.5 pt-6 border-t border-white/10 hidden sm:block">
-            <div className="flex items-center gap-3 text-sm text-slate-300">
-              <CheckCircle2 size={18} className="text-indigo-400 shrink-0" />
+            <div className="flex items-center gap-3 text-sm text-white/80">
+              <CheckCircle2 size={18} className="text-accent shrink-0" />
               <span>Full-lifecycle work tracking & Kanban boards</span>
             </div>
-            <div className="flex items-center gap-3 text-sm text-slate-300">
-              <CheckCircle2 size={18} className="text-indigo-400 shrink-0" />
+            <div className="flex items-center gap-3 text-sm text-white/80">
+              <CheckCircle2 size={18} className="text-accent shrink-0" />
               <span>Real-time collaborative knowledge base</span>
             </div>
-            <div className="flex items-center gap-3 text-sm text-slate-300">
-              <CheckCircle2 size={18} className="text-indigo-400 shrink-0" />
+            <div className="flex items-center gap-3 text-sm text-white/80">
+              <CheckCircle2 size={18} className="text-accent shrink-0" />
               <span>Sprints, velocity forecasting, and burndown metrics</span>
             </div>
           </div>
         </div>
 
         {/* Bottom banner */}
-        <div className="pt-6 border-t border-white/10 text-xs font-bold tracking-wider uppercase text-slate-400 flex items-center justify-between relative z-10">
+        <div className="pt-6 border-t border-white/10 text-xs font-bold tracking-wider uppercase text-white/60 flex items-center justify-between relative z-10">
           <span>DESIGNED FOR TEAMS THAT MOVE FORWARD</span>
-          <ArrowUpRight size={16} className="text-indigo-400" />
+          <ArrowUpRight size={16} className="text-accent" />
         </div>
       </div>
 
       {/* Auth Form Side */}
       <div className="flex-1 flex items-center justify-center p-4 sm:p-8 lg:p-12 relative">
-        <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl sm:shadow-2xl border border-slate-200/90 dark:border-slate-800 p-6 sm:p-8 space-y-6">
+        <div className="w-full max-w-md bg-surface rounded-2xl shadow-xl sm:shadow-2xl border border-border p-6 sm:p-8 space-y-6">
           {/* Header */}
           <div>
-            <div className="text-[11px] font-extrabold tracking-wider uppercase text-indigo-600 dark:text-indigo-400 mb-1.5 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
+            <div className="text-[11px] font-extrabold tracking-wider uppercase text-accent mb-1.5 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent" />
               WELCOME TO MERIDIAN
             </div>
-            <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight font-display m-0">
+            <h2 className="text-2xl font-extrabold text-text-main tracking-tight font-display m-0">
               {mode === "signup" ? "Build your next chapter." : "Welcome back."}
             </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-sm text-text-muted mt-1">
               {mode === "signup"
                 ? "Create your workspace and bring your team together."
                 : "Sign in to continue your work."}
@@ -144,25 +144,25 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (s: Session) 
             {mode === "signup" && (
               <>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-text-main mb-1.5">
                     Organization name
                   </label>
                   <input
                     required
                     placeholder="Acme Studio"
-                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 text-sm transition-colors"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-surface text-text-main placeholder-text-muted focus:outline-hidden focus:ring-2 focus:ring-accent/25 focus:border-accent text-sm transition-colors"
                     value={authForm.organization}
                     onChange={(e) => setAuthForm({ ...authForm, organization: e.target.value })}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-text-main mb-1.5">
                     Your name
                   </label>
                   <input
                     required
                     placeholder="Alex Morgan"
-                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 text-sm transition-colors"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-surface text-text-main placeholder-text-muted focus:outline-hidden focus:ring-2 focus:ring-accent/25 focus:border-accent text-sm transition-colors"
                     value={authForm.name}
                     onChange={(e) => setAuthForm({ ...authForm, name: e.target.value })}
                   />
@@ -171,27 +171,27 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (s: Session) 
             )}
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-text-main mb-1.5">
                 Workspace URL / slug
               </label>
               <input
                 required
                 placeholder="acme-studio"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 text-sm transition-colors"
+                className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-surface text-text-main placeholder-text-muted focus:outline-hidden focus:ring-2 focus:ring-accent/25 focus:border-accent text-sm transition-colors"
                 value={authForm.slug}
                 onChange={(e) => setAuthForm({ ...authForm, slug: e.target.value.toLowerCase() })}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-text-main mb-1.5">
                 Work email
               </label>
               <input
                 type="email"
                 required
                 placeholder="alex@company.com"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 text-sm transition-colors"
+                className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-surface text-text-main placeholder-text-muted focus:outline-hidden focus:ring-2 focus:ring-accent/25 focus:border-accent text-sm transition-colors"
                 value={authForm.email}
                 onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
               />
@@ -199,14 +199,9 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (s: Session) 
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Password
-                </label>
+                <label className="text-xs font-bold uppercase tracking-wider text-text-main">Password</label>
                 {mode === "login" && (
-                  <a
-                    className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
-                    href="/auth/forgot"
-                  >
+                  <a className="text-xs font-semibold text-accent hover:underline" href="/auth/forgot">
                     Forgot password?
                   </a>
                 )}
@@ -216,20 +211,20 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (s: Session) 
                 required
                 minLength={mode === "signup" ? 12 : 1}
                 placeholder="At least 12 characters"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 text-sm transition-colors"
+                className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-surface text-text-main placeholder-text-muted focus:outline-hidden focus:ring-2 focus:ring-accent/25 focus:border-accent text-sm transition-colors"
                 value={authForm.password}
                 onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
               />
             </div>
 
             {ssoError && (
-              <div className="error p-3 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-medium">
+              <div className="error p-3 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium">
                 {ssoMessages[ssoError] ?? "Single sign-on failed."}
               </div>
             )}
 
             {error && (
-              <div className="error p-3 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-medium">
+              <div className="error p-3 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium">
                 {error}
               </div>
             )}
@@ -237,7 +232,7 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (s: Session) 
             {mode === "login" && (
               <button
                 type="button"
-                className="w-full py-2.5 px-4 rounded-lg font-semibold text-sm border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-2.5 px-4 rounded-lg font-semibold text-sm border border-border bg-surface-2 hover:bg-surface-3 text-text-main transition-colors cursor-pointer flex items-center justify-center gap-2"
                 onClick={startSso}
               >
                 <ShieldCheck size={16} /> Sign in with SSO
@@ -246,7 +241,7 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (s: Session) 
 
             <button
               type="submit"
-              className="w-full py-3 px-4 rounded-lg font-semibold text-sm text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 shadow-md shadow-indigo-500/20 transition-all cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 rounded-lg font-semibold text-sm text-on-accent bg-accent hover:bg-accent-strong active:opacity-90 shadow-md shadow-accent/20 transition-all cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
               disabled={busy}
             >
               <span>{busy ? "Please wait…" : mode === "signup" ? "Create workspace" : "Sign in"}</span>
@@ -255,11 +250,11 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (s: Session) 
           </form>
 
           {/* Switch mode */}
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 text-center text-xs text-slate-600 dark:text-slate-400">
+          <div className="pt-4 border-t border-border text-center text-xs text-text-muted">
             {mode === "signup" ? "Already have a workspace?" : "New to Meridian?"}{" "}
             <button
               type="button"
-              className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer ml-1"
+              className="font-bold text-accent hover:underline cursor-pointer ml-1"
               onClick={() => {
                 setMode(mode === "signup" ? "login" : "signup");
                 setError("");

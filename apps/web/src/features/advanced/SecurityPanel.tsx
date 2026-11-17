@@ -60,12 +60,12 @@ function ChangePassword({ onChanged }: { onChanged: () => void }) {
     <Card>
       <CardHeader>
         <CardTitle>
-          <KeyRound size={17} className="text-indigo-600 dark:text-indigo-400" />
+          <KeyRound size={17} className="text-accent" />
           Change Password
         </CardTitle>
       </CardHeader>
       <CardContent className="p-4 sm:p-6 space-y-4">
-        <p className="text-xs text-slate-500 m-0">
+        <p className="text-xs text-text-muted m-0">
           Changing your password immediately signs out all other active browsers and mobile sessions.
         </p>
 
@@ -78,7 +78,7 @@ function ChangePassword({ onChanged }: { onChanged: () => void }) {
           className="space-y-4 max-w-md"
         >
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-text-main mb-1.5">
               Current password
             </label>
             <input
@@ -87,12 +87,12 @@ function ChangePassword({ onChanged }: { onChanged: () => void }) {
               autoComplete="current-password"
               value={form.current_password}
               onChange={(e) => setForm({ ...form, current_password: e.target.value })}
-              className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 text-sm"
+              className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-surface text-text-main placeholder-text-muted focus:outline-hidden focus:ring-2 focus:ring-accent/25 focus:border-accent text-sm"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-text-main mb-1.5">
               New password
             </label>
             <input
@@ -103,25 +103,25 @@ function ChangePassword({ onChanged }: { onChanged: () => void }) {
               placeholder="At least 12 characters"
               value={form.new_password}
               onChange={(e) => setForm({ ...form, new_password: e.target.value })}
-              className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 text-sm"
+              className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-surface text-text-main placeholder-text-muted focus:outline-hidden focus:ring-2 focus:ring-accent/25 focus:border-accent text-sm"
             />
           </div>
 
           {state.kind === "error" && (
-            <div className="error p-3 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-medium">
+            <div className="error p-3 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium">
               {state.text}
             </div>
           )}
 
           {state.kind === "ok" && (
-            <div className="ok p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 text-xs font-medium">
+            <div className="ok p-3 rounded-lg bg-success-soft border border-success-border text-success-text text-xs font-medium">
               {state.text}
             </div>
           )}
 
           <button
             type="submit"
-            className="px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 transition-colors cursor-pointer disabled:opacity-60"
+            className="px-4 py-2.5 rounded-lg text-xs sm:text-sm font-semibold text-on-accent bg-accent hover:bg-accent-strong active:opacity-90 transition-colors cursor-pointer disabled:opacity-60"
             disabled={change.isPending}
           >
             {change.isPending ? "Please wait…" : "Change password"}
@@ -158,10 +158,8 @@ export function SecurityPanel() {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white m-0">
-          Security & Access
-        </h2>
-        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 m-0">
+        <h2 className="text-xl sm:text-2xl font-bold text-text-main m-0">Security & Access</h2>
+        <p className="text-xs sm:text-sm text-text-muted mt-1 m-0">
           Manage your credentials, two-factor authentication, and monitor connected devices.
         </p>
       </div>
@@ -170,31 +168,29 @@ export function SecurityPanel() {
       <Card>
         <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-accent-soft text-accent flex items-center justify-center shrink-0">
               <ShieldCheck size={22} />
             </div>
             <div>
-              <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
-                Account Credentials
-              </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Signed in as <b className="text-slate-800 dark:text-slate-200">{me?.email}</b>
+              <div className="text-xs sm:text-sm font-bold text-text-main">Account Credentials</div>
+              <div className="text-xs text-text-muted mt-0.5">
+                Signed in as <b className="text-text-main">{me?.email}</b>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             {me?.email_verified ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-success-soft text-success-text border border-success-border">
                 <Check size={13} /> Email verified
               </span>
             ) : (
               <>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-warning-soft text-warning-text border border-warning-border">
                   Email not verified
                 </span>
                 <button
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-border bg-surface-2 hover:bg-surface-3 text-text-main transition-colors cursor-pointer"
                   disabled={verificationSent}
                   onClick={resendVerification}
                 >
@@ -215,15 +211,15 @@ export function SecurityPanel() {
         <CardHeader className="flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <CardTitle>
-              <MonitorSmartphone size={17} className="text-indigo-600 dark:text-indigo-400" />
+              <MonitorSmartphone size={17} className="text-accent" />
               Active Sign-ins
             </CardTitle>
-            <p className="text-xs text-slate-500 m-0 mt-0.5">
+            <p className="text-xs text-text-muted m-0 mt-0.5">
               Browsers and devices currently authenticated into this workspace with your account.
             </p>
           </div>
           <button
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 transition-colors cursor-pointer disabled:opacity-50 self-start sm:self-auto"
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-danger-border bg-danger-soft text-danger-text hover:bg-danger/20 transition-colors cursor-pointer disabled:opacity-50 self-start sm:self-auto"
             disabled={rows.length < 2 || revokeOthers.isPending}
             onClick={() => revokeOthers.mutate()}
           >
@@ -232,10 +228,10 @@ export function SecurityPanel() {
         </CardHeader>
         <div className="overflow-x-auto">
           {sessions.isLoading ? (
-            <div className="p-6 text-xs text-slate-400 text-center">Loading sessions…</div>
+            <div className="p-6 text-xs text-text-muted text-center">Loading sessions…</div>
           ) : (
             <table className="w-full text-left text-xs sm:text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-850 text-slate-500 text-[11px] font-bold uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
+              <thead className="bg-surface-2 text-text-muted text-[11px] font-bold uppercase tracking-wider border-b border-border">
                 <tr>
                   <th className="px-4 py-3">Device & Browser</th>
                   <th className="px-4 py-3">Signed In</th>
@@ -243,27 +239,24 @@ export function SecurityPanel() {
                   <th className="px-4 py-3 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+              <tbody className="divide-y divide-border">
                 {rows.map((s) => (
-                  <tr
-                    key={s.id}
-                    className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors"
-                  >
-                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-white flex items-center gap-2">
-                      <Laptop size={15} className="text-slate-400 shrink-0" />
+                  <tr key={s.id} className="hover:bg-surface-2 transition-colors">
+                    <td className="px-4 py-3 font-medium text-text-main flex items-center gap-2">
+                      <Laptop size={15} className="text-text-muted shrink-0" />
                       <span>{device(s.user_agent)}</span>
                       {s.current && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-accent-soft text-accent">
                           This device
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-slate-500">{when(s.created_at)}</td>
-                    <td className="px-4 py-3 text-slate-500">{when(s.last_seen_at)}</td>
+                    <td className="px-4 py-3 text-text-muted">{when(s.created_at)}</td>
+                    <td className="px-4 py-3 text-text-muted">{when(s.last_seen_at)}</td>
                     <td className="px-4 py-3 text-right">
                       {!s.current && (
                         <button
-                          className="px-2.5 py-1 rounded text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer"
+                          className="px-2.5 py-1 rounded text-xs font-semibold text-danger-text hover:bg-danger-soft transition-colors cursor-pointer"
                           onClick={() => revoke.mutate(s.id)}
                         >
                           Revoke

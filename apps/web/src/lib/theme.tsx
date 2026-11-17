@@ -41,6 +41,7 @@ function apply(a: Appearance) {
   r.setAttribute("data-density", a.density);
   if (a.motion === "system") r.removeAttribute("data-motion");
   else r.setAttribute("data-motion", a.motion);
+  r.classList.toggle("dark", theme === "dark" || theme === "contrast");
   document
     .querySelector('meta[name="theme-color"]')
     ?.setAttribute("content", theme === "light" ? "#ffffff" : "#0d1117");

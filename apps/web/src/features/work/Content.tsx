@@ -70,15 +70,15 @@ export function Content() {
     <div className="max-w-7xl mx-auto w-full">
       {/* Unverified Email Banner */}
       {me && !me.email_verified && (
-        <div className="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900 text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm font-medium">
+        <div className="mb-6 p-4 rounded-xl bg-warning-soft border border-warning-border text-warning-text flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm font-medium">
           <div className="flex items-center gap-2">
-            <AlertTriangle size={18} className="text-amber-600 dark:text-amber-400 shrink-0" />
+            <AlertTriangle size={18} className="text-warning shrink-0" />
             <span>Please confirm your email address — we sent you a verification link.</span>
           </div>
           <button
             disabled={verificationSent}
             onClick={resendVerification}
-            className="px-3 py-1.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700 text-xs font-semibold shrink-0 cursor-pointer disabled:opacity-60 transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-warning text-white hover:opacity-90 text-xs font-semibold shrink-0 cursor-pointer disabled:opacity-60 transition-opacity"
           >
             {verificationSent ? "Email sent" : "Resend email"}
           </button>
@@ -110,7 +110,7 @@ export function Content() {
           actions={
             <>
               <button
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 shadow-2xs transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold border border-border bg-surface-2 text-text-main hover:bg-surface-3 shadow-2xs transition-colors cursor-pointer"
                 onClick={() => setModal("project")}
               >
                 <FolderKanban size={15} />
@@ -118,7 +118,7 @@ export function Content() {
               </button>
               {project && (
                 <button
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 shadow-xs transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold text-on-accent bg-accent hover:bg-accent-strong active:opacity-90 shadow-xs transition-colors cursor-pointer"
                   onClick={() => setModal(tab === "knowledge" ? "page" : "issue")}
                 >
                   <Plus size={16} />
@@ -132,11 +132,11 @@ export function Content() {
 
       {/* Global Error Banner */}
       {error && (
-        <div className="error app-error mb-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 flex items-center justify-between gap-3 text-xs sm:text-sm font-medium">
+        <div className="error app-error mb-6 p-4 rounded-xl bg-danger-soft border border-danger-border text-danger-text flex items-center justify-between gap-3 text-xs sm:text-sm font-medium">
           <span>{error}</span>
           <button
             onClick={() => setError("")}
-            className="p-1 rounded text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900 transition-colors cursor-pointer"
+            className="p-1 rounded text-danger-text hover:bg-danger/20 transition-colors cursor-pointer"
           >
             <X size={16} />
           </button>

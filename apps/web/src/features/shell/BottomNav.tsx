@@ -8,7 +8,7 @@ export function BottomNav({ onMore, moreIcon }: { onMore: () => void; moreIcon: 
 
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex items-center justify-around h-16 md:hidden px-1 shadow-lg"
+      className="fixed bottom-0 inset-x-0 z-40 bg-surface/95 backdrop-blur-md border-t border-border flex items-center justify-around h-16 md:hidden px-1 shadow-lg text-text-main"
       aria-label="Quick navigation"
     >
       {BOTTOM_TABS.map((id) => {
@@ -18,16 +18,12 @@ export function BottomNav({ onMore, moreIcon }: { onMore: () => void; moreIcon: 
           <button
             key={id}
             className={`flex flex-col items-center justify-center flex-1 h-full py-1 px-1 text-[11px] font-semibold transition-colors cursor-pointer ${
-              isActive
-                ? "text-indigo-600 dark:text-indigo-400 font-bold"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              isActive ? "text-accent font-bold" : "text-text-muted hover:text-text-main"
             }`}
             aria-current={isActive ? "page" : undefined}
             onClick={() => setTab(id)}
           >
-            <div className={`p-1 rounded-lg mb-0.5 ${isActive ? "bg-indigo-50 dark:bg-indigo-950/60" : ""}`}>
-              {n.icon}
-            </div>
+            <div className={`p-1 rounded-lg mb-0.5 ${isActive ? "bg-accent-soft" : ""}`}>{n.icon}</div>
             <span className="truncate max-w-[64px]">{n.label}</span>
           </button>
         );
@@ -35,7 +31,7 @@ export function BottomNav({ onMore, moreIcon }: { onMore: () => void; moreIcon: 
       <button
         onClick={onMore}
         aria-label="More"
-        className="flex flex-col items-center justify-center flex-1 h-full py-1 px-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+        className="flex flex-col items-center justify-center flex-1 h-full py-1 px-1 text-[11px] font-semibold text-text-muted hover:text-text-main transition-colors cursor-pointer"
       >
         <div className="p-1 rounded-lg mb-0.5">{moreIcon}</div>
         <span>More</span>

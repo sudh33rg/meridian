@@ -76,7 +76,7 @@ export function Sidebar() {
       {/* Mobile Backdrop Scrim */}
       {mobileMenu && (
         <div
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 md:hidden transition-opacity"
+          className="fixed inset-0 bg-overlay backdrop-blur-xs z-50 md:hidden transition-opacity"
           onClick={() => setMobileMenu(false)}
           aria-hidden="true"
         />
@@ -85,19 +85,19 @@ export function Sidebar() {
       {/* Sidebar Container */}
       <aside
         aria-label="Primary"
-        className={`fixed inset-y-0 left-0 z-50 md:static md:z-auto bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-200 ease-in-out shrink-0 ${
+        className={`fixed inset-y-0 left-0 z-50 md:static md:z-auto bg-surface border-r border-border flex flex-col transition-all duration-200 ease-in-out shrink-0 text-text-main ${
           mobileMenu ? "translate-x-0 w-72 max-w-[85vw] shadow-2xl" : "-translate-x-full md:translate-x-0"
         } ${collapsed ? "md:w-20" : "md:w-64"}`}
       >
         {/* Top Header */}
-        <div className="h-16 px-4 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2 shrink-0">
+        <div className="h-16 px-4 border-b border-border flex items-center justify-between gap-2 shrink-0">
           <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-display font-extrabold text-base text-white shadow-xs shrink-0 -rotate-3">
+            <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center font-display font-extrabold text-base text-white shadow-xs shrink-0 -rotate-3">
               M
             </div>
             {!collapsed && (
-              <span className="font-display font-black text-xl tracking-tight text-slate-900 dark:text-white truncate">
-                meridian<span className="text-indigo-600 dark:text-indigo-400">.</span>
+              <span className="font-display font-black text-xl tracking-tight text-text-main truncate">
+                meridian<span className="text-accent">.</span>
               </span>
             )}
           </div>
@@ -105,7 +105,7 @@ export function Sidebar() {
           <div className="flex items-center gap-1">
             {/* Collapse toggle (Desktop) */}
             <button
-              className="hidden md:flex p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="hidden md:flex p-1.5 rounded-lg text-text-muted hover:text-text-main hover:bg-surface-3 transition-colors cursor-pointer"
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               title={(collapsed ? "Expand" : "Collapse") + " sidebar ( [ )"}
               onClick={() => setCollapsed((c) => !c)}
@@ -114,7 +114,7 @@ export function Sidebar() {
             </button>
             {/* Close button (Mobile) */}
             <button
-              className="flex md:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="flex md:hidden p-1.5 rounded-lg text-text-muted hover:text-text-main hover:bg-surface-3 transition-colors cursor-pointer"
               aria-label="Close menu"
               onClick={() => setMobileMenu(false)}
             >
@@ -124,19 +124,19 @@ export function Sidebar() {
         </div>
 
         {/* Workspace Card */}
-        <div className="p-3 border-b border-slate-100 dark:border-slate-800/80 shrink-0">
+        <div className="p-3 border-b border-border shrink-0">
           <button
             onClick={() => go("people")}
             title={wsName}
-            className={`w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer text-left ${
+            className={`w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-surface-3 transition-colors cursor-pointer text-left ${
               collapsed ? "justify-center" : ""
             }`}
           >
             <Avatar name={wsName} size={28} square />
             {!collapsed && (
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-bold text-slate-900 dark:text-white truncate">{wsName}</div>
-                <div className="text-[11px] text-slate-400 dark:text-slate-500 truncate">Workspace</div>
+                <div className="text-xs font-bold text-text-main truncate">{wsName}</div>
+                <div className="text-[11px] text-text-muted truncate">Workspace</div>
               </div>
             )}
           </button>
@@ -148,13 +148,13 @@ export function Sidebar() {
             <button
               onClick={() => setPaletteOpen(true)}
               aria-label="Search or jump to…"
-              className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200/70 dark:hover:bg-slate-750 text-slate-500 dark:text-slate-400 text-xs transition-colors cursor-pointer"
+              className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-surface-2 hover:bg-surface-3 text-text-muted text-xs transition-colors cursor-pointer"
             >
               <span className="flex items-center gap-2 truncate">
                 <Search size={14} className="shrink-0" />
                 <span className="truncate">Search or jump to…</span>
               </span>
-              <kbd className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-300">
+              <kbd className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-surface border border-border text-text-muted">
                 ⌘K
               </kbd>
             </button>
@@ -173,7 +173,7 @@ export function Sidebar() {
                     onClick={() => toggle(g.id)}
                     aria-expanded={!isFolded}
                     aria-label={`${g.label} section`}
-                    className="w-full flex items-center justify-between px-2 py-1 text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-between px-2 py-1 text-[11px] font-extrabold uppercase tracking-wider text-text-subtle hover:text-text-main transition-colors cursor-pointer"
                   >
                     <span>{g.label}</span>
                     {isFolded ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
@@ -193,15 +193,11 @@ export function Sidebar() {
                             collapsed ? "justify-center" : ""
                           } ${
                             isActive
-                              ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold shadow-2xs"
-                              : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white"
+                              ? "bg-accent-soft text-accent font-bold shadow-2xs"
+                              : "text-text-muted hover:bg-surface-3 hover:text-text-main"
                           }`}
                         >
-                          <span
-                            className={`shrink-0 ${isActive ? "text-indigo-600 dark:text-indigo-400" : ""}`}
-                          >
-                            {n.icon}
-                          </span>
+                          <span className={`shrink-0 ${isActive ? "text-accent" : ""}`}>{n.icon}</span>
                           {!collapsed && <span className="truncate">{n.label}</span>}
                         </button>
                       );
@@ -213,15 +209,15 @@ export function Sidebar() {
           })}
 
           {/* Projects Nav */}
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-1">
+          <div className="pt-2 border-t border-border space-y-1">
             {!collapsed && (
-              <div className="flex items-center justify-between px-2 py-1 text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              <div className="flex items-center justify-between px-2 py-1 text-[11px] font-extrabold uppercase tracking-wider text-text-subtle">
                 <span>Projects</span>
                 <button
                   aria-label="New project"
                   title="New project"
                   onClick={() => setModal("project")}
-                  className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  className="p-1 rounded text-text-muted hover:text-text-main hover:bg-surface-3 transition-colors cursor-pointer"
                 >
                   <Plus size={14} />
                 </button>
@@ -244,47 +240,41 @@ export function Sidebar() {
                       collapsed ? "justify-center" : ""
                     } ${
                       isSel
-                        ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold"
-                        : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white"
+                        ? "bg-accent-soft text-accent font-bold"
+                        : "text-text-muted hover:bg-surface-3 hover:text-text-main"
                     }`}
                   >
-                    <span className="w-5 h-5 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold flex items-center justify-center shrink-0 uppercase">
+                    <span className="w-5 h-5 rounded bg-accent-soft-2 text-accent-strong text-[10px] font-bold flex items-center justify-center shrink-0 uppercase">
                       {p.key.slice(0, 2)}
                     </span>
                     {!collapsed && <span className="truncate flex-1 text-left">{p.name}</span>}
                     {!collapsed && p.visibility === "private" && (
-                      <Lock size={12} className="text-slate-400 shrink-0" aria-label="Private project" />
+                      <Lock size={12} className="text-text-subtle shrink-0" aria-label="Private project" />
                     )}
                   </button>
                 );
               })}
               {!projects.length && !collapsed && (
-                <div className="px-3 py-2 text-xs text-slate-400 dark:text-slate-500 italic">
-                  No projects yet
-                </div>
+                <div className="px-3 py-2 text-xs text-text-subtle italic">No projects yet</div>
               )}
             </div>
           </div>
         </nav>
 
         {/* Bottom Profile Footer */}
-        <div className="p-3 border-t border-slate-100 dark:border-slate-800/80 shrink-0">
+        <div className="p-3 border-t border-border shrink-0">
           <button
             onClick={() => go("appearance")}
             title="Appearance settings"
-            className={`w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer text-left ${
+            className={`w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-surface-3 transition-colors cursor-pointer text-left ${
               collapsed ? "justify-center" : ""
             }`}
           >
             <Avatar name={session.name} size={28} />
             {!collapsed && (
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                  {session.name}
-                </div>
-                <div className="text-[11px] text-slate-400 dark:text-slate-500 truncate capitalize">
-                  {me?.role ?? "Member"}
-                </div>
+                <div className="text-xs font-bold text-text-main truncate">{session.name}</div>
+                <div className="text-[11px] text-text-muted truncate capitalize">{me?.role ?? "Member"}</div>
               </div>
             )}
           </button>

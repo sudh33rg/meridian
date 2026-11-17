@@ -29,30 +29,19 @@ function Ring({ pct }: { pct: number }) {
       aria-label={`${pct}% complete`}
       className="shrink-0"
     >
+      <circle cx="27" cy="27" r={r} className="stroke-surface-3 fill-none" strokeWidth="5" />
       <circle
         cx="27"
         cy="27"
         r={r}
-        className="stroke-slate-100 dark:stroke-slate-800 fill-none"
-        strokeWidth="5"
-      />
-      <circle
-        cx="27"
-        cy="27"
-        r={r}
-        className="stroke-indigo-600 dark:stroke-indigo-400 fill-none transition-all duration-500 ease-out"
+        className="stroke-accent fill-none transition-all duration-500 ease-out"
         strokeWidth="5"
         strokeLinecap="round"
         strokeDasharray={c}
         strokeDashoffset={c - (c * pct) / 100}
         transform="rotate(-90 27 27)"
       />
-      <text
-        x="27"
-        y="31"
-        textAnchor="middle"
-        className="fill-slate-900 dark:fill-white font-bold text-[11px] font-sans"
-      >
+      <text x="27" y="31" textAnchor="middle" className="fill-text-main font-bold text-[11px] font-sans">
         {pct}%
       </text>
     </svg>
@@ -102,13 +91,13 @@ export function OverviewTab() {
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-4 sm:p-5 flex items-center justify-between">
             <div className="min-w-0 flex-1">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+              <span className="text-xs font-semibold text-text-muted uppercase tracking-wider block mb-1">
                 Completed
               </span>
-              <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              <div className="text-2xl sm:text-3xl font-black text-text-main tracking-tight">
                 {loading ? "…" : done}
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-0 truncate">Work delivered</p>
+              <p className="text-xs text-text-muted mt-1 mb-0 truncate">Work delivered</p>
             </div>
             <Ring pct={pct} />
           </CardContent>
@@ -127,14 +116,12 @@ export function OverviewTab() {
         <Card>
           <CardHeader>
             <CardTitle>Status Breakdown</CardTitle>
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-              {issues.length} total work items
-            </span>
+            <span className="text-xs text-text-muted font-medium">{issues.length} total work items</span>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 space-y-4">
             {/* Stack bar */}
             <div
-              className="w-full h-3 rounded-full overflow-hidden flex bg-slate-100 dark:bg-slate-800"
+              className="w-full h-3 rounded-full overflow-hidden flex bg-surface-3"
               role="img"
               aria-label="Issues by status"
             >
@@ -144,12 +131,12 @@ export function OverviewTab() {
                 const cls = statusClass(s);
                 const bgClass =
                   cls === "done"
-                    ? "bg-emerald-500"
+                    ? "bg-success"
                     : cls === "in_progress"
-                      ? "bg-sky-500"
+                      ? "bg-info"
                       : cls === "in_review"
-                        ? "bg-amber-500"
-                        : "bg-slate-300 dark:bg-slate-600";
+                        ? "bg-warning"
+                        : "bg-surface-4";
                 return (
                   <div
                     key={s.key}
@@ -168,17 +155,17 @@ export function OverviewTab() {
                 const cls = statusClass(s);
                 const dotClass =
                   cls === "done"
-                    ? "bg-emerald-500"
+                    ? "bg-success"
                     : cls === "in_progress"
-                      ? "bg-sky-500"
+                      ? "bg-info"
                       : cls === "in_review"
-                        ? "bg-amber-500"
-                        : "bg-slate-400";
+                        ? "bg-warning"
+                        : "bg-text-subtle";
                 return (
                   <div key={s.key} className="flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${dotClass}`} />
-                    <span className="text-slate-600 dark:text-slate-400 font-medium">{s.name}</span>
-                    <span className="font-bold text-slate-900 dark:text-white">{count}</span>
+                    <span className="text-text-muted font-medium">{s.name}</span>
+                    <span className="font-bold text-text-main">{count}</span>
                   </div>
                 );
               })}
@@ -189,20 +176,20 @@ export function OverviewTab() {
 
       {/* Getting Started Checklist */}
       {finished < steps.length && (
-        <Card className="border-indigo-100 dark:border-indigo-900/50 bg-gradient-to-r from-indigo-50/40 via-white to-white dark:from-indigo-950/20 dark:via-slate-900 dark:to-slate-900">
+        <Card className="border-accent/30 bg-surface">
           <CardHeader>
-            <CardTitle className="text-indigo-900 dark:text-indigo-300">
-              <Sparkles size={16} className="text-indigo-600 dark:text-indigo-400" />
+            <CardTitle className="text-text-main">
+              <Sparkles size={16} className="text-accent" />
               Getting Started Checklist
             </CardTitle>
-            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+            <span className="text-xs font-bold text-accent">
               {finished} of {steps.length} completed
             </span>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 space-y-4">
-            <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+            <div className="w-full h-2 rounded-full bg-surface-3 overflow-hidden">
               <div
-                className="h-full bg-indigo-600 rounded-full transition-all duration-300"
+                className="h-full bg-accent rounded-full transition-all duration-300"
                 style={{ width: `${(finished / steps.length) * 100}%` }}
               />
             </div>
@@ -214,19 +201,19 @@ export function OverviewTab() {
                   disabled={s.done}
                   className={`w-full flex items-center justify-between p-3 rounded-xl border text-xs sm:text-sm font-semibold transition-colors text-left ${
                     s.done
-                      ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300 opacity-80 cursor-default"
-                      : "bg-white dark:bg-slate-800/80 border-slate-200/80 dark:border-slate-700/80 text-slate-800 dark:text-slate-200 hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-indigo-50/30 cursor-pointer"
+                      ? "bg-success-soft border-success-border text-success-text opacity-80 cursor-default"
+                      : "bg-surface border-border text-text-main hover:border-accent hover:bg-accent-soft cursor-pointer"
                   }`}
                 >
                   <div className="flex items-center gap-2.5 truncate">
                     {s.done ? (
-                      <Check size={16} className="text-emerald-600 shrink-0" />
+                      <Check size={16} className="text-success shrink-0" />
                     ) : (
-                      <Circle size={16} className="text-slate-400 shrink-0" />
+                      <Circle size={16} className="text-text-muted shrink-0" />
                     )}
                     <span className="truncate">{s.label}</span>
                   </div>
-                  {!s.done && <ArrowUpRight size={14} className="text-slate-400 shrink-0" />}
+                  {!s.done && <ArrowUpRight size={14} className="text-text-muted shrink-0" />}
                 </button>
               ))}
             </div>
@@ -242,12 +229,12 @@ export function OverviewTab() {
             <CardTitle>Recent Work</CardTitle>
             <button
               onClick={() => setTab("issues")}
-              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+              className="text-xs font-semibold text-accent hover:underline flex items-center gap-1 cursor-pointer"
             >
               View all <ArrowUpRight size={14} />
             </button>
           </CardHeader>
-          <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
+          <div className="divide-y divide-border">
             {loading &&
               [0, 1, 2].map((n) => (
                 <div key={n} className="p-4 flex items-center gap-3">
@@ -261,15 +248,15 @@ export function OverviewTab() {
               issues.slice(0, 6).map((i) => (
                 <div
                   key={i.id}
-                  className="p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors"
+                  className="p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:bg-surface-2 transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <KindIcon kind={i.kind} />
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white truncate">
+                      <div className="text-xs sm:text-sm font-semibold text-text-main truncate">
                         {i.title}
                       </div>
-                      <div className="text-[11px] text-slate-400 dark:text-slate-500 truncate mt-0.5">
+                      <div className="text-[11px] text-text-muted truncate mt-0.5">
                         {project?.key}-{i.number} · <span className="capitalize">{i.kind}</span>
                       </div>
                     </div>
@@ -279,9 +266,9 @@ export function OverviewTab() {
               ))}
             {!loading && !issues.length && (
               <div className="py-12 text-center px-4">
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-3">No work yet.</p>
+                <p className="text-xs sm:text-sm text-text-muted mb-3">No work yet.</p>
                 <button
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-accent hover:bg-accent-strong transition-colors cursor-pointer"
                   onClick={() => setModal("issue")}
                 >
                   <Plus size={14} /> Create your first issue
@@ -297,12 +284,12 @@ export function OverviewTab() {
             <CardTitle>Team Knowledge</CardTitle>
             <button
               onClick={() => setTab("knowledge")}
-              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+              className="text-xs font-semibold text-accent hover:underline flex items-center gap-1 cursor-pointer"
             >
               Explore <ArrowUpRight size={14} />
             </button>
           </CardHeader>
-          <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
+          <div className="divide-y divide-border">
             {pages.slice(0, 6).map((p) => (
               <button
                 key={p.id}
@@ -310,31 +297,29 @@ export function OverviewTab() {
                   setTab("knowledge");
                   setActivePage(p);
                 }}
-                className="w-full p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors cursor-pointer text-left"
+                className="w-full p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:bg-surface-2 transition-colors cursor-pointer text-left"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-success-soft text-success-text flex items-center justify-center shrink-0">
                     <FileText size={16} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white truncate">
-                      {p.title}
-                    </div>
-                    <div className="text-[11px] text-slate-400 dark:text-slate-500 truncate mt-0.5">
+                    <div className="text-xs sm:text-sm font-semibold text-text-main truncate">{p.title}</div>
+                    <div className="text-[11px] text-text-muted truncate mt-0.5">
                       Version {p.version} · Updated {formatDate(p.updated_at)}
                     </div>
                   </div>
                 </div>
-                <ArrowUpRight size={15} className="text-slate-400 shrink-0" />
+                <ArrowUpRight size={15} className="text-text-muted shrink-0" />
               </button>
             ))}
             {!loading && !pages.length && (
               <div className="py-12 text-center px-4">
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-3">
+                <p className="text-xs sm:text-sm text-text-muted mb-3">
                   Capture project decisions, architecture notes, and documentation.
                 </p>
                 <button
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-border bg-surface-2 hover:bg-surface-3 text-text-main transition-colors cursor-pointer"
                   onClick={() => setModal("page")}
                 >
                   <Plus size={14} /> New page

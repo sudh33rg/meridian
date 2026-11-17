@@ -88,7 +88,7 @@ export function InlineCommentsDrawer({
     <div className="inline-comments-drawer w-full sm:w-96 bg-surface border-l border-border flex flex-col h-full p-4 shrink-0 shadow-lg">
       <div className="flex justify-between items-center mb-4 pb-2 border-b border-border">
         <h4 className="flex items-center gap-2 text-sm sm:text-base font-bold text-text truncate">
-          <MessageSquare size={18} className="text-indigo-500 shrink-0" />
+          <MessageSquare size={18} className="text-accent shrink-0" />
           <span className="truncate">Inline Comments: {pageTitle}</span>
         </h4>
         <button
@@ -108,7 +108,7 @@ export function InlineCommentsDrawer({
           {filterResolved ? "View Open Threads" : "View Resolved"}
         </button>
         <button
-          className="primary small-btn inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer"
+          className="primary small-btn inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer"
           onClick={() => setAdding((v) => !v)}
         >
           <Plus size={14} /> {adding ? "Cancel" : "Add Comment"}
@@ -128,7 +128,7 @@ export function InlineCommentsDrawer({
               value={highlightedText}
               onChange={(e) => setHighlightedText(e.target.value)}
               required
-              className="w-full px-2.5 py-1.5 rounded-lg border border-border bg-surface text-text text-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
+              className="w-full px-2.5 py-1.5 rounded-lg border border-border bg-surface text-text text-xs focus:outline-hidden focus:ring-2 focus:ring-accent/20"
             />
           </label>
           <label className="small block text-xs font-medium text-text space-y-1">
@@ -139,7 +139,7 @@ export function InlineCommentsDrawer({
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               required
-              className="w-full px-2.5 py-1.5 rounded-lg border border-border bg-surface text-text text-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
+              className="w-full px-2.5 py-1.5 rounded-lg border border-border bg-surface text-text text-xs focus:outline-hidden focus:ring-2 focus:ring-accent/20"
             />
           </label>
           <div className="flex justify-end gap-2 pt-1">
@@ -152,7 +152,7 @@ export function InlineCommentsDrawer({
             </button>
             <button
               type="submit"
-              className="primary small-btn px-3 py-1 rounded-md text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer disabled:opacity-50"
+              className="primary small-btn px-3 py-1 rounded-md text-xs font-semibold text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer disabled:opacity-50"
               disabled={!highlightedText.trim() || !newComment.trim()}
             >
               Post
@@ -171,7 +171,7 @@ export function InlineCommentsDrawer({
               c.resolved ? "bg-surface-2/60 opacity-80" : "bg-surface shadow-xs"
             }`}
           >
-            <div className="border-l-2 border-indigo-500 pl-2.5 text-xs text-muted italic">
+            <div className="border-l-2 border-accent pl-2.5 text-xs text-muted italic">
               “{c.highlighted_text}”
             </div>
             <div className="text-xs sm:text-sm font-medium text-text">{c.comment}</div>
@@ -186,10 +186,10 @@ export function InlineCommentsDrawer({
                   title={c.resolved ? "Reopen thread" : "Resolve thread"}
                   aria-label="Toggle resolved"
                 >
-                  <CheckCircle size={14} className={c.resolved ? "text-emerald-500" : "text-muted"} />
+                  <CheckCircle size={14} className={c.resolved ? "text-success" : "text-muted"} />
                 </button>
                 <button
-                  className="icon-ghost p-1 rounded hover:bg-surface-2 text-muted hover:text-rose-500 transition-colors cursor-pointer"
+                  className="icon-ghost p-1 rounded hover:bg-surface-2 text-muted hover:text-danger transition-colors cursor-pointer"
                   onClick={() => deleteComment(c.id)}
                   title="Delete comment"
                   aria-label="Delete comment"

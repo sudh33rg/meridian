@@ -273,7 +273,7 @@ export function IssueDrawer({
 
   return (
     <div
-      className="drawer-overlay fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-end transition-opacity"
+      className="drawer-overlay fixed inset-0 z-50 bg-overlay backdrop-blur-xs flex justify-end transition-opacity"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

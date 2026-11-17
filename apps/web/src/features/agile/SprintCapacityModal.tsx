@@ -70,7 +70,7 @@ export function SprintCapacityModal({
 
   return (
     <div
-      className="overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+      className="overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay backdrop-blur-xs"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
@@ -96,7 +96,7 @@ export function SprintCapacityModal({
               <div>
                 <span className="small muted text-xs text-muted font-medium block">Total Team Capacity</span>
                 <strong className="text-base sm:text-lg font-bold text-text flex items-center gap-1.5 mt-0.5">
-                  <Clock size={16} className="text-indigo-500" />
+                  <Clock size={16} className="text-accent" />
                   {data.total_capacity_hours} hrs
                 </strong>
               </div>
@@ -161,7 +161,7 @@ export function SprintCapacityModal({
                 Cancel
               </button>
               <button
-                className="primary small-btn inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer disabled:opacity-50"
+                className="primary small-btn inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-accent hover:bg-accent-strong transition-colors cursor-pointer disabled:opacity-50"
                 onClick={saveCapacities}
                 disabled={!dirty}
               >

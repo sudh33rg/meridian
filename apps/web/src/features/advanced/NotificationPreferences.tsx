@@ -75,7 +75,7 @@ export function NotificationPreferences({
           >
             <input
               type="checkbox"
-              className="mt-1 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+              className="mt-1 rounded accent-accent text-accent focus:ring-accent cursor-pointer"
               checked={p.enabled}
               onChange={(e) => change(p.kind, e.target.checked)}
             />
@@ -89,7 +89,7 @@ export function NotificationPreferences({
           <label className="pref-row flex items-start gap-3 p-3 rounded-xl border border-border bg-surface-2 hover:bg-surface-3 transition-colors cursor-pointer">
             <input
               type="checkbox"
-              className="mt-1 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+              className="mt-1 rounded accent-accent text-accent focus:ring-accent cursor-pointer"
               checked={digest.enabled}
               disabled={!digest.email_available}
               onChange={(e) => void changeDigest(e.target.checked)}

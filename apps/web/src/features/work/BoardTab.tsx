@@ -101,7 +101,7 @@ export function BoardTab() {
   const fullIssue = (id: string) => issues.find((x) => x.id === id);
   const busyLoading = loading || (boardQ.isLoading && !boardQ.data);
 
-  const dotColors = ["bg-slate-400", "bg-sky-500", "bg-amber-500", "bg-emerald-500"];
+  const dotColors = ["bg-text-subtle", "bg-info", "bg-warning", "bg-success"];
 
   const renderColumn = (laneKey: string, status: (typeof statuses)[number], index: number) => {
     const dropKey = `${laneKey}|${status.key}`;
@@ -116,11 +116,7 @@ export function BoardTab() {
         aria-label={status.name}
         className={`w-[85vw] sm:w-auto shrink-0 sm:shrink snap-start rounded-xl p-3.5 flex flex-col gap-3 min-h-[480px] transition-colors border ${
           isVisibleOnMobile ? "flex" : "hidden sm:flex"
-        } ${
-          over === dropKey
-            ? "bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700"
-            : "bg-slate-100/70 dark:bg-slate-850/60 border-slate-200/60 dark:border-slate-800/60"
-        }`}
+        } ${over === dropKey ? "bg-accent-soft border-accent" : "bg-surface-2 border-border"}`}
         onDragOver={(e) => {
           if (!dragId) return;
           e.preventDefault();
@@ -139,14 +135,12 @@ export function BoardTab() {
         }}
       >
         {/* Column Header */}
-        <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-slate-800/80">
+        <div className="flex items-center justify-between pb-2 border-b border-border">
           <div className="flex items-center gap-2">
             <span className={`w-2.5 h-2.5 rounded-full ${dotColors[index % dotColors.length]}`} />
-            <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 m-0">
-              {status.name}
-            </h4>
+            <h4 className="text-xs sm:text-sm font-bold text-text-main m-0">{status.name}</h4>
           </div>
-          <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700 shadow-2xs">
+          <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-surface-3 text-text-muted border border-border shadow-2xs">
             {totals.get(status.key) ?? 0}
             {status.wip_limit ? ` / ${status.wip_limit}` : ""}
           </span>
@@ -155,10 +149,7 @@ export function BoardTab() {
         {/* Loading Skeletons */}
         {busyLoading &&
           [0, 1].map((n) => (
-            <div
-              key={n}
-              className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800 space-y-2"
-            >
+            <div key={n} className="bg-surface rounded-xl p-3 border border-border space-y-2">
               <Skeleton w="40%" h={10} />
               <Skeleton h={14} />
             </div>
@@ -172,7 +163,7 @@ export function BoardTab() {
               draggable
               tabIndex={0}
               aria-label={`${project?.key}-${i.number} ${i.title}, ${statusLabel(i.status)}`}
-              className={`bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl p-3.5 shadow-2xs hover:shadow-md transition-all cursor-pointer ${
+              className={`bg-surface border border-border rounded-xl p-3.5 shadow-2xs hover:shadow-md transition-all cursor-pointer ${
                 dragId === i.id ? "opacity-40 rotate-1" : ""
               }`}
               onDragStart={(e) => {
@@ -198,19 +189,19 @@ export function BoardTab() {
               <div className="flex items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <KindIcon kind={i.kind} />
-                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 font-mono">
+                  <span className="text-xs font-bold text-accent font-mono">
                     {project?.key}-{i.number}
                   </span>
                 </div>
                 <PriorityIcon priority={i.priority} label={false} />
               </div>
 
-              <h5 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white line-clamp-2 m-0 mb-3 leading-snug">
+              <h5 className="text-xs sm:text-sm font-semibold text-text-main line-clamp-2 m-0 mb-3 leading-snug">
                 {i.title}
               </h5>
 
               <div
-                className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80 text-xs"
+                className="flex items-center justify-between pt-2 border-t border-border text-xs"
                 onClick={(e) => e.stopPropagation()}
               >
                 <PriorityIcon priority={i.priority} />
@@ -221,7 +212,7 @@ export function BoardTab() {
                     const full = fullIssue(i.id);
                     if (full) move(full, e.target.value);
                   }}
-                  className="px-2 py-1 rounded-md text-[11px] font-semibold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 cursor-pointer focus:outline-hidden"
+                  className="px-2 py-1 rounded-md text-[11px] font-semibold border border-border bg-surface-2 text-text-main cursor-pointer focus:outline-hidden"
                 >
                   {statuses.map((x) => (
                     <option key={x.key} value={x.key}>
@@ -234,7 +225,7 @@ export function BoardTab() {
           ))}
 
           {!busyLoading && !list.length && prefs.group === "none" && (
-            <div className="py-12 text-center text-xs text-slate-400 dark:text-slate-500 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+            <div className="py-12 text-center text-xs text-text-muted border border-dashed border-border rounded-xl">
               Drop issues here
             </div>
           )}
@@ -248,8 +239,8 @@ export function BoardTab() {
       type="button"
       className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer shrink-0 ${
         on
-          ? "bg-indigo-50 dark:bg-indigo-950/60 border-indigo-300 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-bold"
-          : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50"
+          ? "bg-accent-soft border-accent text-accent font-bold"
+          : "bg-surface border-border text-text-muted hover:bg-surface-2"
       }`}
       aria-pressed={on}
       onClick={toggle}
@@ -265,22 +256,22 @@ export function BoardTab() {
         <CardContent className="p-3 sm:p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2.5">
             <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-md bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold flex items-center justify-center uppercase">
+              <span className="w-6 h-6 rounded-md bg-accent-soft text-accent text-xs font-bold flex items-center justify-center uppercase">
                 {project?.key.slice(0, 2)}
               </span>
-              <span className="font-bold text-sm text-slate-900 dark:text-white">{project?.name}</span>
+              <span className="font-bold text-sm text-text-main">{project?.name}</span>
             </div>
 
-            <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block" />
+            <div className="h-4 w-px bg-border hidden sm:block" />
 
             {/* Swimlanes dropdown */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <div className="flex items-center gap-1.5 text-xs text-text-muted">
               <span className="hidden sm:inline font-medium">Swimlanes:</span>
               <select
                 aria-label="Swimlanes"
                 value={prefs.group}
                 onChange={(e) => changePrefs({ ...prefs, group: e.target.value as Group })}
-                className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border bg-surface-2 text-text-main"
               >
                 <option value="none">None</option>
                 <option value="assignee">By Assignee</option>
@@ -293,13 +284,13 @@ export function BoardTab() {
             <button
               onClick={() => setEditing((v) => !v)}
               disabled={!selected}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-border bg-surface-2 hover:bg-surface-3 text-text-main transition-colors cursor-pointer"
             >
               <Settings2 size={14} /> Workflow
             </button>
             <button
               onClick={() => setModal("issue")}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-accent hover:bg-accent-strong transition-colors cursor-pointer"
             >
               <Plus size={15} /> Add issue
             </button>
@@ -310,7 +301,7 @@ export function BoardTab() {
       {/* Quick Filter Bar */}
       <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 text-xs">
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-slate-400 font-semibold flex items-center gap-1 text-[11px] uppercase tracking-wider mr-1">
+          <span className="text-text-muted font-semibold flex items-center gap-1 text-[11px] uppercase tracking-wider mr-1">
             <SlidersHorizontal size={13} /> Filters:
           </span>
           {chip("Only my issues", prefs.mine, () => changePrefs({ ...prefs, mine: !prefs.mine }))}
@@ -321,7 +312,7 @@ export function BoardTab() {
           {(prefs.mine || prefs.unassigned || prefs.high) && (
             <button
               type="button"
-              className="text-indigo-600 dark:text-indigo-400 hover:underline font-semibold ml-2 cursor-pointer"
+              className="text-accent hover:underline font-semibold ml-2 cursor-pointer"
               onClick={() => changePrefs({ ...prefs, mine: false, unassigned: false, high: false })}
             >
               Clear filters
@@ -330,9 +321,7 @@ export function BoardTab() {
         </div>
 
         {boardQ.data?.truncated && (
-          <span className="text-xs text-amber-600 dark:text-amber-400 shrink-0">
-            Showing first 2,000 issues.
-          </span>
+          <span className="text-xs text-warning-text shrink-0">Showing first 2,000 issues.</span>
         )}
       </div>
 
@@ -341,9 +330,7 @@ export function BoardTab() {
         <button
           onClick={() => setActiveMobileCol("all")}
           className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
-            activeMobileCol === "all"
-              ? "bg-indigo-600 text-white"
-              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+            activeMobileCol === "all" ? "bg-accent text-white" : "bg-surface-2 text-text-muted"
           }`}
         >
           All ({issues.length})
@@ -356,9 +343,7 @@ export function BoardTab() {
               key={s.key}
               onClick={() => setActiveMobileCol(s.key)}
               className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
-                isAct
-                  ? "bg-indigo-600 text-white"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                isAct ? "bg-accent text-white" : "bg-surface-2 text-text-muted"
               }`}
             >
               {s.name} ({count})
@@ -368,7 +353,7 @@ export function BoardTab() {
       </div>
 
       {boardQ.isError && (
-        <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-700 text-xs">
+        <div className="p-3 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs">
           Could not load the board.
         </div>
       )}
@@ -391,9 +376,9 @@ export function BoardTab() {
         {lanesShown.map((lane) => (
           <div key={lane.key} className="space-y-3">
             {prefs.group !== "none" && (
-              <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <h3 className="text-sm font-extrabold text-text-main flex items-center gap-2">
                 <span>{lane.label}</span>
-                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600">
+                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-surface-2 text-text-muted">
                   {lane.issues.length}
                 </span>
               </h3>

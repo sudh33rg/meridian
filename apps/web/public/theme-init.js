@@ -12,6 +12,11 @@
     r.setAttribute("data-accent", a.accent || "blue");
     r.setAttribute("data-density", a.density || "comfortable");
     if (a.motion) r.setAttribute("data-motion", a.motion);
+    if (theme === "dark" || theme === "contrast") {
+      r.classList.add("dark");
+    } else {
+      r.classList.remove("dark");
+    }
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute("content", theme === "light" ? "#ffffff" : "#0d1117");
   } catch (e) {

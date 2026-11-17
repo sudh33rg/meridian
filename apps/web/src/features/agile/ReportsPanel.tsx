@@ -549,7 +549,7 @@ function WidgetBody({ kind, data }: { kind: string; data: unknown }) {
                   title={`${s.name}: ${s.done_points} done / ${s.started_points} committed`}
                 >
                   <div className="flex gap-0.5 items-end h-12">
-                    <div className="w-2 bg-slate-400 rounded-xs" style={{ height: commH }} />
+                    <div className="w-2 bg-text-subtle rounded-xs" style={{ height: commH }} />
                     <div className="w-2 bg-emerald-500 rounded-xs" style={{ height: doneH }} />
                   </div>
                   <span className="text-[9px] text-text-subtle mt-0.5 whitespace-nowrap">

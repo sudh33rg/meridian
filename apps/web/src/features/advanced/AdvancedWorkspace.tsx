@@ -355,7 +355,7 @@ export function AdvancedWorkspace({
             </button>
             {cfg && project && (
               <button
-                className="primary inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer"
+                className="primary inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer"
                 onClick={() => setEditing(!editing)}
               >
                 <Plus size={16} /> New {tab === "automation" ? "rule" : tab.slice(0, -1)}
@@ -430,7 +430,7 @@ export function AdvancedWorkspace({
                     ))}
                   </div>
                   <div className="flex justify-end pt-2">
-                    <button className="primary px-4 py-2 rounded-lg text-xs sm:text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer">
+                    <button className="primary px-4 py-2 rounded-lg text-xs sm:text-sm font-medium text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer">
                       Create
                     </button>
                   </div>
@@ -442,7 +442,7 @@ export function AdvancedWorkspace({
           <div className="ext-cards grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {rows.map((r, n) => (
               <Card
-                className="ext-card flex flex-col justify-between p-4 sm:p-5 hover:border-indigo-500/40 transition-colors"
+                className="ext-card flex flex-col justify-between p-4 sm:p-5 hover:border-accent/40 transition-colors"
                 key={str(r.id || n)}
               >
                 <div>
@@ -542,7 +542,7 @@ export function AdvancedWorkspace({
                   key={str(r.id)}
                 >
                   <div className="flex items-start sm:items-center gap-3">
-                    <ShieldCheck size={18} className="text-indigo-500 shrink-0 mt-0.5 sm:mt-0" />
+                    <ShieldCheck size={18} className="text-accent shrink-0 mt-0.5 sm:mt-0" />
                     <div>
                       <b className="font-semibold text-text text-xs sm:text-sm block">{str(r.title)}</b>
                       <small className="text-xs text-muted">
@@ -647,7 +647,7 @@ export function AdvancedWorkspace({
                     ))}
                   </select>
                 </label>
-                <button className="primary w-full py-2 rounded-lg text-xs sm:text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer">
+                <button className="primary w-full py-2 rounded-lg text-xs sm:text-sm font-medium text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer">
                   Request review
                 </button>
               </form>
@@ -673,7 +673,7 @@ export function AdvancedWorkspace({
                       {str(p.key)} · {count(p.issues)} issues
                     </small>
                   </div>
-                  <span className="chip success px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <span className="chip success px-2 py-0.5 rounded-full text-xs font-medium bg-success-soft text-success-text border border-success-border">
                     {count(p.done)} delivered
                   </span>
                 </div>
@@ -694,7 +694,7 @@ export function AdvancedWorkspace({
                       {str(g.status).replaceAll("_", " ")}
                     </small>
                   </div>
-                  <b className="font-semibold text-indigo-500 text-xs sm:text-sm">{count(g.progress)}%</b>
+                  <b className="font-semibold text-accent text-xs sm:text-sm">{count(g.progress)}%</b>
                 </div>
               ))}
             </CardContent>
@@ -713,7 +713,7 @@ export function AdvancedWorkspace({
               {rows.map((r) => (
                 <div className="ext-line flex items-center justify-between py-3" key={str(r.id)}>
                   <div className="flex items-center gap-3">
-                    <span className="ext-avatar w-8 h-8 rounded-full bg-indigo-500/10 text-indigo-500 font-semibold flex items-center justify-center text-xs">
+                    <span className="ext-avatar w-8 h-8 rounded-full bg-accent-soft text-accent font-semibold flex items-center justify-center text-xs">
                       {str(r.name)[0]?.toUpperCase()}
                     </span>
                     <div>
@@ -749,7 +749,7 @@ export function AdvancedWorkspace({
                   <label className="block text-xs sm:text-sm font-medium text-text space-y-1">
                     <span>Role</span>
                     <select
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-text text-xs sm:text-sm focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 capitalize"
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-text text-xs sm:text-sm focus:outline-hidden focus:ring-2 focus:ring-accent/20 capitalize"
                       value={form.role || "member"}
                       onChange={(e) => setForm({ ...form, role: e.target.value })}
                     >
@@ -759,7 +759,7 @@ export function AdvancedWorkspace({
                       <option>admin</option>
                     </select>
                   </label>
-                  <button className="primary w-full py-2 rounded-lg text-xs sm:text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer">
+                  <button className="primary w-full py-2 rounded-lg text-xs sm:text-sm font-medium text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer">
                     Generate invitation
                   </button>
                   {inviteToken && (
@@ -821,7 +821,7 @@ export function AdvancedWorkspace({
               {rows.map((r) => (
                 <div className="ext-line flex items-start justify-between gap-3 py-3" key={str(r.id)}>
                   <div className="flex items-start gap-3">
-                    <Bell size={18} className="text-indigo-500 shrink-0 mt-0.5" />
+                    <Bell size={18} className="text-accent shrink-0 mt-0.5" />
                     <div>
                       <b className="font-semibold text-text text-xs sm:text-sm block">{str(r.title)}</b>
                       <small className="text-xs text-muted block mt-0.5">
@@ -854,14 +854,14 @@ export function AdvancedWorkspace({
               <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
               <input
                 aria-label="Search work and knowledge"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-surface text-text text-xs sm:text-sm focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-surface text-text text-xs sm:text-sm focus:outline-hidden focus:ring-2 focus:ring-accent/20"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search pages, issues and decisions…"
                 minLength={2}
               />
             </div>
-            <button className="primary px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer">
+            <button className="primary px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer">
               Search
             </button>
           </form>
@@ -915,7 +915,7 @@ export function AdvancedWorkspace({
                 export.
               </p>
               <button
-                className="primary inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer disabled:opacity-50"
+                className="primary inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer disabled:opacity-50"
                 disabled={!project}
                 onClick={exportData}
               >

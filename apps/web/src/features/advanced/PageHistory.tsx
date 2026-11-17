@@ -52,7 +52,7 @@ export function PageHistory({
       {open && (
         <div className="history-popover absolute right-0 top-full mt-2 w-72 max-w-[90vw] p-3 rounded-xl border border-border bg-surface shadow-xl z-30 space-y-2">
           {error && (
-            <div className="error p-2 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 text-xs">
+            <div className="error p-2 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs">
               {error}
             </div>
           )}

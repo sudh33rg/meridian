@@ -99,14 +99,14 @@ export function ShortcutsHelp() {
         {ROWS.map(([label, keys]) => (
           <div
             key={label}
-            className="flex items-center justify-between py-2 px-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-xs sm:text-sm"
+            className="flex items-center justify-between py-2 px-2.5 rounded-lg hover:bg-surface-3 transition-colors text-xs sm:text-sm"
           >
-            <span className="text-slate-700 dark:text-slate-300 font-medium">{label}</span>
+            <span className="text-text-main font-medium">{label}</span>
             <span className="flex items-center gap-1 shrink-0">
               {keys.map((k, i) => (
                 <React.Fragment key={i}>
-                  {i > 0 && <span className="text-[10px] text-slate-400 mx-0.5">then</span>}
-                  <kbd className="px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                  {i > 0 && <span className="text-[10px] text-text-muted mx-0.5">then</span>}
+                  <kbd className="px-2 py-0.5 rounded text-xs font-mono font-bold bg-surface-2 text-text-main border border-border shadow-2xs">
                     {k}
                   </kbd>
                 </React.Fragment>

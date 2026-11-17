@@ -23,9 +23,9 @@ export function WorkspaceApp() {
   }, [setTab]);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col md:flex-row antialiased overflow-x-hidden">
+    <div className="min-h-screen bg-bg text-text-main flex flex-col md:flex-row antialiased overflow-x-hidden">
       <a
-        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 z-50 px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-lg font-semibold text-sm"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 z-50 px-4 py-2 bg-accent text-white rounded-lg shadow-lg font-semibold text-sm"
         href="#main-content"
       >
         Skip to content

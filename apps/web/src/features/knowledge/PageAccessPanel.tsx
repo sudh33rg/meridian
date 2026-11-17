@@ -65,7 +65,7 @@ export function PageAccessPanel({ pageId, onClose }: { pageId: string; onClose: 
     <Card className="panel-card my-3">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-          <Lock size={16} className="text-indigo-500" /> Page access
+          <Lock size={16} className="text-accent" /> Page access
         </CardTitle>
         <button
           className="secondary px-2.5 py-1 rounded-lg text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer"
@@ -77,7 +77,7 @@ export function PageAccessPanel({ pageId, onClose }: { pageId: string; onClose: 
 
       <CardContent className="space-y-3">
         {error && (
-          <div className="error p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 text-xs font-medium">
+          <div className="error p-2.5 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium">
             {error}
           </div>
         )}
@@ -96,7 +96,7 @@ export function PageAccessPanel({ pageId, onClose }: { pageId: string; onClose: 
               <label className="row-gap flex items-center gap-2 text-xs sm:text-sm font-medium text-text cursor-pointer">
                 <input
                   type="checkbox"
-                  className="rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                  className="rounded accent-accent text-accent focus:ring-accent cursor-pointer"
                   checked={d.restricted}
                   disabled={restrict.isPending}
                   onChange={(e) => restrict.mutate(e.target.checked)}
@@ -123,7 +123,7 @@ export function PageAccessPanel({ pageId, onClose }: { pageId: string; onClose: 
                           <td className="py-2 px-3 text-muted capitalize">{g.relation}</td>
                           <td className="py-2 px-3 text-right">
                             <button
-                              className="secondary text-xs px-2 py-1 rounded border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer text-rose-600 dark:text-rose-400"
+                              className="secondary text-xs px-2 py-1 rounded border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer text-danger-text"
                               onClick={() => revoke.mutate(g)}
                             >
                               Remove
@@ -145,7 +145,7 @@ export function PageAccessPanel({ pageId, onClose }: { pageId: string; onClose: 
                 <div className="row-gap flex flex-wrap items-center gap-2">
                   <select
                     aria-label="Person or team"
-                    className="flex-1 min-w-[140px] px-2.5 py-1.5 rounded-lg border border-border bg-surface text-text text-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
+                    className="flex-1 min-w-[140px] px-2.5 py-1.5 rounded-lg border border-border bg-surface text-text text-xs focus:outline-hidden focus:ring-2 focus:ring-accent/20"
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                   >
@@ -167,7 +167,7 @@ export function PageAccessPanel({ pageId, onClose }: { pageId: string; onClose: 
                   </select>
                   <select
                     aria-label="Access level"
-                    className="px-2.5 py-1.5 rounded-lg border border-border bg-surface text-text text-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
+                    className="px-2.5 py-1.5 rounded-lg border border-border bg-surface text-text text-xs focus:outline-hidden focus:ring-2 focus:ring-accent/20"
                     value={level}
                     onChange={(e) => setLevel(e.target.value)}
                   >
@@ -175,7 +175,7 @@ export function PageAccessPanel({ pageId, onClose }: { pageId: string; onClose: 
                     <option value="editor">Can edit</option>
                   </select>
                   <button
-                    className="primary px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer disabled:opacity-50"
+                    className="primary px-3 py-1.5 rounded-lg text-xs font-semibold text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer disabled:opacity-50"
                     disabled={!subject || grant.isPending}
                     onClick={() => grant.mutate()}
                   >

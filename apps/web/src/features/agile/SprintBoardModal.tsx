@@ -49,7 +49,7 @@ export function SprintBoardModal({
 
   return (
     <div
-      className="overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+      className="overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay backdrop-blur-xs"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
@@ -58,7 +58,7 @@ export function SprintBoardModal({
       <div className="modal max-w-5xl w-full max-h-[85vh] flex flex-col gap-4 p-4 sm:p-6 bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
         <div className="modal-head flex items-start justify-between gap-4 pb-2 border-b border-border">
           <h3 className="flex items-center gap-2 text-base sm:text-lg font-bold text-text">
-            <Kanban size={18} className="text-indigo-500" /> Sprint Board: {sprintName}
+            <Kanban size={18} className="text-accent" /> Sprint Board: {sprintName}
           </h3>
           <button
             className="icon-btn p-1.5 rounded-lg text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer"

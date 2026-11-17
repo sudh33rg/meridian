@@ -30,7 +30,7 @@ export function ThemeMenu() {
   return (
     <div className="relative" ref={ref}>
       <button
-        className="p-2 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+        className="p-2 rounded-lg text-text-muted hover:text-text-main hover:bg-surface-3 transition-colors cursor-pointer"
         aria-label="Change theme"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -48,11 +48,11 @@ export function ThemeMenu() {
 
       {open && (
         <div
-          className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-2 z-50 animate-fadeIn"
+          className="absolute right-0 mt-2 w-56 bg-surface rounded-xl shadow-xl border border-border p-2 z-50 animate-fadeIn text-text-main"
           role="menu"
           aria-label="Theme"
         >
-          <div className="px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <div className="px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider text-text-subtle">
             Theme
           </div>
           <div className="space-y-0.5">
@@ -63,8 +63,8 @@ export function ThemeMenu() {
                 aria-checked={appearance.mode === m.id}
                 className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                   appearance.mode === m.id
-                    ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold"
-                    : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    ? "bg-accent-soft text-accent font-bold"
+                    : "text-text-main hover:bg-surface-3"
                 }`}
                 onClick={() => set({ mode: m.id })}
               >
@@ -72,16 +72,14 @@ export function ThemeMenu() {
                   {m.icon}
                   <span>{m.label}</span>
                 </div>
-                {appearance.mode === m.id && (
-                  <Check size={14} className="text-indigo-600 dark:text-indigo-400" />
-                )}
+                {appearance.mode === m.id && <Check size={14} className="text-accent" />}
               </button>
             ))}
           </div>
 
-          <div className="my-2 border-t border-slate-100 dark:border-slate-800/80" />
+          <div className="my-2 border-t border-border" />
 
-          <div className="px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <div className="px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider text-text-subtle">
             Accent Color
           </div>
           <div className="flex items-center justify-between p-2">
@@ -90,7 +88,7 @@ export function ThemeMenu() {
                 key={a.id}
                 className={`w-6 h-6 rounded-full transition-transform cursor-pointer relative ${
                   appearance.accent === a.id
-                    ? "ring-2 ring-offset-2 ring-indigo-500 scale-110"
+                    ? "ring-2 ring-offset-2 ring-accent scale-110"
                     : "hover:scale-105"
                 }`}
                 style={{ background: a.swatch }}

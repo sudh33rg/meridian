@@ -59,10 +59,10 @@ export function ImportPanel({ token, projectId }: { token: string; projectId: st
     <Card className="workflow" aria-label="Import issues from CSV">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Upload size={18} className="text-indigo-500" />
+          <Upload size={18} className="text-accent" />
           Import issues from CSV
         </CardTitle>
-        <p className="muted small text-xs sm:text-sm text-muted mt-1">
+        <p className="muted small text-xs sm:text-sm text-text-muted mt-1">
           Needs Summary and Issue Key columns. Optional: Issue Type, Priority, Status, Description. Repeat
           imports skip issues they already created.
         </p>
@@ -73,7 +73,7 @@ export function ImportPanel({ token, projectId }: { token: string; projectId: st
             type="file"
             accept=".csv,text/csv"
             aria-label="CSV file"
-            className="block text-xs text-text file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border file:border-border file:text-xs file:font-semibold file:bg-surface-2 file:text-text hover:file:bg-surface-3 cursor-pointer"
+            className="block text-xs text-text-main file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border file:border-border file:text-xs file:font-semibold file:bg-surface-2 file:text-text-main hover:file:bg-surface-3 cursor-pointer"
             onChange={(e) => {
               const file = e.target.files?.[0];
               setReport(null);
@@ -85,10 +85,10 @@ export function ImportPanel({ token, projectId }: { token: string; projectId: st
               void file.text().then(setText);
             }}
           />
-          <label className="inline-check flex items-center gap-2 text-xs font-medium text-text cursor-pointer">
+          <label className="inline-check flex items-center gap-2 text-xs font-medium text-text-main cursor-pointer">
             <input
               type="checkbox"
-              className="rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+              className="rounded accent-accent text-accent focus:ring-accent cursor-pointer"
               checked={createStatuses}
               onChange={(e) => setCreateStatuses(e.target.checked)}
             />
@@ -103,7 +103,7 @@ export function ImportPanel({ token, projectId }: { token: string; projectId: st
           </button>
           {report && report.errors === 0 && report.to_create > 0 && !report.committed && (
             <button
-              className="primary px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer disabled:opacity-50"
+              className="primary px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-accent hover:bg-accent-strong transition-colors cursor-pointer disabled:opacity-50"
               disabled={busy}
               onClick={() => run(false)}
             >
@@ -116,8 +116,8 @@ export function ImportPanel({ token, projectId }: { token: string; projectId: st
           <div
             className={`import-report p-3 rounded-xl border text-xs sm:text-sm space-y-2 ${
               report.errors > 0
-                ? "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200"
-                : "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-200"
+                ? "bg-danger-soft border-danger-border text-danger-text"
+                : "bg-success-soft border-success-border text-success-text"
             }`}
             role="status"
           >

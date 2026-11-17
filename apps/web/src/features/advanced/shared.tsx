@@ -11,7 +11,7 @@ export const day = (x: unknown) => (x ? formatDate(str(x)) : "—");
 export function Empty({ title, caption }: { title: string; caption: string }) {
   return (
     <div className="ext-empty py-12 px-4 text-center flex flex-col items-center justify-center text-muted">
-      <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-500 flex items-center justify-center mb-3">
+      <div className="w-12 h-12 rounded-2xl bg-accent-soft text-accent flex items-center justify-center mb-3">
         <Sparkles size={24} />
       </div>
       <h3 className="text-base font-semibold text-text">{title}</h3>
@@ -41,9 +41,9 @@ export function Analytics({ data }: { data: Item | Item[] }) {
               <span className="font-medium text-text capitalize min-w-[100px]">
                 {str(r.status).replaceAll("_", " ")}
               </span>
-              <div className="progress-track flex-1 h-2 bg-surface-2 dark:bg-surface-3 rounded-full overflow-hidden">
+              <div className="progress-track flex-1 h-2 bg-surface-3 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-indigo-500 rounded-full transition-all"
+                  className="h-full bg-accent rounded-full transition-all"
                   style={{ width: `${sum ? (count(r.count) * 100) / sum : 0}%` }}
                 />
               </div>
@@ -67,7 +67,7 @@ export function Analytics({ data }: { data: Item | Item[] }) {
           ))}
           <div className="stat-row total pt-3 border-t border-border flex items-center justify-between text-xs sm:text-sm">
             <span className="font-medium text-muted">Overdue, open issues</span>
-            <strong className="font-bold text-rose-500">{count(d.overdue)}</strong>
+            <strong className="font-bold text-danger-text">{count(d.overdue)}</strong>
           </div>
         </CardContent>
       </Card>

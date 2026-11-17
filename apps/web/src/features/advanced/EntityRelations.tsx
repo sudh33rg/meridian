@@ -64,14 +64,14 @@ export function EntityRelations({
   return (
     <div className="relations-widget space-y-3">
       {error && (
-        <div className="error p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 text-xs font-medium">
+        <div className="error p-2.5 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium">
           {error}
         </div>
       )}
       <div className="relation-fields flex items-center gap-2">
         <select
           aria-label="Choose related item"
-          className="flex-1 px-3 py-1.5 rounded-lg border border-border bg-surface text-text text-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
+          className="flex-1 px-3 py-1.5 rounded-lg border border-border bg-surface text-text text-xs focus:outline-hidden focus:ring-2 focus:ring-accent/20"
           value={chosen}
           onChange={(e) => setChosen(e.target.value)}
         >
@@ -97,7 +97,7 @@ export function EntityRelations({
             key={str(r.id || n)}
           >
             <div className="flex items-center gap-2 text-text">
-              <Link2 size={13} className="text-indigo-500 shrink-0" />
+              <Link2 size={13} className="text-accent shrink-0" />
               <span className="font-medium">
                 {str(r.relation)} · {str(r.source_type)} → {str(r.target_type)}
               </span>

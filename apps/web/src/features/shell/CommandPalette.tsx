@@ -128,7 +128,7 @@ export function CommandPalette() {
         label: "Switch to " + p.name,
         group: "Projects",
         icon: (
-          <span className="w-5 h-5 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold flex items-center justify-center uppercase">
+          <span className="w-5 h-5 rounded bg-accent-soft text-accent text-[10px] font-bold flex items-center justify-center uppercase">
             {p.key.slice(0, 2)}
           </span>
         ),
@@ -240,18 +240,18 @@ export function CommandPalette() {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-start justify-center p-3 sm:p-6 pt-[10vh] animate-fadeIn"
+      className="fixed inset-0 z-50 bg-overlay backdrop-blur-xs flex items-start justify-center p-3 sm:p-6 pt-[10vh] animate-fadeIn"
       onMouseDown={(e) => e.target === e.currentTarget && close()}
     >
       <div
-        className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[75vh]"
+        className="relative w-full max-w-xl bg-surface rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col max-h-[75vh] text-text-main"
         role="dialog"
         aria-modal="true"
         aria-label="Command palette"
       >
         {/* Input */}
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-100 dark:border-slate-800">
-          <Search size={18} className="text-slate-400 shrink-0" />
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border">
+          <Search size={18} className="text-text-muted shrink-0" />
           <input
             ref={inputRef}
             role="combobox"
@@ -261,7 +261,7 @@ export function CommandPalette() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Type a command, page, project or issue…"
-            className="w-full bg-transparent border-0 text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-hidden"
+            className="w-full bg-transparent border-0 text-text-main placeholder-text-muted text-sm focus:outline-hidden"
             onKeyDown={(e) => {
               if (e.key === "ArrowDown") {
                 e.preventDefault();
@@ -277,7 +277,7 @@ export function CommandPalette() {
               }
             }}
           />
-          <kbd className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700">
+          <kbd className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-surface-2 text-text-muted border border-border">
             Esc
           </kbd>
         </div>
@@ -296,7 +296,7 @@ export function CommandPalette() {
             return (
               <React.Fragment key={c.id + idx}>
                 {head && !q.trim() && (
-                  <div className="px-3 pt-3 pb-1 text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  <div className="px-3 pt-3 pb-1 text-[11px] font-extrabold uppercase tracking-wider text-text-subtle">
                     {c.group}
                   </div>
                 )}
@@ -306,24 +306,22 @@ export function CommandPalette() {
                   aria-selected={isSelected}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
                     isSelected
-                      ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-semibold"
-                      : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      ? "bg-accent-soft text-accent font-semibold"
+                      : "text-text-main hover:bg-surface-3"
                   }`}
                   onMouseMove={() => setActive(idx)}
                   onClick={() => run(c)}
                 >
                   <div className="flex items-center gap-3 truncate min-w-0">
-                    <span
-                      className={`shrink-0 ${isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}`}
-                    >
+                    <span className={`shrink-0 ${isSelected ? "text-accent" : "text-text-muted"}`}>
                       {c.icon}
                     </span>
                     <span className="truncate">{c.label}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-2">
-                    {q.trim() && <span className="text-[11px] text-slate-400 capitalize">{c.group}</span>}
+                    {q.trim() && <span className="text-[11px] text-text-muted capitalize">{c.group}</span>}
                     {c.hint && (
-                      <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
+                      <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-surface-2 border border-border text-text-muted">
                         {c.hint}
                       </kbd>
                     )}
@@ -333,33 +331,31 @@ export function CommandPalette() {
             );
           })}
           {!results.length && (
-            <div className="py-12 text-center text-sm text-slate-400 dark:text-slate-500">
-              No results for “{q}”
-            </div>
+            <div className="py-12 text-center text-sm text-text-muted">No results for “{q}”</div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-2.5 bg-slate-50/75 dark:bg-slate-850 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
+        <div className="px-4 py-2.5 bg-surface-2 border-t border-border flex items-center justify-between text-xs text-text-muted">
           <div className="flex items-center gap-3">
             <span>
-              <kbd className="px-1 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[10px]">
+              <kbd className="px-1 py-0.5 rounded bg-surface border border-border font-mono text-[10px]">
                 ↑
               </kbd>{" "}
-              <kbd className="px-1 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[10px]">
+              <kbd className="px-1 py-0.5 rounded bg-surface border border-border font-mono text-[10px]">
                 ↓
               </kbd>{" "}
               navigate
             </span>
             <span>
-              <kbd className="px-1 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[10px] inline-flex items-center">
+              <kbd className="px-1 py-0.5 rounded bg-surface border border-border font-mono text-[10px] inline-flex items-center">
                 <CornerDownLeft size={10} />
               </kbd>{" "}
               select
             </span>
           </div>
           <span>
-            <kbd className="px-1 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[10px]">
+            <kbd className="px-1 py-0.5 rounded bg-surface border border-border font-mono text-[10px]">
               Esc
             </kbd>{" "}
             close

@@ -172,7 +172,7 @@ export function TeamVelocityChart({
                   width={groupWidth - 4}
                   height={plotH}
                   fill="currentColor"
-                  className="text-indigo-500/10"
+                  className="text-accent/10"
                   rx={4}
                 />
               )}
@@ -254,7 +254,7 @@ export function TeamVelocityChart({
       {/* Legend */}
       <div className="flex flex-wrap items-center justify-center gap-5 mt-2 text-xs text-muted">
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-xs bg-slate-400" />
+          <span className="w-3 h-3 rounded-xs bg-text-subtle" />
           Committed Scope
         </span>
         <span className="flex items-center gap-1.5">
@@ -262,7 +262,7 @@ export function TeamVelocityChart({
           Completed Scope
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-4.5 h-0.5 border-t-2 border-dashed border-indigo-500" />
+          <span className="w-4.5 h-0.5 border-t-2 border-dashed border-accent" />
           Average Velocity
         </span>
       </div>
@@ -312,7 +312,7 @@ export function TeamVelocityModal({
 
   return (
     <div
-      className="overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+      className="overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay backdrop-blur-xs"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
@@ -323,7 +323,7 @@ export function TeamVelocityModal({
         <div className="modal-head flex items-start justify-between gap-4 pb-2 border-b border-border">
           <div>
             <h3 className="flex items-center gap-2 text-base sm:text-lg font-bold text-text">
-              <BarChart3 size={20} className="accent text-indigo-500" />
+              <BarChart3 size={20} className="accent text-accent" />
               Team Velocity &amp; Predictability
             </h3>
             <p className="muted small text-xs sm:text-sm text-muted mt-0.5">
@@ -379,7 +379,7 @@ export function TeamVelocityModal({
             <button
               className={`small-btn px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
                 metric === "points"
-                  ? "primary bg-indigo-600 text-white shadow-xs"
+                  ? "primary bg-accent text-white shadow-xs"
                   : "secondary text-muted hover:text-text"
               }`}
               onClick={() => setMetric("points")}
@@ -389,7 +389,7 @@ export function TeamVelocityModal({
             <button
               className={`small-btn px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
                 metric === "count"
-                  ? "primary bg-indigo-600 text-white shadow-xs"
+                  ? "primary bg-accent text-white shadow-xs"
                   : "secondary text-muted hover:text-text"
               }`}
               onClick={() => setMetric("count")}
@@ -445,9 +445,9 @@ export function TeamVelocityModal({
             <div className="stat-card p-3 bg-surface border border-border rounded-xl">
               <div className="flex justify-between items-center mb-1">
                 <span className="small muted text-xs text-muted font-medium">Avg Commitment</span>
-                <Zap size={16} className="text-indigo-500" />
+                <Zap size={16} className="text-accent" />
               </div>
-              <strong className="text-base sm:text-lg font-bold text-indigo-600 dark:text-indigo-400 block">
+              <strong className="text-base sm:text-lg font-bold text-accent block">
                 {avgStarted.toFixed(1)} {isPoints ? "pts" : "issues"}
               </strong>
               <small className="muted text-[11px] text-muted block mt-0.5">Planned at sprint start</small>

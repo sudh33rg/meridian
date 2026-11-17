@@ -35,29 +35,29 @@ export function CreateModal() {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fadeIn"
+      className="fixed inset-0 z-50 bg-overlay backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fadeIn"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) setModal(null);
       }}
     >
       <form
-        className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-auto flex flex-col max-h-[90vh]"
+        className="relative w-full max-w-lg bg-surface rounded-2xl shadow-2xl border border-border overflow-hidden my-auto flex flex-col max-h-[90vh] text-text-main"
         onSubmit={create}
       >
         {/* Header */}
-        <div className="px-5 py-4 sm:px-6 sm:py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+        <div className="px-5 py-4 sm:px-6 sm:py-5 border-b border-border flex items-center justify-between shrink-0">
           <div>
-            <div className="text-[11px] font-extrabold tracking-wider uppercase text-indigo-600 dark:text-indigo-400 mb-1 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400" />
+            <div className="text-[11px] font-extrabold tracking-wider uppercase text-accent mb-1 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent" />
               CREATE
             </div>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight font-display m-0">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-text-main tracking-tight font-display m-0">
               {modal === "project" ? "New project" : modal === "issue" ? "New issue" : "New knowledge page"}
             </h2>
           </div>
           <button
             type="button"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-text-muted hover:text-text-main hover:bg-surface-3 transition-colors cursor-pointer"
             onClick={() => setModal(null)}
           >
             <X size={19} />
@@ -69,7 +69,7 @@ export function CreateModal() {
           {modal === "project" ? (
             <>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-text-main mb-1.5">
                   Project name
                 </label>
                 <input
@@ -77,12 +77,12 @@ export function CreateModal() {
                   value={draft.name}
                   onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                   placeholder="Product launch"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 text-sm transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-bg text-text-main placeholder-text-muted focus:outline-hidden focus:ring-2 focus:ring-accent-ring focus:border-accent text-sm transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-text-main mb-1.5">
                   Project key
                 </label>
                 <input
@@ -94,12 +94,12 @@ export function CreateModal() {
                     setDraft({ ...draft, key: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") })
                   }
                   placeholder="PLAT"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 text-sm uppercase font-mono font-bold tracking-wider transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-bg text-text-main placeholder-text-muted focus:outline-hidden focus:ring-2 focus:ring-accent-ring focus:border-accent text-sm uppercase font-mono font-bold tracking-wider transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-text-main mb-1.5">
                   Description
                 </label>
                 <textarea
@@ -107,18 +107,18 @@ export function CreateModal() {
                   value={draft.description}
                   onChange={(e) => setDraft({ ...draft, description: e.target.value })}
                   placeholder="What is this project for?"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 text-sm transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-bg text-text-main placeholder-text-muted focus:outline-hidden focus:ring-2 focus:ring-accent-ring focus:border-accent text-sm transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-text-main mb-1.5">
                   Starting template
                 </label>
                 <select
                   value={draft.template}
                   onChange={(e) => setDraft({ ...draft, template: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-hidden focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-bg text-text-main text-sm focus:outline-hidden focus:ring-2 focus:ring-accent-ring focus:border-accent transition-colors"
                 >
                   <option value="software">Software (To do, In progress, In review, Done)</option>
                   <option value="kanban">Kanban (To do, In progress, Done)</option>
@@ -128,13 +128,13 @@ export function CreateModal() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-text-main mb-1.5">
                   Who can see it
                 </label>
                 <select
                   value={draft.visibility}
                   onChange={(e) => setDraft({ ...draft, visibility: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-hidden focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-bg text-text-main text-sm focus:outline-hidden focus:ring-2 focus:ring-accent-ring focus:border-accent transition-colors"
                 >
                   <option value="workspace">Everyone in the workspace</option>
                   <option value="private">Private (only people I add)</option>
@@ -144,7 +144,7 @@ export function CreateModal() {
           ) : (
             <>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-text-main mb-1.5">
                   Title
                 </label>
                 <input
@@ -152,21 +152,21 @@ export function CreateModal() {
                   value={draft.title}
                   onChange={(e) => setDraft({ ...draft, title: e.target.value })}
                   placeholder={modal === "issue" ? "What needs to be done?" : "Page title"}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 text-sm transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-bg text-text-main placeholder-text-muted focus:outline-hidden focus:ring-2 focus:ring-accent-ring focus:border-accent text-sm transition-colors"
                 />
               </div>
 
               {modal === "issue" && (similar.data ?? []).length > 0 && (
-                <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-xs">
-                  <b className="text-amber-900 dark:text-amber-300 flex items-center gap-1.5 mb-1.5">
+                <div className="p-3 rounded-xl bg-warning-soft border border-warning-border text-xs">
+                  <b className="text-warning-text flex items-center gap-1.5 mb-1.5">
                     <AlertCircle size={14} /> Possibly the same work:
                   </b>
-                  <ul className="space-y-1 text-slate-700 dark:text-slate-300 pl-2">
+                  <ul className="space-y-1 text-text-main pl-2">
                     {(similar.data ?? []).map((s) => (
                       <li key={s.id} className="flex items-center gap-2">
                         <button
                           type="button"
-                          className="font-mono font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                          className="font-mono font-bold text-accent hover:underline cursor-pointer"
                           onClick={() => {
                             setModal(null);
                             setSelectedIssue(s.id);
@@ -175,7 +175,7 @@ export function CreateModal() {
                           {project?.key}-{s.number}
                         </button>
                         <span className="truncate">{s.title}</span>
-                        <span className="text-slate-400">· {s.status}</span>
+                        <span className="text-text-muted">· {s.status}</span>
                       </li>
                     ))}
                   </ul>
@@ -185,13 +185,13 @@ export function CreateModal() {
               {modal === "issue" && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-text-main mb-1.5">
                       Type
                     </label>
                     <select
                       value={draft.kind}
                       onChange={(e) => setDraft({ ...draft, kind: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:outline-hidden"
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-bg text-text-main text-xs font-medium focus:outline-hidden"
                     >
                       {issueTypes.map((t) => (
                         <option key={t.key} value={t.key}>
@@ -202,13 +202,13 @@ export function CreateModal() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-text-main mb-1.5">
                       Priority
                     </label>
                     <select
                       value={draft.priority}
                       onChange={(e) => setDraft({ ...draft, priority: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium capitalize focus:outline-hidden"
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-bg text-text-main text-xs font-medium capitalize focus:outline-hidden"
                     >
                       {["low", "medium", "high", "urgent"].map((x) => (
                         <option key={x} value={x}>
@@ -219,13 +219,13 @@ export function CreateModal() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-text-main mb-1.5">
                       Team
                     </label>
                     <select
                       value={draft.teamId}
                       onChange={(e) => setDraft({ ...draft, teamId: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:outline-hidden"
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-bg text-text-main text-xs font-medium focus:outline-hidden"
                     >
                       <option value="">No team (product backlog)</option>
                       {(teams.data ?? []).map((t) => (
@@ -248,7 +248,7 @@ export function CreateModal() {
               )}
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-text-main mb-1.5">
                   {modal === "page" ? "Content" : "Description"}
                 </label>
                 <textarea
@@ -258,31 +258,31 @@ export function CreateModal() {
                     setDraft({ ...draft, [modal === "page" ? "content" : "description"]: e.target.value })
                   }
                   placeholder="Add details…"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 text-sm transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-bg text-text-main placeholder-text-muted focus:outline-hidden focus:ring-2 focus:ring-accent-ring focus:border-accent text-sm transition-colors"
                 />
               </div>
             </>
           )}
 
           {error && (
-            <div className="error p-3 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-medium">
+            <div className="error p-3 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium">
               {error}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3.5 sm:px-6 sm:py-4 bg-slate-50/80 dark:bg-slate-850 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3 shrink-0">
+        <div className="px-5 py-3.5 sm:px-6 sm:py-4 bg-surface-2 border-t border-border flex items-center justify-end gap-3 shrink-0">
           <button
             type="button"
-            className="px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold border border-border bg-surface-2 text-text-main hover:bg-surface-3 transition-colors cursor-pointer"
             onClick={() => setModal(null)}
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 shadow-xs transition-colors cursor-pointer disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold text-white bg-accent hover:bg-accent-strong active:bg-accent-strong shadow-xs transition-colors cursor-pointer disabled:opacity-60"
             disabled={busy}
           >
             <span>{busy ? "Creating…" : "Create " + modal}</span>
