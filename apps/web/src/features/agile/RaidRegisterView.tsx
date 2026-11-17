@@ -97,7 +97,7 @@ export function RaidRegisterView({ projectId }: { projectId: string }) {
             <ShieldAlert size={18} /> RAID Register
           </CardTitle>
           <p className="muted small text-xs sm:text-sm text-text-subtle mt-1">
-            Comprehensive governance of Risks, Assumptions, Issues, and Dependencies.
+            Track Risks, Assumptions, Issues, and Dependencies.
           </p>
         </div>
 

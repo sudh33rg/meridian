@@ -3,22 +3,6 @@
   flex-direction: column;
   gap: 23px;
 }
-.ext-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-}
-.ext-title h2 {
-  font-size: 27px;
-  margin: 8px 0;
-  letter-spacing: -1px;
-}
-.ext-title p {
-  font-size: 13px;
-  color: var(--text-3);
-  margin: 0;
-}
 .ext-actions {
   display: flex;
   gap: 8px;
@@ -51,16 +35,6 @@
   color: var(--accent-text);
   background: var(--accent-soft);
   border-radius: 10px;
-}
-.ext-card-content {
-  flex: 1;
-  min-width: 0;
-}
-.ext-card-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  align-items: start;
 }
 .ext-card h3 {
   font-size: 13px;
@@ -332,10 +306,6 @@
   .ext-two-cols {
     grid-template-columns: 1fr;
   }
-  .ext-title {
-    align-items: flex-start;
-    flex-direction: column;
-  }
   .ext-cards {
     grid-template-columns: 1fr;
   }
@@ -344,9 +314,6 @@
   }
 }
 @media (max-width: 760px) {
-  .ext-title h2 {
-    font-size: 23px;
-  }
   .ext-card {
     padding: 14px;
   }
@@ -366,27 +333,6 @@
   overflow-y: auto;
   scrollbar-width: thin;
 }
-.sidebar-bottom {
-  padding-top: 20px;
-}
-.nav-subgroup {
-  margin-top: 17px;
-}
-.nav-subgroup .nav {
-  padding: 8px 13px;
-  font-size: 12px;
-  gap: 13px;
-}
-.nav-bullet {
-  width: 7px;
-  height: 7px;
-  background: var(--border-strong);
-  border-radius: 3px;
-  margin: 0 5px;
-}
-.nav.active .nav-bullet {
-  background: var(--accent);
-}
 .issue-title-button {
   display: block;
   text-align: left;
@@ -397,11 +343,6 @@
 }
 .issue-title-button:hover {
   color: var(--accent-text);
-}
-.page-editor .editor-head .heading-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .ext-result {
@@ -445,15 +386,6 @@
 }
 .relation-row small {
   color: var(--text-3);
-}
-.editor-relations {
-  margin-top: 22px;
-  border-top: 1px solid var(--border);
-  padding-top: 22px;
-}
-.editor-relations h3 {
-  font-size: 14px;
-  color: var(--accent-text);
 }
 
 /* Notification preferences (inbox) */
