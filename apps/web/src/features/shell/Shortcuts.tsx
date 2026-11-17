@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
-import { X } from "lucide-react";
 import { useWorkspace } from "../workspace/useWorkspace";
 import { NAV } from "./nav";
+import { Modal } from "../shared/UiComponents";
 
 const isTyping = (t: EventTarget | null) => {
   const el = t as HTMLElement | null;
@@ -14,6 +14,7 @@ export function useGlobalShortcuts() {
   const ws = useWorkspace();
   const ref = useRef(ws);
   ref.current = ws;
+
   useEffect(() => {
     let gUntil = 0;
     const onKey = (e: KeyboardEvent) => {
@@ -85,34 +86,35 @@ const ROWS: [string, string[]][] = [
 export function ShortcutsHelp() {
   const { helpOpen, setHelpOpen } = useWorkspace();
   if (!helpOpen) return null;
+
   return (
-    <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && setHelpOpen(false)}>
-      <div className="modal shortcuts" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
-        <div className="modal-head">
-          <div>
-            <div className="eyebrow blue">KEYBOARD</div>
-            <h2>Shortcuts</h2>
+    <Modal
+      open={helpOpen}
+      onClose={() => setHelpOpen(false)}
+      title="Keyboard Shortcuts"
+      subtitle="Navigate Meridian with speed using quick keystrokes."
+      maxWidth="max-w-md"
+    >
+      <div className="space-y-2">
+        {ROWS.map(([label, keys]) => (
+          <div
+            key={label}
+            className="flex items-center justify-between py-2 px-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-xs sm:text-sm"
+          >
+            <span className="text-slate-700 dark:text-slate-300 font-medium">{label}</span>
+            <span className="flex items-center gap-1 shrink-0">
+              {keys.map((k, i) => (
+                <React.Fragment key={i}>
+                  {i > 0 && <span className="text-[10px] text-slate-400 mx-0.5">then</span>}
+                  <kbd className="px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                    {k}
+                  </kbd>
+                </React.Fragment>
+              ))}
+            </span>
           </div>
-          <button className="icon-btn" aria-label="Close" onClick={() => setHelpOpen(false)} autoFocus>
-            <X size={20} />
-          </button>
-        </div>
-        <div className="shortcut-list">
-          {ROWS.map(([label, keys]) => (
-            <div className="shortcut-row" key={label}>
-              <span>{label}</span>
-              <span className="keys">
-                {keys.map((k, i) => (
-                  <React.Fragment key={i}>
-                    {i > 0 && <span className="then">then</span>}
-                    <kbd>{k}</kbd>
-                  </React.Fragment>
-                ))}
-              </span>
-            </div>
-          ))}
-        </div>
+        ))}
       </div>
-    </div>
+    </Modal>
   );
 }

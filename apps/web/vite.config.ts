@@ -1,12 +1,13 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
 // MERIDIAN_API_TARGET points the dev proxy at another local API (default: port 9990).
 const apiTarget = process.env.MERIDIAN_API_TARGET ?? "http://127.0.0.1:9990";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   // changeOrigin stays false so the API sees the browser's Host (its CSRF Origin check compares it).
   server: {
     port: 9991,

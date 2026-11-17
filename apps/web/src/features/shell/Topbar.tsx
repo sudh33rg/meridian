@@ -39,102 +39,149 @@ export function Topbar() {
   const createRef = useDismiss(createOpen, () => setCreateOpen(false));
   const userRef = useDismiss(userOpen, () => setUserOpen(false));
   const pageLabel = NAV_BY_ID[tab]?.label ?? "Overview";
+
   return (
-    <header className="topbar">
-      <div className="breadcrumbs">
+    <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between gap-3 sticky top-0 z-30 shrink-0">
+      {/* Left: Hamburger (Mobile) + Breadcrumbs */}
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <button
-          className="icon-btn lg mobile-trigger"
+          className="p-2 -ml-1 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors md:hidden cursor-pointer"
           aria-label="Open menu"
           onClick={() => setMobileMenu(true)}
         >
-          <Menu size={19} />
+          <Menu size={20} />
         </button>
-        <nav aria-label="Breadcrumb" className="crumbs">
-          <button className="crumb" onClick={() => setTab("overview")}>
+
+        <nav
+          aria-label="Breadcrumb"
+          className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium truncate"
+        >
+          <button
+            className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer truncate max-w-[100px] sm:max-w-[150px]"
+            onClick={() => setTab("overview")}
+          >
             {session.organization}
           </button>
           {project && (
             <>
-              <ChevronRight size={13} className="slash" />
-              <span className="crumb static">{project.name}</span>
+              <ChevronRight size={14} className="text-slate-400 shrink-0" />
+              <span className="text-slate-700 dark:text-slate-300 font-semibold truncate max-w-[120px] sm:max-w-[180px]">
+                {project.name}
+              </span>
             </>
           )}
-          <ChevronRight size={13} className="slash" />
-          <span className="crumb current" aria-current="page">
+          <ChevronRight size={14} className="text-slate-400 shrink-0" />
+          <span className="text-indigo-600 dark:text-indigo-400 font-bold truncate" aria-current="page">
             {pageLabel}
           </span>
         </nav>
       </div>
 
-      <button className="cmdk-trigger" onClick={() => setPaletteOpen(true)} aria-label="Open command palette">
-        <Search size={15} />
-        <span>Search or run a command…</span>
-        <kbd>⌘K</kbd>
+      {/* Middle: Command Search Trigger (Desktop) */}
+      <button
+        className="hidden md:flex items-center justify-between gap-4 px-3.5 py-1.5 rounded-xl bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200/70 dark:hover:bg-slate-750 text-slate-500 dark:text-slate-400 text-xs w-64 lg:w-80 border border-slate-200/60 dark:border-slate-700/60 transition-colors cursor-pointer"
+        onClick={() => setPaletteOpen(true)}
+        aria-label="Open command palette"
+      >
+        <div className="flex items-center gap-2 truncate">
+          <Search size={14} className="shrink-0" />
+          <span className="truncate">Search or jump to…</span>
+        </div>
+        <kbd className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-300 shadow-2xs">
+          ⌘K
+        </kbd>
       </button>
 
-      <div className="top-actions">
-        <button className="icon-btn lg only-mobile" aria-label="Search" onClick={() => setPaletteOpen(true)}>
-          <Search size={18} />
+      {/* Right Actions */}
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {/* Search icon (Mobile only) */}
+        <button
+          className="flex md:hidden p-2 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          aria-label="Search"
+          onClick={() => setPaletteOpen(true)}
+        >
+          <Search size={19} />
         </button>
-        <div className="popover-wrap" ref={createRef}>
+
+        {/* Create Button Popover */}
+        <div className="relative" ref={createRef}>
           <button
-            className="primary create-btn"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 shadow-xs transition-colors cursor-pointer"
             aria-haspopup="menu"
             aria-expanded={createOpen}
             onClick={() => setCreateOpen((o) => !o)}
           >
-            <Plus size={16} /> <span className="hide-sm">Create</span>
+            <Plus size={16} />
+            <span className="hidden sm:inline">Create</span>
           </button>
+
           {createOpen && (
-            <div className="popover right" role="menu" aria-label="Create">
+            <div
+              className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-1.5 z-50 animate-fadeIn"
+              role="menu"
+              aria-label="Create"
+            >
               <button
                 role="menuitem"
-                className="menu-item"
                 disabled={!project}
                 onClick={() => {
                   setCreateOpen(false);
                   setModal("issue");
                 }}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors cursor-pointer"
               >
-                <ListPlus size={15} /> <span>New issue</span>
-                <kbd>C</kbd>
+                <div className="flex items-center gap-2">
+                  <ListPlus size={15} className="text-indigo-600 dark:text-indigo-400" />
+                  <span>New issue</span>
+                </div>
+                <kbd className="text-[10px] text-slate-400">C</kbd>
               </button>
+
               <button
                 role="menuitem"
-                className="menu-item"
                 disabled={!project}
                 onClick={() => {
                   setCreateOpen(false);
                   setModal("page");
                 }}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors cursor-pointer"
               >
-                <FileText size={15} /> <span>New page</span>
+                <FileText size={15} className="text-emerald-600 dark:text-emerald-400" />
+                <span>New page</span>
               </button>
+
               <button
                 role="menuitem"
-                className="menu-item"
                 onClick={() => {
                   setCreateOpen(false);
                   setModal("project");
                 }}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
-                <FolderKanban size={15} /> <span>New project</span>
+                <FolderKanban size={15} className="text-amber-600 dark:text-amber-400" />
+                <span>New project</span>
               </button>
             </div>
           )}
         </div>
+
+        {/* Shortcuts (?) trigger (Desktop) */}
         <button
-          className="icon-btn lg hide-sm"
+          className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold transition-colors cursor-pointer"
           aria-label="Keyboard shortcuts"
           title="Keyboard shortcuts (?)"
           onClick={() => setHelpOpen(true)}
         >
-          <kbd className="kbd-icon">?</kbd>
+          ?
         </button>
+
+        {/* Theme Switcher Menu */}
         <ThemeMenu />
-        <div className="popover-wrap" ref={userRef}>
+
+        {/* User Account Popover */}
+        <div className="relative" ref={userRef}>
           <button
-            className="avatar-btn"
+            className="p-0.5 rounded-full ring-2 ring-transparent hover:ring-indigo-500/30 transition-all cursor-pointer flex items-center"
             aria-label="Account menu"
             aria-haspopup="menu"
             aria-expanded={userOpen}
@@ -142,27 +189,44 @@ export function Topbar() {
           >
             <Avatar name={session.name} size={30} />
           </button>
+
           {userOpen && (
-            <div className="popover right" role="menu" aria-label="Account">
-              <div className="popover-user">
-                <Avatar name={session.name} size={36} />
-                <span>
-                  <b>{session.name}</b>
-                  <small>{me?.email}</small>
-                </span>
+            <div
+              className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-2 z-50 animate-fadeIn"
+              role="menu"
+              aria-label="Account"
+            >
+              <div className="px-3 py-2.5 border-b border-slate-100 dark:border-slate-800/80 mb-1 flex items-center gap-2.5">
+                <Avatar name={session.name} size={34} />
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                    {session.name}
+                  </div>
+                  <div className="text-[11px] text-slate-400 dark:text-slate-500 truncate">{me?.email}</div>
+                </div>
               </div>
+
               <button
                 role="menuitem"
-                className="menu-item"
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 onClick={() => {
                   setUserOpen(false);
                   setTab("appearance");
                 }}
               >
-                <Palette size={15} /> <span>Appearance</span>
+                <Palette size={15} />
+                <span>Appearance</span>
               </button>
-              <button role="menuitem" className="menu-item danger" onClick={logout}>
-                <LogOut size={15} /> <span>Sign out</span>
+
+              <div className="my-1 border-t border-slate-100 dark:border-slate-800/80" />
+
+              <button
+                role="menuitem"
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer"
+                onClick={logout}
+              >
+                <LogOut size={15} />
+                <span>Sign out</span>
               </button>
             </div>
           )}

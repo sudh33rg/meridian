@@ -127,8 +127,6 @@ export function IssuesTab() {
   });
   const saveView = useMutation({
     mutationFn: ({ name, shared }: { name: string; shared: boolean }) => {
-      // The server stores status, priority and title search. Type and assignee filters are not part
-      // of saved views yet.
       const filters: Record<string, string> = {};
       if (status) filters.status = status;
       if (priority) filters.priority = priority;
@@ -239,12 +237,25 @@ export function IssuesTab() {
     options: readonly string[];
     labelOf?: (v: string) => string;
   }) => (
-    <label className={"filter-chip" + (value ? " on" : "")}>
-      <span>{label}</span>
-      <select aria-label={label} value={value} onChange={(e) => set(e.target.value)}>
-        <option value="">Any</option>
+    <label
+      className={`filter-chip inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg border transition-all cursor-pointer select-none ${
+        value
+          ? "bg-accent/10 border-accent/40 text-accent font-medium shadow-xs"
+          : "bg-surface border-border text-text-subtle hover:text-text-main hover:border-border-strong"
+      }`}
+    >
+      <span className="text-[11px] uppercase tracking-wider font-semibold opacity-75">{label}</span>
+      <select
+        aria-label={label}
+        value={value}
+        onChange={(e) => set(e.target.value)}
+        className="bg-transparent text-inherit text-xs font-medium focus:outline-none cursor-pointer border-none p-0 pr-1"
+      >
+        <option value="" className="bg-surface text-text-main">
+          Any
+        </option>
         {options.map((o) => (
-          <option key={o} value={o}>
+          <option key={o} value={o} className="bg-surface text-text-main">
             {labelOf(o)}
           </option>
         ))}
@@ -253,53 +264,74 @@ export function IssuesTab() {
   );
 
   return (
-    <div className="panel">
-      <div className="list-toolbar">
-        <div className="search">
-          <Search size={16} />
-          <input
-            aria-label="Filter issues"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Filter issues…"
-          />
-        </div>
-        <form
-          className="query-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            setActiveQuery(queryText.trim());
-          }}
-        >
-          <input
-            aria-label="Issue query"
-            value={queryText}
-            onChange={(e) => setQueryText(e.target.value)}
-            placeholder="Query, e.g. status:in_progress priority:high -label:legacy cf.region:EU"
-          />
-          <button className="secondary" type="submit" disabled={!queryText.trim()}>
-            Run
-          </button>
-          {activeQuery && (
+    <div className="panel bg-surface rounded-2xl border border-border p-4 sm:p-6 shadow-sm space-y-4">
+      <div className="list-toolbar space-y-3">
+        {/* Search and Advanced Query Form */}
+        <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
+          <div className="search relative flex-1 min-w-[220px]">
+            <Search
+              size={16}
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-subtle pointer-events-none"
+            />
+            <input
+              aria-label="Filter issues"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Filter issues…"
+              className="w-full pl-9 pr-4 py-2 bg-bg border border-border rounded-xl text-sm text-text-main placeholder:text-text-subtle focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
+            />
+          </div>
+          <form
+            className="query-form flex items-center gap-2 flex-1 lg:max-w-xl"
+            onSubmit={(e) => {
+              e.preventDefault();
+              setActiveQuery(queryText.trim());
+            }}
+          >
+            <input
+              aria-label="Issue query"
+              value={queryText}
+              onChange={(e) => setQueryText(e.target.value)}
+              placeholder="Query: status:in_progress priority:high -label:legacy…"
+              className="w-full px-3.5 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main placeholder:text-text-subtle focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
+            />
             <button
-              className="secondary"
-              type="button"
-              onClick={() => {
-                setQueryText("");
-                setActiveQuery("");
-              }}
+              className="secondary shrink-0 px-3 py-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors disabled:opacity-40"
+              type="submit"
+              disabled={!queryText.trim()}
             >
-              Clear query
+              Run
             </button>
-          )}
-        </form>
+            {activeQuery && (
+              <button
+                className="secondary shrink-0 px-3 py-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors"
+                type="button"
+                onClick={() => {
+                  setQueryText("");
+                  setActiveQuery("");
+                }}
+              >
+                Clear query
+              </button>
+            )}
+          </form>
+        </div>
+
         {queryResultsQ.error && (
-          <p className="query-error" role="alert">
+          <p
+            className="query-error text-xs text-danger bg-danger/10 p-2.5 rounded-lg border border-danger/20"
+            role="alert"
+          >
             {errorMessage(queryResultsQ.error)}
           </p>
         )}
-        <div className="filters">
-          <SlidersHorizontal size={15} className="muted" aria-hidden="true" />
+
+        {/* Filter bar */}
+        <div className="filters flex flex-wrap items-center gap-2 pt-1 pb-1">
+          <div className="flex items-center gap-1 text-text-subtle mr-1 text-xs font-medium">
+            <SlidersHorizontal size={14} className="muted" aria-hidden="true" />
+            <span className="hidden sm:inline">Filters:</span>
+          </div>
           <Chip
             label="Status"
             value={status}
@@ -317,7 +349,7 @@ export function IssuesTab() {
           />
           {filtering && (
             <button
-              className="clear-filters"
+              className="clear-filters inline-flex items-center gap-1 px-2.5 py-1 text-xs text-danger hover:bg-danger/10 rounded-lg transition-colors font-medium ml-auto sm:ml-0"
               onClick={() => {
                 setStatus("");
                 setPriority("");
@@ -330,34 +362,54 @@ export function IssuesTab() {
             </button>
           )}
         </div>
-        {(favouritesQ.data?.length ?? 0) > 0 || (recentQ.data?.length ?? 0) > 0 ? (
-          <div className="quick-issues" aria-label="Favourites and recent issues">
+
+        {/* Favourites & Recent */}
+        {((favouritesQ.data?.length ?? 0) > 0 || (recentQ.data?.length ?? 0) > 0) && (
+          <div
+            className="quick-issues flex flex-col sm:flex-row gap-2 py-1 border-t border-border/40 text-xs"
+            aria-label="Favourites and recent issues"
+          >
             {(favouritesQ.data?.length ?? 0) > 0 && (
-              <div className="quick-issues-row">
-                <span className="muted small">Favourites</span>
+              <div className="quick-issues-row flex flex-wrap items-center gap-1.5">
+                <span className="muted small font-medium text-text-subtle">Favourites:</span>
                 {favouritesQ.data?.map((i) => (
-                  <button key={i.id} className="chip-button" onClick={() => setSelectedIssue(i.id)}>
+                  <button
+                    key={i.id}
+                    className="chip-button text-xs px-2 py-0.5 bg-surface-2 hover:bg-accent/10 hover:text-accent rounded-md border border-border/70 text-text-muted transition-colors max-w-[200px] truncate"
+                    onClick={() => setSelectedIssue(i.id)}
+                  >
                     {project?.key}-{i.number} {i.title}
                   </button>
                 ))}
               </div>
             )}
             {(recentQ.data?.length ?? 0) > 0 && (
-              <div className="quick-issues-row">
-                <span className="muted small">Recent</span>
+              <div className="quick-issues-row flex flex-wrap items-center gap-1.5">
+                <span className="muted small font-medium text-text-subtle">Recent:</span>
                 {recentQ.data?.map((i) => (
-                  <button key={i.id} className="chip-button" onClick={() => setSelectedIssue(i.id)}>
+                  <button
+                    key={i.id}
+                    className="chip-button text-xs px-2 py-0.5 bg-surface-2 hover:bg-accent/10 hover:text-accent rounded-md border border-border/70 text-text-muted transition-colors max-w-[200px] truncate"
+                    onClick={() => setSelectedIssue(i.id)}
+                  >
                     {project?.key}-{i.number} {i.title}
                   </button>
                 ))}
               </div>
             )}
           </div>
-        ) : null}
-        <div className="view-opts">
-          <label className="filter-chip">
-            <Bookmark size={13} />
-            <select aria-label="Saved view" value={viewId} onChange={(e) => applyView(e.target.value)}>
+        )}
+
+        {/* Views and layout bar */}
+        <div className="view-opts flex flex-wrap items-center gap-2 pt-2 border-t border-border/60">
+          <label className="filter-chip inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg border border-border bg-surface text-text-main">
+            <Bookmark size={13} className="text-text-subtle" />
+            <select
+              aria-label="Saved view"
+              value={viewId}
+              onChange={(e) => applyView(e.target.value)}
+              className="bg-transparent text-xs font-medium focus:outline-none cursor-pointer"
+            >
               <option value="">All issues</option>
               {views.map((v) => (
                 <option key={v.id} value={v.id}>
@@ -370,24 +422,34 @@ export function IssuesTab() {
               ))}
             </select>
             {views.find((v) => v.id === viewId)?.stale && (
-              <span className="query-error" role="status">
-                This view names a status, field or query term that no longer exists. Edit or delete it.
+              <span className="query-error text-[10px] text-danger" role="status">
+                (stale)
               </span>
             )}
           </label>
+
           {viewId && <ViewSubscribe token={token} viewId={viewId} />}
+
           {viewId && views.find((v) => v.id === viewId)?.owner_id === me?.user_id && (
-            <button className="secondary" onClick={() => removeView.mutate(viewId)}>
+            <button
+              className="secondary px-2.5 py-1 text-xs bg-surface-2 hover:bg-danger/10 hover:text-danger rounded-lg border border-border transition-colors"
+              onClick={() => removeView.mutate(viewId)}
+            >
               Delete view
             </button>
           )}
+
           {naming === null ? (
-            <button className="secondary" onClick={() => setNaming("")} disabled={!selected}>
+            <button
+              className="secondary px-2.5 py-1 text-xs bg-surface-2 hover:bg-surface-3 rounded-lg border border-border text-text-main transition-colors disabled:opacity-40"
+              onClick={() => setNaming("")}
+              disabled={!selected}
+            >
               Save view
             </button>
           ) : (
             <form
-              className="inline-form"
+              className="inline-form flex flex-wrap items-center gap-2"
               onSubmit={(e) => {
                 e.preventDefault();
                 const name = naming.trim();
@@ -401,49 +463,79 @@ export function IssuesTab() {
                 value={naming}
                 onChange={(e) => setNaming(e.target.value)}
                 placeholder="View name"
+                className="px-2.5 py-1 text-xs bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
               />
-              <label className="filter-chip">
+              <label className="filter-chip inline-flex items-center gap-1.5 text-xs text-text-subtle">
                 <input
                   type="checkbox"
                   checked={sharedDraft}
                   onChange={(e) => setSharedDraft(e.target.checked)}
+                  className="rounded text-accent focus:ring-accent"
                 />
                 <span>Share with project</span>
               </label>
-              <button className="primary" type="submit" disabled={!naming.trim()}>
+              <button
+                className="primary px-3 py-1 bg-accent text-white hover:bg-accent-strong rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                type="submit"
+                disabled={!naming.trim()}
+              >
                 Save
               </button>
-              <button className="secondary" type="button" onClick={() => setNaming(null)}>
+              <button
+                className="secondary px-2.5 py-1 bg-surface-2 hover:bg-surface-3 rounded-lg border border-border text-xs text-text-main transition-colors"
+                type="button"
+                onClick={() => setNaming(null)}
+              >
                 Cancel
               </button>
             </form>
           )}
-          <label className="filter-chip">
-            <span>Sort</span>
-            <select aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
+
+          <div className="h-4 w-px bg-border hidden sm:block mx-0.5" />
+
+          <label className="filter-chip inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg border border-border bg-surface text-text-main">
+            <span className="text-text-subtle text-[11px] font-semibold uppercase">Sort</span>
+            <select
+              aria-label="Sort"
+              value={sort}
+              onChange={(e) => setSort(e.target.value as Sort)}
+              className="bg-transparent text-xs font-medium focus:outline-none cursor-pointer"
+            >
               <option value="updated">Recently updated</option>
               <option value="priority">Priority</option>
               <option value="number">Number</option>
             </select>
           </label>
-          <label className="filter-chip">
-            <Layers size={13} />
-            <select aria-label="Group by" value={group} onChange={(e) => setGroup(e.target.value as Group)}>
+
+          <label className="filter-chip inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg border border-border bg-surface text-text-main">
+            <Layers size={13} className="text-text-subtle" />
+            <select
+              aria-label="Group by"
+              value={group}
+              onChange={(e) => setGroup(e.target.value as Group)}
+              className="bg-transparent text-xs font-medium focus:outline-none cursor-pointer"
+            >
               <option value="none">No grouping</option>
               <option value="status">Group: status</option>
               <option value="priority">Group: priority</option>
             </select>
           </label>
+
           <button
-            className="secondary"
+            className="secondary px-2.5 py-1 text-xs bg-surface-2 hover:bg-surface-3 rounded-lg border border-border text-text-main transition-colors disabled:opacity-40"
             aria-expanded={importing}
             onClick={() => setImporting((v) => !v)}
             disabled={!selected}
           >
             Import CSV
           </button>
+
           <button
-            className={showArchived ? "primary" : "secondary"}
+            className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${
+              showArchived
+                ? "primary bg-accent text-white border-accent font-medium shadow-xs"
+                : "secondary bg-surface-2 hover:bg-surface-3 border-border text-text-main"
+            }`}
             aria-pressed={showArchived}
             onClick={() => {
               setShowArchived((v) => !v);
@@ -452,20 +544,31 @@ export function IssuesTab() {
           >
             {showArchived ? "Showing archived" : "Show archived"}
           </button>
-          <span className="muted small count-label">
+
+          <span className="muted small count-label text-xs text-text-subtle ml-auto font-medium">
             {rows.length} of {source.length}
           </span>
         </div>
       </div>
+
       {importing && <ImportPanel token={session.token} projectId={selected} />}
+
+      {/* Bulk actions banner */}
       {picked.size > 0 && !showArchived && (
-        <div className="bulk-bar" role="region" aria-label="Bulk actions">
-          <span>{picked.size} selected</span>
+        <div
+          className="bulk-bar flex flex-wrap items-center gap-2 p-3 bg-surface-2 border border-accent/30 rounded-xl shadow-sm text-xs"
+          role="region"
+          aria-label="Bulk actions"
+        >
+          <span className="font-semibold text-accent px-1.5 py-0.5 bg-accent/10 rounded-md">
+            {picked.size} selected
+          </span>
           <select
             aria-label="Set status for selected issues"
             value=""
             disabled={bulk.isPending}
             onChange={(e) => e.target.value && bulk.mutate({ action: "set_status", value: e.target.value })}
+            className="bg-surface border border-border rounded-lg px-2 py-1 text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
           >
             <option value="">Set status…</option>
             {statuses.map((s) => (
@@ -479,6 +582,7 @@ export function IssuesTab() {
             value=""
             disabled={bulk.isPending}
             onChange={(e) => e.target.value && bulk.mutate({ action: "set_priority", value: e.target.value })}
+            className="bg-surface border border-border rounded-lg px-2 py-1 text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
           >
             <option value="">Set priority…</option>
             {PRIORITIES.map((p) => (
@@ -492,6 +596,7 @@ export function IssuesTab() {
             value=""
             disabled={bulk.isPending}
             onChange={(e) => e.target.value && bulk.mutate({ action: "set_team", value: e.target.value })}
+            className="bg-surface border border-border rounded-lg px-2 py-1 text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
           >
             <option value="">Set team…</option>
             <option value="none">No team</option>
@@ -506,6 +611,7 @@ export function IssuesTab() {
             value=""
             disabled={bulk.isPending}
             onChange={(e) => e.target.value && bulk.mutate({ action: "set_sprint", value: e.target.value })}
+            className="bg-surface border border-border rounded-lg px-2 py-1 text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
           >
             <option value="">Set sprint…</option>
             <option value="none">No sprint</option>
@@ -520,6 +626,7 @@ export function IssuesTab() {
             value=""
             disabled={bulk.isPending}
             onChange={(e) => e.target.value && bulk.mutate({ action: "set_release", value: e.target.value })}
+            className="bg-surface border border-border rounded-lg px-2 py-1 text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
           >
             <option value="">Add to release…</option>
             {(bulkReleases.data ?? [])
@@ -535,6 +642,7 @@ export function IssuesTab() {
             value=""
             disabled={bulk.isPending}
             onChange={(e) => e.target.value && bulk.mutate({ action: "add_watcher", value: e.target.value })}
+            className="bg-surface border border-border rounded-lg px-2 py-1 text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
           >
             <option value="">Add watcher…</option>
             {(bulkMembers.data ?? []).map((m) => (
@@ -544,7 +652,7 @@ export function IssuesTab() {
             ))}
           </select>
           <form
-            className="bulk-label"
+            className="bulk-label flex items-center gap-1.5"
             onSubmit={(e) => {
               e.preventDefault();
               const v = bulkLabel.trim();
@@ -557,29 +665,39 @@ export function IssuesTab() {
               maxLength={40}
               placeholder="Label"
               onChange={(e) => setBulkLabel(e.target.value)}
+              className="px-2 py-1 text-xs bg-surface border border-border rounded-lg text-text-main w-24 sm:w-28 focus:outline-none focus:ring-1 focus:ring-accent"
             />
-            <button className="secondary" type="submit" disabled={bulk.isPending || !bulkLabel.trim()}>
+            <button
+              className="secondary px-2 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors disabled:opacity-40"
+              type="submit"
+              disabled={bulk.isPending || !bulkLabel.trim()}
+            >
               Add label
             </button>
             <button
-              className="secondary"
+              className="secondary px-2 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors disabled:opacity-40"
               type="button"
               disabled={bulk.isPending || !bulkLabel.trim()}
               onClick={() => bulk.mutate({ action: "remove_label", value: bulkLabel.trim() })}
             >
-              Remove label
+              Remove
             </button>
           </form>
-          <button className="secondary" onClick={() => setPicked(new Set())}>
+          <button
+            className="secondary ml-auto px-2 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors"
+            onClick={() => setPicked(new Set())}
+          >
             Clear selection
           </button>
         </div>
       )}
-      <div className="table-scroll">
-        <table>
+
+      {/* Responsive table container */}
+      <div className="table-scroll overflow-x-auto rounded-xl border border-border bg-surface">
+        <table className="w-full text-left border-collapse text-xs sm:text-sm">
           <thead>
-            <tr>
-              <th scope="col" className="check-col">
+            <tr className="border-b border-border bg-surface-2 text-text-subtle font-semibold text-[11px] uppercase tracking-wider">
+              <th scope="col" className="check-col w-10 px-3 py-3 text-center">
                 {!showArchived && (
                   <input
                     type="checkbox"
@@ -587,21 +705,32 @@ export function IssuesTab() {
                     checked={allVisiblePicked}
                     disabled={rows.length === 0}
                     onChange={togglePageSelection}
+                    className="rounded text-accent focus:ring-accent"
                   />
                 )}
               </th>
-              <th scope="col">Issue</th>
-              <th scope="col">Type</th>
-              <th scope="col">Priority</th>
-              <th scope="col">Status</th>
-              <th scope="col">Updated</th>
+              <th scope="col" className="px-4 py-3 min-w-[200px]">
+                Issue
+              </th>
+              <th scope="col" className="px-3 py-3 min-w-[90px]">
+                Type
+              </th>
+              <th scope="col" className="px-3 py-3 min-w-[80px]">
+                Priority
+              </th>
+              <th scope="col" className="px-3 py-3 min-w-[120px]">
+                Status
+              </th>
+              <th scope="col" className="px-4 py-3 min-w-[100px] text-right">
+                Updated
+              </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-border/60">
             {(showArchived ? archivedQ.isLoading : loading) &&
               [0, 1, 2, 3].map((n) => (
                 <tr key={n}>
-                  <td colSpan={COLUMNS}>
+                  <td colSpan={COLUMNS} className="p-4">
                     <Skeleton h={14} />
                   </td>
                 </tr>
@@ -610,55 +739,68 @@ export function IssuesTab() {
               groups.map((g) => (
                 <React.Fragment key={g.key}>
                   {g.label && (
-                    <tr className="group-row">
-                      <th colSpan={COLUMNS} scope="colgroup">
+                    <tr className="group-row bg-surface-2/60 border-t border-border">
+                      <th
+                        colSpan={COLUMNS}
+                        scope="colgroup"
+                        className="px-4 py-2 text-xs font-semibold text-text-subtle"
+                      >
                         <span className="capitalize">{g.label}</span>{" "}
-                        <span className="count">{g.items.length}</span>
+                        <span className="count ml-1.5 px-2 py-0.5 bg-surface border border-border/70 rounded-full text-[10px] text-text-muted">
+                          {g.items.length}
+                        </span>
                       </th>
                     </tr>
                   )}
                   {g.items.map((i) => (
-                    <tr key={i.id} className="row-hover">
-                      <td className="check-col">
+                    <tr key={i.id} className="row-hover hover:bg-surface-2 transition-colors group">
+                      <td className="check-col w-10 px-3 py-3 text-center">
                         {!showArchived && (
                           <input
                             type="checkbox"
                             aria-label={`Select ${project?.key}-${i.number}`}
                             checked={picked.has(i.id)}
                             onChange={() => togglePicked(i.id)}
+                            className="rounded text-accent focus:ring-accent"
                           />
                         )}
                       </td>
-                      <td>
-                        <div className="cell-issue">
-                          <button className="issue-number-button" onClick={() => setSelectedIssue(i.id)}>
+                      <td className="px-4 py-3">
+                        <div className="cell-issue flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+                          <button
+                            className="issue-number-button shrink-0 font-bold text-accent hover:underline font-mono text-xs px-1.5 py-0.5 rounded bg-accent/10"
+                            onClick={() => setSelectedIssue(i.id)}
+                          >
                             {project?.key}-{i.number}
                           </button>
-                          <button className="issue-title-button" onClick={() => setSelectedIssue(i.id)}>
+                          <button
+                            className="issue-title-button font-medium text-text-main hover:text-accent text-left transition-colors truncate max-w-sm sm:max-w-md"
+                            onClick={() => setSelectedIssue(i.id)}
+                          >
                             {i.title}
                           </button>
                           {showArchived && (
                             <button
-                              className="secondary"
+                              className="secondary ml-auto shrink-0 inline-flex items-center gap-1 px-2 py-0.5 bg-surface-2 hover:bg-surface-3 rounded border border-border text-xs text-text-main"
                               disabled={restore.isPending}
                               onClick={() => restore.mutate(i.id)}
                             >
-                              <RotateCcw size={13} /> Restore
+                              <RotateCcw size={12} /> Restore
                             </button>
                           )}
                         </div>
                       </td>
-                      <td>
-                        <span className="cell-kind capitalize">
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <span className="cell-kind capitalize inline-flex items-center gap-1.5 text-xs text-text-muted">
                           <KindIcon kind={i.kind} /> {i.kind}
                         </span>
                       </td>
-                      <td>
+                      <td className="px-3 py-3 whitespace-nowrap">
                         <PriorityIcon priority={i.priority} />
                       </td>
-                      <td>
+                      <td className="px-3 py-3 whitespace-nowrap">
                         <select
-                          className={"status-select " + i.status}
+                          className={`status-select ${i.status} text-xs font-medium px-2 py-1 rounded-lg border border-border bg-surface text-text-main focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer`}
                           aria-label={`Status of ${project?.key}-${i.number}`}
                           value={i.status}
                           disabled={showArchived}
@@ -671,16 +813,19 @@ export function IssuesTab() {
                           ))}
                         </select>
                       </td>
-                      <td>{formatDate(i.updated_at)}</td>
+                      <td className="px-4 py-3 text-right text-xs text-text-subtle whitespace-nowrap font-mono">
+                        {formatDate(i.updated_at)}
+                      </td>
                     </tr>
                   ))}
                 </React.Fragment>
               ))}
           </tbody>
         </table>
+
         {!(showArchived ? archivedQ.isLoading : loading) && !rows.length && (
-          <div className="panel-empty center">
-            <p>
+          <div className="panel-empty center py-12 px-4 text-center space-y-3">
+            <p className="text-sm text-text-subtle">
               {showArchived
                 ? "No archived issues."
                 : filtering
@@ -688,7 +833,10 @@ export function IssuesTab() {
                   : "No issues yet."}
             </p>
             {!filtering && !showArchived && (
-              <button className="primary" onClick={() => setModal("issue")}>
+              <button
+                className="primary inline-flex items-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-sm font-medium transition-colors shadow-sm"
+                onClick={() => setModal("issue")}
+              >
                 <Plus size={15} /> New issue
               </button>
             )}
@@ -720,13 +868,14 @@ function ViewSubscribe({ token, viewId }: { token: string; viewId: string }) {
     onError: (e) => toast(errorMessage(e), { kind: "error" }),
   });
   return (
-    <label className="small">
-      Updates
+    <label className="small inline-flex items-center gap-1.5 text-xs text-text-subtle">
+      <span>Updates</span>
       <select
         aria-label="Subscribe to this view"
         value={sub.data?.cadence ?? "off"}
         disabled={sub.isLoading || change.isPending}
         onChange={(e) => change.mutate(e.target.value)}
+        className="bg-surface border border-border rounded-lg px-2 py-1 text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
       >
         <option value="off">Not subscribed</option>
         <option value="daily">Daily</option>

@@ -179,8 +179,6 @@ export function IssueDrawer({
       await request(token, `/issues/${id}/edit`, {
         method: "PATCH",
         headers: etag.current ? { "If-Match": etag.current } : {},
-        // Field values are sent only once the project's definitions have loaded: an empty set would
-        // clear every stored value.
         body: JSON.stringify({
           title,
           priority,
@@ -200,8 +198,6 @@ export function IssueDrawer({
       setError("");
     } catch (e) {
       if (e instanceof ApiError && e.status === 412) {
-        // Someone else changed the issue. Keep this person's edits, load the latest version so the next save is
-        // based on it, and put the edits back for review.
         const mine = { title, priority, status, values };
         await reload();
         setTitle(mine.title);
@@ -216,7 +212,6 @@ export function IssueDrawer({
       setError((e as Error).message);
     }
   };
-  // Archive hides an issue from the active lists; trash does the same and keeps it restorable for 30 days.
   const lifecycle = async (action: "archive" | "trash" | "restore") => {
     if (action === "trash" && !window.confirm("Move this issue to trash? You can restore it for 30 days."))
       return;
@@ -248,17 +243,15 @@ export function IssueDrawer({
         body: JSON.stringify({ body: editing.text }),
       });
       setEditing(null);
-      setOpenHistory(null);
       await reload();
     } catch (e) {
       setError((e as Error).message);
     }
   };
   const deleteComment = async (commentId: string) => {
-    if (!window.confirm("Delete this comment? Its text stays in the history for you and admins.")) return;
+    if (!window.confirm("Delete this comment? It stays in the history for auditing.")) return;
     try {
       await request(token, `/issues/${id}/comments/${commentId}`, { method: "DELETE" });
-      setOpenHistory(null);
       await reload();
     } catch (e) {
       setError((e as Error).message);
@@ -277,57 +270,93 @@ export function IssueDrawer({
     }
   };
   const isAdmin = me?.role === "admin" || me?.role === "owner";
+
   return (
     <div
-      className="drawer-overlay"
+      className="drawer-overlay fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-end transition-opacity"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <aside className="issue-drawer" role="dialog" aria-modal="true" aria-label="Issue details">
-        <div className="drawer-top">
-          <b>{issue ? str(issue.kind).toUpperCase() + " · " + str(issue.number) : "Loading issue"}</b>
-          <button
-            type="button"
-            className="favourite-toggle"
-            aria-pressed={isFavourite}
-            aria-label={isFavourite ? "Remove from favourites" : "Add to favourites"}
-            title={isFavourite ? "Remove from favourites" : "Add to favourites"}
-            disabled={!issue || toggleFavourite.isPending}
-            onClick={() => toggleFavourite.mutate()}
-          >
-            <Star size={18} fill={isFavourite ? "currentColor" : "none"} />
-          </button>
-          <button onClick={onClose} aria-label="Close">
-            <X size={20} />
-          </button>
+      <aside
+        className="issue-drawer w-full sm:max-w-xl md:max-w-2xl h-full bg-surface shadow-2xl border-l border-border overflow-y-auto p-4 sm:p-6 md:p-8 space-y-6"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Issue details"
+      >
+        <div className="drawer-top flex items-center justify-between pb-4 border-b border-border text-xs sm:text-sm">
+          <b className="font-mono text-accent uppercase tracking-wider font-bold">
+            {issue ? str(issue.kind).toUpperCase() + " · " + str(issue.number) : "Loading issue"}
+          </b>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              className={`favourite-toggle p-2 rounded-lg transition-colors ${
+                isFavourite
+                  ? "text-amber-500 hover:bg-amber-500/10"
+                  : "text-text-subtle hover:text-text-main hover:bg-surface-2"
+              }`}
+              aria-pressed={isFavourite}
+              aria-label={isFavourite ? "Remove from favourites" : "Add to favourites"}
+              title={isFavourite ? "Remove from favourites" : "Add to favourites"}
+              disabled={!issue || toggleFavourite.isPending}
+              onClick={() => toggleFavourite.mutate()}
+            >
+              <Star size={18} fill={isFavourite ? "currentColor" : "none"} />
+            </button>
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="p-2 rounded-lg text-text-subtle hover:text-text-main hover:bg-surface-2 transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
-        {error && <div className="error">{error}</div>}
+
+        {error && (
+          <div
+            className="error p-3 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs sm:text-sm"
+            role="alert"
+          >
+            {error}
+          </div>
+        )}
+
         {issue && (
-          <>
-            {issue.trashed_at && (
-              <p className="drawer-description" role="status">
+          <div className="space-y-6">
+            {Boolean(issue.trashed_at) && (
+              <p
+                className="drawer-description text-xs text-amber-500 bg-amber-500/10 p-3 rounded-xl border border-amber-500/20"
+                role="status"
+              >
                 In trash. Restore it by {day(issue.purge_after)} to keep it.
               </p>
             )}
-            {issue.archived_at && (
-              <p className="drawer-description" role="status">
+            {Boolean(issue.archived_at) && (
+              <p
+                className="drawer-description text-xs text-text-subtle bg-surface-2 p-3 rounded-xl border border-border"
+                role="status"
+              >
                 This issue is archived and hidden from the active lists. Restore it to edit.
               </p>
             )}
-            <label>
-              Title
+
+            <label className="block space-y-1.5">
+              <span className="text-xs font-semibold text-text-subtle uppercase tracking-wider">Title</span>
               <input
                 value={title}
                 disabled={!!issue.archived_at}
                 onChange={(e) => setTitle(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-bg border border-border rounded-xl text-sm font-medium text-text-main focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent disabled:opacity-50"
               />
             </label>
+
             {aiQ.data?.enabled && (
-              <div className="row-actions" aria-label="AI assistance">
+              <div className="row-actions flex flex-wrap gap-2" aria-label="AI assistance">
                 <button
                   type="button"
-                  className="secondary small-btn"
+                  className="secondary small-btn px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors disabled:opacity-50"
                   disabled={aiBusy}
                   onClick={() => runAi("summary")}
                 >
@@ -335,7 +364,7 @@ export function IssueDrawer({
                 </button>
                 <button
                   type="button"
-                  className="secondary small-btn"
+                  className="secondary small-btn px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors disabled:opacity-50"
                   disabled={aiBusy}
                   onClick={() => runAi("triage")}
                 >
@@ -343,27 +372,43 @@ export function IssueDrawer({
                 </button>
               </div>
             )}
+
             {aiResult && (
-              <p className="drawer-description" role="status">
+              <p
+                className="drawer-description text-xs text-accent bg-accent/10 p-3 rounded-xl border border-accent/20"
+                role="status"
+              >
                 {aiResult}
               </p>
             )}
-            {str(issue.description) ? (
-              <div className="drawer-description">
-                <Markdown source={str(issue.description)} />
-              </div>
-            ) : (
-              <p className="drawer-description">No description yet.</p>
-            )}
+
+            <div className="space-y-1.5">
+              <span className="text-xs font-semibold text-text-subtle uppercase tracking-wider">
+                Description
+              </span>
+              {str(issue.description) ? (
+                <div className="drawer-description p-3.5 bg-bg rounded-xl border border-border text-xs sm:text-sm text-text-main leading-relaxed">
+                  <Markdown source={str(issue.description)} />
+                </div>
+              ) : (
+                <p className="drawer-description text-xs text-text-subtle italic p-3 bg-bg rounded-xl border border-border">
+                  No description yet.
+                </p>
+              )}
+            </div>
+
             {levelsQ.data && (levelsQ.data.levels.length > 0 || levelsQ.data.can_manage) && (
               <div className="form-row">
-                <label>
-                  Security level
+                <label className="block space-y-1.5">
+                  <span className="text-xs font-semibold text-text-subtle uppercase tracking-wider">
+                    Security level
+                  </span>
                   {levelsQ.data.can_manage ? (
                     <select
                       value={issueLevelQ.data?.level_id ?? ""}
                       onChange={(e) => setLevel.mutate(e.target.value || null)}
                       disabled={setLevel.isPending}
+                      className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
                     >
                       <option value="">Open to the project</option>
                       {levelsQ.data.levels.map((l) => (
@@ -373,13 +418,19 @@ export function IssueDrawer({
                       ))}
                     </select>
                   ) : (
-                    <span>{issueLevelQ.data?.name ?? "Open to the project"}</span>
+                    <span className="text-xs sm:text-sm font-medium text-text-main block p-2 bg-surface-2 rounded-lg">
+                      {issueLevelQ.data?.name ?? "Open to the project"}
+                    </span>
                   )}
                 </label>
               </div>
             )}
+
             {screenQ.data && screenQ.data.fields.length > 0 && (
-              <p className="muted small" role="status">
+              <p
+                className="muted small text-xs text-text-subtle bg-surface-2 p-2.5 rounded-lg border border-border"
+                role="status"
+              >
                 This move shows{" "}
                 {screenQ.data.fields
                   .map((k) => (fieldsQ.data ?? []).find((f) => f.key === k)?.label ?? k)
@@ -387,10 +438,17 @@ export function IssueDrawer({
                 .
               </p>
             )}
-            <div className="form-row">
-              <label>
-                Status
-                <select value={status} onChange={(e) => setStatus(e.target.value)}>
+
+            <div className="form-row grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label className="space-y-1.5">
+                <span className="text-xs font-semibold text-text-subtle uppercase tracking-wider">
+                  Status
+                </span>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+                >
                   {(statusesQ.data ?? []).map((x) => (
                     <option key={x.key} value={x.key}>
                       {x.name}
@@ -398,16 +456,24 @@ export function IssueDrawer({
                   ))}
                 </select>
               </label>
-              <label>
-                Priority
-                <select value={priority} onChange={(e) => setPriority(e.target.value)}>
+
+              <label className="space-y-1.5">
+                <span className="text-xs font-semibold text-text-subtle uppercase tracking-wider">
+                  Priority
+                </span>
+                <select
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                  className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer capitalize"
+                >
                   {["low", "medium", "high", "urgent"].map((x) => (
                     <option key={x}>{x}</option>
                   ))}
                 </select>
               </label>
-              <label>
-                Team
+
+              <label className="space-y-1.5">
+                <span className="text-xs font-semibold text-text-subtle uppercase tracking-wider">Team</span>
                 <select
                   value={str(issue.team_id)}
                   disabled={!!issue.archived_at}
@@ -423,8 +489,9 @@ export function IssueDrawer({
                       setError((err as Error).message);
                     }
                   }}
+                  className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer disabled:opacity-50"
                 >
-                  <option value="">No team (product backlog)</option>
+                  <option value="">No team</option>
                   {(teamsQ.data ?? []).map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.name}
@@ -433,72 +500,102 @@ export function IssueDrawer({
                 </select>
               </label>
             </div>
+
             {visibleFields(fieldsQ.data ?? [], levelsQ.data?.can_manage ?? false).length > 0 && (
-              <div className="drawer-section">
-                <h3>{t("drawer.fields")}</h3>
-                {visibleFields(fieldsQ.data ?? [], levelsQ.data?.can_manage ?? false).map((f) => {
-                  const raw = values[f.key];
-                  const disabled = !!issue.archived_at;
-                  return (
-                    <label key={f.key} className={f.field_type === "boolean" ? "check-row" : undefined}>
-                      {f.label}
-                      {f.required ? " *" : ""}
-                      {f.field_type === "boolean" ? (
-                        <input
-                          type="checkbox"
-                          checked={raw === true}
-                          disabled={disabled}
-                          onChange={(e) => setValues({ ...values, [f.key]: e.target.checked })}
-                        />
-                      ) : f.field_type === "select" ? (
-                        <select
-                          value={displayValue(raw)}
-                          disabled={disabled}
-                          onChange={(e) => setValues({ ...values, [f.key]: e.target.value || null })}
-                        >
-                          <option value="">—</option>
-                          {f.options.map((o) => (
-                            <option key={o} value={o}>
-                              {o}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input
-                          type={
-                            f.field_type === "number" ? "number" : f.field_type === "date" ? "date" : "text"
-                          }
-                          value={displayValue(raw)}
-                          disabled={disabled}
-                          onChange={(e) => setValues({ ...values, [f.key]: e.target.value })}
-                        />
-                      )}
-                    </label>
-                  );
-                })}
+              <div className="drawer-section border-t border-border pt-5 space-y-4">
+                <h3 className="text-sm font-semibold text-text-main">{t("drawer.fields")}</h3>
+                <div className="space-y-3">
+                  {visibleFields(fieldsQ.data ?? [], levelsQ.data?.can_manage ?? false).map((f) => {
+                    const raw = values[f.key];
+                    const disabled = !!issue.archived_at;
+                    return (
+                      <label
+                        key={f.key}
+                        className={
+                          f.field_type === "boolean"
+                            ? "check-row flex items-center gap-2 cursor-pointer"
+                            : "block space-y-1"
+                        }
+                      >
+                        <span className="text-xs font-semibold text-text-subtle">
+                          {f.label}
+                          {f.required ? " *" : ""}
+                        </span>
+                        {f.field_type === "boolean" ? (
+                          <input
+                            type="checkbox"
+                            checked={raw === true}
+                            disabled={disabled}
+                            onChange={(e) => setValues({ ...values, [f.key]: e.target.checked })}
+                            className="rounded text-accent focus:ring-accent"
+                          />
+                        ) : f.field_type === "select" ? (
+                          <select
+                            value={displayValue(raw)}
+                            disabled={disabled}
+                            onChange={(e) => setValues({ ...values, [f.key]: e.target.value || null })}
+                            className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+                          >
+                            <option value="">—</option>
+                            {f.options.map((o) => (
+                              <option key={o} value={o}>
+                                {o}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type={
+                              f.field_type === "number" ? "number" : f.field_type === "date" ? "date" : "text"
+                            }
+                            value={displayValue(raw)}
+                            disabled={disabled}
+                            onChange={(e) => setValues({ ...values, [f.key]: e.target.value })}
+                            className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+                          />
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             )}
-            <div className="drawer-actions">
-              <button className="primary" onClick={save} disabled={!!issue.archived_at}>
+
+            <div className="drawer-actions flex flex-wrap items-center gap-2.5 pt-2">
+              <button
+                className="primary px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-sm font-medium transition-colors shadow-sm disabled:opacity-50"
+                onClick={save}
+                disabled={!!issue.archived_at}
+              >
                 Save issue
               </button>
               {issue.archived_at ? (
-                <button className="secondary" onClick={() => lifecycle("restore")}>
+                <button
+                  className="secondary px-4 py-2 bg-surface-2 hover:bg-surface-3 border border-border text-text-main rounded-xl text-sm font-medium transition-colors"
+                  onClick={() => lifecycle("restore")}
+                >
                   {issue.trashed_at ? "Restore from trash" : "Restore issue"}
                 </button>
               ) : (
                 <>
-                  <button className="secondary" onClick={() => lifecycle("archive")}>
+                  <button
+                    className="secondary px-3.5 py-2 bg-surface-2 hover:bg-surface-3 border border-border text-text-main rounded-xl text-sm font-medium transition-colors"
+                    onClick={() => lifecycle("archive")}
+                  >
                     Archive issue
                   </button>
-                  <button className="ghost" onClick={() => lifecycle("trash")}>
+                  <button
+                    className="ghost px-3.5 py-2 text-danger hover:bg-danger/10 rounded-xl text-sm font-medium transition-colors"
+                    onClick={() => lifecycle("trash")}
+                  >
                     Move to trash
                   </button>
                 </>
               )}
             </div>
-            <div className="drawer-section">
-              <h3>{t("drawer.connected")}</h3>
+
+            <div className="drawer-section border-t border-border pt-5 space-y-3">
+              <h3 className="text-sm font-semibold text-text-main">{t("drawer.connected")}</h3>
               <EntityRelations
                 token={token}
                 sourceType="issue"
@@ -507,9 +604,11 @@ export function IssueDrawer({
                 targetType="page"
               />
             </div>
-            <div className="drawer-section">
+
+            <div className="drawer-section border-t border-border pt-5 space-y-3">
               <Attachments entityType="issue" entityId={id} canEdit />
             </div>
+
             <IssueDepth
               issue={{
                 id,
@@ -520,99 +619,133 @@ export function IssueDrawer({
               archived={!!issue.archived_at}
               onChanged={() => onChanged()}
             />
-            <div className="drawer-section">
+
+            <div className="drawer-section border-t border-border pt-5 space-y-4">
               <Reminders token={token} issueId={id} />
-              <h3>
+              <h3 className="text-sm font-semibold text-text-main">
                 {t("drawer.discussion")} · {comments.length}
               </h3>
-              {comments.map((c) => {
-                const commentId = str(c.id);
-                const mine = !!me && str(c.author_id) === me.user_id;
-                const isEditing = editing?.id === commentId;
-                const history = openHistory?.id === commentId ? openHistory.data : null;
-                return (
-                  <div className="comment" key={commentId}>
-                    <b>{str(c.author)}</b>
-                    <small>
-                      {day(c.created_at)}
-                      {c.edited_at ? " · edited" : ""}
-                    </small>
-                    {isEditing ? (
-                      <form onSubmit={saveEdit}>
-                        <label>
-                          Edit comment
-                          <textarea
-                            value={editing.text}
-                            onChange={(e) => setEditing({ id: commentId, text: e.target.value })}
-                            rows={3}
-                            required
-                          />
-                        </label>
-                        <button className="secondary">Save</button>{" "}
-                        <button type="button" className="ghost" onClick={() => setEditing(null)}>
-                          Cancel
-                        </button>
-                      </form>
-                    ) : (
-                      <p>{str(c.body)}</p>
-                    )}
-                    {!isEditing && <CommentReactions token={token} issueId={id} commentId={commentId} />}
-                    {(mine || isAdmin) && !isEditing && (
-                      <div className="row-actions">
-                        {mine && (
+              <div className="space-y-3">
+                {comments.map((c) => {
+                  const commentId = str(c.id);
+                  const mine = !!me && str(c.author_id) === me.user_id;
+                  const isEditing = editing?.id === commentId;
+                  const history = openHistory?.id === commentId ? openHistory.data : null;
+                  return (
+                    <div
+                      className="comment p-3.5 bg-surface-2/60 border border-border rounded-xl space-y-2"
+                      key={commentId}
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <b className="font-semibold text-text-main">{str(c.author)}</b>
+                        <small className="text-text-subtle font-mono">
+                          {day(c.created_at)}
+                          {c.edited_at ? " · edited" : ""}
+                        </small>
+                      </div>
+                      {isEditing ? (
+                        <form onSubmit={saveEdit} className="space-y-2">
+                          <label className="block">
+                            <span className="sr-only">Edit comment</span>
+                            <textarea
+                              value={editing.text}
+                              onChange={(e) => setEditing({ id: commentId, text: e.target.value })}
+                              rows={3}
+                              required
+                              className="w-full p-2.5 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
+                            />
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <button className="secondary px-3 py-1 bg-accent text-white rounded-lg text-xs font-medium">
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              className="ghost px-2.5 py-1 text-xs text-text-subtle hover:text-text-main"
+                              onClick={() => setEditing(null)}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <p className="text-xs sm:text-sm text-text-main whitespace-pre-wrap leading-relaxed">
+                          {str(c.body)}
+                        </p>
+                      )}
+                      {!isEditing && <CommentReactions token={token} issueId={id} commentId={commentId} />}
+                      {(mine || isAdmin) && !isEditing && (
+                        <div className="row-actions flex items-center gap-2 pt-1 border-t border-border/40">
+                          {mine && (
+                            <button
+                              type="button"
+                              className="ghost small-btn text-xs text-text-subtle hover:text-accent font-medium"
+                              onClick={() => setEditing({ id: commentId, text: str(c.body) })}
+                            >
+                              Edit
+                            </button>
+                          )}
                           <button
                             type="button"
-                            className="ghost small-btn"
-                            onClick={() => setEditing({ id: commentId, text: str(c.body) })}
+                            className="ghost small-btn text-xs text-text-subtle hover:text-accent font-medium"
+                            onClick={() => showHistory(commentId)}
                           >
-                            Edit
+                            {history ? "Hide history" : "History"}
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          className="ghost small-btn"
-                          onClick={() => showHistory(commentId)}
-                        >
-                          {history ? "Hide history" : "History"}
-                        </button>
-                        <button
-                          type="button"
-                          className="ghost small-btn"
-                          onClick={() => deleteComment(commentId)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    )}
-                    {history && (
-                      <ol className="comment-history">
-                        {history.revisions.map((r, n) => (
-                          <li key={n}>
-                            <small>
-                              {day(r.changed_at)} · {r.change === "delete" ? "deleted by" : "changed by"}{" "}
-                              {r.changed_by}
+                          <button
+                            type="button"
+                            className="ghost small-btn text-xs text-text-subtle hover:text-danger font-medium"
+                            onClick={() => deleteComment(commentId)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                      {history && (
+                        <ol className="comment-history p-3 bg-surface border border-border rounded-xl text-xs space-y-2">
+                          {history.revisions.map((r, n) => (
+                            <li key={n} className="border-b border-border/50 pb-2">
+                              <small className="text-text-subtle block font-mono">
+                                {day(r.changed_at)} · {r.change === "delete" ? "deleted by" : "changed by"}{" "}
+                                {r.changed_by}
+                              </small>
+                              <p className="mt-1 text-text-main">{r.body}</p>
+                            </li>
+                          ))}
+                          <li>
+                            <small className="text-text-subtle block font-mono">
+                              {history.deleted ? "Deleted (text above)" : "Current"}
                             </small>
-                            <p>{r.body}</p>
+                            {!history.deleted && (
+                              <p className="mt-1 text-text-main">{history.current_body}</p>
+                            )}
                           </li>
-                        ))}
-                        <li>
-                          <small>{history.deleted ? "Deleted (text above)" : "Current"}</small>
-                          {!history.deleted && <p>{history.current_body}</p>}
-                        </li>
-                      </ol>
-                    )}
-                  </div>
-                );
-              })}
-              <form onSubmit={comment}>
-                <label>
-                  Add comment
-                  <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} required />
+                        </ol>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <form onSubmit={comment} className="space-y-2 pt-2">
+                <label className="block space-y-1">
+                  <span className="text-xs font-semibold text-text-subtle uppercase tracking-wider">
+                    Add comment
+                  </span>
+                  <textarea
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    rows={3}
+                    required
+                    placeholder="Write a comment…"
+                    className="w-full p-3 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main placeholder:text-text-subtle focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                  />
                 </label>
-                <button className="secondary">Post comment</button>
+                <button className="secondary px-3.5 py-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs sm:text-sm font-medium text-text-main transition-colors">
+                  Post comment
+                </button>
               </form>
             </div>
-          </>
+          </div>
         )}
       </aside>
     </div>

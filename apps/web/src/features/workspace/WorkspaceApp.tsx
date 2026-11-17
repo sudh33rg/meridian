@@ -15,22 +15,32 @@ export function WorkspaceApp() {
   const { session, selectedIssue, setSelectedIssue, refreshIssues, setError, setTab, setMobileMenu } =
     useWorkspace();
   useGlobalShortcuts();
-  // A workspace that requires MFA blocks everything else until the member sets it up.
+
   useEffect(() => {
     const go = () => setTab("security");
     window.addEventListener(MFA_REQUIRED_EVENT, go);
     return () => window.removeEventListener(MFA_REQUIRED_EVENT, go);
   }, [setTab]);
+
   return (
-    <div className="shell">
-      <a className="skip-link" href="#main-content">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col md:flex-row antialiased overflow-x-hidden">
+      <a
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 z-50 px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-lg font-semibold text-sm"
+        href="#main-content"
+      >
         Skip to content
       </a>
       <Sidebar />
-      <main className="main" id="main-content" tabIndex={-1}>
+      <div className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
         <Topbar />
-        <Content />
-      </main>
+        <main
+          className="flex-1 overflow-y-auto px-3.5 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 pb-24 md:pb-8"
+          id="main-content"
+          tabIndex={-1}
+        >
+          <Content />
+        </main>
+      </div>
       <BottomNav onMore={() => setMobileMenu(true)} moreIcon={<Menu size={19} />} />
       {selectedIssue && (
         <IssueDrawer

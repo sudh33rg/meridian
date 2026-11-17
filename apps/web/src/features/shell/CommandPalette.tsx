@@ -73,6 +73,7 @@ export function CommandPalette() {
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
   const close = () => {
     setPaletteOpen(false);
     setQ("");
@@ -126,7 +127,11 @@ export function CommandPalette() {
         id: "p-" + p.id,
         label: "Switch to " + p.name,
         group: "Projects",
-        icon: <span className="project-icon sm">{p.key.slice(0, 2)}</span>,
+        icon: (
+          <span className="w-5 h-5 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold flex items-center justify-center uppercase">
+            {p.key.slice(0, 2)}
+          </span>
+        ),
         keywords: p.key,
         run: () => setSelected(p.id),
       });
@@ -165,7 +170,7 @@ export function CommandPalette() {
         id: "x-help",
         label: "Keyboard shortcuts",
         group: "Help",
-        icon: <kbd className="kbd-icon">?</kbd>,
+        icon: <kbd className="px-1.5 py-0.5 rounded text-xs font-mono font-bold">?</kbd>,
         hint: "?",
         run: () => ws.setHelpOpen(true),
       },
@@ -218,6 +223,7 @@ export function CommandPalette() {
   }, [active]);
 
   if (!paletteOpen) return null;
+
   const run = (c: Cmd | undefined) => {
     if (!c) return;
     try {
@@ -229,12 +235,23 @@ export function CommandPalette() {
     close();
     c.run();
   };
+
   let lastGroup = "";
+
   return (
-    <div className="overlay palette-overlay" onMouseDown={(e) => e.target === e.currentTarget && close()}>
-      <div className="palette" role="dialog" aria-modal="true" aria-label="Command palette">
-        <div className="palette-input">
-          <Search size={17} />
+    <div
+      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-start justify-center p-3 sm:p-6 pt-[10vh] animate-fadeIn"
+      onMouseDown={(e) => e.target === e.currentTarget && close()}
+    >
+      <div
+        className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[75vh]"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
+      >
+        {/* Input */}
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-100 dark:border-slate-800">
+          <Search size={18} className="text-slate-400 shrink-0" />
           <input
             ref={inputRef}
             role="combobox"
@@ -244,6 +261,7 @@ export function CommandPalette() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Type a command, page, project or issue…"
+            className="w-full bg-transparent border-0 text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-hidden"
             onKeyDown={(e) => {
               if (e.key === "ArrowDown") {
                 e.preventDefault();
@@ -259,45 +277,92 @@ export function CommandPalette() {
               }
             }}
           />
-          <kbd>Esc</kbd>
+          <kbd className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700">
+            Esc
+          </kbd>
         </div>
-        <div className="palette-list" id="palette-list" role="listbox" ref={listRef}>
+
+        {/* Results List */}
+        <div
+          className="overflow-y-auto p-2 flex-1 space-y-0.5"
+          id="palette-list"
+          role="listbox"
+          ref={listRef}
+        >
           {results.map((c, idx) => {
             const head = c.group !== lastGroup;
             lastGroup = c.group;
+            const isSelected = idx === active;
             return (
               <React.Fragment key={c.id + idx}>
-                {head && !q.trim() && <div className="palette-group">{c.group}</div>}
+                {head && !q.trim() && (
+                  <div className="px-3 pt-3 pb-1 text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    {c.group}
+                  </div>
+                )}
                 <div
                   id={"pal-" + c.id}
                   role="option"
-                  aria-selected={idx === active}
-                  className={"palette-item" + (idx === active ? " active" : "")}
+                  aria-selected={isSelected}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
+                    isSelected
+                      ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-semibold"
+                      : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
                   onMouseMove={() => setActive(idx)}
                   onClick={() => run(c)}
                 >
-                  <span className="pi-icon">{c.icon}</span>
-                  <span className="pi-label">{c.label}</span>
-                  {q.trim() && <span className="pi-group">{c.group}</span>}
-                  {c.hint && <kbd>{c.hint}</kbd>}
+                  <div className="flex items-center gap-3 truncate min-w-0">
+                    <span
+                      className={`shrink-0 ${isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}`}
+                    >
+                      {c.icon}
+                    </span>
+                    <span className="truncate">{c.label}</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    {q.trim() && <span className="text-[11px] text-slate-400 capitalize">{c.group}</span>}
+                    {c.hint && (
+                      <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
+                        {c.hint}
+                      </kbd>
+                    )}
+                  </div>
                 </div>
               </React.Fragment>
             );
           })}
-          {!results.length && <div className="palette-empty">No results for “{q}”</div>}
+          {!results.length && (
+            <div className="py-12 text-center text-sm text-slate-400 dark:text-slate-500">
+              No results for “{q}”
+            </div>
+          )}
         </div>
-        <div className="palette-foot">
+
+        {/* Footer */}
+        <div className="px-4 py-2.5 bg-slate-50/75 dark:bg-slate-850 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
+          <div className="flex items-center gap-3">
+            <span>
+              <kbd className="px-1 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[10px]">
+                ↑
+              </kbd>{" "}
+              <kbd className="px-1 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[10px]">
+                ↓
+              </kbd>{" "}
+              navigate
+            </span>
+            <span>
+              <kbd className="px-1 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[10px] inline-flex items-center">
+                <CornerDownLeft size={10} />
+              </kbd>{" "}
+              select
+            </span>
+          </div>
           <span>
-            <kbd>↑</kbd> <kbd>↓</kbd> navigate
-          </span>
-          <span>
-            <kbd>
-              <CornerDownLeft size={10} />
+            <kbd className="px-1 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[10px]">
+              Esc
             </kbd>{" "}
-            select
-          </span>
-          <span>
-            <kbd>Esc</kbd> close
+            close
           </span>
         </div>
       </div>
