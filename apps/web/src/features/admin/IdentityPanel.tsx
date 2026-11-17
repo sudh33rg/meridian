@@ -200,7 +200,7 @@ export function IdentityPanel() {
               </div>
             ))}
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 pt-2 flex-wrap items-center">
+          <div className="flex flex-col sm:flex-row gap-2 pt-2 sm:flex-wrap items-stretch sm:items-center">
             <input
               aria-label="Domain"
               placeholder="company.com"
@@ -392,7 +392,7 @@ export function IdentityPanel() {
               </tbody>
             </table>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 pt-2 flex-wrap items-center">
+          <div className="flex flex-col sm:flex-row gap-2 pt-2 sm:flex-wrap items-stretch sm:items-center">
             <input
               aria-label="Token name"
               placeholder="Token name (e.g. Okta production)"

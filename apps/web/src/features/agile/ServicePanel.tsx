@@ -224,7 +224,7 @@ export function ServicePanel() {
             </ul>
 
             <form
-              className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-border items-center [&_input]:min-w-[180px]"
+              className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-border items-stretch sm:items-center [&_input]:min-w-[180px]"
               onSubmit={(e) => {
                 e.preventDefault();
                 if (queueName.trim()) addQueue.mutate();
@@ -293,7 +293,7 @@ export function ServicePanel() {
             </ul>
 
             <form
-              className="space-y-2.5 pt-2 border-t border-border flex flex-wrap gap-2 items-center [&_input]:min-w-[180px]"
+              className="pt-2 border-t border-border flex flex-col gap-2.5 items-stretch [&_input:not([type=checkbox])]:min-w-[180px]"
               onSubmit={(e) => {
                 e.preventDefault();
                 if (typeName.trim() && typeQueue) addType.mutate();
@@ -355,7 +355,7 @@ export function ServicePanel() {
               </div>
 
               <div className="flex items-center gap-3">
-                <label className="inline-check flex items-center gap-1.5 text-xs text-text-subtle cursor-pointer">
+                <label className="inline-check flex flex-row items-center gap-1.5 text-xs text-text-subtle cursor-pointer">
                   <input
                     type="checkbox"
                     checked={typeNeedsApproval}
@@ -393,7 +393,7 @@ export function ServicePanel() {
                         key={f.key}
                         className="inline-check inline-flex items-center gap-1.5 p-1 bg-surface rounded-lg border border-border text-xs"
                       >
-                        <label className="flex items-center gap-1 cursor-pointer">
+                        <label className="flex flex-row items-center gap-1 cursor-pointer">
                           <input
                             type="checkbox"
                             checked={on}
@@ -455,7 +455,7 @@ export function ServicePanel() {
         </CardHeader>
         <CardContent className="pt-3">
           <form
-            className="space-y-3 flex flex-wrap gap-2 items-center [&_input]:min-w-[180px]"
+            className="flex flex-col gap-3 items-stretch [&_input:not([type=checkbox])]:min-w-[180px]"
             onSubmit={(e) => {
               e.preventDefault();
               if (reqType && reqTitle.trim()) submit.mutate();

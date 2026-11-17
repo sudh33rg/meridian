@@ -51,7 +51,7 @@ export function ApiTokensPanel() {
         </p>
 
         <form
-          className="flex flex-col sm:flex-row gap-2 items-center my-1.5 [&_input]:min-h-8 [&_select]:min-h-8 flex-wrap"
+          className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center my-1.5 [&_input]:min-h-8 [&_select]:min-h-8 flex-wrap"
           onSubmit={async (e) => {
             e.preventDefault();
             if (!name.trim()) return;
@@ -219,7 +219,7 @@ export function GitLinkPanel() {
           </code>
         </p>
         <form
-          className="flex flex-col sm:flex-row gap-2 items-center my-1.5 [&_input]:min-h-8 [&_select]:min-h-8 flex-wrap"
+          className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center my-1.5 [&_input]:min-h-8 [&_select]:min-h-8 flex-wrap"
           onSubmit={async (e) => {
             e.preventDefault();
             if (secret.length < 16) return;

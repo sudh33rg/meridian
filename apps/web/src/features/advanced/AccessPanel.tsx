@@ -164,7 +164,7 @@ export function AccessPanel() {
               </table>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-2 pt-2 flex-wrap items-center">
+            <div className="flex flex-col sm:flex-row gap-2 pt-2 sm:flex-wrap items-stretch sm:items-center">
               <select
                 aria-label="Person or team"
                 value={subject}

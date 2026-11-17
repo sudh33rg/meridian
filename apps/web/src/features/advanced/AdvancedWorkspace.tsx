@@ -541,7 +541,7 @@ export function AdvancedWorkspace({
             <CardContent className="divide-y divide-border">
               {rows.map((r) => (
                 <div
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3 px-[22px] items-center border-b border-border last:border-b-0 text-text-muted text-xs max-[760px]:p-3.5 [&>div:not(:first-child)]:flex-1 [&>div:not(:first-child)]:min-w-0 [&_b]:text-xs [&_b]:text-text-main [&_b]:block [&_small]:text-[10px] [&_small]:block [&_small]:text-text-subtle [&_small]:mt-[5px] [&_small]:whitespace-nowrap [&_small]:text-ellipsis [&_small]:overflow-hidden"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3 px-[22px] border-b border-border last:border-b-0 text-text-muted text-xs max-[760px]:p-3.5 [&>div:not(:first-child)]:flex-1 [&>div:not(:first-child)]:min-w-0 [&_b]:text-xs [&_b]:text-text-main [&_b]:block [&_small]:text-[10px] [&_small]:block [&_small]:text-text-subtle [&_small]:mt-[5px] [&_small]:whitespace-nowrap [&_small]:text-ellipsis [&_small]:overflow-hidden"
                   key={str(r.id)}
                 >
                   <div className="flex items-start sm:items-center gap-3">
