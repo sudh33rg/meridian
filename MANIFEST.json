@@ -277,9 +277,10 @@
     "infra/nginx.conf": "98c65e1e4a5df01705bc717684a7b666ed9e9e4ec9b0bdfd028a5f3574e74c91",
     "scripts/gen_manifest.py": "f2c5a2a1ab70b9aed942db6c41ac06baea8468cb497ac179cc5850b39d769624",
     "scripts/seed_demo.py": "63c12d0a0ca7f251a4742df88438e34cdba89c5acf9fc8be761aaf81c7b53857",
+    "scripts/seed_realworld.py": "ae951a759abe3a31228cd551e30b904afef9449f7d9373ca7706dce2bad03584",
     "scripts/verify.sh": "457cfe4718e6b9a1f56254e61f9a7a1a6c7ecc8ac7768afcda254a6f3e4fabe5",
     "tests/load.js": "4cbcbb79e8df4eb4fd031d5e47f7f85919800d43f147d3208c858063903af954",
     "tests/smoke.py": "2a604dd7145dbae2f23bdc32e5dc27614cbbb8dd328af90fdc711330097588b1"
   },
-  "file_count": 276
+  "file_count": 277
 }
