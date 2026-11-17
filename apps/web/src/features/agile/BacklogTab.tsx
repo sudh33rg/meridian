@@ -255,17 +255,17 @@ export function BacklogTab() {
 
                   {/* Right metadata and sprint assigner */}
                   <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
                       {item.team_id && (
-                        <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-surface-2 text-text-muted">
+                        <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-surface-2 text-text-muted whitespace-nowrap">
                           {teamName(teamList, item.team_id)}
                         </span>
                       )}
-                      <span className="text-[11px] text-text-muted font-medium">
+                      <span className="text-[11px] text-text-muted font-medium whitespace-nowrap">
                         {statusLabel(item.status)}
                       </span>
                       <PriorityIcon priority={item.priority} />
-                      <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-accent-soft text-accent">
+                      <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-accent-soft text-accent whitespace-nowrap">
                         {item.story_points != null ? `${item.story_points} pt` : "–"}
                       </span>
                     </div>
