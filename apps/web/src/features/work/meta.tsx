@@ -15,6 +15,24 @@ import {
 } from "lucide-react";
 
 export const STATUSES = ["todo", "in_progress", "in_review", "done"] as const;
+const KIND_TONE: Record<string, string> = {
+  bug: "bg-danger-soft text-danger",
+  story: "bg-success-soft text-success",
+  epic: "bg-accent-soft text-accent-text",
+};
+
+const PRIORITY_TONE: Record<string, string> = {
+  urgent: "text-danger",
+  high: "text-warning-text",
+  medium: "text-info-text",
+};
+
+export const STATUS_TONE: Record<string, string> = {
+  in_progress: "bg-info-soft text-info-text",
+  in_review: "bg-warning-soft text-warning-text",
+  done: "bg-success-soft text-success-text",
+};
+
 export const STATUS_LABEL: Record<string, string> = {
   todo: "To do",
   in_progress: "In progress",
@@ -36,7 +54,10 @@ export function KindIcon({ kind, size = 14 }: { kind: string; size?: number }) {
     request: <Inbox size={size} />,
   };
   return (
-    <span className={"kind-chip kind-" + kind} title={kind}>
+    <span
+      className={`inline-grid place-items-center size-6 rounded-[7px] flex-none ${KIND_TONE[kind] ?? "bg-info-soft text-info"}`}
+      title={kind}
+    >
       {map[kind] ?? map.task}
     </span>
   );
@@ -62,7 +83,10 @@ export function PriorityIcon({
       <ArrowRight size={size} />
     );
   return (
-    <span className={"priority priority-" + priority} title={"Priority: " + priority}>
+    <span
+      className={`inline-flex items-center gap-1 text-[11px] font-[650] capitalize ${PRIORITY_TONE[priority] ?? "text-text-subtle"}`}
+      title={"Priority: " + priority}
+    >
       {icon}
       {label && priority}
     </span>
@@ -70,5 +94,11 @@ export function PriorityIcon({
 }
 
 export function StatusPill({ status }: { status: string }) {
-  return <span className={"status " + status}>{STATUS_LABEL[status] ?? status}</span>;
+  return (
+    <span
+      className={`inline-block text-[11px] font-bold capitalize whitespace-nowrap px-[9px] py-[3px] rounded-full ${STATUS_TONE[status] ?? "bg-surface-3 text-text-subtle"}`}
+    >
+      {STATUS_LABEL[status] ?? status}
+    </span>
+  );
 }

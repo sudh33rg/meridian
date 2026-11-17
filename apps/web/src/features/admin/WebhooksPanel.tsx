@@ -38,7 +38,7 @@ function Deliveries({ hookId }: { hookId: string }) {
   });
   return (
     <div className="overflow-x-auto border border-border rounded-xl mt-3 bg-bg">
-      <table className="panel-table w-full text-left text-xs">
+      <table className="w-full text-left text-xs border-collapse [&_th]:text-left [&_th]:px-2 [&_th]:py-2.5 [&_th]:border-b [&_th]:border-border [&_td]:text-left [&_td]:px-2 [&_td]:py-2.5 [&_td]:border-b [&_td]:border-border">
         <thead className="bg-surface-2 border-b border-border text-text-subtle font-semibold uppercase text-[10px]">
           <tr>
             <th className="p-2.5">Event</th>
@@ -160,7 +160,7 @@ export function WebhooksPanel() {
 
       {secret && (
         <div
-          className="ok p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 space-y-2 text-xs sm:text-sm"
+          className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 space-y-2 text-xs sm:text-sm px-3 py-2.5"
           role="status"
         >
           <b>Signing secret — copy it now; it is shown once.</b>
@@ -183,7 +183,7 @@ export function WebhooksPanel() {
       )}
 
       {/* Existing Webhooks List */}
-      <Card className="panel-card space-y-4">
+      <Card className="space-y-4 bg-surface border border-border rounded-[var(--radius-lg)] p-[18px] mb-[18px] overflow-x-auto shadow-[var(--shadow-sm)] [&_h3]:m-0 [&_h3]:mb-1 [&_select]:min-w-0 [&_select]:px-3 [&_select]:py-[9px] [&_select]:border [&_select]:border-border-strong [&_select]:rounded-[10px] [&_select]:bg-surface [&_select]:text-inherit [&_input]:min-w-0 [&_input]:px-3 [&_input]:py-[9px] [&_input]:border [&_input]:border-border-strong [&_input]:rounded-[10px] [&_input]:bg-surface [&_input]:text-inherit [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[13px] [&_label]:font-semibold [&_label]:text-text-muted [&_label]:mt-2.5">
         <CardHeader className="pb-2 border-b border-border">
           <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle flex items-center gap-2">
             <Webhook size={16} /> Webhook endpoints
@@ -265,7 +265,7 @@ export function WebhooksPanel() {
       </Card>
 
       {/* Add Endpoint Form */}
-      <Card className="panel-card space-y-4">
+      <Card className="space-y-4 bg-surface border border-border rounded-[var(--radius-lg)] p-[18px] mb-[18px] overflow-x-auto shadow-[var(--shadow-sm)] [&_h3]:m-0 [&_h3]:mb-1 [&_select]:min-w-0 [&_select]:px-3 [&_select]:py-[9px] [&_select]:border [&_select]:border-border-strong [&_select]:rounded-[10px] [&_select]:bg-surface [&_select]:text-inherit [&_input]:min-w-0 [&_input]:px-3 [&_input]:py-[9px] [&_input]:border [&_input]:border-border-strong [&_input]:rounded-[10px] [&_input]:bg-surface [&_input]:text-inherit [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[13px] [&_label]:font-semibold [&_label]:text-text-muted [&_label]:mt-2.5">
         <CardHeader className="pb-2 border-b border-border">
           <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle flex items-center gap-2">
             <Plus size={16} /> Add an endpoint

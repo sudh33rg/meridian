@@ -273,25 +273,25 @@ export function IssueDrawer({
 
   return (
     <div
-      className="drawer-overlay fixed inset-0 z-50 bg-overlay backdrop-blur-xs flex justify-end transition-opacity"
+      className="fixed inset-0 z-50 bg-overlay backdrop-blur-xs flex justify-end transition-opacity"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <aside
-        className="issue-drawer w-full sm:max-w-xl md:max-w-2xl h-full bg-surface shadow-2xl border-l border-border overflow-y-auto p-4 sm:p-6 md:p-8 space-y-6"
+        className="w-full sm:max-w-xl md:max-w-2xl h-full bg-surface shadow-2xl border-l border-border overflow-y-auto p-4 sm:p-6 md:p-8 space-y-6 overflow-auto py-7 px-[35px] max-[900px]:p-5"
         role="dialog"
         aria-modal="true"
         aria-label="Issue details"
       >
-        <div className="drawer-top flex items-center justify-between pb-4 border-b border-border text-xs sm:text-sm">
+        <div className="flex items-center justify-between pb-4 border-b border-border text-xs sm:text-sm mb-[30px] text-accent-text">
           <b className="font-mono text-accent uppercase tracking-wider font-bold">
             {issue ? str(issue.kind).toUpperCase() + " · " + str(issue.number) : "Loading issue"}
           </b>
           <div className="flex items-center gap-1">
             <button
               type="button"
-              className={`favourite-toggle p-2 rounded-lg transition-colors ${
+              className={`p-2 rounded-lg transition-colors inline-flex items-center justify-center border ${
                 isFavourite
                   ? "text-amber-500 hover:bg-amber-500/10"
                   : "text-text-subtle hover:text-text-main hover:bg-surface-2"
@@ -327,7 +327,7 @@ export function IssueDrawer({
           <div className="space-y-6">
             {Boolean(issue.trashed_at) && (
               <p
-                className="drawer-description text-xs text-amber-500 bg-amber-500/10 p-3 rounded-xl border border-amber-500/20"
+                className="text-xs text-amber-500 bg-amber-500/10 p-3 rounded-xl border border-amber-500/20 leading-[1.7] mt-4 mb-[25px]"
                 role="status"
               >
                 In trash. Restore it by {day(issue.purge_after)} to keep it.
@@ -335,7 +335,7 @@ export function IssueDrawer({
             )}
             {Boolean(issue.archived_at) && (
               <p
-                className="drawer-description text-xs text-text-subtle bg-surface-2 p-3 rounded-xl border border-border"
+                className="text-xs text-text-subtle bg-surface-2 p-3 rounded-xl border border-border leading-[1.7] mt-4 mb-[25px]"
                 role="status"
               >
                 This issue is archived and hidden from the active lists. Restore it to edit.
@@ -378,7 +378,7 @@ export function IssueDrawer({
 
             {aiResult && (
               <p
-                className="drawer-description text-xs text-accent bg-accent/10 p-3 rounded-xl border border-accent/20"
+                className="text-xs text-accent bg-accent/10 p-3 rounded-xl border border-accent/20 leading-[1.7] mt-4 mb-[25px]"
                 role="status"
               >
                 {aiResult}
@@ -390,18 +390,18 @@ export function IssueDrawer({
                 Description
               </span>
               {str(issue.description) ? (
-                <div className="drawer-description p-3.5 bg-bg rounded-xl border border-border text-xs sm:text-sm text-text-main leading-relaxed">
+                <div className="p-3.5 bg-bg rounded-xl border border-border text-xs sm:text-sm text-text-main leading-relaxed mt-4 mb-[25px]">
                   <Markdown source={str(issue.description)} />
                 </div>
               ) : (
-                <p className="drawer-description text-xs text-text-subtle italic p-3 bg-bg rounded-xl border border-border">
+                <p className="text-xs text-text-subtle italic p-3 bg-bg rounded-xl border border-border leading-[1.7] mt-4 mb-[25px]">
                   No description yet.
                 </p>
               )}
             </div>
 
             {levelsQ.data && (levelsQ.data.levels.length > 0 || levelsQ.data.can_manage) && (
-              <div className="form-row">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-[13px]">
                 <label className="block space-y-1.5">
                   <span className="text-xs font-semibold text-text-subtle uppercase tracking-wider">
                     Security level
@@ -442,7 +442,7 @@ export function IssueDrawer({
               </p>
             )}
 
-            <div className="form-row grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <label className="space-y-1.5">
                 <span className="text-xs font-semibold text-text-subtle uppercase tracking-wider">
                   Status
@@ -505,7 +505,7 @@ export function IssueDrawer({
             </div>
 
             {visibleFields(fieldsQ.data ?? [], levelsQ.data?.can_manage ?? false).length > 0 && (
-              <div className="drawer-section border-t border-border pt-5 space-y-4">
+              <div className="border-t border-border pt-5 space-y-4 mt-[33px] [&_h3]:text-sm">
                 <h3 className="text-sm font-semibold text-text-main">{t("drawer.fields")}</h3>
                 <div className="space-y-3">
                   {visibleFields(fieldsQ.data ?? [], levelsQ.data?.can_manage ?? false).map((f) => {
@@ -564,7 +564,7 @@ export function IssueDrawer({
               </div>
             )}
 
-            <div className="drawer-actions flex flex-wrap items-center gap-2.5 pt-2">
+            <div className="flex flex-wrap items-center gap-2.5 pt-2">
               <button
                 className="px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-sm font-medium transition-colors shadow-sm disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)]"
                 onClick={save}
@@ -597,7 +597,7 @@ export function IssueDrawer({
               )}
             </div>
 
-            <div className="drawer-section border-t border-border pt-5 space-y-3">
+            <div className="border-t border-border pt-5 space-y-3 mt-[33px] [&_h3]:text-sm">
               <h3 className="text-sm font-semibold text-text-main">{t("drawer.connected")}</h3>
               <EntityRelations
                 token={token}
@@ -608,7 +608,7 @@ export function IssueDrawer({
               />
             </div>
 
-            <div className="drawer-section border-t border-border pt-5 space-y-3">
+            <div className="border-t border-border pt-5 space-y-3 mt-[33px] [&_h3]:text-sm">
               <Attachments entityType="issue" entityId={id} canEdit />
             </div>
 
@@ -623,7 +623,7 @@ export function IssueDrawer({
               onChanged={() => onChanged()}
             />
 
-            <div className="drawer-section border-t border-border pt-5 space-y-4">
+            <div className="border-t border-border pt-5 space-y-4 mt-[33px] [&_h3]:text-sm">
               <Reminders token={token} issueId={id} />
               <h3 className="text-sm font-semibold text-text-main">
                 {t("drawer.discussion")} · {comments.length}
@@ -636,7 +636,7 @@ export function IssueDrawer({
                   const history = openHistory?.id === commentId ? openHistory.data : null;
                   return (
                     <div
-                      className="comment p-3.5 bg-surface-2/60 border border-border rounded-xl space-y-2"
+                      className="p-3.5 bg-surface-2/60 border border-border rounded-xl space-y-2 border-b py-3.5 [&_b]:text-xs [&_small]:ml-2.5 [&_small]:text-text-subtle [&_p]:text-[13px] [&_p]:text-text-muted [&_p]:whitespace-pre-wrap [&_p]:my-[9px]"
                       key={commentId}
                     >
                       <div className="flex items-center justify-between text-xs">

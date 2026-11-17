@@ -69,7 +69,7 @@ export function Burnup({ data }: { data: BurnupData }) {
           y1={pad.t + plotH}
           x2={W - pad.r}
           y2={pad.t + plotH}
-          className="bd-axis"
+          className="stroke-border-strong stroke-1"
           stroke="currentColor"
           opacity={0.2}
         />
@@ -78,7 +78,7 @@ export function Burnup({ data }: { data: BurnupData }) {
           y1={pad.t}
           x2={pad.l}
           y2={pad.t + plotH}
-          className="bd-axis"
+          className="stroke-border-strong stroke-1"
           stroke="currentColor"
           opacity={0.2}
         />
@@ -86,7 +86,7 @@ export function Burnup({ data }: { data: BurnupData }) {
           x={pad.l - 4}
           y={pad.t + 4}
           textAnchor="end"
-          className="bd-label"
+          className="fill-text-subtle text-[10px]"
           fontSize="10"
           fill="currentColor"
         >
@@ -96,7 +96,7 @@ export function Burnup({ data }: { data: BurnupData }) {
           x={pad.l - 4}
           y={pad.t + plotH}
           textAnchor="end"
-          className="bd-label"
+          className="fill-text-subtle text-[10px]"
           fontSize="10"
           fill="currentColor"
         >
@@ -109,10 +109,17 @@ export function Burnup({ data }: { data: BurnupData }) {
         {days.map((d, i) => (
           <circle key={d.day} cx={x(i)} cy={y(d.completed_points)} r={2.5} fill="#10b981" />
         ))}
-        <text x={pad.l} y={H - 6} className="bd-label" fontSize="10" fill="currentColor">
+        <text x={pad.l} y={H - 6} className="fill-text-subtle text-[10px]" fontSize="10" fill="currentColor">
           {shortDay(days[0].day)}
         </text>
-        <text x={W - pad.r} y={H - 6} textAnchor="end" className="bd-label" fontSize="10" fill="currentColor">
+        <text
+          x={W - pad.r}
+          y={H - 6}
+          textAnchor="end"
+          className="fill-text-subtle text-[10px]"
+          fontSize="10"
+          fill="currentColor"
+        >
           {shortDay(last.day)}
         </text>
       </svg>

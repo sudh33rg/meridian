@@ -100,14 +100,17 @@ export function Reminders({ token, issueId }: { token: string; issueId: string }
   });
   const list = remindersQ.data ?? [];
   return (
-    <section className="drawer-section" aria-label="Reminders">
+    <section className="mt-[33px] border-t border-border pt-[23px] [&_h3]:text-sm" aria-label="Reminders">
       <h3>Reminders</h3>
       {list.length === 0 && (
         <p className="text-text-subtle text-[11px]">No reminders on this issue for you.</p>
       )}
-      <ul className="workflow-list">
+      <ul className="m-0 p-0 list-none grid gap-1.5">
         {list.map((r) => (
-          <li key={r.id} className="workflow-row">
+          <li
+            key={r.id}
+            className="grid grid-cols-[minmax(140px,1fr)_140px_auto_auto_auto] gap-1.5 items-center max-[640px]:flex max-[640px]:flex-wrap max-[640px]:gap-2 [&_input]:min-w-0 [&_input]:max-[640px]:flex-[1_1_120px] [&_select]:min-w-0 [&_select]:max-[640px]:flex-[1_1_120px]"
+          >
             <span>
               <Bell size={13} aria-hidden="true" /> {new Date(r.remind_at).toLocaleString()}
               {r.note && <span className="text-text-subtle text-[11px]"> · {r.note}</span>}
@@ -125,7 +128,7 @@ export function Reminders({ token, issueId }: { token: string; issueId: string }
         ))}
       </ul>
       <form
-        className="inline-form"
+        className="inline-flex flex-wrap items-center gap-2"
         onSubmit={(e) => {
           e.preventDefault();
           if (when) add.mutate();

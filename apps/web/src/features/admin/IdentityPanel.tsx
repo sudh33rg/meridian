@@ -136,7 +136,7 @@ export function IdentityPanel() {
       )}
       {notice && (
         <div
-          className="ok p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm font-medium"
+          className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm font-medium px-3 py-2.5"
           role="status"
         >
           {notice}
@@ -144,7 +144,7 @@ export function IdentityPanel() {
       )}
 
       {/* Verified Domains Card */}
-      <Card className="panel-card space-y-4">
+      <Card className="space-y-4 bg-surface border border-border rounded-[var(--radius-lg)] p-[18px] mb-[18px] overflow-x-auto shadow-[var(--shadow-sm)] [&_h3]:m-0 [&_h3]:mb-1 [&_select]:min-w-0 [&_select]:px-3 [&_select]:py-[9px] [&_select]:border [&_select]:border-border-strong [&_select]:rounded-[10px] [&_select]:bg-surface [&_select]:text-inherit [&_input]:min-w-0 [&_input]:px-3 [&_input]:py-[9px] [&_input]:border [&_input]:border-border-strong [&_input]:rounded-[10px] [&_input]:bg-surface [&_input]:text-inherit [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[13px] [&_label]:font-semibold [&_label]:text-text-muted [&_label]:mt-2.5">
         <CardHeader className="pb-2 border-b border-border">
           <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle flex items-center gap-2">
             <Building2 size={16} /> Verified domains
@@ -220,7 +220,7 @@ export function IdentityPanel() {
       </Card>
 
       {/* Single Sign-On (OpenID Connect) */}
-      <Card className="panel-card space-y-4">
+      <Card className="space-y-4 bg-surface border border-border rounded-[var(--radius-lg)] p-[18px] mb-[18px] overflow-x-auto shadow-[var(--shadow-sm)] [&_h3]:m-0 [&_h3]:mb-1 [&_select]:min-w-0 [&_select]:px-3 [&_select]:py-[9px] [&_select]:border [&_select]:border-border-strong [&_select]:rounded-[10px] [&_select]:bg-surface [&_select]:text-inherit [&_input]:min-w-0 [&_input]:px-3 [&_input]:py-[9px] [&_input]:border [&_input]:border-border-strong [&_input]:rounded-[10px] [&_input]:bg-surface [&_input]:text-inherit [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[13px] [&_label]:font-semibold [&_label]:text-text-muted [&_label]:mt-2.5">
         <CardHeader className="pb-2 border-b border-border">
           <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle flex items-center gap-2">
             <Shield size={16} /> Single sign-on (OpenID Connect)
@@ -329,7 +329,7 @@ export function IdentityPanel() {
       </Card>
 
       {/* SCIM Provisioning Card */}
-      <Card className="panel-card space-y-4">
+      <Card className="space-y-4 bg-surface border border-border rounded-[var(--radius-lg)] p-[18px] mb-[18px] overflow-x-auto shadow-[var(--shadow-sm)] [&_h3]:m-0 [&_h3]:mb-1 [&_select]:min-w-0 [&_select]:px-3 [&_select]:py-[9px] [&_select]:border [&_select]:border-border-strong [&_select]:rounded-[10px] [&_select]:bg-surface [&_select]:text-inherit [&_input]:min-w-0 [&_input]:px-3 [&_input]:py-[9px] [&_input]:border [&_input]:border-border-strong [&_input]:rounded-[10px] [&_input]:bg-surface [&_input]:text-inherit [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[13px] [&_label]:font-semibold [&_label]:text-text-muted [&_label]:mt-2.5">
         <CardHeader className="pb-2 border-b border-border">
           <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle flex items-center gap-2">
             <KeyRound size={16} /> SCIM provisioning
@@ -343,7 +343,7 @@ export function IdentityPanel() {
           </p>
           {fresh && (
             <div
-              className="ok p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 space-y-2 text-xs sm:text-sm"
+              className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 space-y-2 text-xs sm:text-sm px-3 py-2.5"
               role="status"
             >
               <b>Copy this token now; it is shown once.</b>
@@ -364,7 +364,7 @@ export function IdentityPanel() {
             </div>
           )}
           <div className="overflow-x-auto border border-border rounded-xl">
-            <table className="panel-table w-full text-left text-xs sm:text-sm">
+            <table className="w-full text-left text-xs sm:text-sm border-collapse [&_th]:text-left [&_th]:px-2 [&_th]:py-2.5 [&_th]:border-b [&_th]:border-border [&_td]:text-left [&_td]:px-2 [&_td]:py-2.5 [&_td]:border-b [&_td]:border-border">
               <tbody className="divide-y divide-border/60">
                 {(tokens.data ?? []).map((t) => (
                   <tr key={t.id} className="hover:bg-surface-2 transition-colors">

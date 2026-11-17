@@ -5,7 +5,7 @@ import { Bookmark, Layers, Plus, RotateCcw, Search, SlidersHorizontal, X } from 
 import { useWorkspace } from "../workspace/useWorkspace";
 import { Skeleton } from "../shared/Avatar";
 import { useToast } from "../shared/Toast";
-import { KindIcon, PRIORITIES, PriorityIcon } from "./meta";
+import { KindIcon, PRIORITIES, PriorityIcon, STATUS_TONE } from "./meta";
 import { typeName } from "../../lib/issue-types";
 import { errorMessage, request, send } from "../../lib/api";
 import { loadIssues, type BulkResult, type SavedView } from "../../lib/issues";
@@ -238,7 +238,7 @@ export function IssuesTab() {
     labelOf?: (v: string) => string;
   }) => (
     <label
-      className={`filter-chip inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg border transition-all cursor-pointer select-none ${
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg border transition-all cursor-pointer select-none flex-row h-[30px] pl-2.5 pr-1 border-dashed m-0 font-semibold [&_select]:border-0 [&_select]:font-[650] [&_select]:py-1 [&_select]:pr-0 [&_select]:pl-1.5 [&_select]:max-w-[130px] [&_select]:cursor-pointer [&_select]:capitalize [&_select]:focus:outline-none [&_select]:focus:shadow-none ${
         value
           ? "bg-accent/10 border-accent/40 text-accent font-medium shadow-xs"
           : "bg-surface border-border text-text-subtle hover:text-text-main hover:border-border-strong"
@@ -264,11 +264,11 @@ export function IssuesTab() {
   );
 
   return (
-    <div className="panel bg-surface rounded-2xl border border-border p-4 sm:p-6 shadow-sm space-y-4">
-      <div className="list-toolbar space-y-3">
+    <div className="bg-surface rounded-2xl border border-border p-4 sm:p-6 shadow-sm space-y-4 overflow-hidden mb-4">
+      <div className="space-y-3 flex flex-wrap items-center gap-x-3.5 gap-y-2.5 px-4 py-3 border-b border-divider justify-start">
         {/* Search and Advanced Query Form */}
         <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
-          <div className="search relative flex-1 min-w-[220px]">
+          <div className="relative flex-1 min-w-[220px] flex items-center gap-2 h-8 px-2.5 border border-border rounded-[var(--radius)] bg-surface-2 text-text-subtle focus-within:border-accent focus-within:shadow-[0_0_0_3px_var(--accent-ring)] [&_input]:w-[200px] [&_input]:max-[820px]:w-[140px] [&_input]:text-[13px] [&_input]:text-text-main [&_input]:bg-transparent [&_input]:border-0 [&_input]:outline-none">
             <Search
               size={16}
               className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-subtle pointer-events-none"
@@ -282,7 +282,7 @@ export function IssuesTab() {
             />
           </div>
           <form
-            className="query-form flex items-center gap-2 flex-1 lg:max-w-xl"
+            className="flex items-center gap-2 flex-1 lg:max-w-xl min-w-0 [&_input]:flex-[1_1_220px] [&_input]:min-w-0"
             onSubmit={(e) => {
               e.preventDefault();
               setActiveQuery(queryText.trim());
@@ -319,7 +319,7 @@ export function IssuesTab() {
 
         {queryResultsQ.error && (
           <p
-            className="query-error text-xs text-danger bg-danger/10 p-2.5 rounded-lg border border-danger/20"
+            className="text-xs text-danger bg-danger/10 p-2.5 rounded-lg border border-danger/20 m-0"
             role="alert"
           >
             {errorMessage(queryResultsQ.error)}
@@ -327,7 +327,7 @@ export function IssuesTab() {
         )}
 
         {/* Filter bar */}
-        <div className="filters flex flex-wrap items-center gap-2 pt-1 pb-1">
+        <div className="flex flex-wrap items-center gap-2 pt-1 pb-1">
           <div className="flex items-center gap-1 text-text-subtle mr-1 text-xs font-medium">
             <SlidersHorizontal size={14} className="text-text-subtle" aria-hidden="true" />
             <span className="hidden sm:inline">Filters:</span>
@@ -349,7 +349,7 @@ export function IssuesTab() {
           />
           {filtering && (
             <button
-              className="clear-filters inline-flex items-center gap-1 px-2.5 py-1 text-xs text-danger hover:bg-danger/10 rounded-lg transition-colors font-medium ml-auto sm:ml-0"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs text-danger hover:bg-danger/10 rounded-lg transition-colors font-medium ml-auto sm:ml-0 hover:text-text-main"
               onClick={() => {
                 setStatus("");
                 setPriority("");
@@ -366,11 +366,11 @@ export function IssuesTab() {
         {/* Favourites & Recent */}
         {((favouritesQ.data?.length ?? 0) > 0 || (recentQ.data?.length ?? 0) > 0) && (
           <div
-            className="quick-issues flex flex-col sm:flex-row gap-2 py-1 border-t border-border/40 text-xs"
+            className="flex flex-col sm:flex-row gap-2 py-1 border-t border-border/40 text-xs mb-2.5"
             aria-label="Favourites and recent issues"
           >
             {(favouritesQ.data?.length ?? 0) > 0 && (
-              <div className="quick-issues-row flex flex-wrap items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <span className="font-medium text-text-subtle text-[11px]">Favourites:</span>
                 {favouritesQ.data?.map((i) => (
                   <button
@@ -384,7 +384,7 @@ export function IssuesTab() {
               </div>
             )}
             {(recentQ.data?.length ?? 0) > 0 && (
-              <div className="quick-issues-row flex flex-wrap items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <span className="font-medium text-text-subtle text-[11px]">Recent:</span>
                 {recentQ.data?.map((i) => (
                   <button
@@ -401,8 +401,8 @@ export function IssuesTab() {
         )}
 
         {/* Views and layout bar */}
-        <div className="view-opts flex flex-wrap items-center gap-2 pt-2 border-t border-border/60">
-          <label className="filter-chip inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg border border-border bg-surface text-text-main">
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/60 ml-auto max-[820px]:ml-0">
+          <label className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg border border-border bg-surface text-text-main flex-row h-[30px] pl-2.5 pr-1 border-dashed m-0 font-semibold [&_select]:border-0 [&_select]:bg-transparent [&_select]:text-inherit [&_select]:text-xs [&_select]:font-[650] [&_select]:py-1 [&_select]:pr-0 [&_select]:pl-1.5 [&_select]:max-w-[130px] [&_select]:cursor-pointer [&_select]:capitalize [&_select]:focus:outline-none [&_select]:focus:shadow-none">
             <Bookmark size={13} className="text-text-subtle" />
             <select
               aria-label="Saved view"
@@ -422,7 +422,7 @@ export function IssuesTab() {
               ))}
             </select>
             {views.find((v) => v.id === viewId)?.stale && (
-              <span className="query-error text-[10px] text-danger" role="status">
+              <span className="text-[10px] text-danger m-0" role="status">
                 (stale)
               </span>
             )}
@@ -449,7 +449,7 @@ export function IssuesTab() {
             </button>
           ) : (
             <form
-              className="inline-form flex flex-wrap items-center gap-2"
+              className="flex flex-wrap items-center gap-2"
               onSubmit={(e) => {
                 e.preventDefault();
                 const name = naming.trim();
@@ -465,7 +465,7 @@ export function IssuesTab() {
                 placeholder="View name"
                 className="px-2.5 py-1 text-xs bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
               />
-              <label className="filter-chip inline-flex items-center gap-1.5 text-xs text-text-subtle">
+              <label className="inline-flex items-center gap-1.5 text-xs text-text-subtle flex-row h-[30px] pl-2.5 pr-1 border border-dashed border-border-strong rounded-full m-0 font-semibold [&_select]:border-0 [&_select]:bg-transparent [&_select]:text-inherit [&_select]:text-xs [&_select]:font-[650] [&_select]:py-1 [&_select]:pr-0 [&_select]:pl-1.5 [&_select]:max-w-[130px] [&_select]:cursor-pointer [&_select]:capitalize [&_select]:focus:outline-none [&_select]:focus:shadow-none">
                 <input
                   type="checkbox"
                   checked={sharedDraft}
@@ -493,7 +493,7 @@ export function IssuesTab() {
 
           <div className="h-4 w-px bg-border hidden sm:block mx-0.5" />
 
-          <label className="filter-chip inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg border border-border bg-surface text-text-main">
+          <label className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg border border-border bg-surface text-text-main flex-row h-[30px] pl-2.5 pr-1 border-dashed m-0 font-semibold [&_select]:border-0 [&_select]:bg-transparent [&_select]:text-inherit [&_select]:text-xs [&_select]:font-[650] [&_select]:py-1 [&_select]:pr-0 [&_select]:pl-1.5 [&_select]:max-w-[130px] [&_select]:cursor-pointer [&_select]:capitalize [&_select]:focus:outline-none [&_select]:focus:shadow-none">
             <span className="text-text-subtle text-[11px] font-semibold uppercase">Sort</span>
             <select
               aria-label="Sort"
@@ -507,7 +507,7 @@ export function IssuesTab() {
             </select>
           </label>
 
-          <label className="filter-chip inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg border border-border bg-surface text-text-main">
+          <label className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg border border-border bg-surface text-text-main flex-row h-[30px] pl-2.5 pr-1 border-dashed m-0 font-semibold [&_select]:border-0 [&_select]:bg-transparent [&_select]:text-inherit [&_select]:text-xs [&_select]:font-[650] [&_select]:py-1 [&_select]:pr-0 [&_select]:pl-1.5 [&_select]:max-w-[130px] [&_select]:cursor-pointer [&_select]:capitalize [&_select]:focus:outline-none [&_select]:focus:shadow-none">
             <Layers size={13} className="text-text-subtle" />
             <select
               aria-label="Group by"
@@ -556,7 +556,7 @@ export function IssuesTab() {
       {/* Bulk actions banner */}
       {picked.size > 0 && !showArchived && (
         <div
-          className="bulk-bar flex flex-wrap items-center gap-2 p-3 bg-surface-2 border border-accent/30 rounded-xl shadow-sm text-xs"
+          className="flex flex-wrap items-center gap-2 p-3 bg-surface-2 border border-accent/30 rounded-xl shadow-sm text-xs mb-3 px-3.5 py-2.5"
           role="region"
           aria-label="Bulk actions"
         >
@@ -652,7 +652,7 @@ export function IssuesTab() {
             ))}
           </select>
           <form
-            className="bulk-label flex items-center gap-1.5"
+            className="flex items-center gap-1.5 flex-wrap"
             onSubmit={(e) => {
               e.preventDefault();
               const v = bulkLabel.trim();
@@ -693,11 +693,11 @@ export function IssuesTab() {
       )}
 
       {/* Responsive table container */}
-      <div className="table-scroll overflow-x-auto rounded-xl border border-border bg-surface">
+      <div className="overflow-x-auto rounded-xl border border-border bg-surface [&_th:nth-child(2)]:min-w-[240px] [&_td:nth-child(2)]:min-w-[240px]">
         <table className="w-full text-left border-collapse text-xs sm:text-sm">
           <thead>
             <tr className="border-b border-border bg-surface-2 text-text-subtle font-semibold text-[11px] uppercase tracking-wider">
-              <th scope="col" className="check-col w-10 px-3 py-3 text-center">
+              <th scope="col" className="w-10 px-3 py-3 text-center whitespace-nowrap">
                 {!showArchived && (
                   <input
                     type="checkbox"
@@ -739,7 +739,7 @@ export function IssuesTab() {
               groups.map((g) => (
                 <React.Fragment key={g.key}>
                   {g.label && (
-                    <tr className="group-row bg-surface-2/60 border-t border-border">
+                    <tr className="bg-surface-2/60 border-t border-border [&_th]:capitalize [&_th]:text-xs [&_th]:text-text-muted [&_th]:tracking-normal [&_th]:bg-surface-3 [&_th]:text-left">
                       <th
                         colSpan={COLUMNS}
                         scope="colgroup"
@@ -753,8 +753,11 @@ export function IssuesTab() {
                     </tr>
                   )}
                   {g.items.map((i) => (
-                    <tr key={i.id} className="row-hover hover:bg-surface-2 transition-colors group">
-                      <td className="check-col w-10 px-3 py-3 text-center">
+                    <tr
+                      key={i.id}
+                      className="hover:bg-surface-2 transition-colors group hover:[&_td]:bg-surface-2"
+                    >
+                      <td className="w-10 px-3 py-3 text-center whitespace-nowrap">
                         {!showArchived && (
                           <input
                             type="checkbox"
@@ -766,15 +769,15 @@ export function IssuesTab() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="cell-issue flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+                        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap min-w-[200px]">
                           <button
-                            className="issue-number-button shrink-0 font-bold text-accent hover:underline font-mono text-xs px-1.5 py-0.5 rounded bg-accent/10"
+                            className="shrink-0 font-bold text-accent hover:underline font-mono text-xs px-1.5 py-0.5 rounded bg-accent/10 block p-0 text-left tabular-nums hover:text-accent-text"
                             onClick={() => setSelectedIssue(i.id)}
                           >
                             {project?.key}-{i.number}
                           </button>
                           <button
-                            className="issue-title-button font-medium text-text-main hover:text-accent text-left transition-colors truncate max-w-sm sm:max-w-md"
+                            className="font-medium text-text-main hover:text-accent text-left transition-colors truncate max-w-sm sm:max-w-md block text-xs mt-[5px]"
                             onClick={() => setSelectedIssue(i.id)}
                           >
                             {i.title}
@@ -791,7 +794,7 @@ export function IssuesTab() {
                         </div>
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
-                        <span className="cell-kind capitalize inline-flex items-center gap-1.5 text-xs text-text-muted">
+                        <span className="capitalize inline-flex items-center gap-1.5 text-xs text-text-muted">
                           <KindIcon kind={i.kind} /> {i.kind}
                         </span>
                       </td>
@@ -800,7 +803,7 @@ export function IssuesTab() {
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
                         <select
-                          className={`status-select ${i.status} text-xs font-medium px-2 py-1 rounded-lg border border-border bg-surface text-text-main focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer`}
+                          className={`${STATUS_TONE[i.status] ?? "bg-surface text-text-main"} text-xs font-medium px-2 py-1 rounded-lg border border-border focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer`}
                           aria-label={`Status of ${project?.key}-${i.number}`}
                           value={i.status}
                           disabled={showArchived}
@@ -824,7 +827,7 @@ export function IssuesTab() {
         </table>
 
         {!(showArchived ? archivedQ.isLoading : loading) && !rows.length && (
-          <div className="panel-empty center py-12 px-4 text-center space-y-3">
+          <div className="py-12 px-4 text-center space-y-3 text-text-subtle text-xs flex flex-col items-center gap-3 [&_p]:m-0">
             <p className="text-sm text-text-subtle">
               {showArchived
                 ? "No archived issues."

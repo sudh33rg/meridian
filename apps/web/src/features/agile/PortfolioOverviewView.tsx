@@ -71,7 +71,7 @@ export function PortfolioOverviewView() {
 
         {data && (
           <div className="overflow-x-auto border border-border rounded-xl">
-            <table className="simple-table w-full text-left text-xs sm:text-sm">
+            <table className="w-full text-left text-xs sm:text-sm border-collapse [&_th]:text-left [&_th]:px-1 [&_th]:py-1.5 [&_th]:border-b [&_th]:border-divider [&_td]:text-left [&_td]:px-1 [&_td]:py-1.5 [&_td]:border-b [&_td]:border-divider">
               <thead className="bg-surface-2 border-b border-border text-text-subtle font-semibold uppercase text-[10px]">
                 <tr>
                   <th className="p-3">Project</th>

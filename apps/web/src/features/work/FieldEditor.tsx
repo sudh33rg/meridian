@@ -77,16 +77,22 @@ export function FieldEditor({ token, projectId }: { token: string; projectId: st
   });
 
   return (
-    <section className="workflow" aria-label="Custom fields">
-      <div className="workflow-head">
+    <section
+      className="mb-4 px-3.5 py-3 border border-border rounded-xl bg-surface-2 grid gap-2.5"
+      aria-label="Custom fields"
+    >
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <b>Custom fields</b>
         <span className="text-text-subtle text-[11px]">
           Shown on every issue in this project. Required fields must be filled to save.
         </span>
       </div>
-      <ul className="workflow-list">
+      <ul className="m-0 p-0 list-none grid gap-1.5">
         {fields.map((f) => (
-          <li key={f.key} className="workflow-row">
+          <li
+            key={f.key}
+            className="grid grid-cols-[minmax(140px,1fr)_140px_auto_auto_auto] gap-1.5 items-center max-[640px]:flex max-[640px]:flex-wrap max-[640px]:gap-2 [&_input]:min-w-0 [&_input]:max-[640px]:flex-[1_1_120px] [&_select]:min-w-0 [&_select]:max-[640px]:flex-[1_1_120px]"
+          >
             <span>
               {f.label}
               <span className="text-text-subtle text-[11px]">
@@ -127,7 +133,7 @@ export function FieldEditor({ token, projectId }: { token: string; projectId: st
         )}
       </ul>
       <form
-        className="workflow-add"
+        className="flex flex-wrap gap-2 items-center [&_input]:min-w-[180px]"
         onSubmit={(e) => {
           e.preventDefault();
           if (label.trim()) add.mutate();

@@ -83,17 +83,23 @@ export function ReleasesPanel() {
   };
 
   return (
-    <section className="planning releases space-y-6" aria-labelledby="releases-title">
-      <div className="planning-head">
+    <section
+      className="releases space-y-6 flex flex-col gap-4 pt-1 pb-6 [&_label]:flex [&_label]:flex-col [&_label]:gap-1 [&_select]:min-h-9 [&_input]:min-h-9"
+      aria-labelledby="releases-title"
+    >
+      <div className="flex flex-wrap items-end gap-x-4 gap-y-3 [&>div:first-child]:flex-[1_1_260px] [&>div:first-child]:min-w-0 [&_h2]:mt-0 [&_h2]:mb-0.5 [&_h2]:text-lg [&_p]:m-0">
         <PageHeader title="Releases" subtitle="What ships, when scope froze, and what changed after that." />
         <h2 id="releases-title" className="sr-only">
           Releases
         </h2>
       </div>
 
-      <div className="release-grid grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start max-[900px]:grid-cols-1">
         {/* Left column: Release list and creation */}
-        <aside className="release-list lg:col-span-4 space-y-4" aria-label="Releases">
+        <aside
+          className="lg:col-span-4 space-y-4 flex flex-col gap-3 [&_ul]:list-none [&_ul]:m-0 [&_ul]:p-0 [&_ul]:flex [&_ul]:flex-col [&_ul]:gap-1"
+          aria-label="Releases"
+        >
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle">
@@ -102,7 +108,7 @@ export function ReleasesPanel() {
             </CardHeader>
             <CardContent>
               <form
-                className="release-create space-y-3"
+                className="space-y-3 flex flex-col gap-2 p-3 border border-border rounded-[var(--radius-lg)] bg-surface [&_label]:flex [&_label]:flex-col [&_label]:gap-1"
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!name.trim() || !selected) return;
@@ -166,7 +172,7 @@ export function ReleasesPanel() {
                   return (
                     <li key={r.id}>
                       <button
-                        className={`release-item w-full flex items-center justify-between p-2.5 rounded-xl text-xs sm:text-sm transition-colors text-left ${
+                        className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs sm:text-sm transition-colors text-left gap-2 px-2.5 py-2 border cursor-pointer [&_span:first-of-type]:flex-1 [&_span:first-of-type]:min-w-0 [&_span:first-of-type]:overflow-hidden [&_span:first-of-type]:text-ellipsis [&_span:first-of-type]:whitespace-nowrap ${
                           isSelected
                             ? "active bg-accent/10 border border-accent/30 text-accent font-semibold"
                             : "hover:bg-surface-2 text-text-main"
@@ -212,8 +218,8 @@ export function ReleasesPanel() {
         {/* Right column: Release detail */}
         <main className="lg:col-span-8">
           {current ? (
-            <Card className="release-detail space-y-6 p-4 sm:p-6">
-              <header className="release-head flex flex-wrap items-center gap-3 pb-4 border-b border-border">
+            <Card className="space-y-6 p-4 sm:p-6 flex flex-col gap-3 min-w-0 border border-border rounded-[var(--radius-lg)] bg-surface">
+              <header className="flex flex-wrap items-center gap-3 pb-4 border-b border-border [&_h3]:m-0 [&_h3]:text-[15px]">
                 <div className="flex-1 min-w-[200px]">
                   <h3 className="text-xl sm:text-2xl font-extrabold text-text-main font-display">
                     {current.name}
@@ -255,10 +261,10 @@ export function ReleasesPanel() {
 
               {totals && (
                 <div
-                  className="release-progress bg-surface-2 p-4 rounded-xl border border-border space-y-2"
+                  className="bg-surface-2 p-4 rounded-xl border border-border space-y-2 flex flex-col gap-1.5"
                   aria-label="Release progress"
                 >
-                  <div className="progress-track w-full h-2.5 bg-bg rounded-full overflow-hidden border border-border/60">
+                  <div className="w-full h-2.5 bg-bg rounded-full overflow-hidden border border-border/60 flex-1 min-w-[25px] [&>div]:bg-accent [&>div]:h-full [&>div]:rounded-[20px] [&>div]:transition-[width] [&>div]:duration-200">
                     <div
                       className="h-full bg-accent transition-all duration-300"
                       style={{
@@ -275,7 +281,7 @@ export function ReleasesPanel() {
               )}
 
               {/* Action buttons */}
-              <div className="release-actions flex flex-wrap items-center gap-2 pt-2 border-t border-border">
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
                 <button
                   className="px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
                   onClick={() =>
@@ -320,7 +326,7 @@ export function ReleasesPanel() {
 
                 {open && confirming === "release" && (
                   <div
-                    className="release-confirm flex flex-wrap items-center gap-2 p-3 bg-surface-2 rounded-xl border border-accent/30 w-full"
+                    className="flex flex-wrap items-center gap-2 p-3 bg-surface-2 rounded-xl border border-accent/30 w-full [&_label]:flex [&_label]:flex-col [&_label]:gap-1"
                     role="group"
                     aria-label="Confirm release"
                   >
@@ -366,7 +372,7 @@ export function ReleasesPanel() {
 
                 {open && confirming === "cancel" && (
                   <div
-                    className="release-confirm flex flex-wrap items-center gap-2 p-3 bg-danger/10 rounded-xl border border-danger/30 w-full"
+                    className="flex flex-wrap items-center gap-2 p-3 bg-danger/10 rounded-xl border border-danger/30 w-full [&_label]:flex [&_label]:flex-col [&_label]:gap-1"
                     role="group"
                     aria-label="Confirm cancel"
                   >
@@ -410,8 +416,8 @@ export function ReleasesPanel() {
               </div>
 
               {notes && (
-                <div className="release-notes bg-surface-2 p-4 rounded-xl border border-border space-y-3">
-                  <div className="release-notes-head flex items-center justify-between">
+                <div className="bg-surface-2 p-4 rounded-xl border border-border space-y-3 [&_pre]:m-0 [&_pre]:p-3 [&_pre]:rounded-[var(--radius)] [&_pre]:bg-surface-2 [&_pre]:whitespace-pre-wrap [&_pre]:text-xs">
+                  <div className="flex items-center justify-between [&_h4]:m-0">
                     <h4 className="text-sm font-bold text-text-main">Release notes</h4>
                     <button
                       className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-border rounded-lg text-xs font-medium text-text-main hover:bg-surface-3 justify-center whitespace-nowrap cursor-pointer transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] hover:text-text-main"
@@ -430,7 +436,7 @@ export function ReleasesPanel() {
 
               {open && (
                 <form
-                  className="release-add flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-3 bg-surface-2 rounded-xl border border-border"
+                  className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-3 bg-surface-2 rounded-xl border border-border [&_label]:flex-[1_1_260px] [&_label]:flex [&_label]:flex-col [&_label]:gap-1"
                   onSubmit={(e) => {
                     e.preventDefault();
                     if (!addIssue) return;
@@ -474,21 +480,23 @@ export function ReleasesPanel() {
                   Scope
                 </h4>
                 <ul
-                  className="release-scope divide-y divide-border/60 border border-border rounded-xl bg-surface overflow-hidden"
+                  className="divide-y divide-border/60 border border-border rounded-xl bg-surface overflow-hidden list-none m-0 p-0 flex flex-col gap-1 [&_li]:flex [&_li]:flex-wrap [&_li]:items-center [&_li]:gap-2 [&_li]:px-2 [&_li]:py-1.5 [&_li]:rounded-md [&_li]:bg-surface-2"
                   aria-label="Release scope"
                 >
                   {(scope.data ?? []).map((s) => (
                     <li
                       key={s.id}
-                      className={`flex items-center gap-3 p-3 text-xs sm:text-sm hover:bg-surface-2 transition-colors ${s.done ? "done opacity-75" : ""}`}
+                      className={`flex items-center gap-3 p-3 text-xs sm:text-sm hover:bg-surface-2 transition-colors ${s.done ? "opacity-75" : ""}`}
                     >
                       <button
-                        className="issue-number-button shrink-0 font-bold text-accent hover:underline font-mono text-xs px-1.5 py-0.5 rounded bg-accent/10"
+                        className="shrink-0 font-bold text-accent hover:underline font-mono text-xs px-1.5 py-0.5 rounded bg-accent/10 block p-0 text-left tabular-nums hover:text-accent-text"
                         onClick={() => setSelectedIssue(s.id)}
                       >
                         {key}-{s.number}
                       </button>
-                      <span className="release-scope-title flex-1 font-medium text-text-main truncate">
+                      <span
+                        className={`flex-1 font-medium truncate min-w-0 ${s.done ? "line-through text-text-subtle" : "text-text-main"}`}
+                      >
                         {s.title}
                       </span>
                       {s.added_after_freeze && (
@@ -526,7 +534,10 @@ export function ReleasesPanel() {
                 <h4 className="text-sm font-bold uppercase tracking-wider text-text-subtle mt-3 mb-1.5">
                   History
                 </h4>
-                <ol className="release-history space-y-2 text-xs" aria-label="Scope history">
+                <ol
+                  className="space-y-2 text-xs list-none m-0 p-0 flex flex-col gap-1 [&_li]:flex [&_li]:flex-wrap [&_li]:items-center [&_li]:gap-2 [&_li]:px-2 [&_li]:py-1.5 [&_li]:rounded-md [&_li]:bg-surface-2"
+                  aria-label="Scope history"
+                >
                   {(history.data ?? []).map((h, n) => (
                     <li
                       key={`${h.issue_id}-${h.action}-${n}`}
@@ -554,7 +565,7 @@ export function ReleasesPanel() {
               </div>
             </Card>
           ) : (
-            <Card className="release-detail p-12 text-center text-sm text-text-subtle">
+            <Card className="p-12 text-center text-sm text-text-subtle flex flex-col gap-3 min-w-0 border border-border rounded-[var(--radius-lg)] bg-surface">
               Create a release, or pick one to see its scope.
             </Card>
           )}

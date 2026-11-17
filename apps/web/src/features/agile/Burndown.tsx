@@ -39,31 +39,37 @@ export function Burndown({ data }: { data: BurndownData }) {
     .join(" ");
   const last = days[days.length - 1];
   return (
-    <figure className="burndown">
+    <figure className="m-0 [&_svg]:block [&_svg]:max-w-full [&_svg]:h-auto">
       <svg
         viewBox={`0 0 ${W} ${H}`}
         role="img"
         aria-label={`Burndown: ${remaining(last)} points remaining of ${last.scope_points} on ${shortDay(last.day)}`}
         width="100%"
       >
-        <line x1={pad.l} y1={pad.t + plotH} x2={W - pad.r} y2={pad.t + plotH} className="bd-axis" />
-        <line x1={pad.l} y1={pad.t} x2={pad.l} y2={pad.t + plotH} className="bd-axis" />
-        <text x={pad.l - 4} y={pad.t + 4} textAnchor="end" className="bd-label">
+        <line
+          x1={pad.l}
+          y1={pad.t + plotH}
+          x2={W - pad.r}
+          y2={pad.t + plotH}
+          className="stroke-border-strong stroke-1"
+        />
+        <line x1={pad.l} y1={pad.t} x2={pad.l} y2={pad.t + plotH} className="stroke-border-strong stroke-1" />
+        <text x={pad.l - 4} y={pad.t + 4} textAnchor="end" className="fill-text-subtle text-[10px]">
           {maxY}
         </text>
-        <text x={pad.l - 4} y={pad.t + plotH} textAnchor="end" className="bd-label">
+        <text x={pad.l - 4} y={pad.t + plotH} textAnchor="end" className="fill-text-subtle text-[10px]">
           0
         </text>
-        <path d={ideal} className="bd-ideal" fill="none" />
-        <path d={scope} className="bd-scope" fill="none" />
-        <path d={burn} className="bd-burn" fill="none" />
+        <path d={ideal} className="stroke-text-4 [stroke-dasharray:4_4] stroke-[1.5]" fill="none" />
+        <path d={scope} className="stroke-warning stroke-[1.5]" fill="none" />
+        <path d={burn} className="stroke-accent stroke-[2.5]" fill="none" />
         {days.map((d, i) => (
-          <circle key={d.day} cx={x(i)} cy={y(remaining(d))} r={2.5} className="bd-dot" />
+          <circle key={d.day} cx={x(i)} cy={y(remaining(d))} r={2.5} className="fill-accent" />
         ))}
-        <text x={pad.l} y={H - 6} className="bd-label">
+        <text x={pad.l} y={H - 6} className="fill-text-subtle text-[10px]">
           {shortDay(days[0].day)}
         </text>
-        <text x={W - pad.r} y={H - 6} textAnchor="end" className="bd-label">
+        <text x={W - pad.r} y={H - 6} textAnchor="end" className="fill-text-subtle text-[10px]">
           {shortDay(last.day)}
         </text>
       </svg>

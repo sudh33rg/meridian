@@ -40,14 +40,17 @@ export function PermissionScheme({ token, projectId }: { token: string; projectI
   const current = draft ?? schemeQ.data;
   if (!current) return null;
   return (
-    <section className="workflow" aria-label="Permission scheme">
-      <div className="workflow-head">
+    <section
+      className="mb-4 px-3.5 py-3 border border-border rounded-xl bg-surface-2 grid gap-2.5"
+      aria-label="Permission scheme"
+    >
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <b>Permissions</b>
         <span className="text-text-subtle text-[11px]">
           Owners and admins always have full access. These settings decide what members may do.
         </span>
       </div>
-      <div className="workflow-add">
+      <div className="flex flex-wrap gap-2 items-center [&_input]:min-w-[180px]">
         <label>
           <span className="text-text-subtle text-[11px]">Members see this project as</span>
           <select

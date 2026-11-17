@@ -184,7 +184,7 @@ export function ServicePanel() {
 
   return (
     <div className="service-panel space-y-6">
-      <div className="panel-head">
+      <div className="flex justify-between items-center border-b border-border px-[18px] py-3.5 [&_h3]:flex [&_h3]:items-center [&_h3]:gap-[7px] [&_h3]:text-[15px] [&_h3]:m-0 [&_h3]:tracking-[-0.2px] [&>button]:text-accent-text [&>button]:text-xs [&>button]:font-semibold [&>button]:hover:underline">
         <PageHeader
           title="Service management"
           subtitle={`${sla.length} requests · ${breached} past target`}
@@ -192,18 +192,24 @@ export function ServicePanel() {
         <h3 className="sr-only">Service management</h3>
       </div>
 
-      <div className="ext-two-cols grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start max-[900px]:grid-cols-1">
         {/* Queues Section */}
-        <Card className="panel" aria-label="Queues">
+        <Card
+          className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]"
+          aria-label="Queues"
+        >
           <CardHeader className="pb-2 border-b border-border">
             <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle">
               Queues
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-3">
-            <ul className="workflow-list divide-y divide-border/60">
+            <ul className="divide-y divide-border/60 m-0 p-0 list-none grid gap-1.5">
               {queues.map((q) => (
-                <li key={q.id} className="workflow-row py-2 text-xs flex items-center justify-between">
+                <li
+                  key={q.id}
+                  className="py-2 text-xs flex items-center justify-between grid-cols-[minmax(140px,1fr)_140px_auto_auto_auto] gap-1.5 max-[640px]:flex max-[640px]:flex-wrap max-[640px]:gap-2 [&_input]:min-w-0 [&_input]:max-[640px]:flex-[1_1_120px] [&_select]:min-w-0 [&_select]:max-[640px]:flex-[1_1_120px]"
+                >
                   <span className="font-medium text-text-main">
                     {q.name}
                     <span className="text-text-subtle text-[11px]">
@@ -218,7 +224,7 @@ export function ServicePanel() {
             </ul>
 
             <form
-              className="workflow-add flex flex-col sm:flex-row gap-2 pt-2 border-t border-border"
+              className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-border items-center [&_input]:min-w-[180px]"
               onSubmit={(e) => {
                 e.preventDefault();
                 if (queueName.trim()) addQueue.mutate();
@@ -257,16 +263,22 @@ export function ServicePanel() {
         </Card>
 
         {/* Request Types Section */}
-        <Card className="panel" aria-label="Request types">
+        <Card
+          className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]"
+          aria-label="Request types"
+        >
           <CardHeader className="pb-2 border-b border-border">
             <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle">
               Request types
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-3">
-            <ul className="workflow-list divide-y divide-border/60">
+            <ul className="divide-y divide-border/60 m-0 p-0 list-none grid gap-1.5">
               {types.map((t) => (
-                <li key={t.id} className="workflow-row py-2 text-xs flex items-center justify-between">
+                <li
+                  key={t.id}
+                  className="py-2 text-xs flex items-center justify-between grid-cols-[minmax(140px,1fr)_140px_auto_auto_auto] gap-1.5 max-[640px]:flex max-[640px]:flex-wrap max-[640px]:gap-2 [&_input]:min-w-0 [&_input]:max-[640px]:flex-[1_1_120px] [&_select]:min-w-0 [&_select]:max-[640px]:flex-[1_1_120px]"
+                >
                   <span className="font-medium text-text-main">
                     {t.name}
                     <span className="text-text-subtle text-[11px]">
@@ -281,7 +293,7 @@ export function ServicePanel() {
             </ul>
 
             <form
-              className="workflow-add space-y-2.5 pt-2 border-t border-border"
+              className="space-y-2.5 pt-2 border-t border-border flex flex-wrap gap-2 items-center [&_input]:min-w-[180px]"
               onSubmit={(e) => {
                 e.preventDefault();
                 if (typeName.trim() && typeQueue) addType.mutate();
@@ -432,7 +444,10 @@ export function ServicePanel() {
       </div>
 
       {/* Submit Request Section */}
-      <Card className="panel" aria-label="Submit a request">
+      <Card
+        className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]"
+        aria-label="Submit a request"
+      >
         <CardHeader className="pb-2 border-b border-border">
           <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle">
             Submit a request
@@ -440,7 +455,7 @@ export function ServicePanel() {
         </CardHeader>
         <CardContent className="pt-3">
           <form
-            className="workflow-add space-y-3"
+            className="space-y-3 flex flex-wrap gap-2 items-center [&_input]:min-w-[180px]"
             onSubmit={(e) => {
               e.preventDefault();
               if (reqType && reqTitle.trim()) submit.mutate();
@@ -534,7 +549,10 @@ export function ServicePanel() {
       </Card>
 
       {/* SLA Service Level Report Table */}
-      <Card className="panel overflow-hidden" aria-label="Service level report">
+      <Card
+        className="overflow-hidden bg-surface border border-border rounded-[var(--radius-lg)] mb-4 shadow-[var(--shadow-sm)]"
+        aria-label="Service level report"
+      >
         <CardHeader className="pb-2 border-b border-border">
           <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle">SLA</CardTitle>
         </CardHeader>

@@ -140,8 +140,11 @@ export function ReportsPanel() {
   const days = (n: number | null) => (n == null ? "–" : `${n.toFixed(1)} d`);
 
   return (
-    <section className="planning reports space-y-6" aria-labelledby="reports-title">
-      <div className="planning-head">
+    <section
+      className="space-y-6 flex flex-col gap-4 pt-1 pb-6 [&_label]:flex [&_label]:flex-col [&_label]:gap-1 [&_select]:min-h-9 [&_input]:min-h-9"
+      aria-labelledby="reports-title"
+    >
+      <div className="flex flex-wrap items-end gap-x-4 gap-y-3 [&>div:first-child]:flex-[1_1_260px] [&>div:first-child]:min-w-0 [&_h2]:mt-0 [&_h2]:mb-0.5 [&_h2]:text-lg [&_p]:m-0">
         <PageHeader
           title="Reports"
           subtitle="Built from status history and logged time. Ranges are inclusive, at most a year."
@@ -205,9 +208,9 @@ export function ReportsPanel() {
         </h2>
       </div>
 
-      <div className="report-grid grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         {/* Team Velocity Card */}
-        <Card className="panel report-card md:col-span-2">
+        <Card className="md:col-span-2 bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)] p-3 flex flex-col gap-2 min-w-0 [&_h3]:m-0 [&_h3]:text-[13px] [&_h4]:m-0 [&_h4]:text-[13px]">
           <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border">
             <CardTitle className="text-base font-bold text-text-main">
               Team Velocity &amp; Predictability
@@ -249,7 +252,7 @@ export function ReportsPanel() {
         </Card>
 
         {/* Status Now Card */}
-        <Card className="panel report-card">
+        <Card className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)] p-3 flex flex-col gap-2 min-w-0 [&_h3]:m-0 [&_h3]:text-[13px] [&_h4]:m-0 [&_h4]:text-[13px]">
           <CardHeader className="pb-2 border-b border-border">
             <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle">
               Status now
@@ -264,14 +267,14 @@ export function ReportsPanel() {
         </Card>
 
         {/* Cycle Time Card */}
-        <Card className="panel report-card">
+        <Card className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)] p-3 flex flex-col gap-2 min-w-0 [&_h3]:m-0 [&_h3]:text-[13px] [&_h4]:m-0 [&_h4]:text-[13px]">
           <CardHeader className="pb-2 border-b border-border">
             <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle">
               Cycle time
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 pt-3">
-            <dl className="stat-list grid grid-cols-3 gap-2 p-3 bg-surface-2 rounded-xl text-center border border-border">
+            <dl className="grid grid-cols-3 gap-2 p-3 bg-surface-2 rounded-xl text-center border border-border m-0 [&_dt]:text-[11px] [&_dt]:text-text-subtle [&_dd]:m-0 [&_dd]:font-semibold">
               <div>
                 <dt className="text-[10px] uppercase font-bold text-text-subtle">Completed</dt>
                 <dd className="text-base sm:text-lg font-bold text-text-main mt-0.5">
@@ -302,7 +305,7 @@ export function ReportsPanel() {
         </Card>
 
         {/* Created and Resolved Card */}
-        <Card className="panel report-card">
+        <Card className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)] p-3 flex flex-col gap-2 min-w-0 [&_h3]:m-0 [&_h3]:text-[13px] [&_h4]:m-0 [&_h4]:text-[13px]">
           <CardHeader className="pb-2 border-b border-border">
             <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle">
               Created and resolved
@@ -322,7 +325,7 @@ export function ReportsPanel() {
         </Card>
 
         {/* Time Logged Card */}
-        <Card className="panel report-card">
+        <Card className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)] p-3 flex flex-col gap-2 min-w-0 [&_h3]:m-0 [&_h3]:text-[13px] [&_h4]:m-0 [&_h4]:text-[13px]">
           <CardHeader className="pb-2 border-b border-border">
             <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle">
               Time logged
@@ -345,7 +348,7 @@ export function ReportsPanel() {
                 <li key={x.issue_id} className="py-1.5 text-xs flex items-center justify-between">
                   <div className="flex items-center gap-1.5 truncate">
                     <button
-                      className="issue-number-button shrink-0 font-mono font-bold text-accent hover:underline"
+                      className="shrink-0 font-mono font-bold text-accent hover:underline block p-0 text-left text-[11px] tabular-nums hover:text-accent-text"
                       onClick={() => setSelectedIssue(x.issue_id)}
                     >
                       {key}-{x.number}
@@ -363,7 +366,10 @@ export function ReportsPanel() {
       </div>
 
       {/* Custom Dashboards Section */}
-      <Card className="panel dashboards" aria-labelledby="dash-title">
+      <Card
+        className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]"
+        aria-labelledby="dash-title"
+      >
         <CardHeader className="pb-3 border-b border-border">
           <CardTitle id="dash-title" className="text-base font-bold text-text-main">
             Dashboards
@@ -468,11 +474,11 @@ export function ReportsPanel() {
             </form>
           )}
 
-          <div className="report-grid grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {(view.data?.widgets ?? []).map((w) => (
               <article
                 key={w.id}
-                className="panel report-card p-4 bg-surface-2 rounded-xl border border-border space-y-2"
+                className="p-4 bg-surface-2 rounded-xl border border-border space-y-2 overflow-hidden mb-4 shadow-[var(--shadow-sm)] flex flex-col gap-2 min-w-0 [&_h3]:m-0 [&_h3]:text-[13px] [&_h4]:m-0 [&_h4]:text-[13px]"
               >
                 <h4 className="text-xs font-bold uppercase tracking-wider text-text-subtle">{w.title}</h4>
                 <WidgetBody kind={w.kind} data={w.data} />

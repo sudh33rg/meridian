@@ -56,7 +56,10 @@ export function ImportPanel({ token, projectId }: { token: string; projectId: st
   };
 
   return (
-    <Card className="workflow" aria-label="Import issues from CSV">
+    <Card
+      className="mb-4 px-3.5 py-3 border border-border rounded-xl bg-surface-2 grid gap-2.5"
+      aria-label="Import issues from CSV"
+    >
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Upload size={18} className="text-accent" />
@@ -68,7 +71,7 @@ export function ImportPanel({ token, projectId }: { token: string; projectId: st
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="workflow-add flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 [&_input]:min-w-[180px]">
           <input
             type="file"
             accept=".csv,text/csv"

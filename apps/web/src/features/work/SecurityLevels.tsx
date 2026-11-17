@@ -59,17 +59,24 @@ export function SecurityLevels({ token, projectId }: { token: string; projectId:
   const data = levelsQ.data;
   if (!data) return null;
   return (
-    <section className="workflow" aria-label="Security levels">
-      <div className="workflow-head">
+    <section
+      className="mb-4 px-3.5 py-3 border border-border rounded-xl bg-surface-2 grid gap-2.5"
+      aria-label="Security levels"
+    >
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <b>Security levels</b>
         <span className="text-text-subtle text-[11px]">
           An issue in a level is visible to project admins, its assignee, its reporter, and the level's
           members.
         </span>
       </div>
-      <ul className="workflow-list">
+      <ul className="m-0 p-0 list-none grid gap-1.5">
         {data.levels.map((l) => (
-          <li key={l.id} className="workflow-row" style={{ flexWrap: "wrap" }}>
+          <li
+            key={l.id}
+            className="grid grid-cols-[minmax(140px,1fr)_140px_auto_auto_auto] gap-1.5 items-center max-[640px]:flex max-[640px]:flex-wrap max-[640px]:gap-2 [&_input]:min-w-0 [&_input]:max-[640px]:flex-[1_1_120px] [&_select]:min-w-0 [&_select]:max-[640px]:flex-[1_1_120px]"
+            style={{ flexWrap: "wrap" }}
+          >
             <span>
               {l.name}
               {l.description && <span className="text-text-subtle text-[11px]"> · {l.description}</span>}
@@ -79,7 +86,10 @@ export function SecurityLevels({ token, projectId }: { token: string; projectId:
                 <fieldset className="screen-fields" style={{ width: "100%" }}>
                   <legend className="text-text-subtle text-[11px]">Members of {l.name}</legend>
                   {(membersQ.data ?? []).map((m) => (
-                    <label key={m.id} className="filter-chip">
+                    <label
+                      key={m.id}
+                      className="inline-flex flex-row items-center gap-1.5 h-[30px] pl-2.5 pr-1 border border-dashed border-border-strong rounded-full text-xs text-text-subtle m-0 font-semibold [&_select]:border-0 [&_select]:bg-transparent [&_select]:text-inherit [&_select]:text-xs [&_select]:font-[650] [&_select]:py-1 [&_select]:pr-0 [&_select]:pl-1.5 [&_select]:max-w-[130px] [&_select]:cursor-pointer [&_select]:capitalize [&_select]:focus:outline-none [&_select]:focus:shadow-none"
+                    >
                       <input
                         type="checkbox"
                         checked={l.member_ids.includes(m.id)}
@@ -116,7 +126,7 @@ export function SecurityLevels({ token, projectId }: { token: string; projectId:
       </ul>
       {data.can_manage && (
         <form
-          className="workflow-add"
+          className="flex flex-wrap gap-2 items-center [&_input]:min-w-[180px]"
           onSubmit={(e) => {
             e.preventDefault();
             if (name.trim()) create.mutate();

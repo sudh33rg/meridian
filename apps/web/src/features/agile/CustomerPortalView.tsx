@@ -77,7 +77,10 @@ export function CustomerPortalView({ projectId }: { projectId: string }) {
   const data = portal.data;
 
   return (
-    <Card className="panel mt-4 space-y-4 p-4 sm:p-6" aria-label="Customer Portal">
+    <Card
+      className="mt-4 space-y-4 p-4 sm:p-6 bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]"
+      aria-label="Customer Portal"
+    >
       <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
         <div>
           <CardTitle className="flex items-center gap-2 text-base font-bold text-text-main">

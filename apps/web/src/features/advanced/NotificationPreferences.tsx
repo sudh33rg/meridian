@@ -63,7 +63,7 @@ export function NotificationPreferences({
   if (!prefs) return null;
 
   return (
-    <Card className="prefs">
+    <Card className="mb-4 px-4 pt-3 pb-3.5 border border-border rounded-xl grid gap-3 [&_legend]:px-1.5 [&_legend]:font-semibold [&_legend]:text-text-muted">
       <CardHeader>
         <CardTitle>Notify me about</CardTitle>
       </CardHeader>
@@ -71,7 +71,7 @@ export function NotificationPreferences({
         {prefs.map((p) => (
           <label
             key={p.kind}
-            className="pref-row flex items-start gap-3 p-3 rounded-xl border border-border bg-surface-2 hover:bg-surface-3 transition-colors cursor-pointer"
+            className="flex items-start gap-3 p-3 rounded-xl border border-border bg-surface-2 hover:bg-surface-3 transition-colors cursor-pointer [&_input]:mt-[3px] [&_input]:flex-none [&_span]:grid [&_span]:gap-0.5 [&_small]:text-text-subtle"
           >
             <input
               type="checkbox"
@@ -86,7 +86,7 @@ export function NotificationPreferences({
           </label>
         ))}
         {digest && (
-          <label className="pref-row flex items-start gap-3 p-3 rounded-xl border border-border bg-surface-2 hover:bg-surface-3 transition-colors cursor-pointer">
+          <label className="flex items-start gap-3 p-3 rounded-xl border border-border bg-surface-2 hover:bg-surface-3 transition-colors cursor-pointer [&_input]:mt-[3px] [&_input]:flex-none [&_span]:grid [&_span]:gap-0.5 [&_small]:text-text-subtle">
             <input
               type="checkbox"
               className="mt-1 rounded accent-accent text-accent focus:ring-accent cursor-pointer"

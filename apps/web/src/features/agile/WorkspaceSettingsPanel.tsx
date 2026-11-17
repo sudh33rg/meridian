@@ -46,7 +46,10 @@ export function WorkspaceSettingsPanel() {
   if (!current) return null;
 
   return (
-    <Card className="panel integrations space-y-5 p-4 sm:p-6" aria-labelledby="ws-title">
+    <Card
+      className="space-y-5 p-4 sm:p-6 bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)] mt-3 flex flex-col gap-2 [&_h3]:m-0 [&_h3]:flex [&_h3]:items-center [&_h3]:gap-1.5 [&_h3]:text-[13px]"
+      aria-labelledby="ws-title"
+    >
       <CardHeader className="pb-3 border-b border-border">
         <CardTitle id="ws-title" className="text-base font-bold text-text-main flex items-center gap-2">
           <Settings2 size={18} className="text-accent" /> Workspace settings
@@ -55,7 +58,7 @@ export function WorkspaceSettingsPanel() {
       <CardContent className="space-y-6 pt-2">
         <AiSettingsCard token={session.token} admin={admin} />
 
-        <div className="form-row grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <label className="block space-y-1 text-xs sm:text-sm font-medium text-text-main">
             <span>Time zone</span>
             <input
@@ -195,7 +198,7 @@ export function WorkspaceSettingsPanel() {
             {DAYS.map(([n, label]) => (
               <label
                 key={n}
-                className="check-chip inline-flex items-center gap-1.5 px-3 py-1 bg-surface border border-border rounded-lg text-xs text-text-main cursor-pointer select-none"
+                className="inline-flex items-center gap-1.5 px-3 py-1 bg-surface border border-border rounded-lg text-xs text-text-main cursor-pointer select-none [&_input[type=checkbox]]:size-3.5 [&_input[type=checkbox]]:min-h-0 [&_input[type=checkbox]]:m-0"
               >
                 <input
                   type="checkbox"

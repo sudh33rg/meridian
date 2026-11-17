@@ -152,7 +152,7 @@ export function AutomationBuilder({
 
   return (
     <section className="automation-panel space-y-6" aria-labelledby="auto-title">
-      <div className="planning-head">
+      <div className="flex flex-wrap items-end gap-x-4 gap-y-3 [&>div:first-child]:flex-[1_1_260px] [&>div:first-child]:min-w-0 [&_h2]:mt-0 [&_h2]:mb-0.5 [&_h2]:text-lg [&_p]:m-0">
         <PageHeader
           title="Automation"
           subtitle="Keep work moving automatically when issues change or on a recurring schedule."
@@ -172,7 +172,7 @@ export function AutomationBuilder({
       </div>
 
       {creating && (
-        <Card className="automation-form space-y-5 p-4 sm:p-6">
+        <Card className="space-y-5 p-4 sm:p-6 grid gap-3 mb-4 [&_fieldset]:grid [&_fieldset]:gap-2 [&_fieldset]:px-3 [&_fieldset]:py-2.5 [&_fieldset]:rounded-[10px] [&_fieldset]:border [&_fieldset]:border-current [&_fieldset]:opacity-95 [&_legend]:px-1 [&_legend]:text-[0.85rem]">
           <CardHeader className="pb-2 border-b border-border">
             <CardTitle className="text-base font-bold text-text-main">Create Automation Rule</CardTitle>
           </CardHeader>
@@ -231,7 +231,7 @@ export function AutomationBuilder({
                   And these match
                 </legend>
                 {conditions.map((c, idx) => (
-                  <div className="automation-row flex flex-wrap items-center gap-2" key={idx}>
+                  <div className="flex flex-wrap items-center gap-2 [&_input]:min-w-40" key={idx}>
                     <select
                       aria-label={`Condition ${idx + 1} field`}
                       value={c.field}
@@ -287,7 +287,7 @@ export function AutomationBuilder({
                   Then do
                 </legend>
                 {actions.map((a, idx) => (
-                  <div className="automation-row flex flex-wrap items-center gap-2" key={idx}>
+                  <div className="flex flex-wrap items-center gap-2 [&_input]:min-w-40" key={idx}>
                     <select
                       aria-label={`Action ${idx + 1} type`}
                       value={a.type}
@@ -356,7 +356,7 @@ export function AutomationBuilder({
                 )}
               </fieldset>
 
-              <div className="automation-buttons flex items-center gap-2 pt-2 border-t border-border">
+              <div className="flex items-center gap-2 pt-2 border-t border-border flex-wrap">
                 <button
                   type="button"
                   className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs sm:text-sm font-medium text-text-main transition-colors justify-center whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
@@ -397,7 +397,7 @@ export function AutomationBuilder({
         </Card>
       ) : (
         <Card className="overflow-hidden">
-          <div className="table-scroll overflow-x-auto">
+          <div className="overflow-x-auto [&_th:nth-child(2)]:min-w-[240px] [&_td:nth-child(2)]:min-w-[240px]">
             <table className="automation-table w-full text-left text-xs sm:text-sm">
               <thead className="bg-surface-2 border-b border-border text-text-subtle font-semibold uppercase text-[10px]">
                 <tr>
@@ -442,7 +442,7 @@ export function AutomationBuilder({
                           {r.enabled ? "On" : "Off"}
                         </label>
                       </td>
-                      <td className="automation-cell-actions p-3 text-right space-x-1.5">
+                      <td className="p-3 text-right space-x-1.5 flex flex-wrap gap-2 items-center">
                         <button
                           className="px-2.5 py-1 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] hover:text-text-main"
                           aria-expanded={openRuns === r.id}

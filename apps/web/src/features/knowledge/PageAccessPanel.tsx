@@ -62,7 +62,7 @@ export function PageAccessPanel({ pageId, onClose }: { pageId: string; onClose: 
   const inherited = d && !d.restricted && d.governed_by;
 
   return (
-    <Card className="panel-card my-3">
+    <Card className="my-3 bg-surface border border-border rounded-[var(--radius-lg)] p-[18px] mb-[18px] overflow-x-auto shadow-[var(--shadow-sm)] [&_h3]:m-0 [&_h3]:mb-1 [&_select]:min-w-0 [&_select]:px-3 [&_select]:py-[9px] [&_select]:border [&_select]:border-border-strong [&_select]:rounded-[10px] [&_select]:bg-surface [&_select]:text-inherit [&_input]:min-w-0 [&_input]:px-3 [&_input]:py-[9px] [&_input]:border [&_input]:border-border-strong [&_input]:rounded-[10px] [&_input]:bg-surface [&_input]:text-inherit [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[13px] [&_label]:font-semibold [&_label]:text-text-muted [&_label]:mt-2.5">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
           <Lock size={16} className="text-accent" /> Page access
@@ -107,7 +107,7 @@ export function PageAccessPanel({ pageId, onClose }: { pageId: string; onClose: 
             {d.restricted && canManage && (
               <div className="space-y-3 pt-2">
                 <div className="overflow-x-auto rounded-lg border border-border">
-                  <table className="panel-table w-full text-xs text-left">
+                  <table className="w-full text-xs text-left border-collapse [&_th]:text-left [&_th]:px-2 [&_th]:py-2.5 [&_th]:border-b [&_th]:border-border [&_td]:text-left [&_td]:px-2 [&_td]:py-2.5 [&_td]:border-b [&_td]:border-border">
                     <tbody className="divide-y divide-border">
                       {d.grants.map((g) => (
                         <tr

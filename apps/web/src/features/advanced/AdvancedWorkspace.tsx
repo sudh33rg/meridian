@@ -340,12 +340,12 @@ export function AdvancedWorkspace({
   }
 
   return (
-    <section className="extended space-y-6 pb-20 md:pb-6">
+    <section className="space-y-6 pb-20 md:pb-6 flex flex-col gap-[23px]">
       <PageHeader
         title={title}
         subtitle={subtitle}
         actions={
-          <div className="ext-actions flex items-center gap-2">
+          <div className="flex items-center gap-2 max-[760px]:w-full [&_button]:max-[760px]:flex-1">
             <button
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50 justify-center whitespace-nowrap duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] text-text-muted hover:text-text-main"
               onClick={() => void load()}
@@ -366,7 +366,7 @@ export function AdvancedWorkspace({
       />
 
       {loading && (
-        <div role="status" className="ext-loading text-center py-8 text-sm text-muted">
+        <div role="status" className="text-center py-8 text-sm text-muted">
           Loading workspace data…
         </div>
       )}
@@ -374,8 +374,8 @@ export function AdvancedWorkspace({
       {cfg && (
         <>
           {editing && (
-            <Card className="ext-form panel mb-6">
-              <CardHeader className="panel-head flex items-center justify-between">
+            <Card className="mb-6 bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)]">
+              <CardHeader className="flex items-center justify-between border-b border-border px-[18px] py-3.5 [&_h3]:flex [&_h3]:items-center [&_h3]:gap-[7px] [&_h3]:text-[15px] [&_h3]:m-0 [&_h3]:tracking-[-0.2px] [&>button]:text-accent-text [&>button]:text-xs [&>button]:font-semibold [&>button]:hover:underline">
                 <CardTitle>{`Create ${tab === "automation" ? "automation rule" : "entry"}`}</CardTitle>
                 <button
                   type="button"
@@ -386,7 +386,10 @@ export function AdvancedWorkspace({
                 </button>
               </CardHeader>
               <CardContent>
-                <form className="ext-form-body space-y-4" onSubmit={save}>
+                <form
+                  className="space-y-4 p-[21px] flex flex-col items-stretch gap-[9px] [&_label]:my-1 [&_p]:text-xs [&_p]:text-text-muted [&_p]:leading-[1.7]"
+                  onSubmit={save}
+                >
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {cfg.fields.map(([field, label, type, options]) => (
                       <label
@@ -439,16 +442,16 @@ export function AdvancedWorkspace({
             </Card>
           )}
 
-          <div className="ext-cards grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-[900px]:grid-cols-1">
             {rows.map((r, n) => (
               <Card
-                className="ext-card flex flex-col justify-between p-4 sm:p-5 hover:border-accent/40 transition-colors"
+                className="flex flex-col justify-between p-4 sm:p-5 hover:border-accent/40 transition-colors bg-surface border border-border rounded-[14px] gap-[15px] items-start min-h-[154px] shadow-[var(--shadow-sm)] max-[760px]:p-3.5 [&_h3]:text-[13px] [&_h3]:mt-0.5 [&_h3]:mb-2.5 [&_p]:text-xs [&_p]:text-text-muted [&_p]:leading-[1.6] [&_p]:m-0 [&_p]:mb-[15px] [&_p]:whitespace-pre-wrap [&_small]:text-[10px] [&_small]:text-text-subtle"
                 key={str(r.id || n)}
               >
                 <div>
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="ext-card-icon w-8 h-8 rounded-lg bg-surface-2 flex items-center justify-center text-muted">
+                      <div className="w-8 h-8 rounded-lg bg-surface-2 flex items-center justify-center text-muted min-w-[37px] place-items-center">
                         {tab === "sprints" ? (
                           <GitBranch size={16} />
                         ) : tab === "goals" ? (
@@ -473,7 +476,7 @@ export function AdvancedWorkspace({
                   </p>
 
                   {tab === "goals" && (
-                    <div className="progress-track w-full h-1.5 bg-surface-2 rounded-full overflow-hidden mb-3">
+                    <div className="w-full h-1.5 bg-surface-2 rounded-full overflow-hidden mb-3 flex-1 min-w-[25px] [&>div]:bg-accent [&>div]:h-full [&>div]:rounded-[20px] [&>div]:transition-[width] [&>div]:duration-200">
                       <div
                         className="h-full bg-emerald-500 rounded-full transition-all"
                         style={{ width: `${count(r.progress)}%` }}
@@ -530,15 +533,15 @@ export function AdvancedWorkspace({
       )}
 
       {tab === "approvals" && (
-        <div className="ext-two-cols grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="panel lg:col-span-2">
-            <CardHeader className="panel-head">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-[900px]:grid-cols-1">
+          <Card className="lg:col-span-2 bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]">
+            <CardHeader className="flex justify-between items-center border-b border-border px-[18px] py-3.5 [&_h3]:flex [&_h3]:items-center [&_h3]:gap-[7px] [&_h3]:text-[15px] [&_h3]:m-0 [&_h3]:tracking-[-0.2px] [&>button]:text-accent-text [&>button]:text-xs [&>button]:font-semibold [&>button]:hover:underline">
               <CardTitle>Approval requests</CardTitle>
             </CardHeader>
             <CardContent className="divide-y divide-border">
               {rows.map((r) => (
                 <div
-                  className="ext-line flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3 px-[22px] items-center border-b border-border last:border-b-0 text-text-muted text-xs max-[760px]:p-3.5 [&>div:not(:first-child)]:flex-1 [&>div:not(:first-child)]:min-w-0 [&_b]:text-xs [&_b]:text-text-main [&_b]:block [&_small]:text-[10px] [&_small]:block [&_small]:text-text-subtle [&_small]:mt-[5px] [&_small]:whitespace-nowrap [&_small]:text-ellipsis [&_small]:overflow-hidden"
                   key={str(r.id)}
                 >
                   <div className="flex items-start sm:items-center gap-3">
@@ -551,7 +554,7 @@ export function AdvancedWorkspace({
                     </div>
                   </div>
                   {r.reviewer_id === session.user_id && r.status === "pending" ? (
-                    <div className="ext-actions flex items-center gap-2">
+                    <div className="flex items-center gap-2 max-[760px]:w-full [&_button]:max-[760px]:flex-1">
                       {(["approved", "rejected"] as const).map((next) => (
                         <button
                           key={next}
@@ -588,8 +591,8 @@ export function AdvancedWorkspace({
             </CardContent>
           </Card>
 
-          <Card className="panel">
-            <CardHeader className="panel-head">
+          <Card className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]">
+            <CardHeader className="flex justify-between items-center border-b border-border px-[18px] py-3.5 [&_h3]:flex [&_h3]:items-center [&_h3]:gap-[7px] [&_h3]:text-[15px] [&_h3]:m-0 [&_h3]:tracking-[-0.2px] [&>button]:text-accent-text [&>button]:text-xs [&>button]:font-semibold [&>button]:hover:underline">
               <CardTitle>Request approval</CardTitle>
             </CardHeader>
             <CardContent>
@@ -659,14 +662,17 @@ export function AdvancedWorkspace({
       {tab === "analytics" && <Analytics data={data} />}
 
       {tab === "portfolio" && (
-        <div className="ext-two-cols grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="panel">
-            <CardHeader className="panel-head">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-[900px]:grid-cols-1">
+          <Card className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]">
+            <CardHeader className="flex justify-between items-center border-b border-border px-[18px] py-3.5 [&_h3]:flex [&_h3]:items-center [&_h3]:gap-[7px] [&_h3]:text-[15px] [&_h3]:m-0 [&_h3]:tracking-[-0.2px] [&>button]:text-accent-text [&>button]:text-xs [&>button]:font-semibold [&>button]:hover:underline">
               <CardTitle>Projects</CardTitle>
             </CardHeader>
             <CardContent className="divide-y divide-border">
               {(((data as Item).projects as Item[]) || []).map((p) => (
-                <div className="ext-line flex items-center justify-between py-3" key={str(p.id)}>
+                <div
+                  className="flex items-center justify-between py-3 px-[22px] gap-3.5 border-b border-border last:border-b-0 text-text-muted text-xs max-[760px]:p-3.5 [&>div:not(:first-child)]:flex-1 [&>div:not(:first-child)]:min-w-0 [&_b]:text-xs [&_b]:text-text-main [&_b]:block [&_small]:text-[10px] [&_small]:block [&_small]:text-text-subtle [&_small]:mt-[5px] [&_small]:whitespace-nowrap [&_small]:text-ellipsis [&_small]:overflow-hidden"
+                  key={str(p.id)}
+                >
                   <div>
                     <b className="font-semibold text-text text-xs sm:text-sm block">{str(p.name)}</b>
                     <small className="text-xs text-muted">
@@ -681,13 +687,16 @@ export function AdvancedWorkspace({
             </CardContent>
           </Card>
 
-          <Card className="panel">
-            <CardHeader className="panel-head">
+          <Card className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]">
+            <CardHeader className="flex justify-between items-center border-b border-border px-[18px] py-3.5 [&_h3]:flex [&_h3]:items-center [&_h3]:gap-[7px] [&_h3]:text-[15px] [&_h3]:m-0 [&_h3]:tracking-[-0.2px] [&>button]:text-accent-text [&>button]:text-xs [&>button]:font-semibold [&>button]:hover:underline">
               <CardTitle>Goals</CardTitle>
             </CardHeader>
             <CardContent className="divide-y divide-border">
               {(((data as Item).goals as Item[]) || []).map((g) => (
-                <div className="ext-line flex items-center justify-between py-3" key={str(g.id)}>
+                <div
+                  className="flex items-center justify-between py-3 px-[22px] gap-3.5 border-b border-border last:border-b-0 text-text-muted text-xs max-[760px]:p-3.5 [&>div:not(:first-child)]:flex-1 [&>div:not(:first-child)]:min-w-0 [&_b]:text-xs [&_b]:text-text-main [&_b]:block [&_small]:text-[10px] [&_small]:block [&_small]:text-text-subtle [&_small]:mt-[5px] [&_small]:whitespace-nowrap [&_small]:text-ellipsis [&_small]:overflow-hidden"
+                  key={str(g.id)}
+                >
                   <div>
                     <b className="font-semibold text-text text-xs sm:text-sm block">{str(g.title)}</b>
                     <small className="text-xs text-muted capitalize">
@@ -703,17 +712,20 @@ export function AdvancedWorkspace({
       )}
 
       {tab === "people" && (
-        <div className="ext-two-cols grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="panel lg:col-span-2">
-            <CardHeader className="panel-head flex items-center justify-between">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-[900px]:grid-cols-1">
+          <Card className="lg:col-span-2 bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]">
+            <CardHeader className="flex items-center justify-between border-b border-border px-[18px] py-3.5 [&_h3]:flex [&_h3]:items-center [&_h3]:gap-[7px] [&_h3]:text-[15px] [&_h3]:m-0 [&_h3]:tracking-[-0.2px] [&>button]:text-accent-text [&>button]:text-xs [&>button]:font-semibold [&>button]:hover:underline">
               <CardTitle>Members</CardTitle>
               <Users size={17} className="text-muted" />
             </CardHeader>
             <CardContent className="divide-y divide-border">
               {rows.map((r) => (
-                <div className="ext-line flex items-center justify-between py-3" key={str(r.id)}>
+                <div
+                  className="flex items-center justify-between py-3 px-[22px] gap-3.5 border-b border-border last:border-b-0 text-text-muted text-xs max-[760px]:p-3.5 [&>div:not(:first-child)]:flex-1 [&>div:not(:first-child)]:min-w-0 [&_b]:text-xs [&_b]:text-text-main [&_b]:block [&_small]:text-[10px] [&_small]:block [&_small]:text-text-subtle [&_small]:mt-[5px] [&_small]:whitespace-nowrap [&_small]:text-ellipsis [&_small]:overflow-hidden"
+                  key={str(r.id)}
+                >
                   <div className="flex items-center gap-3">
-                    <span className="ext-avatar w-8 h-8 rounded-full bg-accent-soft text-accent font-semibold flex items-center justify-center text-xs">
+                    <span className="w-8 h-8 rounded-full bg-accent-soft text-accent font-semibold flex items-center justify-center text-xs place-items-center">
                       {str(r.name)[0]?.toUpperCase()}
                     </span>
                     <div>
@@ -730,12 +742,15 @@ export function AdvancedWorkspace({
           </Card>
 
           <div className="space-y-6">
-            <Card className="panel">
-              <CardHeader className="panel-head">
+            <Card className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]">
+              <CardHeader className="flex justify-between items-center border-b border-border px-[18px] py-3.5 [&_h3]:flex [&_h3]:items-center [&_h3]:gap-[7px] [&_h3]:text-[15px] [&_h3]:m-0 [&_h3]:tracking-[-0.2px] [&>button]:text-accent-text [&>button]:text-xs [&>button]:font-semibold [&>button]:hover:underline">
                 <CardTitle>Invite team members</CardTitle>
               </CardHeader>
               <CardContent>
-                <form className="ext-form-body space-y-4" onSubmit={invite}>
+                <form
+                  className="space-y-4 p-[21px] flex flex-col items-stretch gap-[9px] [&_label]:my-1 [&_p]:text-xs [&_p]:text-text-muted [&_p]:leading-[1.7]"
+                  onSubmit={invite}
+                >
                   <label className="block text-xs sm:text-sm font-medium text-text space-y-1">
                     <span>Work email</span>
                     <input
@@ -763,7 +778,7 @@ export function AdvancedWorkspace({
                     Generate invitation
                   </button>
                   {inviteToken && (
-                    <div className="ext-secret p-3 bg-surface-2 rounded-lg border border-border space-y-2 mt-3">
+                    <div className="p-3 bg-surface-2 rounded-lg border border-border space-y-2 mt-3 min-w-0 [&_p]:break-all [&_p]:font-mono [&_p]:text-xs [&_small]:block [&_small]:mt-2.5">
                       <b className="block text-xs font-semibold text-text">Copy this invitation token once</b>
                       <p className="text-xs font-mono break-all text-muted p-2 bg-surface rounded border border-border">
                         {inviteToken}
@@ -784,13 +799,16 @@ export function AdvancedWorkspace({
               </CardContent>
             </Card>
 
-            <Card className="panel">
-              <CardHeader className="panel-head">
+            <Card className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]">
+              <CardHeader className="flex justify-between items-center border-b border-border px-[18px] py-3.5 [&_h3]:flex [&_h3]:items-center [&_h3]:gap-[7px] [&_h3]:text-[15px] [&_h3]:m-0 [&_h3]:tracking-[-0.2px] [&>button]:text-accent-text [&>button]:text-xs [&>button]:font-semibold [&>button]:hover:underline">
                 <CardTitle>Your workspaces</CardTitle>
               </CardHeader>
               <CardContent className="divide-y divide-border">
                 {workspaces.map((w) => (
-                  <div className="ext-line flex items-center justify-between py-2.5" key={str(w.id)}>
+                  <div
+                    className="flex items-center justify-between py-2.5 px-[22px] gap-3.5 border-b border-border last:border-b-0 text-text-muted text-xs max-[760px]:p-3.5 [&>div:not(:first-child)]:flex-1 [&>div:not(:first-child)]:min-w-0 [&_b]:text-xs [&_b]:text-text-main [&_b]:block [&_small]:text-[10px] [&_small]:block [&_small]:text-text-subtle [&_small]:mt-[5px] [&_small]:whitespace-nowrap [&_small]:text-ellipsis [&_small]:overflow-hidden"
+                    key={str(w.id)}
+                  >
                     <div>
                       <b className="font-semibold text-text text-xs sm:text-sm block">{str(w.name)}</b>
                       <small className="text-xs text-muted capitalize">{str(w.role)}</small>
@@ -813,13 +831,16 @@ export function AdvancedWorkspace({
       {tab === "inbox" && (
         <div className="space-y-6">
           <NotificationPreferences token={session.token} onError={onError} />
-          <Card className="panel">
+          <Card className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]">
             <CardHeader>
               <CardTitle>Notifications</CardTitle>
             </CardHeader>
             <CardContent className="divide-y divide-border">
               {rows.map((r) => (
-                <div className="ext-line flex items-start justify-between gap-3 py-3" key={str(r.id)}>
+                <div
+                  className="flex items-start justify-between gap-3 py-3 px-[22px] border-b border-border last:border-b-0 text-text-muted text-xs max-[760px]:p-3.5 [&>div:not(:first-child)]:flex-1 [&>div:not(:first-child)]:min-w-0 [&_b]:text-xs [&_b]:text-text-main [&_b]:block [&_small]:text-[10px] [&_small]:block [&_small]:text-text-subtle [&_small]:mt-[5px] [&_small]:whitespace-nowrap [&_small]:text-ellipsis [&_small]:overflow-hidden"
+                  key={str(r.id)}
+                >
                   <div className="flex items-start gap-3">
                     <Bell size={18} className="text-accent shrink-0 mt-0.5" />
                     <div>
@@ -849,7 +870,10 @@ export function AdvancedWorkspace({
 
       {tab === "search" && (
         <div className="space-y-6">
-          <form className="ext-search flex items-center gap-2" onSubmit={runSearch}>
+          <form
+            className="flex items-center gap-2 bg-surface border border-border rounded-[13px] py-2.5 pr-3 pl-5 text-accent-text [&_input]:border-0 [&_input]:outline-none [&_input]:flex-1 [&_input]:min-w-20 [&_input]:text-sm"
+            onSubmit={runSearch}
+          >
             <div className="relative flex-1">
               <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
               <input
@@ -866,17 +890,17 @@ export function AdvancedWorkspace({
             </button>
           </form>
 
-          <Card className="panel">
+          <Card className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]">
             <CardContent className="p-0 divide-y divide-border">
               {searchResults.map((r) => (
                 <button
-                  className="ext-line ext-result w-full p-4 flex items-center justify-between gap-3 text-left hover:bg-surface-2 transition-colors cursor-pointer"
+                  className="w-full p-4 flex items-center justify-between gap-3 text-left hover:bg-surface-2 transition-colors cursor-pointer px-[22px] py-4 border-b border-border last:border-b-0 text-text-muted text-xs max-[760px]:p-3.5 [&>div:not(:first-child)]:flex-1 [&>div:not(:first-child)]:min-w-0 [&_b]:text-xs [&_b]:text-text-main [&_b]:block [&_small]:text-[10px] [&_small]:block [&_small]:text-text-subtle [&_small]:mt-[5px] [&_small]:whitespace-nowrap [&_small]:text-ellipsis [&_small]:overflow-hidden bg-transparent"
                   type="button"
                   key={str(r.id)}
                   onClick={() => onOpenSearch(r)}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="ext-card-icon w-8 h-8 rounded-lg bg-surface-2 flex items-center justify-center text-muted shrink-0">
+                    <span className="w-8 h-8 rounded-lg bg-surface-2 flex items-center justify-center text-muted shrink-0 min-w-[37px] place-items-center">
                       {r.kind === "page" ? <BookOpen size={16} /> : <Flag size={16} />}
                     </span>
                     <div>
@@ -903,13 +927,13 @@ export function AdvancedWorkspace({
       {tab === "audit" && <AuditPanel token={session.token} onError={onError} />}
 
       {tab === "integrations" && (
-        <div className="ext-two-cols grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="panel">
-            <CardHeader className="panel-head flex items-center justify-between">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-[900px]:grid-cols-1">
+          <Card className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]">
+            <CardHeader className="flex items-center justify-between border-b border-border px-[18px] py-3.5 [&_h3]:flex [&_h3]:items-center [&_h3]:gap-[7px] [&_h3]:text-[15px] [&_h3]:m-0 [&_h3]:tracking-[-0.2px] [&>button]:text-accent-text [&>button]:text-xs [&>button]:font-semibold [&>button]:hover:underline">
               <CardTitle>Project export</CardTitle>
               <Download size={18} className="text-muted" />
             </CardHeader>
-            <CardContent className="ext-form-body space-y-4">
+            <CardContent className="space-y-4 p-[21px] flex flex-col items-stretch gap-[9px] [&_label]:my-1 [&_p]:text-xs [&_p]:text-text-muted [&_p]:leading-[1.7]">
               <p className="text-xs sm:text-sm text-muted">
                 Download issues, pages, sprints, and project details as JSON. Large projects require paginated
                 export.
@@ -927,14 +951,17 @@ export function AdvancedWorkspace({
             </CardContent>
           </Card>
 
-          <Card className="panel">
-            <CardHeader className="panel-head flex items-center justify-between">
+          <Card className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]">
+            <CardHeader className="flex items-center justify-between border-b border-border px-[18px] py-3.5 [&_h3]:flex [&_h3]:items-center [&_h3]:gap-[7px] [&_h3]:text-[15px] [&_h3]:m-0 [&_h3]:tracking-[-0.2px] [&>button]:text-accent-text [&>button]:text-xs [&>button]:font-semibold [&>button]:hover:underline">
               <CardTitle>Registered webhooks</CardTitle>
               <Globe2 size={18} className="text-muted" />
             </CardHeader>
             <CardContent className="divide-y divide-border">
               {rows.map((r) => (
-                <div className="ext-line flex items-center justify-between py-3" key={str(r.id)}>
+                <div
+                  className="flex items-center justify-between py-3 px-[22px] gap-3.5 border-b border-border last:border-b-0 text-text-muted text-xs max-[760px]:p-3.5 [&>div:not(:first-child)]:flex-1 [&>div:not(:first-child)]:min-w-0 [&_b]:text-xs [&_b]:text-text-main [&_b]:block [&_small]:text-[10px] [&_small]:block [&_small]:text-text-subtle [&_small]:mt-[5px] [&_small]:whitespace-nowrap [&_small]:text-ellipsis [&_small]:overflow-hidden"
+                  key={str(r.id)}
+                >
                   <div>
                     <b className="font-semibold text-text text-xs sm:text-sm block">{str(r.name)}</b>
                     <small className="text-xs text-muted">{str(r.url)}</small>

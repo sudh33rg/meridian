@@ -75,16 +75,22 @@ export function TransitionEditor({
   const fieldLabel = (key: string) => (fieldsQ.data ?? []).find((f) => f.key === key)?.label ?? key;
 
   return (
-    <section className="workflow" aria-label="Workflow rules">
-      <div className="workflow-head">
+    <section
+      className="mb-4 px-3.5 py-3 border border-border rounded-xl bg-surface-2 grid gap-2.5"
+      aria-label="Workflow rules"
+    >
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <b>Allowed moves</b>
         <span className="text-text-subtle text-[11px]">
           A status with no rules can move anywhere. Once it has rules, only the listed moves are allowed.
         </span>
       </div>
-      <ul className="workflow-list">
+      <ul className="m-0 p-0 list-none grid gap-1.5">
         {rules.map((r) => (
-          <li key={`${r.from}>${r.to}`} className="workflow-row">
+          <li
+            key={`${r.from}>${r.to}`}
+            className="grid grid-cols-[minmax(140px,1fr)_140px_auto_auto_auto] gap-1.5 items-center max-[640px]:flex max-[640px]:flex-wrap max-[640px]:gap-2 [&_input]:min-w-0 [&_input]:max-[640px]:flex-[1_1_120px] [&_select]:min-w-0 [&_select]:max-[640px]:flex-[1_1_120px]"
+          >
             <span>
               {name(r.from)} → {name(r.to)}
               {r.requires_field && (
@@ -107,7 +113,7 @@ export function TransitionEditor({
         )}
       </ul>
       <form
-        className="workflow-add"
+        className="flex flex-wrap gap-2 items-center [&_input]:min-w-[180px]"
         onSubmit={(e) => {
           e.preventDefault();
           if (from && to) add.mutate();

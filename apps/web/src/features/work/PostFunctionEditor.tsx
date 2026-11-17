@@ -73,7 +73,10 @@ function ScreenFields({
       <legend className="text-text-subtle text-[11px]">Fields shown when this move is made</legend>
       {!fields.length && <p className="text-text-subtle text-[11px]">Define custom fields first.</p>}
       {fields.map((f) => (
-        <label key={f.key} className="filter-chip">
+        <label
+          key={f.key}
+          className="inline-flex flex-row items-center gap-1.5 h-[30px] pl-2.5 pr-1 border border-dashed border-border-strong rounded-full text-xs text-text-subtle m-0 font-semibold [&_select]:border-0 [&_select]:bg-transparent [&_select]:text-inherit [&_select]:text-xs [&_select]:font-[650] [&_select]:py-1 [&_select]:pr-0 [&_select]:pl-1.5 [&_select]:max-w-[130px] [&_select]:cursor-pointer [&_select]:capitalize [&_select]:focus:outline-none [&_select]:focus:shadow-none"
+        >
           <input type="checkbox" checked={shown.includes(f.key)} onChange={() => toggle(f.key)} /> {f.label}
         </label>
       ))}
@@ -162,14 +165,17 @@ export function PostFunctionEditor({
   const ready = !!from && !!to && from !== to;
 
   return (
-    <section className="workflow" aria-label="Post-functions">
-      <div className="workflow-head">
+    <section
+      className="mb-4 px-3.5 py-3 border border-border rounded-xl bg-surface-2 grid gap-2.5"
+      aria-label="Post-functions"
+    >
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <b>Post-functions</b>
         <span className="text-text-subtle text-[11px]">
           Run in the same transaction as the status change. If one fails, the move is refused.
         </span>
       </div>
-      <div className="workflow-add">
+      <div className="flex flex-wrap gap-2 items-center [&_input]:min-w-[180px]">
         <select aria-label="Post-function move from" value={from} onChange={(e) => setFrom(e.target.value)}>
           <option value="">From…</option>
           {statuses.map((s) => (
@@ -191,9 +197,12 @@ export function PostFunctionEditor({
       </div>
       {ready && (
         <>
-          <ul className="workflow-list">
+          <ul className="m-0 p-0 list-none grid gap-1.5">
             {actions.map((a) => (
-              <li key={a.id} className="workflow-row">
+              <li
+                key={a.id}
+                className="grid grid-cols-[minmax(140px,1fr)_140px_auto_auto_auto] gap-1.5 items-center max-[640px]:flex max-[640px]:flex-wrap max-[640px]:gap-2 [&_input]:min-w-0 [&_input]:max-[640px]:flex-[1_1_120px] [&_select]:min-w-0 [&_select]:max-[640px]:flex-[1_1_120px]"
+              >
                 <span>{describe(a)}</span>
                 <button
                   className="inline-grid place-items-center rounded-lg p-[5px] text-text-subtle transition-colors hover:bg-surface-3 hover:text-text-main text-danger-text"
@@ -211,7 +220,7 @@ export function PostFunctionEditor({
           </ul>
           <ScreenFields token={token} projectId={projectId} from={from} to={to} fields={fields} />
           <form
-            className="workflow-add"
+            className="flex flex-wrap gap-2 items-center [&_input]:min-w-[180px]"
             onSubmit={(e) => {
               e.preventDefault();
               if (action === "set_field" && !field) return;

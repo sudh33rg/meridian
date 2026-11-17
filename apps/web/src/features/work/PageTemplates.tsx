@@ -61,7 +61,7 @@ export function PageTemplates({
           ))}
         </select>
       </label>
-      <div className="inline-form flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <input
           aria-label="Template name"
           value={name}

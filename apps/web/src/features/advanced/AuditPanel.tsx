@@ -119,7 +119,7 @@ export function AuditPanel({ token, onError }: { token: string; onError: (messag
     setDraft({ ...draft, [key]: e.target.value });
 
   return (
-    <div className="panel audit-panel space-y-6">
+    <div className="audit-panel space-y-6 bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]">
       <PageHeader
         title="Audit Log"
         subtitle="Immutable security audit trail of all workspace and project events."
@@ -227,7 +227,7 @@ export function AuditPanel({ token, onError }: { token: string; onError: (messag
           <div className="divide-y divide-border/60">
             {rows.map((r) => (
               <div
-                className="ext-line flex items-center gap-3 p-3.5 hover:bg-surface-2 transition-colors"
+                className="flex items-center gap-3 p-3.5 hover:bg-surface-2 transition-colors px-[22px] py-4 border-b border-border last:border-b-0 text-text-muted text-xs max-[760px]:p-3.5 [&>div:not(:first-child)]:flex-1 [&>div:not(:first-child)]:min-w-0 [&_b]:text-xs [&_b]:text-text-main [&_b]:block [&_small]:text-[10px] [&_small]:block [&_small]:text-text-subtle [&_small]:mt-[5px] [&_small]:whitespace-nowrap [&_small]:text-ellipsis [&_small]:overflow-hidden"
                 key={r.id}
               >
                 <div className="w-8 h-8 rounded-lg bg-surface-3 flex items-center justify-center shrink-0 text-text-subtle">

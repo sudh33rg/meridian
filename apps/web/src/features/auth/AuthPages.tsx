@@ -66,7 +66,7 @@ export function ForgotPasswordPage() {
       lead="Enter your work email and we will send a link if an account exists."
     >
       {done ? (
-        <div className="ok p-4 rounded-xl bg-success-soft border border-success-border text-success-text text-xs sm:text-sm font-medium leading-relaxed">
+        <div className="p-4 rounded-xl bg-success-soft border border-success-border text-success-text text-xs sm:text-sm font-medium leading-relaxed px-3 py-2.5">
           If that address belongs to an account, a reset link is on its way. It expires in one hour.
         </div>
       ) : (
@@ -135,7 +135,7 @@ export function ResetPasswordPage() {
   return (
     <Shell title="Choose a new password" lead="You will be signed out everywhere else once it changes.">
       {done ? (
-        <div className="ok p-4 rounded-xl bg-success-soft border border-success-border text-success-text text-xs sm:text-sm font-medium">
+        <div className="p-4 rounded-xl bg-success-soft border border-success-border text-success-text text-xs sm:text-sm font-medium px-3 py-2.5">
           Password changed. You can now sign in with the new password.
         </div>
       ) : (
@@ -197,7 +197,7 @@ export function VerifyEmailPage() {
   return (
     <Shell title="Confirm your email" lead="One click and your address is verified.">
       {state === "ok" ? (
-        <div className="ok p-4 rounded-xl bg-success-soft border border-success-border text-success-text text-xs sm:text-sm font-medium">
+        <div className="p-4 rounded-xl bg-success-soft border border-success-border text-success-text text-xs sm:text-sm font-medium px-3 py-2.5">
           Email confirmed. Thank you.
         </div>
       ) : (
@@ -257,7 +257,7 @@ export function AcceptInvitePage({ onAuthenticated }: { onAuthenticated: (s: Ses
   return (
     <Shell title="Join your team" lead="Create your account to accept the invitation.">
       {existing ? (
-        <div className="ok p-4 rounded-xl bg-warning-soft border border-warning-border text-warning-text text-xs sm:text-sm font-medium leading-relaxed">
+        <div className="p-4 rounded-xl bg-warning-soft border border-warning-border text-warning-text text-xs sm:text-sm font-medium leading-relaxed px-3 py-2.5">
           You already have a Meridian account. Sign in with it, then open this invitation link again while
           signed in.
         </div>

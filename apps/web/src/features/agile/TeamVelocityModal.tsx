@@ -33,7 +33,7 @@ export function TeamVelocityChart({
 
   if (sprints.length === 0) {
     return (
-      <div className="panel-empty py-10 px-4 text-center flex flex-col items-center justify-center">
+      <div className="py-10 px-4 text-center flex flex-col items-center justify-center text-text-subtle text-xs gap-3 [&_p]:m-0">
         <BarChart3 size={32} className="text-muted mb-2 opacity-60" />
         <p className="font-semibold text-text text-sm">No completed sprints yet</p>
         <p className="text-xs text-muted mt-1 max-w-sm">
@@ -312,15 +312,15 @@ export function TeamVelocityModal({
 
   return (
     <div
-      className="overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay backdrop-blur-xs place-items-center animate-[fade_var(--dur)_var(--ease)]"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
       aria-label="Team Velocity & Predictability"
     >
-      <div className="modal max-w-4xl w-full max-h-[90vh] flex flex-col gap-4 p-4 sm:p-6 bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
+      <div className="max-w-4xl w-full max-h-[90vh] flex flex-col gap-4 p-4 sm:p-6 bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden animate-[pop_var(--dur)_var(--ease)] [&_h2]:text-[22px] [&_h2]:mt-2 [&_h2]:mb-0">
         {/* Header */}
-        <div className="modal-head flex items-start justify-between gap-4 pb-2 border-b border-border">
+        <div className="flex items-start justify-between gap-4 pb-2 border-b border-border mb-5">
           <div>
             <h3 className="flex items-center gap-2 text-base sm:text-lg font-bold text-text">
               <BarChart3 size={20} className="accent text-accent" />

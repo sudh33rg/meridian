@@ -51,16 +51,22 @@ export function WorkflowEditor({
   });
 
   return (
-    <section className="workflow" aria-label="Workflow statuses">
-      <div className="workflow-head">
+    <section
+      className="mb-4 px-3.5 py-3 border border-border rounded-xl bg-surface-2 grid gap-2.5"
+      aria-label="Workflow statuses"
+    >
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <b>Workflow</b>
         <span className="text-text-subtle text-[11px]">
           Done-category issues count as completed. Renaming a status keeps its issues.
         </span>
       </div>
-      <ol className="workflow-list">
+      <ol className="m-0 p-0 list-none grid gap-1.5">
         {statuses.map((s, index) => (
-          <li key={s.key} className="workflow-row">
+          <li
+            key={s.key}
+            className="grid grid-cols-[minmax(140px,1fr)_140px_auto_auto_auto] gap-1.5 items-center max-[640px]:flex max-[640px]:flex-wrap max-[640px]:gap-2 [&_input]:min-w-0 [&_input]:max-[640px]:flex-[1_1_120px] [&_select]:min-w-0 [&_select]:max-[640px]:flex-[1_1_120px]"
+          >
             <input
               aria-label={`Name of ${s.key}`}
               defaultValue={s.name}
@@ -137,7 +143,7 @@ export function WorkflowEditor({
         ))}
       </ol>
       <form
-        className="workflow-add"
+        className="flex flex-wrap gap-2 items-center [&_input]:min-w-[180px]"
         onSubmit={(e) => {
           e.preventDefault();
           if (name.trim()) add.mutate();

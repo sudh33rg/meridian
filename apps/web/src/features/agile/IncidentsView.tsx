@@ -79,7 +79,10 @@ export function IncidentsView({ projectId }: { projectId: string }) {
   const list = incidents.data ?? [];
 
   return (
-    <Card className="panel mt-4 space-y-4 p-4 sm:p-6" aria-label="ITIL Incidents">
+    <Card
+      className="mt-4 space-y-4 p-4 sm:p-6 bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]"
+      aria-label="ITIL Incidents"
+    >
       <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
         <div>
           <CardTitle className="flex items-center gap-2 text-base font-bold text-text-main">
@@ -182,7 +185,7 @@ export function IncidentsView({ projectId }: { projectId: string }) {
 
         {list.length > 0 && (
           <div className="overflow-x-auto border border-border rounded-xl">
-            <table className="simple-table w-full text-left text-xs sm:text-sm">
+            <table className="w-full text-left text-xs sm:text-sm border-collapse [&_th]:text-left [&_th]:px-1 [&_th]:py-1.5 [&_th]:border-b [&_th]:border-divider [&_td]:text-left [&_td]:px-1 [&_td]:py-1.5 [&_td]:border-b [&_td]:border-divider">
               <thead className="bg-surface-2 border-b border-border text-text-subtle font-semibold uppercase text-[10px]">
                 <tr>
                   <th className="p-3">Severity</th>
@@ -209,7 +212,7 @@ export function IncidentsView({ projectId }: { projectId: string }) {
                     </td>
                     <td className="p-3">
                       <button
-                        className="issue-number-button font-mono font-bold text-accent hover:underline mr-2"
+                        className="font-mono font-bold text-accent hover:underline mr-2 block p-0 text-left text-[11px] tabular-nums hover:text-accent-text"
                         onClick={() => setSelectedIssue(inc.issue_id)}
                       >
                         #{inc.issue_number}

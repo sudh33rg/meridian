@@ -45,14 +45,17 @@ export function ChatChannels({ token, projectId }: { token: string; projectId: s
   const data = channelsQ.data;
   if (!data) return null;
   return (
-    <section className="workflow" aria-label="Chat notifications">
-      <div className="workflow-head">
+    <section
+      className="mb-4 px-3.5 py-3 border border-border rounded-xl bg-surface-2 grid gap-2.5"
+      aria-label="Chat notifications"
+    >
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <b>Chat notifications</b>
         <span className="text-text-subtle text-[11px]">
           Posts an issue key, title, status change and who made it. Never descriptions or comments.
         </span>
       </div>
-      <div className="workflow-add">
+      <div className="flex flex-wrap gap-2 items-center [&_input]:min-w-[180px]">
         <label>
           <span className="text-text-subtle text-[11px]">
             Slack webhook {data.slack_configured ? "(saved)" : "(not set)"}

@@ -129,7 +129,10 @@ function StaticMacroBlock({ macro }: { macro: Macro }) {
       <div
         style={{ margin: "12px 0", border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden" }}
       >
-        <table className="macro-table" style={{ margin: 0 }}>
+        <table
+          className="w-full border-collapse my-2 text-[13px] [&_th]:text-left [&_th]:px-2 [&_th]:py-1.5 [&_th]:border-b [&_th]:border-border [&_td]:text-left [&_td]:px-2 [&_td]:py-1.5 [&_td]:border-b [&_td]:border-border"
+          style={{ margin: 0 }}
+        >
           <thead>
             <tr>
               <th scope="col" style={{ width: "35%" }}>
@@ -198,11 +201,17 @@ function QueryMacroBlock({ token, projectId, macro }: { token: string; projectId
     }
     const max = Math.max(1, ...counts.values());
     return (
-      <div className="macro-chart" role="img" aria-label={`Issues by ${by}`}>
+      <div className="grid gap-1.5 my-2" role="img" aria-label={`Issues by ${by}`}>
         {[...counts.entries()].map(([key, n]) => (
-          <div key={key} className="macro-bar-row">
+          <div
+            key={key}
+            className="grid grid-cols-[minmax(90px,140px)_1fr_40px] items-center gap-2.5 text-[13px]"
+          >
             <span>{key}</span>
-            <span className="macro-bar" style={{ width: `${Math.round((n / max) * 100)}%` }} />
+            <span
+              className="block h-3 min-w-0.5 rounded-md bg-accent"
+              style={{ width: `${Math.round((n / max) * 100)}%` }}
+            />
             <span className="text-text-subtle text-[11px]">{n}</span>
           </div>
         ))}
@@ -212,7 +221,7 @@ function QueryMacroBlock({ token, projectId, macro }: { token: string; projectId
   }
   if (macro.name === "table") {
     return (
-      <table className="macro-table">
+      <table className="w-full border-collapse my-2 text-[13px] [&_th]:text-left [&_th]:px-2 [&_th]:py-1.5 [&_th]:border-b [&_th]:border-border [&_td]:text-left [&_td]:px-2 [&_td]:py-1.5 [&_td]:border-b [&_td]:border-border">
         <caption className="text-text-subtle text-[11px]">Issues matching “{query || "all"}”</caption>
         <thead>
           <tr>
@@ -236,7 +245,7 @@ function QueryMacroBlock({ token, projectId, macro }: { token: string; projectId
     );
   }
   return (
-    <ul className="macro-list">
+    <ul className="my-2 pl-[18px]">
       {issues.map((i) => (
         <li key={i.id}>
           #{i.number} {i.title} <span className="text-text-subtle text-[11px]">· {i.status}</span>

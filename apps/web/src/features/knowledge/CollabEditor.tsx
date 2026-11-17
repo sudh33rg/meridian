@@ -33,7 +33,10 @@ function Editor({ ctx, canEdit, userName }: { ctx: Ctx; canEdit: boolean; userNa
   const btn = (label: string, active: boolean, run: () => void) => (
     <button
       type="button"
-      className={"tb" + (active ? " on" : "")}
+      className={
+        "border border-border-strong bg-surface rounded-lg px-2.5 py-1 text-[13px] cursor-pointer disabled:opacity-50 disabled:cursor-default" +
+        (active ? " on" : "")
+      }
       disabled={!canEdit}
       onMouseDown={(e) => e.preventDefault()}
       onClick={run}
@@ -43,7 +46,7 @@ function Editor({ ctx, canEdit, userName }: { ctx: Ctx; canEdit: boolean; userNa
   );
   return (
     <>
-      <div className="editor-toolbar" role="toolbar" aria-label="Formatting">
+      <div className="flex gap-1.5 flex-wrap mb-2.5" role="toolbar" aria-label="Formatting">
         {btn("B", editor.isActive("bold"), () => editor.chain().focus().toggleBold().run())}
         {btn("I", editor.isActive("italic"), () => editor.chain().focus().toggleItalic().run())}
         {btn("H2", editor.isActive("heading", { level: 2 }), () =>
@@ -103,8 +106,16 @@ export function CollabEditor({
 
   return (
     <div className="collab">
-      <div className="collab-status" role="status">
-        <span className={"dot " + status} />
+      <div className="flex items-center gap-2 text-xs text-text-muted mt-1.5 mb-2.5" role="status">
+        <span
+          className={`size-2 rounded-full ${
+            status === "connected"
+              ? "bg-success"
+              : status === "disconnected"
+                ? "bg-danger"
+                : "bg-border-strong"
+          }`}
+        />
         {status === "connected"
           ? "Live"
           : status === "connecting"

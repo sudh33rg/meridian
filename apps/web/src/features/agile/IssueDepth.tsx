@@ -161,16 +161,19 @@ export function IssueDepth({
 
   return (
     <>
-      <div className="drawer-section" aria-label="Components and estimates">
+      <div
+        className="mt-[33px] border-t border-border pt-[23px] [&_h3]:text-sm"
+        aria-label="Components and estimates"
+      >
         <h3>Components</h3>
         {(components.data ?? []).length === 0 && (
           <p className="text-text-subtle text-[11px]">No components in this project yet.</p>
         )}
-        <div className="chip-row">
+        <div className="flex flex-wrap gap-1.5 mb-2">
           {(components.data ?? []).map((c) => (
             <label
               key={c.id}
-              className="check-chip text-[10px] font-[750] capitalize whitespace-nowrap px-[9px] py-1.5 rounded-md bg-accent-soft text-accent-text"
+              className="text-[10px] font-[750] capitalize whitespace-nowrap px-[9px] py-1.5 rounded-md bg-accent-soft text-accent-text inline-flex items-center gap-1.5 cursor-pointer [&_input[type=checkbox]]:size-3.5 [&_input[type=checkbox]]:min-h-0 [&_input[type=checkbox]]:m-0"
             >
               <input
                 type="checkbox"
@@ -191,7 +194,7 @@ export function IssueDepth({
           ))}
         </div>
         <h3>Estimate and time</h3>
-        <div className="form-row">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-[13px]">
           <label>
             Original estimate
             <input
@@ -314,7 +317,10 @@ export function IssueDepth({
         </ul>
       </div>
 
-      <div className="drawer-section" aria-label="Watching and votes">
+      <div
+        className="mt-[33px] border-t border-border pt-[23px] [&_h3]:text-sm"
+        aria-label="Watching and votes"
+      >
         <h3>Watching and votes</h3>
         <div className="flex items-center gap-2 my-1.5 [&_input]:min-h-8 [&_select]:min-h-8">
           <button
@@ -355,7 +361,7 @@ export function IssueDepth({
         </p>
       </div>
 
-      <div className="drawer-section" aria-label="Checklist">
+      <div className="mt-[33px] border-t border-border pt-[23px] [&_h3]:text-sm" aria-label="Checklist">
         <h3>
           <ListChecks size={15} aria-hidden /> Checklist
           {checklist.data?.length
@@ -364,7 +370,10 @@ export function IssueDepth({
         </h3>
         <ul className="list-none my-1 p-0 flex flex-col gap-1">
           {(checklist.data ?? []).map((c) => (
-            <li key={c.id} className="checklist-row">
+            <li
+              key={c.id}
+              className="flex items-center justify-between gap-2 [&_label]:flex [&_label]:items-center [&_label]:gap-1.5"
+            >
               <label>
                 <input
                   type="checkbox"
@@ -415,7 +424,7 @@ export function IssueDepth({
         </form>
       </div>
 
-      <div className="drawer-section" aria-label="Subtasks">
+      <div className="mt-[33px] border-t border-border pt-[23px] [&_h3]:text-sm" aria-label="Subtasks">
         <h3>
           Subtasks
           {children.data?.length ? ` · ${doneChildren}/${children.data.length} done` : ""}
@@ -431,7 +440,10 @@ export function IssueDepth({
         <ul className="list-none my-1 p-0 flex flex-col gap-1" aria-label="Subtask list">
           {(children.data ?? []).map((c) => (
             <li key={c.id} className="text-[11px]">
-              <button className="issue-number-button" onClick={() => setSelectedIssue(c.id)}>
+              <button
+                className="block p-0 text-left text-[11px] font-bold text-text-subtle tabular-nums hover:text-accent-text hover:underline"
+                onClick={() => setSelectedIssue(c.id)}
+              >
                 #{c.number}
               </button>{" "}
               <span className={c.done ? "line-through text-text-subtle" : ""}>{c.title}</span>{" "}
@@ -471,7 +483,10 @@ export function IssueDepth({
       <IssueHistory token={token} issueId={id} />
 
       {!archived && (
-        <div className="drawer-section" aria-label="Clone and move">
+        <div
+          className="mt-[33px] border-t border-border pt-[23px] [&_h3]:text-sm"
+          aria-label="Clone and move"
+        >
           <h3>Copy or move</h3>
           <div className="flex items-center gap-2 my-1.5 [&_input]:min-h-8 [&_select]:min-h-8 flex-wrap">
             <button
@@ -546,9 +561,9 @@ function IssueHistory({ token, issueId }: { token: string; issueId: string }) {
   });
   const rows = history.data ?? [];
   return (
-    <div className="drawer-section" aria-label="History">
+    <div className="mt-[33px] border-t border-border pt-[23px] [&_h3]:text-sm" aria-label="History">
       <h3>History · {rows.length}</h3>
-      <ul className="history-list list-none my-1 p-0 flex flex-col gap-1">
+      <ul className="list-none my-1 p-0 flex flex-col gap-1 [&_li]:leading-normal">
         {rows.slice(0, 40).map((h, n) => (
           <li key={`${h.changed_at}-${n}`} className="text-[11px]">
             <span className="text-text-subtle">{formatDateTime(h.changed_at)}</span> {h.actor_name}{" "}
@@ -612,7 +627,7 @@ function DevLinks({ token, issueId }: { token: string; issueId: string; projectK
   });
   const rows = links.data ?? [];
   return (
-    <div className="drawer-section" aria-label="Development">
+    <div className="mt-[33px] border-t border-border pt-[23px] [&_h3]:text-sm" aria-label="Development">
       <h3>Development · {rows.length}</h3>
       <ul className="list-none my-1 p-0 flex flex-col gap-1">
         {rows.map((l) => (

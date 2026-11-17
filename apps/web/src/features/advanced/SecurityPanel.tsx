@@ -114,7 +114,7 @@ function ChangePassword({ onChanged }: { onChanged: () => void }) {
           )}
 
           {state.kind === "ok" && (
-            <div className="ok p-3 rounded-lg bg-success-soft border border-success-border text-success-text text-xs font-medium">
+            <div className="p-3 rounded-lg bg-success-soft border border-success-border text-success-text text-xs font-medium px-3 py-2.5">
               {state.text}
             </div>
           )}

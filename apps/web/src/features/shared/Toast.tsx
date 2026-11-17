@@ -23,20 +23,29 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastCtx.Provider value={{ toast }}>
       {children}
-      <div className="toasts" role="region" aria-label="Notifications" aria-live="polite">
+      <div
+        className="fixed right-5 bottom-5 z-[80] flex flex-col gap-2 items-end max-[820px]:inset-x-3 max-[820px]:bottom-[84px] max-[820px]:items-stretch"
+        role="region"
+        aria-label="Notifications"
+        aria-live="polite"
+      >
         {items.map((t) => (
-          <div key={t.id} className={"toast toast-" + t.kind} role={t.kind === "error" ? "alert" : "status"}>
+          <div
+            key={t.id}
+            className="flex items-center gap-2.5 min-w-60 max-w-[min(420px,calc(100vw-32px))] px-3 py-2.5 bg-text-main text-text-inverse rounded-[var(--radius)] shadow-[var(--shadow-lg)] text-[13px] animate-[toast-in_0.25s_var(--ease)]"
+            role={t.kind === "error" ? "alert" : "status"}
+          >
             {t.kind === "success" ? (
-              <CheckCircle2 size={16} />
+              <CheckCircle2 size={16} className="in-data-[theme=light]:text-[#6ee7a0]" />
             ) : t.kind === "error" ? (
               <TriangleAlert size={16} />
             ) : (
               <Info size={16} />
             )}
-            <span>{t.text}</span>
+            <span className="flex-1">{t.text}</span>
             {t.action && (
               <button
-                className="toast-action"
+                className="font-bold underline text-inherit"
                 onClick={() => {
                   t.action!.run();
                   dismiss(t.id);

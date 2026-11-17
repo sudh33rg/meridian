@@ -62,7 +62,7 @@ export function Attachments({
   });
   const rows = list.data ?? [];
   return (
-    <div className="attachments">
+    <div className="mt-[18px]">
       <div className="flex flex-wrap items-center gap-2.5" style={{ justifyContent: "space-between" }}>
         <h4 style={{ margin: 0 }}>
           <Paperclip size={14} /> Attachments · {rows.length}
@@ -97,7 +97,7 @@ export function Attachments({
           {error}
         </div>
       )}
-      <ul className="attach-list">
+      <ul className="list-none mt-2 mb-0 p-0 grid gap-1.5 [&_li]:flex [&_li]:gap-2.5 [&_li]:items-center [&_li]:px-2.5 [&_li]:py-2 [&_li]:border [&_li]:border-border [&_li]:rounded-[10px] [&_li]:bg-surface [&_a]:font-semibold [&_a]:text-text-main [&_a]:no-underline [&_a]:break-all [&_a]:hover:text-accent-text">
         {rows.map((r) => (
           <li key={r.id}>
             {r.content_type.startsWith("image/") && r.scan_status !== "infected" && (

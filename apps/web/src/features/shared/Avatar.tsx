@@ -19,7 +19,10 @@ export function Avatar({
   const hue = hueOf(name || "?");
   return (
     <span
-      className={"avatar" + (square ? " avatar-square" : "")}
+      className={
+        "inline-grid place-items-center rounded-full text-white font-bold flex-none leading-none" +
+        (square ? " rounded-[9px]" : "")
+      }
       aria-hidden="true"
       style={{
         width: size,
@@ -36,7 +39,7 @@ export function Avatar({
 export function Skeleton({ w, h = 14, r = 6 }: { w?: number | string; h?: number; r?: number }) {
   return (
     <span
-      className="skeleton"
+      className="block bg-[linear-gradient(90deg,var(--surface-3)_25%,var(--surface-4)_50%,var(--surface-3)_75%)] bg-[length:200%_100%] animate-[shimmer_1.4s_linear_infinite]"
       aria-hidden="true"
       style={{ width: w ?? "100%", height: h, borderRadius: r }}
     />

@@ -62,13 +62,13 @@ export function EntityRelations({
   };
 
   return (
-    <div className="relations-widget space-y-3">
+    <div className="space-y-3 py-3">
       {error && (
         <div className="p-2.5 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium py-[11px] px-[13px] my-3">
           {error}
         </div>
       )}
-      <div className="relation-fields flex items-center gap-2">
+      <div className="flex items-center gap-2 mt-[7px] mb-3 [&_select]:bg-surface [&_select]:min-w-0 [&_select]:flex-1 [&_select]:border [&_select]:border-border-strong [&_select]:rounded-lg [&_select]:p-[9px] [&_select]:text-text-muted [&_select]:text-xs">
         <select
           aria-label="Choose related item"
           className="flex-1 px-3 py-1.5 rounded-lg border border-border bg-surface text-text text-xs focus:outline-hidden focus:ring-2 focus:ring-accent/20"
@@ -93,7 +93,7 @@ export function EntityRelations({
       <div className="space-y-1.5">
         {relations.map((r, n) => (
           <div
-            className="relation-row flex items-center justify-between p-2 rounded-lg bg-surface-2 border border-border text-xs"
+            className="flex items-center justify-between p-2 rounded-lg bg-surface-2 border border-border text-xs gap-2 px-0.5 py-[9px] border-t text-text-muted [&_span]:flex-1 [&_small]:text-text-subtle"
             key={str(r.id || n)}
           >
             <div className="flex items-center gap-2 text-text">

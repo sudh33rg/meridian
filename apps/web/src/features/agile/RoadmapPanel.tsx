@@ -137,8 +137,11 @@ export function RoadmapPanel() {
   const at = (d: string) => `${Math.min(100, Math.max(0, ((Date.parse(d) - lo) / span) * 100))}%`;
 
   return (
-    <section className="planning roadmap space-y-6" aria-labelledby="roadmap-title">
-      <div className="planning-head">
+    <section
+      className="space-y-6 flex flex-col gap-4 pt-1 pb-6 [&_label]:flex [&_label]:flex-col [&_label]:gap-1 [&_select]:min-h-9 [&_input]:min-h-9"
+      aria-labelledby="roadmap-title"
+    >
+      <div className="flex flex-wrap items-end gap-x-4 gap-y-3 [&>div:first-child]:flex-[1_1_260px] [&>div:first-child]:min-w-0 [&_h2]:mt-0 [&_h2]:mb-0.5 [&_h2]:text-lg [&_p]:m-0">
         <PageHeader
           title="Roadmap & Governance"
           subtitle={`${project?.name ?? "Project"}. Project timeline, portfolio roll-up, and RAID register.`}
@@ -188,7 +191,10 @@ export function RoadmapPanel() {
       {subView === "roadmap" && (
         <div className="space-y-6">
           {/* Gantt Timeline Card */}
-          <Card className="panel overflow-hidden" aria-labelledby="timeline-title">
+          <Card
+            className="overflow-hidden bg-surface border border-border rounded-[var(--radius-lg)] mb-4 shadow-[var(--shadow-sm)]"
+            aria-labelledby="timeline-title"
+          >
             <CardHeader className="border-b border-border pb-3">
               <CardTitle
                 id="timeline-title"
@@ -203,13 +209,16 @@ export function RoadmapPanel() {
                   Add due dates to epics, target dates to releases, and sprint dates to see them here.
                 </p>
               )}
-              <ul className="timeline space-y-2.5 overflow-x-auto" aria-label="Timeline items">
+              <ul
+                className="space-y-2.5 overflow-x-auto list-none m-0 p-0 flex flex-col gap-1.5"
+                aria-label="Timeline items"
+              >
                 {(timeline.data ?? []).map((t) => (
                   <li
                     key={`${t.kind}-${t.id}`}
-                    className="timeline-row flex items-center gap-3 p-2 rounded-lg hover:bg-surface-2 transition-colors text-xs"
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-2 transition-colors text-xs grid-cols-[minmax(160px,260px)_minmax(0,1fr)_auto]"
                   >
-                    <span className="timeline-name w-48 sm:w-64 shrink-0 truncate font-medium text-text-main">
+                    <span className="w-48 sm:w-64 shrink-0 truncate font-medium text-text-main text-xs">
                       <span className="uppercase text-[10px] font-bold px-1.5 py-0.5 rounded bg-surface-3 text-text-muted border border-border mr-1.5 capitalize whitespace-nowrap">
                         {t.kind}
                       </span>{" "}
@@ -219,29 +228,26 @@ export function RoadmapPanel() {
                       )}
                     </span>
                     <span
-                      className="timeline-track flex-1 h-3 bg-bg border border-border rounded-full relative overflow-hidden"
+                      className="flex-1 h-3 bg-bg border border-border rounded-full relative overflow-hidden"
                       aria-hidden
                     >
                       {t.kind === "milestone" && t.end ? (
                         <span
-                          className="milestone-mark absolute top-0 bottom-0 w-2.5 bg-amber-500 rounded-full -ml-1"
+                          className="absolute top-0 bottom-0 w-2.5 bg-amber-500 rounded-full -ml-1 size-3 rotate-45"
                           style={{ left: at(t.end) }}
                         />
                       ) : t.start && t.end ? (
                         <span
-                          className="timeline-bar absolute top-0 bottom-0 bg-accent/40 rounded-full overflow-hidden"
+                          className="absolute top-0 bottom-0 bg-accent/40 rounded-full overflow-hidden"
                           style={{ left: at(t.start), width: `calc(${at(t.end)} - ${at(t.start)})` }}
                         >
                           {t.progress != null && (
-                            <span
-                              className="timeline-progress h-full bg-accent block"
-                              style={{ width: `${t.progress}%` }}
-                            />
+                            <span className="h-full bg-accent block" style={{ width: `${t.progress}%` }} />
                           )}
                         </span>
                       ) : t.end ? (
                         <span
-                          className="milestone-mark absolute top-0 bottom-0 w-2.5 bg-accent rounded-full -ml-1"
+                          className="absolute top-0 bottom-0 w-2.5 bg-accent rounded-full -ml-1 size-3 rotate-45"
                           style={{ left: at(t.end) }}
                         />
                       ) : null}
@@ -256,9 +262,12 @@ export function RoadmapPanel() {
           </Card>
 
           {/* Grid of Roadmap Governance Sub-Panels */}
-          <div className="roadmap-grid grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             {/* Milestones Card */}
-            <Card className="panel" aria-labelledby="ms-title">
+            <Card
+              className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]"
+              aria-labelledby="ms-title"
+            >
               <CardHeader className="pb-2">
                 <CardTitle
                   id="ms-title"
@@ -332,7 +341,10 @@ export function RoadmapPanel() {
             </Card>
 
             {/* Critical Path Card */}
-            <Card className="panel" aria-labelledby="crit-title">
+            <Card
+              className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]"
+              aria-labelledby="crit-title"
+            >
               <CardHeader className="pb-2">
                 <CardTitle
                   id="crit-title"
@@ -364,7 +376,7 @@ export function RoadmapPanel() {
                         <li key={p.issue_id} className="py-2 text-xs flex items-center justify-between">
                           <div>
                             <button
-                              className="issue-number-button font-mono font-bold text-accent hover:underline mr-1.5"
+                              className="font-mono font-bold text-accent hover:underline mr-1.5 block p-0 text-left text-[11px] tabular-nums hover:text-accent-text"
                               onClick={() => setSelectedIssue(p.issue_id)}
                             >
                               {project?.key}-{p.number}
@@ -383,7 +395,10 @@ export function RoadmapPanel() {
             </Card>
 
             {/* Project Updates Card */}
-            <Card className="panel" aria-labelledby="upd-title">
+            <Card
+              className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]"
+              aria-labelledby="upd-title"
+            >
               <CardHeader className="pb-2">
                 <CardTitle
                   id="upd-title"
@@ -459,7 +474,10 @@ export function RoadmapPanel() {
             </Card>
 
             {/* Initiatives Card */}
-            <Card className="panel" aria-labelledby="init-title">
+            <Card
+              className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]"
+              aria-labelledby="init-title"
+            >
               <CardHeader className="pb-2">
                 <CardTitle
                   id="init-title"
@@ -518,7 +536,7 @@ export function RoadmapPanel() {
                           </span>
                         </div>
                         <div
-                          className="progress-track w-full h-1.5 bg-bg rounded-full overflow-hidden border border-border/60"
+                          className="w-full h-1.5 bg-bg rounded-full overflow-hidden border border-border/60 flex-1 min-w-[25px] [&>div]:bg-accent [&>div]:h-full [&>div]:rounded-[20px] [&>div]:transition-[width] [&>div]:duration-200"
                           aria-hidden
                         >
                           <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
@@ -578,7 +596,10 @@ export function RoadmapPanel() {
             </Card>
 
             {/* Capacity Card */}
-            <Card className="panel overflow-hidden" aria-labelledby="cap-title">
+            <Card
+              className="overflow-hidden bg-surface border border-border rounded-[var(--radius-lg)] mb-4 shadow-[var(--shadow-sm)]"
+              aria-labelledby="cap-title"
+            >
               <CardHeader className="pb-2">
                 <CardTitle
                   id="cap-title"
@@ -589,7 +610,10 @@ export function RoadmapPanel() {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <table className="simple-table w-full text-left text-xs" aria-label="Capacity by member">
+                  <table
+                    className="w-full text-left text-xs border-collapse [&_th]:text-left [&_th]:px-1 [&_th]:py-1.5 [&_th]:border-b [&_th]:border-divider [&_td]:text-left [&_td]:px-1 [&_td]:py-1.5 [&_td]:border-b [&_td]:border-divider"
+                    aria-label="Capacity by member"
+                  >
                     <thead className="bg-surface-2 border-b border-border text-text-subtle font-semibold uppercase text-[10px]">
                       <tr>
                         <th scope="col" className="p-3">
@@ -647,7 +671,10 @@ export function RoadmapPanel() {
             </Card>
 
             {/* Baselines Card */}
-            <Card className="panel" aria-labelledby="base-title">
+            <Card
+              className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]"
+              aria-labelledby="base-title"
+            >
               <CardHeader className="pb-2">
                 <CardTitle
                   id="base-title"

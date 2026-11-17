@@ -35,7 +35,10 @@ export function ApiTokensPanel() {
   });
 
   return (
-    <Card className="panel integrations space-y-4 p-4 sm:p-6" aria-labelledby="tokens-title">
+    <Card
+      className="space-y-4 p-4 sm:p-6 bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)] mt-3 flex flex-col gap-2 [&_h3]:m-0 [&_h3]:flex [&_h3]:items-center [&_h3]:gap-1.5 [&_h3]:text-[13px]"
+      aria-labelledby="tokens-title"
+    >
       <CardHeader className="pb-2 border-b border-border">
         <CardTitle id="tokens-title" className="text-base font-bold text-text-main flex items-center gap-2">
           <KeyRound size={18} className="text-accent" aria-hidden /> Personal API tokens
@@ -104,7 +107,7 @@ export function ApiTokensPanel() {
 
         {fresh && (
           <div
-            className="similar-hint p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 space-y-2 text-xs"
+            className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 space-y-2 text-xs mt-1.5 mb-0 px-2.5 py-2 [&_ul]:mt-1 [&_ul]:mb-0 [&_ul]:pl-[18px]"
             role="status"
           >
             <b className="block font-semibold">Copy this token now. It will not be shown again.</b>
@@ -135,7 +138,7 @@ export function ApiTokensPanel() {
           {(tokens.data ?? []).map((t) => (
             <li
               key={t.id}
-              className="checklist-row flex items-center justify-between p-3 text-xs hover:bg-surface-2 transition-colors"
+              className="flex items-center justify-between p-3 text-xs hover:bg-surface-2 transition-colors gap-2 [&_label]:flex [&_label]:items-center [&_label]:gap-1.5"
             >
               <div>
                 <b className="text-text-main font-semibold mr-1.5">{t.name}</b>{" "}
@@ -194,7 +197,10 @@ export function GitLinkPanel() {
   const url = `${window.location.origin}${status.data?.webhook_path ?? `/api/integrations/git/${selected}`}`;
 
   return (
-    <Card className="panel integrations space-y-4 p-4 sm:p-6" aria-labelledby="git-title">
+    <Card
+      className="space-y-4 p-4 sm:p-6 bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)] mt-3 flex flex-col gap-2 [&_h3]:m-0 [&_h3]:flex [&_h3]:items-center [&_h3]:gap-1.5 [&_h3]:text-[13px]"
+      aria-labelledby="git-title"
+    >
       <CardHeader className="pb-2 border-b border-border">
         <CardTitle id="git-title" className="text-base font-bold text-text-main flex items-center gap-2">
           <GitBranch size={18} className="text-accent" /> Git linking · {project.name}

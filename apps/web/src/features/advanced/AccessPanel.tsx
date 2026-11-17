@@ -73,7 +73,7 @@ export function AccessPanel() {
       />
 
       {/* Visibility Card */}
-      <Card className="panel-card space-y-4">
+      <Card className="space-y-4 bg-surface border border-border rounded-[var(--radius-lg)] p-[18px] mb-[18px] overflow-x-auto shadow-[var(--shadow-sm)] [&_h3]:m-0 [&_h3]:mb-1 [&_select]:min-w-0 [&_select]:px-3 [&_select]:py-[9px] [&_select]:border [&_select]:border-border-strong [&_select]:rounded-[10px] [&_select]:bg-surface [&_select]:text-inherit [&_input]:min-w-0 [&_input]:px-3 [&_input]:py-[9px] [&_input]:border [&_input]:border-border-strong [&_input]:rounded-[10px] [&_input]:bg-surface [&_input]:text-inherit [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[13px] [&_label]:font-semibold [&_label]:text-text-muted [&_label]:mt-2.5">
         <CardHeader className="pb-2 border-b border-border">
           <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle flex items-center gap-2">
             <Lock size={16} /> Visibility &amp; Project Level
@@ -113,7 +113,7 @@ export function AccessPanel() {
 
       {/* Explicit Grants Table */}
       {admin && (
-        <Card className="panel-card space-y-4">
+        <Card className="space-y-4 bg-surface border border-border rounded-[var(--radius-lg)] p-[18px] mb-[18px] overflow-x-auto shadow-[var(--shadow-sm)] [&_h3]:m-0 [&_h3]:mb-1 [&_select]:min-w-0 [&_select]:px-3 [&_select]:py-[9px] [&_select]:border [&_select]:border-border-strong [&_select]:rounded-[10px] [&_select]:bg-surface [&_select]:text-inherit [&_input]:min-w-0 [&_input]:px-3 [&_input]:py-[9px] [&_input]:border [&_input]:border-border-strong [&_input]:rounded-[10px] [&_input]:bg-surface [&_input]:text-inherit [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[13px] [&_label]:font-semibold [&_label]:text-text-muted [&_label]:mt-2.5">
           <CardHeader className="pb-2 border-b border-border">
             <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle flex items-center gap-2">
               <UserPlus size={16} /> Explicit Grants
@@ -124,7 +124,7 @@ export function AccessPanel() {
               Workspace owners and admins always have full access.
             </p>
             <div className="overflow-x-auto border border-border rounded-xl">
-              <table className="panel-table w-full text-left text-xs sm:text-sm">
+              <table className="w-full text-left text-xs sm:text-sm border-collapse [&_th]:text-left [&_th]:px-2 [&_th]:py-2.5 [&_th]:border-b [&_th]:border-border [&_td]:text-left [&_td]:px-2 [&_td]:py-2.5 [&_td]:border-b [&_td]:border-border">
                 <thead className="bg-surface-2 border-b border-border text-text-subtle font-semibold uppercase text-[10px]">
                   <tr>
                     <th className="p-3">Who</th>

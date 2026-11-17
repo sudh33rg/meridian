@@ -10,7 +10,7 @@ export const day = (x: unknown) => (x ? formatDate(str(x)) : "—");
 
 export function Empty({ title, caption }: { title: string; caption: string }) {
   return (
-    <div className="ext-empty py-12 px-4 text-center flex flex-col items-center justify-center text-muted">
+    <div className="py-12 px-4 text-center flex flex-col items-center justify-center text-muted col-span-full [&_h3]:text-accent-text [&_h3]:mt-4 [&_h3]:mb-[9px] [&_p]:text-text-subtle [&_p]:text-xs [&_p]:leading-[1.7]">
       <div className="w-12 h-12 rounded-2xl bg-accent-soft text-accent flex items-center justify-center mb-3">
         <Sparkles size={24} />
       </div>
@@ -27,21 +27,21 @@ export function Analytics({ data }: { data: Item | Item[] }) {
   const sum = statuses.reduce((a, r) => a + count(r.count), 0);
 
   return (
-    <div className="ext-two-cols grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-      <Card className="panel">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 max-[900px]:grid-cols-1">
+      <Card className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]">
         <CardHeader>
           <CardTitle>Issue flow</CardTitle>
         </CardHeader>
-        <CardContent className="ext-form-body space-y-3">
+        <CardContent className="space-y-3 p-[21px] flex flex-col items-stretch gap-[9px] [&_label]:my-1 [&_p]:text-xs [&_p]:text-text-muted [&_p]:leading-[1.7]">
           {statuses.map((r) => (
             <div
-              className="stat-row flex items-center justify-between gap-4 text-xs sm:text-sm"
+              className="flex items-center justify-between gap-4 text-xs sm:text-sm py-3 text-text-muted [&_span]:min-w-[114px] [&_span]:capitalize [&_b]:text-accent-text"
               key={str(r.status)}
             >
               <span className="font-medium text-text capitalize min-w-[100px]">
                 {str(r.status).replaceAll("_", " ")}
               </span>
-              <div className="progress-track flex-1 h-2 bg-surface-3 rounded-full overflow-hidden">
+              <div className="flex-1 h-2 bg-surface-3 rounded-full overflow-hidden min-w-[25px] [&>div]:bg-accent [&>div]:h-full [&>div]:rounded-[20px] [&>div]:transition-[width] [&>div]:duration-200">
                 <div
                   className="h-full bg-accent rounded-full transition-all"
                   style={{ width: `${sum ? (count(r.count) * 100) / sum : 0}%` }}
@@ -54,18 +54,21 @@ export function Analytics({ data }: { data: Item | Item[] }) {
         </CardContent>
       </Card>
 
-      <Card className="panel">
+      <Card className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]">
         <CardHeader>
           <CardTitle>Work mix</CardTitle>
         </CardHeader>
-        <CardContent className="ext-form-body space-y-3">
+        <CardContent className="space-y-3 p-[21px] flex flex-col items-stretch gap-[9px] [&_label]:my-1 [&_p]:text-xs [&_p]:text-text-muted [&_p]:leading-[1.7]">
           {types.map((r) => (
-            <div className="stat-row flex items-center justify-between text-xs sm:text-sm" key={str(r.kind)}>
+            <div
+              className="flex items-center justify-between text-xs sm:text-sm gap-5 py-3 text-text-muted [&_span]:min-w-[114px] [&_span]:capitalize [&_b]:text-accent-text"
+              key={str(r.kind)}
+            >
               <span className="capitalize font-medium text-text">{str(r.kind)}</span>
               <b className="font-semibold text-text">{count(r.count)}</b>
             </div>
           ))}
-          <div className="stat-row total pt-3 border-t border-border flex items-center justify-between text-xs sm:text-sm">
+          <div className="pt-3 border-t border-border flex items-center justify-between text-xs sm:text-sm gap-5 py-3 text-text-muted [&_span]:min-w-[114px] [&_span]:capitalize [&_b]:text-accent-text">
             <span className="font-medium text-muted">Overdue, open issues</span>
             <strong className="font-bold text-danger-text">{count(d.overdue)}</strong>
           </div>

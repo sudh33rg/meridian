@@ -32,7 +32,10 @@ export function AiSettingsCard({ token, admin }: { token: string; admin: boolean
   if (!q.data) return null;
 
   return (
-    <Card className="panel" aria-label="AI assistance">
+    <Card
+      className="bg-surface border border-border rounded-[var(--radius-lg)] overflow-hidden mb-4 shadow-[var(--shadow-sm)]"
+      aria-label="AI assistance"
+    >
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bot size={18} className="text-accent" />
