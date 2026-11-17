@@ -198,7 +198,7 @@ export function WebhooksPanel() {
             {(hooks.data ?? []).map((h) => (
               <div key={h.id} className="p-4 rounded-xl border border-border bg-surface-2 space-y-3">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                  <div className="space-y-1">
+                  <div className="space-y-1 min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <b className="text-text-main text-sm font-semibold">{h.name}</b>
                       <span
@@ -211,7 +211,7 @@ export function WebhooksPanel() {
                         {h.enabled ? "Enabled" : "Disabled"}
                       </span>
                     </div>
-                    <div className="text-xs text-text-subtle font-mono">
+                    <div className="text-xs text-text-subtle font-mono break-all">
                       {h.url} · {h.events.length ? h.events.join(", ") : "all events"}
                       {h.last_success_at ? ` · last success ${formatDateTime(h.last_success_at)}` : ""}
                     </div>
@@ -221,7 +221,7 @@ export function WebhooksPanel() {
                       </div>
                     )}
                   </div>
-                  <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                  <div className="flex flex-wrap items-center gap-1.5 lg:max-w-[55%] lg:justify-end">
                     <button
                       className="px-2.5 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
                       onClick={() => test.mutate(h.id)}
