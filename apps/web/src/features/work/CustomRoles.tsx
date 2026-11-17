@@ -56,7 +56,7 @@ export function CustomRoles({ token, projectId }: { token: string; projectId: st
     <section className="workflow" aria-label="Custom roles">
       <div className="workflow-head">
         <b>Custom roles</b>
-        <span className="muted small">
+        <span className="text-text-subtle text-[11px]">
           A role gives its members the level it names, on top of their own. Project admins manage roles.
         </span>
       </div>
@@ -64,10 +64,11 @@ export function CustomRoles({ token, projectId }: { token: string; projectId: st
         {rolesQ.data.map((r) => (
           <li key={r.id} className="workflow-row" style={{ flexWrap: "wrap" }}>
             <span>
-              {r.name} <span className="muted small">· {LEVEL_LABEL[r.level] ?? r.level}</span>
+              {r.name}{" "}
+              <span className="text-text-subtle text-[11px]">· {LEVEL_LABEL[r.level] ?? r.level}</span>
             </span>
             <fieldset className="screen-fields" style={{ width: "100%" }}>
-              <legend className="muted small">Members of {r.name}</legend>
+              <legend className="text-text-subtle text-[11px]">Members of {r.name}</legend>
               {(membersQ.data ?? []).map((m) => (
                 <label key={m.id} className="filter-chip">
                   <input
@@ -87,7 +88,7 @@ export function CustomRoles({ token, projectId }: { token: string; projectId: st
               ))}
             </fieldset>
             <button
-              className="icon-btn danger"
+              className="inline-grid place-items-center rounded-lg p-[5px] text-text-subtle transition-colors hover:bg-surface-3 hover:text-text-main text-danger-text"
               aria-label={`Remove role ${r.name}`}
               disabled={remove.isPending}
               onClick={() => remove.mutate(r.id)}
@@ -96,7 +97,7 @@ export function CustomRoles({ token, projectId }: { token: string; projectId: st
             </button>
           </li>
         ))}
-        {!rolesQ.data.length && <li className="muted small">No custom roles.</li>}
+        {!rolesQ.data.length && <li className="text-text-subtle text-[11px]">No custom roles.</li>}
       </ul>
       <form
         className="workflow-add"
@@ -117,7 +118,11 @@ export function CustomRoles({ token, projectId }: { token: string; projectId: st
           <option value={2}>Member</option>
           <option value={3}>Admin</option>
         </select>
-        <button className="secondary" type="submit" disabled={!name.trim() || create.isPending}>
+        <button
+          className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] px-3.5 text-[13px] bg-surface border border-border-strong text-text-muted hover:bg-surface-3 hover:text-text-main"
+          type="submit"
+          disabled={!name.trim() || create.isPending}
+        >
           <Plus size={14} /> Add role
         </button>
       </form>

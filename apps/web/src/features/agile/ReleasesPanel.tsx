@@ -122,7 +122,7 @@ export function ReleasesPanel() {
                   }, "Release created");
                 }}
               >
-                <label className="small block space-y-1">
+                <label className="block space-y-1 text-[11px]">
                   <span className="text-xs font-semibold text-text-subtle">Release name</span>
                   <input
                     value={name}
@@ -133,7 +133,7 @@ export function ReleasesPanel() {
                     className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </label>
-                <label className="small block space-y-1">
+                <label className="block space-y-1 text-[11px]">
                   <span className="text-xs font-semibold text-text-subtle">What is included</span>
                   <input
                     value={description}
@@ -144,7 +144,7 @@ export function ReleasesPanel() {
                   />
                 </label>
                 <button
-                  className="primary w-full py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50"
+                  className="w-full py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] px-3.5"
                   disabled={!name.trim()}
                 >
                   <Plus size={15} /> Create release
@@ -187,7 +187,7 @@ export function ReleasesPanel() {
                           <span className="truncate">{r.name}</span>
                         </div>
                         <span
-                          className={`chip shrink-0 ml-2 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
+                          className={`shrink-0 ml-2 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full capitalize whitespace-nowrap ${
                             r.status === "released"
                               ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                               : r.status === "cancelled"
@@ -203,7 +203,7 @@ export function ReleasesPanel() {
                 })}
               </ul>
               {!releases.isLoading && all.length === 0 && (
-                <p className="muted small text-center py-6 text-xs text-text-subtle">No releases yet.</p>
+                <p className="text-center py-6 text-xs text-text-subtle">No releases yet.</p>
               )}
             </CardContent>
           </Card>
@@ -219,12 +219,12 @@ export function ReleasesPanel() {
                     {current.name}
                   </h3>
                   {current.description && (
-                    <p className="muted text-xs sm:text-sm text-text-subtle mt-1">{current.description}</p>
+                    <p className="text-xs sm:text-sm text-text-subtle mt-1">{current.description}</p>
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span
-                    className={`chip text-xs font-semibold px-2.5 py-1 rounded-lg ${
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-lg capitalize whitespace-nowrap ${
                       current.status === "released"
                         ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                         : current.status === "cancelled"
@@ -236,19 +236,17 @@ export function ReleasesPanel() {
                   </span>
                   {current.frozen_at && (
                     <span
-                      className="chip inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-lg"
+                      className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-lg capitalize whitespace-nowrap"
                       title={`Scope frozen ${shortDay(current.frozen_at)}`}
                     >
                       <Lock size={12} aria-hidden /> Scope frozen
                     </span>
                   )}
                   {current.target_at && (
-                    <span className="small muted text-xs text-text-subtle">
-                      Target: {shortDay(current.target_at)}
-                    </span>
+                    <span className="text-xs text-text-subtle">Target: {shortDay(current.target_at)}</span>
                   )}
                   {current.released_at && (
-                    <span className="small muted text-xs text-text-subtle">
+                    <span className="text-xs text-text-subtle">
                       Released: {shortDay(current.released_at)}
                     </span>
                   )}
@@ -268,7 +266,7 @@ export function ReleasesPanel() {
                       }}
                     />
                   </div>
-                  <span className="small text-xs text-text-subtle block font-medium">
+                  <span className="text-xs text-text-subtle block font-medium">
                     {totals.done_count}/{totals.scope_count} issues done · {totals.done_points}/
                     {totals.scope_points} pts · {totals.added_after_freeze} added after freeze ·{" "}
                     {totals.removed_count} removed in total
@@ -279,7 +277,7 @@ export function ReleasesPanel() {
               {/* Action buttons */}
               <div className="release-actions flex flex-wrap items-center gap-2 pt-2 border-t border-border">
                 <button
-                  className="secondary px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors"
+                  className="px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
                   onClick={() =>
                     downloadCsv(
                       `/releases/${releaseId}/export.csv`,
@@ -292,7 +290,7 @@ export function ReleasesPanel() {
                 </button>
                 {open && !current.frozen_at && (
                   <button
-                    className="secondary inline-flex items-center gap-1 px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors justify-center whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
                     onClick={() =>
                       run(
                         () => send(`/releases/${releaseId}`, session.token, "PATCH", { freeze: true }),
@@ -305,7 +303,7 @@ export function ReleasesPanel() {
                 )}
                 {open && confirming !== "release" && (
                   <button
-                    className="primary px-3.5 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors shadow-sm"
+                    className="px-3.5 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors shadow-sm inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)]"
                     onClick={() => setConfirming("release")}
                   >
                     Release…
@@ -313,7 +311,7 @@ export function ReleasesPanel() {
                 )}
                 {open && confirming !== "cancel" && (
                   <button
-                    className="secondary px-3 py-1.5 bg-surface-2 hover:bg-danger/10 hover:text-danger border border-border rounded-xl text-xs font-medium text-text-main transition-colors"
+                    className="px-3 py-1.5 bg-surface-2 hover:bg-danger/10 hover:text-danger border border-border rounded-xl text-xs font-medium text-text-main transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)]"
                     onClick={() => setConfirming("cancel")}
                   >
                     Cancel release
@@ -326,7 +324,7 @@ export function ReleasesPanel() {
                     role="group"
                     aria-label="Confirm release"
                   >
-                    <label className="small flex items-center gap-2 text-xs text-text-subtle">
+                    <label className="flex items-center gap-2 text-xs text-text-subtle">
                       <span>Unfinished work goes to:</span>
                       <select
                         value={moveTo}
@@ -342,7 +340,7 @@ export function ReleasesPanel() {
                       </select>
                     </label>
                     <button
-                      className="primary inline-flex items-center gap-1 px-3 py-1 bg-accent hover:bg-accent-strong text-white rounded-lg text-xs font-medium"
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-accent hover:bg-accent-strong text-white rounded-lg text-xs font-medium justify-center whitespace-nowrap cursor-pointer transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] shadow-[var(--shadow-sm)]"
                       onClick={() => {
                         setConfirming(null);
                         run(
@@ -358,7 +356,7 @@ export function ReleasesPanel() {
                       <Check size={14} /> Confirm release
                     </button>
                     <button
-                      className="secondary px-2.5 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs"
+                      className="px-2.5 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] text-text-muted hover:text-text-main"
                       onClick={() => setConfirming(null)}
                     >
                       Back
@@ -372,11 +370,11 @@ export function ReleasesPanel() {
                     role="group"
                     aria-label="Confirm cancel"
                   >
-                    <span className="small text-xs text-danger font-medium">
+                    <span className="text-xs text-danger font-medium">
                       Cancel this release? Its scope history is kept.
                     </span>
                     <button
-                      className="danger inline-flex items-center gap-1 px-3 py-1 bg-danger hover:bg-danger/90 text-white rounded-lg text-xs font-medium"
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-danger hover:bg-danger/90 text-white rounded-lg text-xs font-medium cursor-pointer border border-danger-border"
                       onClick={() => {
                         setConfirming(null);
                         run(
@@ -389,7 +387,7 @@ export function ReleasesPanel() {
                       <X size={14} /> Cancel release
                     </button>
                     <button
-                      className="secondary px-2.5 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs"
+                      className="px-2.5 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] text-text-muted hover:text-text-main"
                       onClick={() => setConfirming(null)}
                     >
                       Back
@@ -398,7 +396,7 @@ export function ReleasesPanel() {
                 )}
 
                 <button
-                  className="secondary ml-auto px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors"
+                  className="ml-auto px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
                   onClick={async () => {
                     try {
                       setNotes(await request<ReleaseNotes>(session.token, `/releases/${releaseId}/notes`));
@@ -416,7 +414,7 @@ export function ReleasesPanel() {
                   <div className="release-notes-head flex items-center justify-between">
                     <h4 className="text-sm font-bold text-text-main">Release notes</h4>
                     <button
-                      className="secondary small-btn inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-border rounded-lg text-xs font-medium text-text-main hover:bg-surface-3"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-border rounded-lg text-xs font-medium text-text-main hover:bg-surface-3 justify-center whitespace-nowrap cursor-pointer transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] hover:text-text-main"
                       onClick={() =>
                         navigator.clipboard?.writeText(notes.markdown).then(() => toast("Copied"))
                       }
@@ -444,7 +442,7 @@ export function ReleasesPanel() {
                     }, "Added to release");
                   }}
                 >
-                  <label className="small flex-1 flex flex-col sm:flex-row items-start sm:items-center gap-2 text-xs text-text-subtle">
+                  <label className="flex-1 flex flex-col sm:flex-row items-start sm:items-center gap-2 text-xs text-text-subtle">
                     <span className="font-semibold text-text-main whitespace-nowrap">Add issue:</span>
                     <select
                       value={addIssue}
@@ -462,7 +460,7 @@ export function ReleasesPanel() {
                     </select>
                   </label>
                   <button
-                    className="secondary shrink-0 px-3.5 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors disabled:opacity-50"
+                    className="shrink-0 px-3.5 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] border border-border-strong hover:text-text-main"
                     disabled={!addIssue}
                   >
                     Add to scope
@@ -472,7 +470,7 @@ export function ReleasesPanel() {
 
               {/* Scope */}
               <div className="space-y-3 pt-2">
-                <h4 className="section-title text-sm font-bold uppercase tracking-wider text-text-subtle">
+                <h4 className="text-sm font-bold uppercase tracking-wider text-text-subtle mt-3 mb-1.5">
                   Scope
                 </h4>
                 <ul
@@ -494,11 +492,11 @@ export function ReleasesPanel() {
                         {s.title}
                       </span>
                       {s.added_after_freeze && (
-                        <span className="chip warn shrink-0 text-[10px] font-bold px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-full">
+                        <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-full capitalize whitespace-nowrap">
                           After freeze
                         </span>
                       )}
-                      <span className="small muted shrink-0 text-xs text-text-subtle font-medium">
+                      <span className="shrink-0 text-xs text-text-subtle font-medium">
                         {s.done ? "Done" : s.status}
                       </span>
                       {open && (
@@ -518,16 +516,14 @@ export function ReleasesPanel() {
                     </li>
                   ))}
                   {!scope.isLoading && (scope.data ?? []).length === 0 && (
-                    <li className="muted small p-4 text-center text-xs text-text-subtle">
-                      No issues in scope yet.
-                    </li>
+                    <li className="p-4 text-center text-xs text-text-subtle">No issues in scope yet.</li>
                   )}
                 </ul>
               </div>
 
               {/* History */}
               <div className="space-y-3 pt-2">
-                <h4 className="section-title text-sm font-bold uppercase tracking-wider text-text-subtle">
+                <h4 className="text-sm font-bold uppercase tracking-wider text-text-subtle mt-3 mb-1.5">
                   History
                 </h4>
                 <ol className="release-history space-y-2 text-xs" aria-label="Scope history">
@@ -536,7 +532,7 @@ export function ReleasesPanel() {
                       key={`${h.issue_id}-${h.action}-${n}`}
                       className="flex items-center gap-2 p-2 bg-surface-2 rounded-lg border border-border/60"
                     >
-                      <span className="small muted font-mono text-text-subtle">{shortDay(h.at)}</span>{" "}
+                      <span className="font-mono text-text-subtle text-[11px]">{shortDay(h.at)}</span>{" "}
                       <span className="text-text-main">
                         {h.action === "added" ? "Added" : "Removed"}{" "}
                         <strong>
@@ -545,20 +541,20 @@ export function ReleasesPanel() {
                         {h.title}
                       </span>
                       {h.after_freeze && (
-                        <span className="chip warn ml-auto text-[10px] font-bold px-1.5 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded">
+                        <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded capitalize whitespace-nowrap">
                           After freeze
                         </span>
                       )}
                     </li>
                   ))}
                   {!history.isLoading && (history.data ?? []).length === 0 && (
-                    <li className="muted small text-text-subtle py-2">No changes recorded yet.</li>
+                    <li className="text-text-subtle py-2 text-[11px]">No changes recorded yet.</li>
                   )}
                 </ol>
               </div>
             </Card>
           ) : (
-            <Card className="release-detail muted p-12 text-center text-sm text-text-subtle">
+            <Card className="release-detail p-12 text-center text-sm text-text-subtle">
               Create a release, or pick one to see its scope.
             </Card>
           )}

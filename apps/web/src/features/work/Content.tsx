@@ -132,7 +132,7 @@ export function Content() {
 
       {/* Global Error Banner */}
       {error && (
-        <div className="error app-error mb-6 p-4 rounded-xl bg-danger-soft border border-danger-border text-danger-text flex items-center justify-between gap-3 text-xs sm:text-sm font-medium">
+        <div className="app-error mb-6 p-4 rounded-xl bg-danger-soft border border-danger-border text-danger-text flex items-center justify-between gap-3 text-xs sm:text-sm font-medium py-[11px] px-[13px] my-3">
           <span>{error}</span>
           <button
             onClick={() => setError("")}

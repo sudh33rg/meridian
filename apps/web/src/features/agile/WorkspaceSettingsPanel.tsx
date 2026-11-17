@@ -150,7 +150,7 @@ export function WorkspaceSettingsPanel() {
               {current.brand_color && admin && (
                 <button
                   type="button"
-                  className="secondary small-btn px-2.5 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg text-xs"
+                  className="px-2.5 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg text-xs inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] text-text-muted hover:text-text-main"
                   onClick={() => setDraft({ ...current, brand_color: "" })}
                 >
                   Use default
@@ -187,7 +187,7 @@ export function WorkspaceSettingsPanel() {
           </label>
         </div>
 
-        <fieldset className="small p-4 bg-surface-2 rounded-xl border border-border space-y-2">
+        <fieldset className="p-4 bg-surface-2 rounded-xl border border-border space-y-2 text-[11px]">
           <legend className="text-xs font-bold uppercase tracking-wider text-text-subtle px-1">
             Working days
           </legend>
@@ -217,7 +217,7 @@ export function WorkspaceSettingsPanel() {
 
         {admin ? (
           <button
-            className="primary small-btn px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50"
+            className="px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[30px]"
             disabled={!draft}
             onClick={async () => {
               if (!draft) return;
@@ -242,9 +242,7 @@ export function WorkspaceSettingsPanel() {
             Save settings
           </button>
         ) : (
-          <p className="muted small text-xs text-text-subtle italic">
-            Only owners and admins can change these.
-          </p>
+          <p className="text-xs text-text-subtle italic">Only owners and admins can change these.</p>
         )}
       </CardContent>
     </Card>

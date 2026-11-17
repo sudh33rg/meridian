@@ -32,33 +32,6 @@
 .planning input {
   min-height: 36px;
 }
-.section-title {
-  margin: 12px 0 6px;
-  font-size: var(--fs-sm);
-  color: var(--text-2);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.small-btn {
-  min-height: 30px;
-  padding: 4px 10px;
-  font-size: var(--fs-sm);
-}
-.danger {
-  background: var(--danger-soft);
-  color: var(--danger-text);
-  border: 1px solid var(--danger-border);
-  border-radius: var(--radius);
-  padding: 6px 12px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.chip.warn {
-  background: var(--warning-soft);
-  color: var(--warning-text);
-}
 
 /* Backlog */
 .backlog-title {
@@ -292,27 +265,6 @@
   min-height: 0;
   margin: 0;
 }
-.row-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 6px 0;
-}
-.row-actions.wrap {
-  flex-wrap: wrap;
-}
-.row-actions input,
-.row-actions select {
-  min-height: 32px;
-}
-.plain-list {
-  list-style: none;
-  margin: 4px 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
 .checklist-row {
   display: flex;
   align-items: center;
@@ -323,10 +275,6 @@
   display: flex;
   align-items: center;
   gap: 6px;
-}
-.done-text {
-  text-decoration: line-through;
-  color: var(--text-3);
 }
 .similar-hint {
   margin: 6px 0 0;
@@ -372,33 +320,6 @@
 .stat-list dd {
   margin: 0;
   font-weight: 600;
-}
-.bar-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--fs-sm);
-}
-.bar-track {
-  height: 8px;
-  border-radius: 6px;
-  background: var(--surface-3);
-  overflow: hidden;
-}
-.bar-fill {
-  display: block;
-  height: 100%;
-  background: var(--accent);
-}
-.export-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  text-decoration: none;
-  min-height: 36px;
-  padding: 6px 12px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
 }
 .history-list li {
   line-height: 1.5;
@@ -493,13 +414,6 @@
   gap: 6px;
   font-size: var(--fs-md);
 }
-.token-secret {
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-  word-break: break-all;
-  padding: 4px 6px;
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-}
 
 /* Board swimlanes and quick filters. */
 .swimlanes {
@@ -531,19 +445,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-}
-.chip-button {
-  font-size: 12px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 999px;
-  padding: 3px 10px;
-  max-width: 280px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: pointer;
 }
 
 /* Page macros: charts, tables and lists rendered from page text. */

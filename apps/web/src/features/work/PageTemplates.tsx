@@ -72,7 +72,7 @@ export function PageTemplates({
         />
         <button
           type="button"
-          className="secondary px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+          className="px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50 shrink-0 inline-flex items-center justify-center gap-2 whitespace-nowrap duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] text-text-muted hover:text-text-main"
           disabled={!name.trim() || !content.trim() || save.isPending}
           onClick={() => save.mutate()}
         >

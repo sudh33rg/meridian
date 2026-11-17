@@ -61,7 +61,7 @@ export function SprintBoardModal({
             <Kanban size={18} className="text-accent" /> Sprint Board: {sprintName}
           </h3>
           <button
-            className="icon-btn p-1.5 rounded-lg text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer inline-grid place-items-center"
             onClick={onClose}
             aria-label="Close"
           >
@@ -69,7 +69,7 @@ export function SprintBoardModal({
           </button>
         </div>
 
-        {board.isLoading && <p className="muted small text-xs text-muted">Loading sprint board…</p>}
+        {board.isLoading && <p className="text-xs text-muted">Loading sprint board…</p>}
 
         {data && (
           <div className="grid grid-flow-col auto-cols-[minmax(240px,1fr)] gap-3 overflow-x-auto flex-1 pb-2">
@@ -84,7 +84,7 @@ export function SprintBoardModal({
                     <span className="text-xs font-semibold text-text uppercase tracking-wider">
                       {lane.label}
                     </span>
-                    <span className="chip small px-2 py-0.5 rounded-full text-[11px] font-bold bg-surface text-text border border-border">
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-surface text-text border border-border capitalize whitespace-nowrap">
                       {laneIssues.length}
                     </span>
                   </div>
@@ -114,7 +114,7 @@ export function SprintBoardModal({
                       </div>
                     ))}
                     {laneIssues.length === 0 && (
-                      <div className="muted small text-xs text-muted text-center py-8">Empty</div>
+                      <div className="text-xs text-muted text-center py-8">Empty</div>
                     )}
                   </div>
                 </div>

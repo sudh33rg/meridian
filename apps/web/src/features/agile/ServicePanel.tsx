@@ -206,7 +206,7 @@ export function ServicePanel() {
                 <li key={q.id} className="workflow-row py-2 text-xs flex items-center justify-between">
                   <span className="font-medium text-text-main">
                     {q.name}
-                    <span className="muted small text-text-subtle">
+                    <span className="text-text-subtle text-[11px]">
                       {" "}
                       · assigns to{" "}
                       {membersQ.data?.find((m) => m.id === q.default_assignee_id)?.name ?? "nobody"}
@@ -214,9 +214,7 @@ export function ServicePanel() {
                   </span>
                 </li>
               ))}
-              {!queues.length && (
-                <li className="muted small text-xs text-text-subtle py-2">No queues yet.</li>
-              )}
+              {!queues.length && <li className="text-xs text-text-subtle py-2">No queues yet.</li>}
             </ul>
 
             <form
@@ -248,7 +246,7 @@ export function ServicePanel() {
                 ))}
               </select>
               <button
-                className="secondary px-3 py-1.5 bg-accent text-white rounded-xl text-xs font-medium hover:bg-accent-strong transition-colors disabled:opacity-50"
+                className="px-3 py-1.5 bg-accent text-white rounded-xl text-xs font-medium hover:bg-accent-strong transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] border border-border-strong hover:text-text-main"
                 type="submit"
                 disabled={!queueName.trim() || addQueue.isPending}
               >
@@ -271,7 +269,7 @@ export function ServicePanel() {
                 <li key={t.id} className="workflow-row py-2 text-xs flex items-center justify-between">
                   <span className="font-medium text-text-main">
                     {t.name}
-                    <span className="muted small text-text-subtle">
+                    <span className="text-text-subtle text-[11px]">
                       {" "}
                       · {t.flow} · {t.target_hours} h ·{" "}
                       {queues.find((q) => q.id === t.queue_id)?.name ?? "queue"}
@@ -279,9 +277,7 @@ export function ServicePanel() {
                   </span>
                 </li>
               ))}
-              {!types.length && (
-                <li className="muted small text-xs text-text-subtle py-2">No request types yet.</li>
-              )}
+              {!types.length && <li className="text-xs text-text-subtle py-2">No request types yet.</li>}
             </ul>
 
             <form
@@ -374,7 +370,7 @@ export function ServicePanel() {
               </div>
 
               <fieldset className="screen-fields p-3 bg-surface-2 rounded-xl border border-border space-y-1.5">
-                <legend className="muted small text-[11px] font-semibold text-text-subtle px-1">
+                <legend className="text-[11px] font-semibold text-text-subtle px-1">
                   Form fields (in order)
                 </legend>
                 <div className="flex flex-wrap gap-2">
@@ -416,7 +412,7 @@ export function ServicePanel() {
                     );
                   })}
                   {!(fieldsQ.data ?? []).length && (
-                    <span className="muted small text-xs text-text-subtle italic">
+                    <span className="text-xs text-text-subtle italic">
                       Define custom fields in the board's workflow section first.
                     </span>
                   )}
@@ -424,7 +420,7 @@ export function ServicePanel() {
               </fieldset>
 
               <button
-                className="secondary w-full py-2 bg-accent text-white rounded-xl text-xs font-medium hover:bg-accent-strong transition-colors disabled:opacity-50"
+                className="w-full py-2 bg-accent text-white rounded-xl text-xs font-medium hover:bg-accent-strong transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] px-3.5 border border-border-strong hover:text-text-main"
                 type="submit"
                 disabled={!typeName.trim() || !typeQueue || addType.isPending}
               >
@@ -527,7 +523,7 @@ export function ServicePanel() {
               </div>
             )}
             <button
-              className="primary px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50"
+              className="px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors shadow-sm disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)]"
               type="submit"
               disabled={!reqType || !reqTitle.trim() || submit.isPending}
             >
@@ -543,9 +539,7 @@ export function ServicePanel() {
           <CardTitle className="text-sm font-bold uppercase tracking-wider text-text-subtle">SLA</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {sla.length === 0 && (
-            <p className="muted small p-6 text-center text-xs text-text-subtle">No requests yet.</p>
-          )}
+          {sla.length === 0 && <p className="p-6 text-center text-xs text-text-subtle">No requests yet.</p>}
           {sla.length > 0 && (
             <div className="overflow-x-auto">
               <table className="sla-table w-full text-left text-xs">
@@ -582,7 +576,7 @@ export function ServicePanel() {
                       <td className="p-3 font-mono">{r.target_hours} h</td>
                       <td className="p-3">
                         <span
-                          className={`chip text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize whitespace-nowrap ${
                             r.state === "met"
                               ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                               : r.state === "on_track"

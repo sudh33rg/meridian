@@ -296,7 +296,7 @@ export function IssuesTab() {
               className="w-full px-3.5 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main placeholder:text-text-subtle focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
             />
             <button
-              className="secondary shrink-0 px-3 py-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors disabled:opacity-40"
+              className="shrink-0 px-3 py-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors disabled:opacity-40 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
               type="submit"
               disabled={!queryText.trim()}
             >
@@ -304,7 +304,7 @@ export function IssuesTab() {
             </button>
             {activeQuery && (
               <button
-                className="secondary shrink-0 px-3 py-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors"
+                className="shrink-0 px-3 py-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
                 type="button"
                 onClick={() => {
                   setQueryText("");
@@ -329,7 +329,7 @@ export function IssuesTab() {
         {/* Filter bar */}
         <div className="filters flex flex-wrap items-center gap-2 pt-1 pb-1">
           <div className="flex items-center gap-1 text-text-subtle mr-1 text-xs font-medium">
-            <SlidersHorizontal size={14} className="muted" aria-hidden="true" />
+            <SlidersHorizontal size={14} className="text-text-subtle" aria-hidden="true" />
             <span className="hidden sm:inline">Filters:</span>
           </div>
           <Chip
@@ -371,11 +371,11 @@ export function IssuesTab() {
           >
             {(favouritesQ.data?.length ?? 0) > 0 && (
               <div className="quick-issues-row flex flex-wrap items-center gap-1.5">
-                <span className="muted small font-medium text-text-subtle">Favourites:</span>
+                <span className="font-medium text-text-subtle text-[11px]">Favourites:</span>
                 {favouritesQ.data?.map((i) => (
                   <button
                     key={i.id}
-                    className="chip-button text-xs px-2 py-0.5 bg-surface-2 hover:bg-accent/10 hover:text-accent rounded-md border border-border/70 text-text-muted transition-colors max-w-[200px] truncate"
+                    className="text-xs px-2 py-0.5 bg-surface-2 hover:bg-accent/10 hover:text-accent rounded-md border border-border/70 text-text-muted transition-colors max-w-[200px] truncate overflow-hidden whitespace-nowrap cursor-pointer"
                     onClick={() => setSelectedIssue(i.id)}
                   >
                     {project?.key}-{i.number} {i.title}
@@ -385,11 +385,11 @@ export function IssuesTab() {
             )}
             {(recentQ.data?.length ?? 0) > 0 && (
               <div className="quick-issues-row flex flex-wrap items-center gap-1.5">
-                <span className="muted small font-medium text-text-subtle">Recent:</span>
+                <span className="font-medium text-text-subtle text-[11px]">Recent:</span>
                 {recentQ.data?.map((i) => (
                   <button
                     key={i.id}
-                    className="chip-button text-xs px-2 py-0.5 bg-surface-2 hover:bg-accent/10 hover:text-accent rounded-md border border-border/70 text-text-muted transition-colors max-w-[200px] truncate"
+                    className="text-xs px-2 py-0.5 bg-surface-2 hover:bg-accent/10 hover:text-accent rounded-md border border-border/70 text-text-muted transition-colors max-w-[200px] truncate overflow-hidden whitespace-nowrap cursor-pointer"
                     onClick={() => setSelectedIssue(i.id)}
                   >
                     {project?.key}-{i.number} {i.title}
@@ -432,7 +432,7 @@ export function IssuesTab() {
 
           {viewId && views.find((v) => v.id === viewId)?.owner_id === me?.user_id && (
             <button
-              className="secondary px-2.5 py-1 text-xs bg-surface-2 hover:bg-danger/10 hover:text-danger rounded-lg border border-border transition-colors"
+              className="px-2.5 py-1 text-xs bg-surface-2 hover:bg-danger/10 hover:text-danger rounded-lg border border-border transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] text-text-muted"
               onClick={() => removeView.mutate(viewId)}
             >
               Delete view
@@ -441,7 +441,7 @@ export function IssuesTab() {
 
           {naming === null ? (
             <button
-              className="secondary px-2.5 py-1 text-xs bg-surface-2 hover:bg-surface-3 rounded-lg border border-border text-text-main transition-colors disabled:opacity-40"
+              className="px-2.5 py-1 text-xs bg-surface-2 hover:bg-surface-3 rounded-lg border border-border text-text-main transition-colors disabled:opacity-40 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
               onClick={() => setNaming("")}
               disabled={!selected}
             >
@@ -475,14 +475,14 @@ export function IssuesTab() {
                 <span>Share with project</span>
               </label>
               <button
-                className="primary px-3 py-1 bg-accent text-white hover:bg-accent-strong rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                className="px-3 py-1 bg-accent text-white hover:bg-accent-strong rounded-lg text-xs font-medium transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] shadow-[var(--shadow-sm)]"
                 type="submit"
                 disabled={!naming.trim()}
               >
                 Save
               </button>
               <button
-                className="secondary px-2.5 py-1 bg-surface-2 hover:bg-surface-3 rounded-lg border border-border text-xs text-text-main transition-colors"
+                className="px-2.5 py-1 bg-surface-2 hover:bg-surface-3 rounded-lg border border-border text-xs text-text-main transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
                 type="button"
                 onClick={() => setNaming(null)}
               >
@@ -522,7 +522,7 @@ export function IssuesTab() {
           </label>
 
           <button
-            className="secondary px-2.5 py-1 text-xs bg-surface-2 hover:bg-surface-3 rounded-lg border border-border text-text-main transition-colors disabled:opacity-40"
+            className="px-2.5 py-1 text-xs bg-surface-2 hover:bg-surface-3 rounded-lg border border-border text-text-main transition-colors disabled:opacity-40 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
             aria-expanded={importing}
             onClick={() => setImporting((v) => !v)}
             disabled={!selected}
@@ -533,8 +533,8 @@ export function IssuesTab() {
           <button
             className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${
               showArchived
-                ? "primary bg-accent text-white border-accent font-medium shadow-xs"
-                : "secondary bg-surface-2 hover:bg-surface-3 border-border text-text-main"
+                ? "bg-accent text-white border-accent font-medium shadow-xs"
+                : "bg-surface-2 hover:bg-surface-3 border-border text-text-main"
             }`}
             aria-pressed={showArchived}
             onClick={() => {
@@ -545,7 +545,7 @@ export function IssuesTab() {
             {showArchived ? "Showing archived" : "Show archived"}
           </button>
 
-          <span className="muted small count-label text-xs text-text-subtle ml-auto font-medium">
+          <span className="count-label text-xs text-text-subtle ml-auto font-medium">
             {rows.length} of {source.length}
           </span>
         </div>
@@ -668,14 +668,14 @@ export function IssuesTab() {
               className="px-2 py-1 text-xs bg-surface border border-border rounded-lg text-text-main w-24 sm:w-28 focus:outline-none focus:ring-1 focus:ring-accent"
             />
             <button
-              className="secondary px-2 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors disabled:opacity-40"
+              className="px-2 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors disabled:opacity-40 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
               type="submit"
               disabled={bulk.isPending || !bulkLabel.trim()}
             >
               Add label
             </button>
             <button
-              className="secondary px-2 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors disabled:opacity-40"
+              className="px-2 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors disabled:opacity-40 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
               type="button"
               disabled={bulk.isPending || !bulkLabel.trim()}
               onClick={() => bulk.mutate({ action: "remove_label", value: bulkLabel.trim() })}
@@ -684,7 +684,7 @@ export function IssuesTab() {
             </button>
           </form>
           <button
-            className="secondary ml-auto px-2 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors"
+            className="ml-auto px-2 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
             onClick={() => setPicked(new Set())}
           >
             Clear selection
@@ -746,7 +746,7 @@ export function IssuesTab() {
                         className="px-4 py-2 text-xs font-semibold text-text-subtle"
                       >
                         <span className="capitalize">{g.label}</span>{" "}
-                        <span className="count ml-1.5 px-2 py-0.5 bg-surface border border-border/70 rounded-full text-[10px] text-text-muted">
+                        <span className="ml-1.5 px-2 py-0.5 bg-surface border border-border/70 rounded-full text-[10px] text-text-muted font-bold">
                           {g.items.length}
                         </span>
                       </th>
@@ -781,7 +781,7 @@ export function IssuesTab() {
                           </button>
                           {showArchived && (
                             <button
-                              className="secondary ml-auto shrink-0 inline-flex items-center gap-1 px-2 py-0.5 bg-surface-2 hover:bg-surface-3 rounded border border-border text-xs text-text-main"
+                              className="ml-auto shrink-0 inline-flex items-center gap-1 px-2 py-0.5 bg-surface-2 hover:bg-surface-3 rounded border border-border text-xs text-text-main justify-center whitespace-nowrap cursor-pointer font-[650] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
                               disabled={restore.isPending}
                               onClick={() => restore.mutate(i.id)}
                             >
@@ -834,7 +834,7 @@ export function IssuesTab() {
             </p>
             {!filtering && !showArchived && (
               <button
-                className="primary inline-flex items-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-sm font-medium transition-colors shadow-sm"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-sm font-medium transition-colors shadow-sm justify-center whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)]"
                 onClick={() => setModal("issue")}
               >
                 <Plus size={15} /> New issue
@@ -868,7 +868,7 @@ function ViewSubscribe({ token, viewId }: { token: string; viewId: string }) {
     onError: (e) => toast(errorMessage(e), { kind: "error" }),
   });
   return (
-    <label className="small inline-flex items-center gap-1.5 text-xs text-text-subtle">
+    <label className="inline-flex items-center gap-1.5 text-xs text-text-subtle">
       <span>Updates</span>
       <select
         aria-label="Subscribe to this view"

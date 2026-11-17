@@ -83,18 +83,18 @@ export function CustomerPortalView({ projectId }: { projectId: string }) {
           <CardTitle className="flex items-center gap-2 text-base font-bold text-text-main">
             <Globe size={18} className="text-blue-500" /> Customer Support Portal
           </CardTitle>
-          <p className="small muted text-xs sm:text-sm text-text-subtle mt-1">
+          <p className="text-xs sm:text-sm text-text-subtle mt-1">
             Self-service intake for non-authenticated clients, customers, and partners.
           </p>
         </div>
-        <span className="chip success inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-semibold">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-semibold capitalize whitespace-nowrap">
           <ExternalLink size={12} /> Portal Active
         </span>
       </CardHeader>
 
       <CardContent className="p-0">
         {portal.isLoading && (
-          <p className="small muted text-xs text-text-subtle p-6 text-center">Loading portal settings…</p>
+          <p className="text-xs text-text-subtle p-6 text-center">Loading portal settings…</p>
         )}
 
         {data && (
@@ -102,11 +102,11 @@ export function CustomerPortalView({ projectId }: { projectId: string }) {
             {/* Intake Ticket Form */}
             <div className="bg-surface-2 p-4 sm:p-5 rounded-xl border border-border space-y-3">
               <h5 className="text-sm font-bold text-text-main">Intake Ticket Form</h5>
-              <p className="small muted text-xs text-text-subtle">
+              <p className="text-xs text-text-subtle">
                 {data.welcome_message || `Welcome to the ${data.portal_name}. Submit a request below.`}
               </p>
               <form onSubmit={submitPublicRequest} className="space-y-3">
-                <label className="small block space-y-1 text-xs">
+                <label className="block space-y-1 text-xs">
                   <span className="font-semibold text-text-subtle">Request Type</span>
                   <select
                     value={requestTypeId}
@@ -122,7 +122,7 @@ export function CustomerPortalView({ projectId }: { projectId: string }) {
                     ))}
                   </select>
                 </label>
-                <label className="small block space-y-1 text-xs">
+                <label className="block space-y-1 text-xs">
                   <span className="font-semibold text-text-subtle">Contact Email</span>
                   <input
                     type="email"
@@ -133,7 +133,7 @@ export function CustomerPortalView({ projectId }: { projectId: string }) {
                     className="w-full px-3 py-1.5 bg-surface border border-border rounded-xl text-xs text-text-main"
                   />
                 </label>
-                <label className="small block space-y-1 text-xs">
+                <label className="block space-y-1 text-xs">
                   <span className="font-semibold text-text-subtle">Summary</span>
                   <input
                     type="text"
@@ -144,7 +144,7 @@ export function CustomerPortalView({ projectId }: { projectId: string }) {
                     className="w-full px-3 py-1.5 bg-surface border border-border rounded-xl text-xs text-text-main"
                   />
                 </label>
-                <label className="small block space-y-1 text-xs">
+                <label className="block space-y-1 text-xs">
                   <span className="font-semibold text-text-subtle">Details</span>
                   <textarea
                     rows={2}
@@ -156,7 +156,7 @@ export function CustomerPortalView({ projectId }: { projectId: string }) {
                 </label>
                 <button
                   type="submit"
-                  className="primary small-btn inline-flex items-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors shadow-sm disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors shadow-sm disabled:opacity-50 justify-center whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[30px]"
                   disabled={!email.trim() || !summary.trim() || !requestTypeId}
                 >
                   <Send size={12} /> Submit Request
@@ -167,7 +167,7 @@ export function CustomerPortalView({ projectId }: { projectId: string }) {
             {/* Track Ticket Status */}
             <div className="bg-surface-2 p-4 sm:p-5 rounded-xl border border-border space-y-3">
               <h5 className="text-sm font-bold text-text-main">Track Ticket Status</h5>
-              <p className="small muted text-xs text-text-subtle">
+              <p className="text-xs text-text-subtle">
                 Customers can look up their ticket status at any time using their ticket reference UUID.
               </p>
               <form onSubmit={lookupRequest} className="flex gap-2">
@@ -181,7 +181,7 @@ export function CustomerPortalView({ projectId }: { projectId: string }) {
                 />
                 <button
                   type="submit"
-                  className="secondary small-btn inline-flex items-center gap-1 px-3 py-1.5 bg-surface hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-surface hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main justify-center whitespace-nowrap cursor-pointer transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] hover:text-text-main"
                   disabled={!trackId.trim()}
                 >
                   <Search size={14} /> Look up
@@ -194,16 +194,14 @@ export function CustomerPortalView({ projectId }: { projectId: string }) {
                     <strong className="text-sm font-bold text-text-main">
                       Ticket #{trackingResult.number}
                     </strong>
-                    <span className="chip small success text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 capitalize whitespace-nowrap">
                       {trackingResult.status}
                     </span>
                   </div>
                   <div className="text-xs sm:text-sm font-medium text-text-main">
                     {trackingResult.summary}
                   </div>
-                  <div className="small muted font-mono text-[11px] text-text-subtle">
-                    ID: {trackingResult.id}
-                  </div>
+                  <div className="font-mono text-[11px] text-text-subtle">ID: {trackingResult.id}</div>
                 </div>
               )}
             </div>

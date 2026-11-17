@@ -62,7 +62,7 @@ export function SecurityLevels({ token, projectId }: { token: string; projectId:
     <section className="workflow" aria-label="Security levels">
       <div className="workflow-head">
         <b>Security levels</b>
-        <span className="muted small">
+        <span className="text-text-subtle text-[11px]">
           An issue in a level is visible to project admins, its assignee, its reporter, and the level's
           members.
         </span>
@@ -72,12 +72,12 @@ export function SecurityLevels({ token, projectId }: { token: string; projectId:
           <li key={l.id} className="workflow-row" style={{ flexWrap: "wrap" }}>
             <span>
               {l.name}
-              {l.description && <span className="muted small"> · {l.description}</span>}
+              {l.description && <span className="text-text-subtle text-[11px]"> · {l.description}</span>}
             </span>
             {data.can_manage && (
               <>
                 <fieldset className="screen-fields" style={{ width: "100%" }}>
-                  <legend className="muted small">Members of {l.name}</legend>
+                  <legend className="text-text-subtle text-[11px]">Members of {l.name}</legend>
                   {(membersQ.data ?? []).map((m) => (
                     <label key={m.id} className="filter-chip">
                       <input
@@ -97,7 +97,7 @@ export function SecurityLevels({ token, projectId }: { token: string; projectId:
                   ))}
                 </fieldset>
                 <button
-                  className="icon-btn danger"
+                  className="inline-grid place-items-center rounded-lg p-[5px] text-text-subtle transition-colors hover:bg-surface-3 hover:text-text-main text-danger-text"
                   aria-label={`Remove security level ${l.name}`}
                   disabled={remove.isPending}
                   onClick={() => remove.mutate(l.id)}
@@ -109,7 +109,9 @@ export function SecurityLevels({ token, projectId }: { token: string; projectId:
           </li>
         ))}
         {!data.levels.length && (
-          <li className="muted small">No security levels. Every issue is open to the project.</li>
+          <li className="text-text-subtle text-[11px]">
+            No security levels. Every issue is open to the project.
+          </li>
         )}
       </ul>
       {data.can_manage && (
@@ -134,7 +136,11 @@ export function SecurityLevels({ token, projectId }: { token: string; projectId:
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Description (optional)"
           />
-          <button className="secondary" type="submit" disabled={!name.trim() || create.isPending}>
+          <button
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] px-3.5 text-[13px] bg-surface border border-border-strong text-text-muted hover:bg-surface-3 hover:text-text-main"
+            type="submit"
+            disabled={!name.trim() || create.isPending}
+          >
             <Plus size={14} /> Add level
           </button>
         </form>

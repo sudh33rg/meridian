@@ -40,13 +40,13 @@ export function AiSettingsCard({ token, admin }: { token: string; admin: boolean
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="muted small text-xs sm:text-sm text-text-muted">
+        <p className="text-xs sm:text-sm text-text-muted">
           When on, an issue's title, description and comments, and the titles of the project's other open
           issues, are sent to the model the server is configured with. Only text you can already see is sent.
           Nothing the model returns is stored.
         </p>
         {!q.data.configured && (
-          <p className="muted small text-xs text-warning-text">
+          <p className="text-xs text-warning-text">
             The server has no AI key, so this cannot be turned on here.
           </p>
         )}

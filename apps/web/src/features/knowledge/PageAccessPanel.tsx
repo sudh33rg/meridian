@@ -68,7 +68,7 @@ export function PageAccessPanel({ pageId, onClose }: { pageId: string; onClose: 
           <Lock size={16} className="text-accent" /> Page access
         </CardTitle>
         <button
-          className="secondary px-2.5 py-1 rounded-lg text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer"
+          className="px-2.5 py-1 rounded-lg text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] text-text-muted hover:text-text-main"
           onClick={onClose}
         >
           Close
@@ -77,15 +77,15 @@ export function PageAccessPanel({ pageId, onClose }: { pageId: string; onClose: 
 
       <CardContent className="space-y-3">
         {error && (
-          <div className="error p-2.5 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium">
+          <div className="p-2.5 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium py-[11px] px-[13px] my-3">
             {error}
           </div>
         )}
         {!d ? (
-          <p className="muted text-xs text-muted">Loading…</p>
+          <p className="text-xs text-muted">Loading…</p>
         ) : (
           <>
-            <p className="muted text-xs sm:text-sm text-muted">
+            <p className="text-xs sm:text-sm text-muted">
               {d.restricted
                 ? "Only the people and teams below can open this page (and its sub-pages)."
                 : inherited
@@ -93,7 +93,7 @@ export function PageAccessPanel({ pageId, onClose }: { pageId: string; onClose: 
                   : "Everyone who can open the project can open this page."}
             </p>
             {canManage && !inherited && (
-              <label className="row-gap flex items-center gap-2 text-xs sm:text-sm font-medium text-text cursor-pointer">
+              <label className="flex items-center gap-2 text-xs sm:text-sm font-medium text-text cursor-pointer flex-wrap">
                 <input
                   type="checkbox"
                   className="rounded accent-accent text-accent focus:ring-accent cursor-pointer"
@@ -116,14 +116,14 @@ export function PageAccessPanel({ pageId, onClose }: { pageId: string; onClose: 
                         >
                           <td className="py-2 px-3 font-medium text-text">
                             {g.name || g.subject_id}{" "}
-                            <span className="tag ml-1 px-1.5 py-0.5 rounded text-[10px] uppercase font-semibold bg-surface-2 border border-border text-muted">
+                            <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] uppercase font-semibold bg-surface-2 border border-border text-muted inline-block">
                               {g.subject_type}
                             </span>
                           </td>
                           <td className="py-2 px-3 text-muted capitalize">{g.relation}</td>
                           <td className="py-2 px-3 text-right">
                             <button
-                              className="secondary text-xs px-2 py-1 rounded border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer text-danger-text"
+                              className="text-xs px-2 py-1 rounded border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer text-danger-text inline-flex items-center justify-center gap-2 whitespace-nowrap font-[650] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
                               onClick={() => revoke.mutate(g)}
                             >
                               Remove
@@ -142,7 +142,7 @@ export function PageAccessPanel({ pageId, onClose }: { pageId: string; onClose: 
                   </table>
                 </div>
 
-                <div className="row-gap flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <select
                     aria-label="Person or team"
                     className="flex-1 min-w-[140px] px-2.5 py-1.5 rounded-lg border border-border bg-surface text-text text-xs focus:outline-hidden focus:ring-2 focus:ring-accent/20"
@@ -175,7 +175,7 @@ export function PageAccessPanel({ pageId, onClose }: { pageId: string; onClose: 
                     <option value="editor">Can edit</option>
                   </select>
                   <button
-                    className="primary px-3 py-1.5 rounded-lg text-xs font-semibold text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer disabled:opacity-50"
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] shadow-[var(--shadow-sm)]"
                     disabled={!subject || grant.isPending}
                     onClick={() => grant.mutate()}
                   >

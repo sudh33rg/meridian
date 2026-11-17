@@ -56,7 +56,7 @@ export function SprintReportView({
             Sprint Report: {data?.sprint_name ?? "Loading..."}
           </h3>
           <button
-            className="icon-btn p-1.5 rounded-lg text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer inline-grid place-items-center"
             onClick={onClose}
             aria-label="Close"
           >
@@ -64,31 +64,31 @@ export function SprintReportView({
           </button>
         </div>
 
-        {rep.isLoading && <p className="muted small text-xs text-muted">Loading sprint report…</p>}
+        {rep.isLoading && <p className="text-xs text-muted">Loading sprint report…</p>}
 
         {data && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="stat-card p-3 bg-surface-2 rounded-xl border border-border">
-                <span className="small muted text-xs text-muted font-medium block">Committed</span>
+                <span className="text-xs text-muted font-medium block">Committed</span>
                 <strong className="text-base sm:text-lg font-bold text-text block mt-0.5">
                   {data.committed_points} pts
                 </strong>
               </div>
               <div className="stat-card p-3 bg-surface-2 rounded-xl border border-border">
-                <span className="small muted text-xs text-muted font-medium block">Completed</span>
+                <span className="text-xs text-muted font-medium block">Completed</span>
                 <strong className="text-base sm:text-lg font-bold text-emerald-600 dark:text-emerald-400 block mt-0.5">
                   {data.completed_points} pts
                 </strong>
               </div>
               <div className="stat-card p-3 bg-surface-2 rounded-xl border border-border">
-                <span className="small muted text-xs text-muted font-medium block">Incomplete</span>
+                <span className="text-xs text-muted font-medium block">Incomplete</span>
                 <strong className="text-base sm:text-lg font-bold text-amber-600 dark:text-amber-400 block mt-0.5">
                   {data.incomplete_points} pts
                 </strong>
               </div>
               <div className="stat-card p-3 bg-surface-2 rounded-xl border border-border">
-                <span className="small muted text-xs text-muted font-medium block">Scope Creep</span>
+                <span className="text-xs text-muted font-medium block">Scope Creep</span>
                 <strong className="text-base sm:text-lg font-bold text-rose-600 dark:text-rose-400 block mt-0.5">
                   +{data.scope_creep_points} pts
                 </strong>
@@ -117,7 +117,7 @@ export function SprintReportView({
                         <td className="py-2 px-3 font-medium text-text max-w-xs truncate">{item.title}</td>
                         <td className="py-2 px-3">
                           <span
-                            className={`chip small inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium capitalize whitespace-nowrap ${
                               item.category === "added"
                                 ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
                                 : "bg-surface-2 text-text border border-border"

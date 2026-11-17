@@ -164,11 +164,14 @@ export function IssueDepth({
       <div className="drawer-section" aria-label="Components and estimates">
         <h3>Components</h3>
         {(components.data ?? []).length === 0 && (
-          <p className="muted small">No components in this project yet.</p>
+          <p className="text-text-subtle text-[11px]">No components in this project yet.</p>
         )}
         <div className="chip-row">
           {(components.data ?? []).map((c) => (
-            <label key={c.id} className="chip check-chip">
+            <label
+              key={c.id}
+              className="check-chip text-[10px] font-[750] capitalize whitespace-nowrap px-[9px] py-1.5 rounded-md bg-accent-soft text-accent-text"
+            >
               <input
                 type="checkbox"
                 disabled={archived}
@@ -208,10 +211,12 @@ export function IssueDepth({
             />
           </label>
         </div>
-        <div className="row-actions">
-          <span className="small muted">Logged {formatMinutes(estimates.data?.logged_minutes ?? 0)}</span>
+        <div className="flex items-center gap-2 my-1.5 [&_input]:min-h-8 [&_select]:min-h-8">
+          <span className="text-[11px] text-text-subtle">
+            Logged {formatMinutes(estimates.data?.logged_minutes ?? 0)}
+          </span>
           <button
-            className="secondary small-btn"
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] px-2.5 py-1 text-xs bg-surface border border-border-strong text-text-muted hover:bg-surface-3 hover:text-text-main"
             disabled={archived || (estOriginal === null && estRemaining === null)}
             onClick={() => {
               const o = parseMinutes(estOriginal ?? formatMinutes(estimates.data?.original_minutes ?? null));
@@ -239,7 +244,7 @@ export function IssueDepth({
         </div>
         <h3>Log work</h3>
         <form
-          className="row-actions wrap"
+          className="flex items-center gap-2 my-1.5 [&_input]:min-h-8 [&_select]:min-h-8 flex-wrap"
           onSubmit={(e) => {
             e.preventDefault();
             const m = parseMinutes(minutes);
@@ -282,14 +287,17 @@ export function IssueDepth({
             disabled={archived}
             onChange={(e) => setWorkNote(e.target.value)}
           />
-          <button className="secondary small-btn" disabled={archived || !minutes.trim()}>
+          <button
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] px-2.5 py-1 text-xs bg-surface border border-border-strong text-text-muted hover:bg-surface-3 hover:text-text-main"
+            disabled={archived || !minutes.trim()}
+          >
             Log time
           </button>
         </form>
-        <ul className="plain-list" aria-label="Worklogs">
+        <ul className="list-none my-1 p-0 flex flex-col gap-1" aria-label="Worklogs">
           {(worklogs.data ?? []).slice(0, 8).map((w) => (
-            <li key={w.id} className="small">
-              <span className="muted">{w.started_on}</span> {w.author_name} logged{" "}
+            <li key={w.id} className="text-[11px]">
+              <span className="text-text-subtle">{w.started_on}</span> {w.author_name} logged{" "}
               <b>{formatMinutes(w.minutes)}</b>
               {w.comment ? ` — ${w.comment}` : ""}
               {w.author_id === me?.user_id && !archived && (
@@ -308,9 +316,9 @@ export function IssueDepth({
 
       <div className="drawer-section" aria-label="Watching and votes">
         <h3>Watching and votes</h3>
-        <div className="row-actions">
+        <div className="flex items-center gap-2 my-1.5 [&_input]:min-h-8 [&_select]:min-h-8">
           <button
-            className="secondary small-btn"
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] px-2.5 py-1 text-xs bg-surface border border-border-strong text-text-muted hover:bg-surface-3 hover:text-text-main"
             disabled={archived}
             aria-pressed={watching}
             onClick={() =>
@@ -326,7 +334,7 @@ export function IssueDepth({
             {watching ? <EyeOff size={14} /> : <Eye size={14} />} {watching ? "Stop watching" : "Watch"}
           </button>
           <button
-            className="secondary small-btn"
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] px-2.5 py-1 text-xs bg-surface border border-border-strong text-text-muted hover:bg-surface-3 hover:text-text-main"
             disabled={archived}
             aria-pressed={votes.data?.voted ?? false}
             onClick={() =>
@@ -342,7 +350,7 @@ export function IssueDepth({
             <ThumbsUp size={14} /> {votes.data?.voted ? "Remove vote" : "Vote"} · {votes.data?.count ?? 0}
           </button>
         </div>
-        <p className="small muted">
+        <p className="text-[11px] text-text-subtle">
           Watching: {(watchers.data ?? []).map((w) => w.display_name).join(", ") || "nobody yet"}
         </p>
       </div>
@@ -354,7 +362,7 @@ export function IssueDepth({
             ? ` · ${checklist.data.filter((c) => c.done).length}/${checklist.data.length}`
             : ""}
         </h3>
-        <ul className="plain-list">
+        <ul className="list-none my-1 p-0 flex flex-col gap-1">
           {(checklist.data ?? []).map((c) => (
             <li key={c.id} className="checklist-row">
               <label>
@@ -366,7 +374,7 @@ export function IssueDepth({
                     act(() => send(`/checklist/${c.id}`, token, "PATCH", { done: e.target.checked }))
                   }
                 />{" "}
-                <span className={c.done ? "done-text" : ""}>{c.text}</span>
+                <span className={c.done ? "line-through text-text-subtle" : ""}>{c.text}</span>
               </label>
               {!archived && (
                 <button
@@ -381,7 +389,7 @@ export function IssueDepth({
           ))}
         </ul>
         <form
-          className="row-actions"
+          className="flex items-center gap-2 my-1.5 [&_input]:min-h-8 [&_select]:min-h-8"
           onSubmit={(e) => {
             e.preventDefault();
             const text = checkText.trim();
@@ -398,7 +406,10 @@ export function IssueDepth({
             disabled={archived}
             onChange={(e) => setCheckText(e.target.value)}
           />
-          <button className="secondary small-btn" disabled={archived || !checkText.trim()}>
+          <button
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] px-2.5 py-1 text-xs bg-surface border border-border-strong text-text-muted hover:bg-surface-3 hover:text-text-main"
+            disabled={archived || !checkText.trim()}
+          >
             <Plus size={14} /> Add
           </button>
         </form>
@@ -410,27 +421,27 @@ export function IssueDepth({
           {children.data?.length ? ` · ${doneChildren}/${children.data.length} done` : ""}
         </h3>
         {rollup.data && rollup.data.children > 0 && (
-          <p className="small muted">
+          <p className="text-[11px] text-text-subtle">
             Points {rollup.data.points_done}/{rollup.data.points_total} · estimate{" "}
             {formatMinutes(rollup.data.original_minutes_total)} · remaining{" "}
             {formatMinutes(rollup.data.remaining_minutes_total)} · logged{" "}
             {formatMinutes(rollup.data.logged_minutes_total)}
           </p>
         )}
-        <ul className="plain-list" aria-label="Subtask list">
+        <ul className="list-none my-1 p-0 flex flex-col gap-1" aria-label="Subtask list">
           {(children.data ?? []).map((c) => (
-            <li key={c.id} className="small">
+            <li key={c.id} className="text-[11px]">
               <button className="issue-number-button" onClick={() => setSelectedIssue(c.id)}>
                 #{c.number}
               </button>{" "}
-              <span className={c.done ? "done-text" : ""}>{c.title}</span>{" "}
-              <span className="muted">{c.status}</span>
+              <span className={c.done ? "line-through text-text-subtle" : ""}>{c.title}</span>{" "}
+              <span className="text-text-subtle">{c.status}</span>
             </li>
           ))}
         </ul>
         {!archived && (
           <form
-            className="row-actions"
+            className="flex items-center gap-2 my-1.5 [&_input]:min-h-8 [&_select]:min-h-8"
             onSubmit={(e) => {
               e.preventDefault();
               const title = subtask.trim();
@@ -446,7 +457,10 @@ export function IssueDepth({
               maxLength={250}
               onChange={(e) => setSubtask(e.target.value)}
             />
-            <button className="secondary small-btn" disabled={!subtask.trim()}>
+            <button
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] px-2.5 py-1 text-xs bg-surface border border-border-strong text-text-muted hover:bg-surface-3 hover:text-text-main"
+              disabled={!subtask.trim()}
+            >
               <Plus size={14} /> Add subtask
             </button>
           </form>
@@ -459,9 +473,9 @@ export function IssueDepth({
       {!archived && (
         <div className="drawer-section" aria-label="Clone and move">
           <h3>Copy or move</h3>
-          <div className="row-actions wrap">
+          <div className="flex items-center gap-2 my-1.5 [&_input]:min-h-8 [&_select]:min-h-8 flex-wrap">
             <button
-              className="secondary small-btn"
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] px-2.5 py-1 text-xs bg-surface border border-border-strong text-text-muted hover:bg-surface-3 hover:text-text-main"
               onClick={async () => {
                 try {
                   const copy = await send<{ id: string; number: number }>(
@@ -488,7 +502,7 @@ export function IssueDepth({
               ))}
             </select>
             <button
-              className="secondary small-btn"
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] px-2.5 py-1 text-xs bg-surface border border-border-strong text-text-muted hover:bg-surface-3 hover:text-text-main"
               disabled={!moveTo}
               onClick={() => {
                 const target = moveTo;
@@ -534,10 +548,10 @@ function IssueHistory({ token, issueId }: { token: string; issueId: string }) {
   return (
     <div className="drawer-section" aria-label="History">
       <h3>History · {rows.length}</h3>
-      <ul className="plain-list history-list">
+      <ul className="history-list list-none my-1 p-0 flex flex-col gap-1">
         {rows.slice(0, 40).map((h, n) => (
-          <li key={`${h.changed_at}-${n}`} className="small">
-            <span className="muted">{formatDateTime(h.changed_at)}</span> {h.actor_name}{" "}
+          <li key={`${h.changed_at}-${n}`} className="text-[11px]">
+            <span className="text-text-subtle">{formatDateTime(h.changed_at)}</span> {h.actor_name}{" "}
             {h.kind === "status" ? (
               <>
                 moved status {h.old_value ? <b>{h.old_value}</b> : "from nothing"} → <b>{h.new_value}</b>
@@ -564,7 +578,9 @@ function IssueHistory({ token, issueId }: { token: string; issueId: string }) {
           </li>
         ))}
       </ul>
-      {!history.isLoading && rows.length === 0 && <p className="muted small">No changes recorded yet.</p>}
+      {!history.isLoading && rows.length === 0 && (
+        <p className="text-text-subtle text-[11px]">No changes recorded yet.</p>
+      )}
     </div>
   );
 }
@@ -598,10 +614,10 @@ function DevLinks({ token, issueId }: { token: string; issueId: string; projectK
   return (
     <div className="drawer-section" aria-label="Development">
       <h3>Development · {rows.length}</h3>
-      <ul className="plain-list">
+      <ul className="list-none my-1 p-0 flex flex-col gap-1">
         {rows.map((l) => (
-          <li key={l.id} className="small">
-            <span className="chip">
+          <li key={l.id} className="text-[11px]">
+            <span className="text-[10px] font-[750] capitalize whitespace-nowrap px-[9px] py-1.5 rounded-md bg-accent-soft text-accent-text">
               {l.kind === "pull_request" ? `PR #${l.reference}` : l.reference.slice(0, 8)}
             </span>{" "}
             {l.url ? (
@@ -611,12 +627,12 @@ function DevLinks({ token, issueId }: { token: string; issueId: string; projectK
             ) : (
               l.title
             )}{" "}
-            <span className="muted">{l.author ? `· ${l.author}` : ""}</span>
+            <span className="text-text-subtle">{l.author ? `· ${l.author}` : ""}</span>
           </li>
         ))}
       </ul>
       {!links.isLoading && rows.length === 0 && (
-        <p className="muted small">
+        <p className="text-text-subtle text-[11px]">
           No commits or pull requests yet. Link a repository from the Integrations page.
         </p>
       )}

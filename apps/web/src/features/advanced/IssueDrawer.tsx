@@ -316,7 +316,7 @@ export function IssueDrawer({
 
         {error && (
           <div
-            className="error p-3 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs sm:text-sm"
+            className="p-3 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs sm:text-sm py-[11px] px-[13px] my-3"
             role="alert"
           >
             {error}
@@ -353,10 +353,13 @@ export function IssueDrawer({
             </label>
 
             {aiQ.data?.enabled && (
-              <div className="row-actions flex flex-wrap gap-2" aria-label="AI assistance">
+              <div
+                className="flex flex-wrap gap-2 items-center my-1.5 [&_input]:min-h-8 [&_select]:min-h-8"
+                aria-label="AI assistance"
+              >
                 <button
                   type="button"
-                  className="secondary small-btn px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors disabled:opacity-50"
+                  className="px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[30px] hover:text-text-main"
                   disabled={aiBusy}
                   onClick={() => runAi("summary")}
                 >
@@ -364,7 +367,7 @@ export function IssueDrawer({
                 </button>
                 <button
                   type="button"
-                  className="secondary small-btn px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors disabled:opacity-50"
+                  className="px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[30px] hover:text-text-main"
                   disabled={aiBusy}
                   onClick={() => runAi("triage")}
                 >
@@ -428,7 +431,7 @@ export function IssueDrawer({
 
             {screenQ.data && screenQ.data.fields.length > 0 && (
               <p
-                className="muted small text-xs text-text-subtle bg-surface-2 p-2.5 rounded-lg border border-border"
+                className="text-xs text-text-subtle bg-surface-2 p-2.5 rounded-lg border border-border"
                 role="status"
               >
                 This move shows{" "}
@@ -563,7 +566,7 @@ export function IssueDrawer({
 
             <div className="drawer-actions flex flex-wrap items-center gap-2.5 pt-2">
               <button
-                className="primary px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-sm font-medium transition-colors shadow-sm disabled:opacity-50"
+                className="px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-sm font-medium transition-colors shadow-sm disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)]"
                 onClick={save}
                 disabled={!!issue.archived_at}
               >
@@ -571,7 +574,7 @@ export function IssueDrawer({
               </button>
               {issue.archived_at ? (
                 <button
-                  className="secondary px-4 py-2 bg-surface-2 hover:bg-surface-3 border border-border text-text-main rounded-xl text-sm font-medium transition-colors"
+                  className="px-4 py-2 bg-surface-2 hover:bg-surface-3 border border-border text-text-main rounded-xl text-sm font-medium transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
                   onClick={() => lifecycle("restore")}
                 >
                   {issue.trashed_at ? "Restore from trash" : "Restore issue"}
@@ -579,7 +582,7 @@ export function IssueDrawer({
               ) : (
                 <>
                   <button
-                    className="secondary px-3.5 py-2 bg-surface-2 hover:bg-surface-3 border border-border text-text-main rounded-xl text-sm font-medium transition-colors"
+                    className="px-3.5 py-2 bg-surface-2 hover:bg-surface-3 border border-border text-text-main rounded-xl text-sm font-medium transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
                     onClick={() => lifecycle("archive")}
                   >
                     Archive issue
@@ -656,7 +659,7 @@ export function IssueDrawer({
                             />
                           </label>
                           <div className="flex items-center gap-2">
-                            <button className="secondary px-3 py-1 bg-accent text-white rounded-lg text-xs font-medium">
+                            <button className="px-3 py-1 bg-accent text-white rounded-lg text-xs font-medium inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] border border-border-strong hover:bg-surface-3 hover:text-text-main">
                               Save
                             </button>
                             <button
@@ -675,11 +678,11 @@ export function IssueDrawer({
                       )}
                       {!isEditing && <CommentReactions token={token} issueId={id} commentId={commentId} />}
                       {(mine || isAdmin) && !isEditing && (
-                        <div className="row-actions flex items-center gap-2 pt-1 border-t border-border/40">
+                        <div className="flex items-center gap-2 pt-1 border-t border-border/40 my-1.5 [&_input]:min-h-8 [&_select]:min-h-8">
                           {mine && (
                             <button
                               type="button"
-                              className="ghost small-btn text-xs text-text-subtle hover:text-accent font-medium"
+                              className="ghost text-xs text-text-subtle hover:text-accent font-medium min-h-[30px] px-2.5 py-1"
                               onClick={() => setEditing({ id: commentId, text: str(c.body) })}
                             >
                               Edit
@@ -687,14 +690,14 @@ export function IssueDrawer({
                           )}
                           <button
                             type="button"
-                            className="ghost small-btn text-xs text-text-subtle hover:text-accent font-medium"
+                            className="ghost text-xs text-text-subtle hover:text-accent font-medium min-h-[30px] px-2.5 py-1"
                             onClick={() => showHistory(commentId)}
                           >
                             {history ? "Hide history" : "History"}
                           </button>
                           <button
                             type="button"
-                            className="ghost small-btn text-xs text-text-subtle hover:text-danger font-medium"
+                            className="ghost text-xs text-text-subtle hover:text-danger font-medium min-h-[30px] px-2.5 py-1"
                             onClick={() => deleteComment(commentId)}
                           >
                             Delete
@@ -740,7 +743,7 @@ export function IssueDrawer({
                     className="w-full p-3 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main placeholder:text-text-subtle focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                   />
                 </label>
-                <button className="secondary px-3.5 py-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs sm:text-sm font-medium text-text-main transition-colors">
+                <button className="px-3.5 py-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs sm:text-sm font-medium text-text-main transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main">
                   Post comment
                 </button>
               </form>

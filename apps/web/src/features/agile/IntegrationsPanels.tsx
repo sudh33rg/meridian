@@ -42,13 +42,13 @@ export function ApiTokensPanel() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 pt-2">
-        <p className="muted small text-xs sm:text-sm text-text-subtle">
+        <p className="text-xs sm:text-sm text-text-subtle">
           Use a token as <code>Authorization: Bearer mtk_…</code>. A read token can only read. Tokens are
           shown once and can be revoked at any time.
         </p>
 
         <form
-          className="row-actions wrap flex flex-col sm:flex-row gap-2"
+          className="flex flex-col sm:flex-row gap-2 items-center my-1.5 [&_input]:min-h-8 [&_select]:min-h-8 flex-wrap"
           onSubmit={async (e) => {
             e.preventDefault();
             if (!name.trim()) return;
@@ -95,7 +95,7 @@ export function ApiTokensPanel() {
             <option value="365">365 days</option>
           </select>
           <button
-            className="primary small-btn px-4 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors shadow-sm disabled:opacity-50"
+            className="px-4 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors shadow-sm disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[30px]"
             disabled={!name.trim()}
           >
             Create token
@@ -108,18 +108,18 @@ export function ApiTokensPanel() {
             role="status"
           >
             <b className="block font-semibold">Copy this token now. It will not be shown again.</b>
-            <div className="row-actions flex flex-wrap items-center gap-2">
-              <code className="token-secret p-2 bg-bg border border-border rounded-lg font-mono text-xs text-text-main select-all flex-1 min-w-[200px]">
+            <div className="flex flex-wrap items-center gap-2 my-1.5 [&_input]:min-h-8 [&_select]:min-h-8">
+              <code className="p-2 bg-bg border border-border rounded-lg font-mono text-xs text-text-main select-all flex-1 min-w-[200px] break-all px-1.5 py-1">
                 {fresh}
               </code>
               <button
-                className="secondary small-btn inline-flex items-center gap-1 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-medium text-text-main hover:bg-surface-3"
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-medium text-text-main hover:bg-surface-3 justify-center whitespace-nowrap cursor-pointer transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] hover:text-text-main"
                 onClick={() => navigator.clipboard?.writeText(fresh).then(() => toast("Token copied"))}
               >
                 <Copy size={13} /> Copy
               </button>
               <button
-                className="secondary small-btn px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-medium text-text-main"
+                className="px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-medium text-text-main inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] hover:bg-surface-3 hover:text-text-main"
                 onClick={() => setFresh(null)}
               >
                 Done
@@ -129,13 +129,13 @@ export function ApiTokensPanel() {
         )}
 
         <ul
-          className="plain-list divide-y divide-border/60 border border-border rounded-xl overflow-hidden"
+          className="divide-y divide-border/60 border border-border rounded-xl overflow-hidden list-none my-1 p-0 flex flex-col gap-1"
           aria-label="API tokens"
         >
           {(tokens.data ?? []).map((t) => (
             <li
               key={t.id}
-              className="small checklist-row flex items-center justify-between p-3 text-xs hover:bg-surface-2 transition-colors"
+              className="checklist-row flex items-center justify-between p-3 text-xs hover:bg-surface-2 transition-colors"
             >
               <div>
                 <b className="text-text-main font-semibold mr-1.5">{t.name}</b>{" "}
@@ -201,19 +201,19 @@ export function GitLinkPanel() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 pt-2">
-        <p className="muted small text-xs sm:text-sm text-text-subtle">
+        <p className="text-xs sm:text-sm text-text-subtle">
           Commits and pull requests that name an issue key ({project.key}-123) link to that issue. Point your
           repository’s webhook at the address below, with JSON content and the same secret, and send push and
           pull request events.
         </p>
-        <p className="small text-xs sm:text-sm text-text-main">
+        <p className="text-xs sm:text-sm text-text-main">
           Address:{" "}
-          <code className="token-secret p-1.5 bg-bg border border-border rounded font-mono text-xs select-all text-accent">
+          <code className="p-1.5 bg-bg border border-border rounded font-mono text-xs select-all text-accent break-all px-1.5 py-1">
             {url}
           </code>
         </p>
         <form
-          className="row-actions wrap flex flex-col sm:flex-row gap-2"
+          className="flex flex-col sm:flex-row gap-2 items-center my-1.5 [&_input]:min-h-8 [&_select]:min-h-8 flex-wrap"
           onSubmit={async (e) => {
             e.preventDefault();
             if (secret.length < 16) return;
@@ -238,12 +238,12 @@ export function GitLinkPanel() {
             className="flex-1 px-3 py-1.5 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
           />
           <button
-            className="secondary small-btn px-4 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors shadow-sm disabled:opacity-50"
+            className="px-4 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors shadow-sm disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[30px] border border-border-strong hover:text-text-main"
             disabled={secret.length < 16}
           >
             Save secret
           </button>
-          <span className="small muted text-xs text-text-subtle flex items-center">
+          <span className="text-xs text-text-subtle flex items-center">
             {status.data?.configured ? "A secret is set." : "No secret yet."}
           </span>
         </form>

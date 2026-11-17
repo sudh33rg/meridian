@@ -54,7 +54,7 @@ function Deliveries({ hookId }: { hookId: string }) {
               <td className="p-2.5 font-mono text-text-main">{d.event_type}</td>
               <td className="p-2.5">
                 <span
-                  className={`tag text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded inline-block ${
                     d.state === "delivered"
                       ? "bg-emerald-500/10 text-emerald-600"
                       : "bg-rose-500/10 text-rose-600"
@@ -63,13 +63,13 @@ function Deliveries({ hookId }: { hookId: string }) {
                   {d.state}
                 </span>{" "}
                 <span className="font-mono text-text-main font-semibold">{d.last_status ?? ""}</span>{" "}
-                <span className="muted small text-text-subtle">{d.last_error ?? ""}</span>
+                <span className="text-text-subtle text-[11px]">{d.last_error ?? ""}</span>
               </td>
               <td className="p-2.5 font-mono">{d.attempts}</td>
               <td className="p-2.5 font-mono text-text-subtle">{formatTime(d.created_at)}</td>
               <td className="p-2.5 text-right">
                 <button
-                  className="secondary px-2 py-0.5 bg-surface hover:bg-surface-3 border border-border rounded text-[11px] font-medium"
+                  className="px-2 py-0.5 bg-surface hover:bg-surface-3 border border-border rounded text-[11px] font-medium inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] text-text-muted hover:text-text-main"
                   onClick={() => again.mutate(d.id)}
                 >
                   Redeliver
@@ -79,7 +79,7 @@ function Deliveries({ hookId }: { hookId: string }) {
           ))}
           {!(q.data ?? []).length && (
             <tr>
-              <td colSpan={5} className="p-3 text-center muted text-xs text-text-subtle">
+              <td colSpan={5} className="p-3 text-center text-xs text-text-subtle">
                 No deliveries yet. Use "Send test event".
               </td>
             </tr>
@@ -151,7 +151,7 @@ export function WebhooksPanel() {
 
       {error && (
         <div
-          className="error p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs sm:text-sm"
+          className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs sm:text-sm py-[11px] px-[13px] my-3"
           role="alert"
         >
           {error}
@@ -173,7 +173,7 @@ export function WebhooksPanel() {
               <code>id.timestamp.body</code>).
             </span>
             <button
-              className="secondary px-3 py-1 bg-surface border border-border rounded-lg text-xs"
+              className="px-3 py-1 bg-surface border border-border rounded-lg text-xs inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] text-text-muted hover:bg-surface-3 hover:text-text-main"
               onClick={() => setSecret(null)}
             >
               Done
@@ -190,7 +190,7 @@ export function WebhooksPanel() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 pt-2">
-          <p className="muted text-xs sm:text-sm text-text-subtle">
+          <p className="text-xs sm:text-sm text-text-subtle">
             Meridian POSTs signed JSON to your public HTTPS URL when things change. Private and internal
             addresses are refused. Failed deliveries are retried with backoff.
           </p>
@@ -202,7 +202,7 @@ export function WebhooksPanel() {
                     <div className="flex items-center gap-2">
                       <b className="text-text-main text-sm font-semibold">{h.name}</b>
                       <span
-                        className={`tag text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-block ${
                           h.enabled
                             ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                             : "bg-surface text-text-subtle border border-border"
@@ -211,43 +211,43 @@ export function WebhooksPanel() {
                         {h.enabled ? "Enabled" : "Disabled"}
                       </span>
                     </div>
-                    <div className="muted small text-xs text-text-subtle font-mono">
+                    <div className="text-xs text-text-subtle font-mono">
                       {h.url} · {h.events.length ? h.events.join(", ") : "all events"}
                       {h.last_success_at ? ` · last success ${formatDateTime(h.last_success_at)}` : ""}
                     </div>
                     {h.disabled_reason && (
-                      <div className="error small text-xs text-danger font-medium mt-1">
+                      <div className="text-xs text-danger font-medium mt-1 bg-danger-soft border border-danger-border rounded-lg py-[11px] px-[13px] my-3">
                         {h.disabled_reason}
                       </div>
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5 shrink-0">
                     <button
-                      className="secondary px-2.5 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors"
+                      className="px-2.5 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
                       onClick={() => test.mutate(h.id)}
                     >
                       Send test
                     </button>
                     <button
-                      className="secondary px-2.5 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors"
+                      className="px-2.5 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
                       onClick={() => setOpen(open === h.id ? null : h.id)}
                     >
                       {open === h.id ? "Hide log" : "Delivery log"}
                     </button>
                     <button
-                      className="secondary px-2.5 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors"
+                      className="px-2.5 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
                       onClick={() => patch.mutate({ id: h.id, enabled: !h.enabled })}
                     >
                       {h.enabled ? "Disable" : "Enable"}
                     </button>
                     <button
-                      className="secondary px-2.5 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors"
+                      className="px-2.5 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
                       onClick={() => rotate.mutate(h.id)}
                     >
                       Rotate secret
                     </button>
                     <button
-                      className="secondary px-2.5 py-1 bg-surface hover:bg-danger/10 hover:text-danger border border-border rounded-lg text-xs font-medium transition-colors"
+                      className="px-2.5 py-1 bg-surface hover:bg-danger/10 hover:text-danger border border-border rounded-lg text-xs font-medium transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] text-text-muted"
                       onClick={() => del.mutate(h.id)}
                     >
                       Delete
@@ -258,7 +258,7 @@ export function WebhooksPanel() {
               </div>
             ))}
             {!(hooks.data ?? []).length && (
-              <p className="muted text-xs text-text-subtle p-6 text-center">No endpoints yet.</p>
+              <p className="text-xs text-text-subtle p-6 text-center">No endpoints yet.</p>
             )}
           </div>
         </CardContent>
@@ -293,7 +293,7 @@ export function WebhooksPanel() {
           <label className="block space-y-1 text-xs sm:text-sm font-medium text-text-main">
             <span>
               Events{" "}
-              <span className="muted text-text-subtle font-normal text-xs">
+              <span className="text-text-subtle font-normal text-xs">
                 (comma separated, e.g. issue.created, page.*; empty = all)
               </span>
             </span>
@@ -306,7 +306,7 @@ export function WebhooksPanel() {
           </label>
           <div className="pt-2">
             <button
-              className="primary px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 shadow-sm"
+              className="px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 shadow-sm inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)]"
               disabled={!form.name || !form.url || create.isPending}
               onClick={() => create.mutate()}
             >

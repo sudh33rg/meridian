@@ -34,9 +34,9 @@ export function TeamVelocityChart({
   if (sprints.length === 0) {
     return (
       <div className="panel-empty py-10 px-4 text-center flex flex-col items-center justify-center">
-        <BarChart3 size={32} className="muted text-muted mb-2 opacity-60" />
+        <BarChart3 size={32} className="text-muted mb-2 opacity-60" />
         <p className="font-semibold text-text text-sm">No completed sprints yet</p>
-        <p className="muted small text-xs text-muted mt-1 max-w-sm">
+        <p className="text-xs text-muted mt-1 max-w-sm">
           Close an active sprint with story points to record historical velocity.
         </p>
       </div>
@@ -326,13 +326,13 @@ export function TeamVelocityModal({
               <BarChart3 size={20} className="accent text-accent" />
               Team Velocity &amp; Predictability
             </h3>
-            <p className="muted small text-xs sm:text-sm text-muted mt-0.5">
+            <p className="text-xs sm:text-sm text-muted mt-0.5">
               {projectName || projectKey} · Measure commitment reliability, delivery throughput, and sprint
               capacity.
             </p>
           </div>
           <button
-            className="icon-btn p-1.5 rounded-lg text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer inline-grid place-items-center"
             onClick={onClose}
             aria-label="Close"
           >
@@ -343,8 +343,8 @@ export function TeamVelocityModal({
         {/* Filters and Controls */}
         <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-surface-2 rounded-xl border border-border">
           <div className="flex flex-wrap items-center gap-3">
-            <label className="small flex items-center gap-1.5 text-xs font-medium text-text">
-              <Users size={14} className="muted text-muted" /> Team
+            <label className="flex items-center gap-1.5 text-xs font-medium text-text">
+              <Users size={14} className="text-muted" /> Team
               <select
                 value={teamFilter}
                 onChange={(e) => setTeamFilter(e.target.value)}
@@ -359,8 +359,8 @@ export function TeamVelocityModal({
               </select>
             </label>
 
-            <label className="small flex items-center gap-1.5 text-xs font-medium text-text">
-              <Calendar size={14} className="muted text-muted" /> Window
+            <label className="flex items-center gap-1.5 text-xs font-medium text-text">
+              <Calendar size={14} className="text-muted" /> Window
               <select
                 value={sprintWindow}
                 onChange={(e) => setSprintWindow(Number(e.target.value))}
@@ -377,20 +377,16 @@ export function TeamVelocityModal({
           {/* Metric toggle */}
           <div className="inline-flex p-0.5 rounded-lg bg-surface border border-border">
             <button
-              className={`small-btn px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
-                metric === "points"
-                  ? "primary bg-accent text-white shadow-xs"
-                  : "secondary text-muted hover:text-text"
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer min-h-[30px] ${
+                metric === "points" ? "bg-accent text-white shadow-xs" : "text-muted hover:text-text"
               }`}
               onClick={() => setMetric("points")}
             >
               Story Points
             </button>
             <button
-              className={`small-btn px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
-                metric === "count"
-                  ? "primary bg-accent text-white shadow-xs"
-                  : "secondary text-muted hover:text-text"
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer min-h-[30px] ${
+                metric === "count" ? "bg-accent text-white shadow-xs" : "text-muted hover:text-text"
               }`}
               onClick={() => setMetric("count")}
             >
@@ -405,18 +401,18 @@ export function TeamVelocityModal({
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <div className="stat-card p-3 bg-surface border border-border rounded-xl">
               <div className="flex justify-between items-center mb-1">
-                <span className="small muted text-xs text-muted font-medium">Average Velocity</span>
+                <span className="text-xs text-muted font-medium">Average Velocity</span>
                 <TrendingUp size={16} className="text-emerald-500" />
               </div>
               <strong className="text-base sm:text-lg font-bold text-emerald-600 dark:text-emerald-400 block">
                 {avgDone.toFixed(1)} {isPoints ? "pts" : "issues"}
               </strong>
-              <small className="muted text-[11px] text-muted block mt-0.5">Delivered / sprint</small>
+              <small className="text-[11px] text-muted block mt-0.5">Delivered / sprint</small>
             </div>
 
             <div className="stat-card p-3 bg-surface border border-border rounded-xl">
               <div className="flex justify-between items-center mb-1">
-                <span className="small muted text-xs text-muted font-medium">Predictability</span>
+                <span className="text-xs text-muted font-medium">Predictability</span>
                 <Target
                   size={16}
                   className={
@@ -439,40 +435,40 @@ export function TeamVelocityModal({
               >
                 {Math.round(predictability)}%
               </strong>
-              <small className="muted text-[11px] text-muted block mt-0.5">Target: 85% - 100%</small>
+              <small className="text-[11px] text-muted block mt-0.5">Target: 85% - 100%</small>
             </div>
 
             <div className="stat-card p-3 bg-surface border border-border rounded-xl">
               <div className="flex justify-between items-center mb-1">
-                <span className="small muted text-xs text-muted font-medium">Avg Commitment</span>
+                <span className="text-xs text-muted font-medium">Avg Commitment</span>
                 <Zap size={16} className="text-accent" />
               </div>
               <strong className="text-base sm:text-lg font-bold text-accent block">
                 {avgStarted.toFixed(1)} {isPoints ? "pts" : "issues"}
               </strong>
-              <small className="muted text-[11px] text-muted block mt-0.5">Planned at sprint start</small>
+              <small className="text-[11px] text-muted block mt-0.5">Planned at sprint start</small>
             </div>
 
             <div className="stat-card p-3 bg-surface border border-border rounded-xl">
               <div className="flex justify-between items-center mb-1">
-                <span className="small muted text-xs text-muted font-medium">Avg Carry-Over</span>
+                <span className="text-xs text-muted font-medium">Avg Carry-Over</span>
                 <AlertCircle size={16} className="text-amber-500" />
               </div>
               <strong className="text-base sm:text-lg font-bold text-amber-600 dark:text-amber-400 block">
                 {avgCarriedOver} items
               </strong>
-              <small className="muted text-[11px] text-muted block mt-0.5">Unfinished work / sprint</small>
+              <small className="text-[11px] text-muted block mt-0.5">Unfinished work / sprint</small>
             </div>
 
             <div className="stat-card p-3 bg-surface border border-border rounded-xl col-span-2 sm:col-span-1">
               <div className="flex justify-between items-center mb-1">
-                <span className="small muted text-xs text-muted font-medium">Target</span>
+                <span className="text-xs text-muted font-medium">Target</span>
                 <CheckCircle2 size={16} className="text-blue-500" />
               </div>
               <strong className="text-base sm:text-lg font-bold text-blue-600 dark:text-blue-400 block">
                 ~{Math.round(avgDone)} {isPoints ? "pts" : "issues"}
               </strong>
-              <small className="muted text-[11px] text-muted block mt-0.5">For next sprint planning</small>
+              <small className="text-[11px] text-muted block mt-0.5">For next sprint planning</small>
             </div>
           </div>
 
@@ -482,13 +478,13 @@ export function TeamVelocityModal({
               <h4 className="text-xs sm:text-sm font-semibold text-text">
                 Commitment vs. Completed Throughput
               </h4>
-              <span className="muted small text-xs text-muted">
+              <span className="text-xs text-muted">
                 Showing {sprints.length} completed {sprints.length === 1 ? "sprint" : "sprints"}
               </span>
             </div>
 
             {velocityQuery.isLoading ? (
-              <p className="muted small text-xs text-muted text-center py-8">Loading velocity history…</p>
+              <p className="text-xs text-muted text-center py-8">Loading velocity history…</p>
             ) : data ? (
               <TeamVelocityChart velocity={data} metric={metric} height={230} />
             ) : null}
@@ -525,11 +521,11 @@ export function TeamVelocityModal({
                           <td className="py-2 px-2.5 font-semibold text-text">{s.name}</td>
                           <td className="py-2 px-2.5">
                             {s.team_name ? (
-                              <span className="chip small px-2 py-0.5 rounded-full text-[11px] font-medium bg-surface-2 text-text border border-border">
+                              <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-surface-2 text-text border border-border capitalize whitespace-nowrap">
                                 {s.team_name}
                               </span>
                             ) : (
-                              <span className="muted small text-muted">Project</span>
+                              <span className="text-muted text-[11px]">Project</span>
                             )}
                           </td>
                           <td className="py-2 px-2.5 text-muted">{shortDay(s.closed_at)}</td>
@@ -558,7 +554,7 @@ export function TeamVelocityModal({
                           <td className="py-2 px-2.5 text-right text-muted">{s.carried_over_count ?? 0}</td>
                           <td className="py-2 px-2.5 text-right">
                             <span
-                              className={`chip small px-2 py-0.5 rounded-full text-[11px] font-bold inline-block min-w-[48px] text-center ${
+                              className={`px-2 py-0.5 rounded-full text-[11px] font-bold inline-block min-w-[48px] text-center capitalize whitespace-nowrap ${
                                 pred >= 85
                                   ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                                   : pred >= 70

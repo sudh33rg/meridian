@@ -51,20 +51,6 @@
   font-size: 10px;
   color: var(--text-3);
 }
-.chip {
-  font-size: 10px;
-  font-weight: 750;
-  color: var(--accent-text);
-  background: var(--accent-soft);
-  padding: 6px 9px;
-  border-radius: 6px;
-  text-transform: capitalize;
-  white-space: nowrap;
-}
-.chip.success {
-  background: var(--surface-3);
-  color: var(--success-text);
-}
 .ext-form {
   margin-bottom: 5px;
 }
@@ -77,9 +63,6 @@
 }
 .ext-form-body label {
   margin: 4px 0;
-}
-.ext-form-body .primary {
-  align-self: flex-start;
 }
 .ext-form-body p {
   font-size: 12px;
@@ -210,9 +193,6 @@
   flex: 1;
   min-width: 80px;
   font-size: 14px;
-}
-.subtle-note {
-  font-size: 11px !important;
 }
 .drawer-overlay {
   position: fixed;
@@ -507,9 +487,6 @@
 }
 .workflow-add input {
   min-width: 180px;
-}
-.icon-btn.danger {
-  color: var(--danger-text);
 }
 
 /* Issue list table: keep the title readable when the checkbox and action columns are present */

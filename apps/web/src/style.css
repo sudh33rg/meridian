@@ -77,34 +77,6 @@ h2 {
   color: var(--text-3);
   margin: 0;
 }
-.primary,
-.secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border-radius: 9px;
-  padding: 11px 15px;
-  font-size: 12px;
-  font-weight: 750;
-  white-space: nowrap;
-}
-.primary {
-  background: var(--accent);
-  color: var(--on-accent);
-  box-shadow: var(--shadow-sm);
-}
-.primary:hover {
-  background: var(--accent-strong);
-}
-.secondary {
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
-  color: var(--text-2);
-}
-.secondary:hover {
-  background: var(--surface-2);
-}
 .panel {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -254,9 +226,6 @@ td:first-child b {
   color: var(--text);
   margin-top: 5px;
 }
-td.capitalize {
-  text-transform: capitalize;
-}
 .knowledge {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
@@ -326,28 +295,10 @@ label select:focus {
     grid-template-columns: 1fr;
   }
 }
-.error {
-  background: var(--danger-soft);
-  color: var(--danger-text);
-  border: 1px solid var(--danger-border);
-  border-radius: 8px;
-  padding: 11px 13px;
-  font-size: 12px;
-  margin: 12px 0;
-}
 .app-error {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-.muted {
-  color: var(--text-3);
-}
-.small {
-  font-size: 11px;
-}
-.pad {
-  padding: 12px;
 }
 @media (max-width: 1150px) {
   .metrics {
@@ -445,20 +396,6 @@ label select:focus {
 }
 .panel-card h3 {
   margin: 0 0 4px;
-}
-.row-gap {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.tag {
-  display: inline-block;
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--surface-3);
-  color: var(--accent-text);
 }
 
 .panel-card select,

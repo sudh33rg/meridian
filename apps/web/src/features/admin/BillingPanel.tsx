@@ -95,7 +95,9 @@ export function BillingPanel() {
     return (
       <div className="py-12 text-center text-xs text-text-muted">
         {ov.error ? (
-          <div className="error text-danger-text">{errorMessage(ov.error)}</div>
+          <div className="text-danger-text bg-danger-soft border border-danger-border rounded-lg py-[11px] px-[13px] text-xs my-3">
+            {errorMessage(ov.error)}
+          </div>
         ) : (
           "Loading billing…"
         )}

@@ -63,7 +63,7 @@ export function Attachments({
   const rows = list.data ?? [];
   return (
     <div className="attachments">
-      <div className="row-gap" style={{ justifyContent: "space-between" }}>
+      <div className="flex flex-wrap items-center gap-2.5" style={{ justifyContent: "space-between" }}>
         <h4 style={{ margin: 0 }}>
           <Paperclip size={14} /> Attachments · {rows.length}
         </h4>
@@ -79,14 +79,21 @@ export function Attachments({
                 e.target.value = "";
               }}
             />
-            <button className="secondary" disabled={upload.isPending} onClick={() => input.current?.click()}>
+            <button
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] px-3.5 text-[13px] bg-surface border border-border-strong text-text-muted hover:bg-surface-3 hover:text-text-main"
+              disabled={upload.isPending}
+              onClick={() => input.current?.click()}
+            >
               {upload.isPending ? "Uploading…" : "Attach a file"}
             </button>
           </>
         )}
       </div>
       {error && (
-        <div className="error" style={{ marginTop: 8 }}>
+        <div
+          className="bg-danger-soft text-danger-text border border-danger-border rounded-lg py-[11px] px-[13px] text-xs my-3"
+          style={{ marginTop: 8 }}
+        >
           {error}
         </div>
       )}
@@ -108,14 +115,14 @@ export function Attachments({
               ) : (
                 <a href={`/api/attachments/${r.id}/download`}>{r.file_name}</a>
               )}
-              <div className="muted small">
+              <div className="text-text-subtle text-[11px]">
                 {size(r.size_bytes)} · {r.uploaded_by} ·{" "}
                 <span className={"scan " + r.scan_status}>{badge[r.scan_status]}</span>
               </div>
             </div>
             {canEdit && (
               <button
-                className="icon-btn"
+                className="inline-grid place-items-center rounded-lg p-[5px] text-text-subtle transition-colors hover:bg-surface-3 hover:text-text-main"
                 title="Delete"
                 aria-label={`Delete ${r.file_name}`}
                 onClick={() => remove.mutate(r.id)}
@@ -125,7 +132,7 @@ export function Attachments({
             )}
           </li>
         ))}
-        {!rows.length && <li className="muted small">No files yet.</li>}
+        {!rows.length && <li className="text-text-subtle text-[11px]">No files yet.</li>}
       </ul>
     </div>
   );

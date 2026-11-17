@@ -45,19 +45,19 @@ export function PortfolioOverviewView() {
           <CardTitle className="flex items-center gap-2 text-base font-bold text-text-main">
             <Briefcase size={18} /> Cross-Project Portfolio
           </CardTitle>
-          <p className="muted small text-xs sm:text-sm text-text-subtle mt-1">
+          <p className="text-xs sm:text-sm text-text-subtle mt-1">
             Aggregated health, velocity and delivery progress across all active projects.
           </p>
         </div>
         {data && (
           <div className="flex flex-wrap items-center gap-2">
-            <span className="chip px-2.5 py-1 bg-surface-2 rounded-lg border border-border text-xs text-text-main font-medium">
+            <span className="px-2.5 py-1 bg-surface-2 rounded-lg border border-border text-xs text-text-main font-medium capitalize whitespace-nowrap">
               <strong>{data.projects.length}</strong> projects
             </span>
-            <span className="chip px-2.5 py-1 bg-surface-2 rounded-lg border border-border text-xs text-text-main font-medium">
+            <span className="px-2.5 py-1 bg-surface-2 rounded-lg border border-border text-xs text-text-main font-medium capitalize whitespace-nowrap">
               <strong>{data.total_open_issues}</strong> open
             </span>
-            <span className="chip success px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg border border-emerald-500/20 text-xs font-medium">
+            <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg border border-emerald-500/20 text-xs font-medium capitalize whitespace-nowrap">
               <strong>{data.total_done_issues}</strong> resolved
             </span>
           </div>
@@ -66,7 +66,7 @@ export function PortfolioOverviewView() {
 
       <CardContent className="p-0">
         {overview.isLoading && (
-          <p className="muted small text-xs text-text-subtle p-6 text-center">Loading portfolio roll-up…</p>
+          <p className="text-xs text-text-subtle p-6 text-center">Loading portfolio roll-up…</p>
         )}
 
         {data && (
@@ -96,12 +96,12 @@ export function PortfolioOverviewView() {
                     >
                       <td className="p-3">
                         <strong className="text-text-main">{p.name}</strong>{" "}
-                        <span className="mono muted text-xs text-text-subtle">({p.key})</span>
+                        <span className="mono text-xs text-text-subtle">({p.key})</span>
                       </td>
                       <td className="p-3">
                         {p.health ? (
                           <span
-                            className="chip small text-[10px] uppercase font-bold px-2 py-0.5 rounded-full"
+                            className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full capitalize whitespace-nowrap bg-accent-soft text-accent-text"
                             style={{
                               background: `${HEALTH_COLORS[p.health] ?? "#6b7280"}20`,
                               color: HEALTH_COLORS[p.health] ?? "#6b7280",
@@ -110,7 +110,7 @@ export function PortfolioOverviewView() {
                             {p.health.replace("_", " ")}
                           </span>
                         ) : (
-                          <span className="muted small text-text-subtle">—</span>
+                          <span className="text-text-subtle text-[11px]">—</span>
                         )}
                       </td>
                       <td className="p-3">
@@ -128,18 +128,20 @@ export function PortfolioOverviewView() {
                       <td className="p-3 text-text-subtle font-mono">{p.total_points} pts</td>
                       <td className="p-3">
                         {p.active_sprint ? (
-                          <span className="chip small success text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                          <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 capitalize whitespace-nowrap px-[9px] py-1.5 rounded-md bg-surface-3">
                             {p.active_sprint}
                           </span>
                         ) : (
-                          <span className="muted small text-text-subtle">—</span>
+                          <span className="text-text-subtle text-[11px]">—</span>
                         )}
                       </td>
                       <td className="p-3">
                         {p.next_release ? (
-                          <span className="chip small text-xs font-medium text-accent">{p.next_release}</span>
+                          <span className="text-xs font-medium text-accent capitalize whitespace-nowrap px-[9px] py-1.5 rounded-md bg-accent-soft">
+                            {p.next_release}
+                          </span>
                         ) : (
-                          <span className="muted small text-text-subtle">—</span>
+                          <span className="text-text-subtle text-[11px]">—</span>
                         )}
                       </td>
                     </tr>
@@ -147,7 +149,7 @@ export function PortfolioOverviewView() {
                 })}
                 {data.projects.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center muted text-xs text-text-subtle">
+                    <td colSpan={7} className="p-8 text-center text-xs text-text-subtle">
                       No accessible projects found in this workspace.
                     </td>
                   </tr>

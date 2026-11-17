@@ -85,7 +85,7 @@ export function ForgotPasswordPage() {
             />
           </div>
           {error && (
-            <div className="error p-3 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium">
+            <div className="p-3 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium py-[11px] px-[13px] my-3">
               {error}
             </div>
           )}
@@ -155,7 +155,7 @@ export function ResetPasswordPage() {
             />
           </div>
           {error && (
-            <div className="error p-3 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium">
+            <div className="p-3 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium py-[11px] px-[13px] my-3">
               {error}
             </div>
           )}
@@ -203,7 +203,7 @@ export function VerifyEmailPage() {
       ) : (
         <div className="space-y-4">
           {state === "error" && (
-            <div className="error p-3 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium">
+            <div className="p-3 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium py-[11px] px-[13px] my-3">
               {error}
             </div>
           )}
@@ -290,7 +290,7 @@ export function AcceptInvitePage({ onAuthenticated }: { onAuthenticated: (s: Ses
             />
           </div>
           {error && (
-            <div className="error p-3 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium">
+            <div className="p-3 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium py-[11px] px-[13px] my-3">
               {error}
             </div>
           )}
@@ -367,7 +367,7 @@ export function MfaChallenge({
           />
         </div>
         {error && (
-          <div className="error p-3 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium">
+          <div className="p-3 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium py-[11px] px-[13px] my-3">
             {error}
           </div>
         )}

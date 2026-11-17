@@ -128,7 +128,7 @@ export function IdentityPanel() {
 
       {error && (
         <div
-          className="error p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs sm:text-sm"
+          className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs sm:text-sm py-[11px] px-[13px] my-3"
           role="alert"
         >
           {error}
@@ -151,7 +151,7 @@ export function IdentityPanel() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 pt-2">
-          <p className="muted text-xs sm:text-sm text-text-subtle">
+          <p className="text-xs sm:text-sm text-text-subtle">
             Prove you control an email domain before using it for single sign-on or provisioning. Publish the
             DNS TXT record (or the file) shown, then verify.
           </p>
@@ -162,7 +162,7 @@ export function IdentityPanel() {
                   <b className="text-text-main text-sm font-semibold">{d.domain}</b>
                   <div className="flex items-center gap-2">
                     <span
-                      className={`tag text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full inline-block ${
                         d.verified
                           ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                           : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
@@ -172,7 +172,7 @@ export function IdentityPanel() {
                     </span>
                     {!d.verified && (
                       <button
-                        className="primary px-2.5 py-1 bg-accent hover:bg-accent-strong text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                        className="px-2.5 py-1 bg-accent hover:bg-accent-strong text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] shadow-[var(--shadow-sm)]"
                         disabled={verify.isPending}
                         onClick={() => verify.mutate(d.domain)}
                       >
@@ -180,7 +180,7 @@ export function IdentityPanel() {
                       </button>
                     )}
                     <button
-                      className="secondary px-2.5 py-1 bg-surface hover:bg-danger/10 hover:text-danger border border-border rounded-lg text-xs font-medium text-text-main transition-colors"
+                      className="px-2.5 py-1 bg-surface hover:bg-danger/10 hover:text-danger border border-border rounded-lg text-xs font-medium text-text-main transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)]"
                       onClick={() => dropDomain.mutate(d.domain)}
                     >
                       Remove
@@ -188,7 +188,7 @@ export function IdentityPanel() {
                   </div>
                 </div>
                 {!d.verified && (
-                  <div className="muted small text-xs text-text-subtle font-mono p-2.5 bg-bg rounded-lg border border-border space-y-1">
+                  <div className="text-xs text-text-subtle font-mono p-2.5 bg-bg rounded-lg border border-border space-y-1">
                     <div>
                       DNS TXT <code>{d.txt_name}</code> = <code>{d.txt_value}</code>
                     </div>
@@ -200,7 +200,7 @@ export function IdentityPanel() {
               </div>
             ))}
           </div>
-          <div className="row-gap flex flex-col sm:flex-row gap-2 pt-2">
+          <div className="flex flex-col sm:flex-row gap-2 pt-2 flex-wrap items-center">
             <input
               aria-label="Domain"
               placeholder="company.com"
@@ -209,7 +209,7 @@ export function IdentityPanel() {
               className="flex-1 px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
             />
             <button
-              className="primary px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] shadow-[var(--shadow-sm)]"
               disabled={!domain || addDomain.isPending}
               onClick={() => addDomain.mutate()}
             >
@@ -227,7 +227,7 @@ export function IdentityPanel() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 pt-2">
-          <p className="muted text-xs sm:text-sm text-text-subtle">
+          <p className="text-xs sm:text-sm text-text-subtle">
             Register this redirect URL with your identity provider:{" "}
             <code className="p-1 bg-surface-2 rounded text-text-main font-mono">{s?.callback_url}</code>.
             Members sign in at{" "}
@@ -255,9 +255,7 @@ export function IdentityPanel() {
               <span>
                 Client secret{" "}
                 {s?.configured && (
-                  <span className="muted text-text-subtle text-xs font-normal">
-                    (leave blank to keep stored)
-                  </span>
+                  <span className="text-text-subtle text-xs font-normal">(leave blank to keep stored)</span>
                 )}
               </span>
               <input
@@ -281,7 +279,7 @@ export function IdentityPanel() {
               </select>
             </label>
             <div className="space-y-2 pt-1">
-              <label className="row-gap flex items-center gap-2 text-xs sm:text-sm font-medium text-text-main cursor-pointer">
+              <label className="flex items-center gap-2 text-xs sm:text-sm font-medium text-text-main cursor-pointer flex-wrap">
                 <input
                   type="checkbox"
                   checked={form.jit_provisioning}
@@ -290,7 +288,7 @@ export function IdentityPanel() {
                 />
                 Create accounts on first sign-in (verified domains only)
               </label>
-              <label className="row-gap flex items-center gap-2 text-xs sm:text-sm font-medium text-text-main cursor-pointer">
+              <label className="flex items-center gap-2 text-xs sm:text-sm font-medium text-text-main cursor-pointer flex-wrap">
                 <input
                   type="checkbox"
                   checked={form.enforce_sso}
@@ -299,7 +297,7 @@ export function IdentityPanel() {
                 />
                 Require SSO (password sign-in is refused; owners keep break-glass password)
               </label>
-              <label className="row-gap flex items-center gap-2 text-xs sm:text-sm font-medium text-text-main cursor-pointer">
+              <label className="flex items-center gap-2 text-xs sm:text-sm font-medium text-text-main cursor-pointer flex-wrap">
                 <input
                   type="checkbox"
                   checked={form.enabled}
@@ -310,9 +308,9 @@ export function IdentityPanel() {
               </label>
             </div>
           </div>
-          <div className="row-gap flex flex-wrap items-center gap-2.5 pt-3 border-t border-border">
+          <div className="flex flex-wrap items-center gap-2.5 pt-3 border-t border-border">
             <button
-              className="primary px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 shadow-sm"
+              className="px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 shadow-sm inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)]"
               disabled={save.isPending || !form.issuer || !form.client_id}
               onClick={() => save.mutate()}
             >
@@ -320,7 +318,7 @@ export function IdentityPanel() {
             </button>
             {s?.configured && (
               <button
-                className="secondary px-4 py-2 bg-surface-2 hover:bg-danger/10 hover:text-danger border border-border rounded-xl text-xs sm:text-sm font-medium text-text-main transition-colors"
+                className="px-4 py-2 bg-surface-2 hover:bg-danger/10 hover:text-danger border border-border rounded-xl text-xs sm:text-sm font-medium text-text-main transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)]"
                 onClick={() => remove.mutate()}
               >
                 Remove SSO
@@ -338,7 +336,7 @@ export function IdentityPanel() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 pt-2">
-          <p className="muted text-xs sm:text-sm text-text-subtle">
+          <p className="text-xs sm:text-sm text-text-subtle">
             Let your identity provider create and deactivate members and teams automatically. Point it at{" "}
             <code className="p-1 bg-surface-2 rounded text-text-main font-mono">/scim/v2</code> with a bearer
             token. Only emails from verified domains are accepted.
@@ -357,7 +355,7 @@ export function IdentityPanel() {
                   Base URL: <code>{fresh.base_url}</code>
                 </span>
                 <button
-                  className="secondary px-2.5 py-1 bg-surface border border-border rounded-lg text-xs"
+                  className="px-2.5 py-1 bg-surface border border-border rounded-lg text-xs inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] text-text-muted hover:bg-surface-3 hover:text-text-main"
                   onClick={() => setFresh(null)}
                 >
                   Done
@@ -371,12 +369,12 @@ export function IdentityPanel() {
                 {(tokens.data ?? []).map((t) => (
                   <tr key={t.id} className="hover:bg-surface-2 transition-colors">
                     <td className="p-3 font-medium text-text-main">{t.name}</td>
-                    <td className="p-3 muted text-text-subtle">
+                    <td className="p-3 text-text-subtle">
                       {t.last_used_at ? `last used ${formatDateTime(t.last_used_at)}` : "never used"}
                     </td>
                     <td className="p-3 text-right">
                       <button
-                        className="secondary px-2.5 py-1 bg-surface-2 hover:bg-danger/10 hover:text-danger border border-border rounded-lg text-xs transition-colors"
+                        className="px-2.5 py-1 bg-surface-2 hover:bg-danger/10 hover:text-danger border border-border rounded-lg text-xs transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] text-text-muted"
                         onClick={() => revoke.mutate(t.id)}
                       >
                         Revoke
@@ -386,7 +384,7 @@ export function IdentityPanel() {
                 ))}
                 {!(tokens.data ?? []).length && (
                   <tr>
-                    <td colSpan={3} className="p-4 text-center muted text-xs text-text-subtle">
+                    <td colSpan={3} className="p-4 text-center text-xs text-text-subtle">
                       No tokens yet.
                     </td>
                   </tr>
@@ -394,7 +392,7 @@ export function IdentityPanel() {
               </tbody>
             </table>
           </div>
-          <div className="row-gap flex flex-col sm:flex-row gap-2 pt-2">
+          <div className="flex flex-col sm:flex-row gap-2 pt-2 flex-wrap items-center">
             <input
               aria-label="Token name"
               placeholder="Token name (e.g. Okta production)"
@@ -403,7 +401,7 @@ export function IdentityPanel() {
               className="flex-1 px-3 py-2 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
             />
             <button
-              className="primary px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] shadow-[var(--shadow-sm)]"
               disabled={!tokenName || mint.isPending}
               onClick={() => mint.mutate()}
             >

@@ -102,13 +102,13 @@ export function InlineCommentsDrawer({
 
       <div className="flex justify-between items-center gap-2 mb-3">
         <button
-          className="secondary small-btn px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer"
+          className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] text-text-muted hover:text-text-main"
           onClick={() => setFilterResolved((v) => !v)}
         >
           {filterResolved ? "View Open Threads" : "View Resolved"}
         </button>
         <button
-          className="primary small-btn inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer justify-center whitespace-nowrap duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] shadow-[var(--shadow-sm)]"
           onClick={() => setAdding((v) => !v)}
         >
           <Plus size={14} /> {adding ? "Cancel" : "Add Comment"}
@@ -120,7 +120,7 @@ export function InlineCommentsDrawer({
           onSubmit={addComment}
           className="bg-surface-2 p-3 rounded-xl border border-border space-y-3 mb-4"
         >
-          <label className="small block text-xs font-medium text-text space-y-1">
+          <label className="block text-xs font-medium text-text space-y-1">
             <span>Highlighted Text Reference</span>
             <input
               type="text"
@@ -131,7 +131,7 @@ export function InlineCommentsDrawer({
               className="w-full px-2.5 py-1.5 rounded-lg border border-border bg-surface text-text text-xs focus:outline-hidden focus:ring-2 focus:ring-accent/20"
             />
           </label>
-          <label className="small block text-xs font-medium text-text space-y-1">
+          <label className="block text-xs font-medium text-text space-y-1">
             <span>Your Comment</span>
             <textarea
               rows={2}
@@ -145,14 +145,14 @@ export function InlineCommentsDrawer({
           <div className="flex justify-end gap-2 pt-1">
             <button
               type="button"
-              className="secondary small-btn px-2.5 py-1 rounded-md text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer"
+              className="px-2.5 py-1 rounded-md text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] text-text-muted hover:text-text-main"
               onClick={() => setAdding(false)}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="primary small-btn px-3 py-1 rounded-md text-xs font-semibold text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer disabled:opacity-50"
+              className="px-3 py-1 rounded-md text-xs font-semibold text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[30px] shadow-[var(--shadow-sm)]"
               disabled={!highlightedText.trim() || !newComment.trim()}
             >
               Post
@@ -161,7 +161,7 @@ export function InlineCommentsDrawer({
         </form>
       )}
 
-      {comments.isLoading && <p className="muted small text-xs text-muted">Loading inline comments…</p>}
+      {comments.isLoading && <p className="text-xs text-muted">Loading inline comments…</p>}
 
       <div className="flex-1 overflow-y-auto space-y-3 pr-1">
         {list.map((c) => (
@@ -201,7 +201,7 @@ export function InlineCommentsDrawer({
           </div>
         ))}
         {list.length === 0 && !comments.isLoading && (
-          <p className="muted small text-xs text-muted text-center py-8">
+          <p className="text-xs text-muted text-center py-8">
             {filterResolved ? "No resolved inline threads." : "No active inline comments."}
           </p>
         )}

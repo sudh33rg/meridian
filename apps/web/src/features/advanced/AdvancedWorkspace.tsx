@@ -347,7 +347,7 @@ export function AdvancedWorkspace({
         actions={
           <div className="ext-actions flex items-center gap-2">
             <button
-              className="secondary inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50 justify-center whitespace-nowrap duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] text-text-muted hover:text-text-main"
               onClick={() => void load()}
               disabled={!path || loading}
             >
@@ -355,7 +355,7 @@ export function AdvancedWorkspace({
             </button>
             {cfg && project && (
               <button
-                className="primary inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer justify-center whitespace-nowrap duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] shadow-[var(--shadow-sm)]"
                 onClick={() => setEditing(!editing)}
               >
                 <Plus size={16} /> New {tab === "automation" ? "rule" : tab.slice(0, -1)}
@@ -430,7 +430,7 @@ export function AdvancedWorkspace({
                     ))}
                   </div>
                   <div className="flex justify-end pt-2">
-                    <button className="primary px-4 py-2 rounded-lg text-xs sm:text-sm font-medium text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer">
+                    <button className="px-4 py-2 rounded-lg text-xs sm:text-sm font-medium text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] shadow-[var(--shadow-sm)]">
                       Create
                     </button>
                   </div>
@@ -463,7 +463,7 @@ export function AdvancedWorkspace({
                         {str(r.name || r.title)}
                       </h3>
                     </div>
-                    <span className="chip px-2 py-0.5 rounded-full text-xs font-medium bg-surface-2 text-text border border-border shrink-0">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-surface-2 text-text border border-border shrink-0 capitalize whitespace-nowrap">
                       {str(r.state || r.status || (r.enabled ? "Enabled" : "Registered"))}
                     </span>
                   </div>
@@ -499,7 +499,7 @@ export function AdvancedWorkspace({
 
                   {tab === "sprints" && r.state !== "completed" && (
                     <button
-                      className="secondary text-xs px-2.5 py-1 rounded-md border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer"
+                      className="text-xs px-2.5 py-1 rounded-md border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap font-[650] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] text-text-muted hover:text-text-main"
                       onClick={async () => {
                         try {
                           await request(session.token, `/sprints/${r.id}`, {
@@ -555,7 +555,7 @@ export function AdvancedWorkspace({
                       {(["approved", "rejected"] as const).map((next) => (
                         <button
                           key={next}
-                          className="secondary text-xs px-3 py-1.5 rounded-lg border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer"
+                          className="text-xs px-3 py-1.5 rounded-lg border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap font-[650] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] text-text-muted hover:text-text-main"
                           onClick={async () => {
                             try {
                               await request(session.token, `/approvals/${r.id}`, {
@@ -573,7 +573,7 @@ export function AdvancedWorkspace({
                       ))}
                     </div>
                   ) : (
-                    <span className="chip px-2 py-0.5 rounded-full text-xs font-medium bg-surface-2 text-text border border-border self-start sm:self-auto">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-surface-2 text-text border border-border self-start sm:self-auto capitalize whitespace-nowrap">
                       {str(r.status)}
                     </span>
                   )}
@@ -647,7 +647,7 @@ export function AdvancedWorkspace({
                     ))}
                   </select>
                 </label>
-                <button className="primary w-full py-2 rounded-lg text-xs sm:text-sm font-medium text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer">
+                <button className="w-full py-2 rounded-lg text-xs sm:text-sm font-medium text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] px-3.5 shadow-[var(--shadow-sm)]">
                   Request review
                 </button>
               </form>
@@ -673,7 +673,7 @@ export function AdvancedWorkspace({
                       {str(p.key)} · {count(p.issues)} issues
                     </small>
                   </div>
-                  <span className="chip success px-2 py-0.5 rounded-full text-xs font-medium bg-success-soft text-success-text border border-success-border">
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-success-soft text-success-text border border-success-border capitalize whitespace-nowrap">
                     {count(p.done)} delivered
                   </span>
                 </div>
@@ -721,7 +721,7 @@ export function AdvancedWorkspace({
                       <small className="text-xs text-muted">{str(r.email)}</small>
                     </div>
                   </div>
-                  <span className="chip px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-2 text-text border border-border">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-2 text-text border border-border capitalize whitespace-nowrap">
                     {str(r.role)}
                   </span>
                 </div>
@@ -759,7 +759,7 @@ export function AdvancedWorkspace({
                       <option>admin</option>
                     </select>
                   </label>
-                  <button className="primary w-full py-2 rounded-lg text-xs sm:text-sm font-medium text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer">
+                  <button className="w-full py-2 rounded-lg text-xs sm:text-sm font-medium text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] px-3.5 shadow-[var(--shadow-sm)]">
                     Generate invitation
                   </button>
                   {inviteToken && (
@@ -770,7 +770,7 @@ export function AdvancedWorkspace({
                       </p>
                       <button
                         type="button"
-                        className="secondary w-full py-1.5 rounded-md text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer"
+                        className="w-full py-1.5 rounded-md text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] px-3.5 text-text-muted hover:text-text-main"
                         onClick={() => navigator.clipboard.writeText(inviteToken)}
                       >
                         Copy token
@@ -796,7 +796,7 @@ export function AdvancedWorkspace({
                       <small className="text-xs text-muted capitalize">{str(w.role)}</small>
                     </div>
                     <button
-                      className="secondary text-xs px-2.5 py-1 rounded-md border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50"
+                      className="text-xs px-2.5 py-1 rounded-md border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap font-[650] duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] text-text-muted hover:text-text-main"
                       disabled={w.id === session.tenant_id}
                       onClick={() => changeTenant(str(w.id))}
                     >
@@ -831,7 +831,7 @@ export function AdvancedWorkspace({
                   </div>
                   {!r.read_at && (
                     <button
-                      className="secondary text-xs inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer shrink-0"
+                      className="text-xs inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer shrink-0 justify-center whitespace-nowrap font-[650] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] text-text-muted hover:text-text-main"
                       onClick={() => markRead(str(r.id))}
                     >
                       <Check size={14} /> Mark read
@@ -861,7 +861,7 @@ export function AdvancedWorkspace({
                 minLength={2}
               />
             </div>
-            <button className="primary px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer">
+            <button className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] shadow-[var(--shadow-sm)]">
               Search
             </button>
           </form>
@@ -915,13 +915,13 @@ export function AdvancedWorkspace({
                 export.
               </p>
               <button
-                className="primary inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium text-on-accent bg-accent hover:bg-accent-strong transition-colors cursor-pointer disabled:opacity-50 justify-center whitespace-nowrap duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] shadow-[var(--shadow-sm)]"
                 disabled={!project}
                 onClick={exportData}
               >
                 <Download size={16} /> Export {project?.key || "project"}
               </button>
-              <p className="subtle-note text-xs text-muted">
+              <p className="text-xs text-muted">
                 Integration webhooks are registered disabled until safe delivery is configured.
               </p>
             </CardContent>
@@ -939,7 +939,7 @@ export function AdvancedWorkspace({
                     <b className="font-semibold text-text text-xs sm:text-sm block">{str(r.name)}</b>
                     <small className="text-xs text-muted">{str(r.url)}</small>
                   </div>
-                  <span className="chip px-2 py-0.5 rounded-full text-xs font-medium bg-surface-2 text-text border border-border">
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-surface-2 text-text border border-border capitalize whitespace-nowrap">
                     Disabled
                   </span>
                 </div>

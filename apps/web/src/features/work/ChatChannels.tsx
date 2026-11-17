@@ -48,13 +48,15 @@ export function ChatChannels({ token, projectId }: { token: string; projectId: s
     <section className="workflow" aria-label="Chat notifications">
       <div className="workflow-head">
         <b>Chat notifications</b>
-        <span className="muted small">
+        <span className="text-text-subtle text-[11px]">
           Posts an issue key, title, status change and who made it. Never descriptions or comments.
         </span>
       </div>
       <div className="workflow-add">
         <label>
-          <span className="muted small">Slack webhook {data.slack_configured ? "(saved)" : "(not set)"}</span>
+          <span className="text-text-subtle text-[11px]">
+            Slack webhook {data.slack_configured ? "(saved)" : "(not set)"}
+          </span>
           <input
             type="password"
             autoComplete="off"
@@ -75,7 +77,9 @@ export function ChatChannels({ token, projectId }: { token: string; projectId: s
           Post to Slack
         </label>
         <label>
-          <span className="muted small">Teams webhook {data.teams_configured ? "(saved)" : "(not set)"}</span>
+          <span className="text-text-subtle text-[11px]">
+            Teams webhook {data.teams_configured ? "(saved)" : "(not set)"}
+          </span>
           <input
             type="password"
             autoComplete="off"
@@ -112,7 +116,7 @@ export function ChatChannels({ token, projectId }: { token: string; projectId: s
           New issues
         </label>
         <button
-          className="secondary"
+          className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] px-3.5 text-[13px] bg-surface border border-border-strong text-text-muted hover:bg-surface-3 hover:text-text-main"
           disabled={(!slackUrl && !teamsUrl) || save.isPending}
           onClick={() =>
             save.mutate({

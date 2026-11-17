@@ -62,7 +62,7 @@ export function ImportPanel({ token, projectId }: { token: string; projectId: st
           <Upload size={18} className="text-accent" />
           Import issues from CSV
         </CardTitle>
-        <p className="muted small text-xs sm:text-sm text-text-muted mt-1">
+        <p className="text-xs sm:text-sm text-text-muted mt-1">
           Needs Summary and Issue Key columns. Optional: Issue Type, Priority, Status, Description. Repeat
           imports skip issues they already created.
         </p>
@@ -95,7 +95,7 @@ export function ImportPanel({ token, projectId }: { token: string; projectId: st
             <span>Create statuses the file names</span>
           </label>
           <button
-            className="secondary px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] text-text-muted hover:text-text-main"
             disabled={text === null || busy}
             onClick={() => run(true)}
           >
@@ -103,7 +103,7 @@ export function ImportPanel({ token, projectId }: { token: string; projectId: st
           </button>
           {report && report.errors === 0 && report.to_create > 0 && !report.committed && (
             <button
-              className="primary px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-accent hover:bg-accent-strong transition-colors cursor-pointer disabled:opacity-50"
+              className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-accent hover:bg-accent-strong transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] shadow-[var(--shadow-sm)]"
               disabled={busy}
               onClick={() => run(false)}
             >

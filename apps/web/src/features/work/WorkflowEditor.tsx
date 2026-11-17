@@ -54,7 +54,7 @@ export function WorkflowEditor({
     <section className="workflow" aria-label="Workflow statuses">
       <div className="workflow-head">
         <b>Workflow</b>
-        <span className="muted small">
+        <span className="text-text-subtle text-[11px]">
           Done-category issues count as completed. Renaming a status keeps its issues.
         </span>
       </div>
@@ -110,7 +110,7 @@ export function WorkflowEditor({
               ))}
             </select>
             <button
-              className="icon-btn"
+              className="inline-grid place-items-center rounded-lg p-[5px] text-text-subtle transition-colors hover:bg-surface-3 hover:text-text-main"
               aria-label={`Move ${s.name} left`}
               disabled={index === 0 || change.isPending}
               onClick={() => change.mutate({ key: s.key, body: { position: index - 1 } })}
@@ -118,7 +118,7 @@ export function WorkflowEditor({
               <ArrowUp size={14} />
             </button>
             <button
-              className="icon-btn"
+              className="inline-grid place-items-center rounded-lg p-[5px] text-text-subtle transition-colors hover:bg-surface-3 hover:text-text-main"
               aria-label={`Move ${s.name} right`}
               disabled={index === statuses.length - 1 || change.isPending}
               onClick={() => change.mutate({ key: s.key, body: { position: index + 1 } })}
@@ -126,7 +126,7 @@ export function WorkflowEditor({
               <ArrowDown size={14} />
             </button>
             <button
-              className="icon-btn danger"
+              className="inline-grid place-items-center rounded-lg p-[5px] text-text-subtle transition-colors hover:bg-surface-3 hover:text-text-main text-danger-text"
               aria-label={`Delete ${s.name}`}
               disabled={remove.isPending}
               onClick={() => remove.mutate(s.key)}
@@ -161,7 +161,11 @@ export function WorkflowEditor({
             </option>
           ))}
         </select>
-        <button className="secondary" type="submit" disabled={!name.trim() || add.isPending}>
+        <button
+          className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] px-3.5 text-[13px] bg-surface border border-border-strong text-text-muted hover:bg-surface-3 hover:text-text-main"
+          type="submit"
+          disabled={!name.trim() || add.isPending}
+        >
           <Plus size={14} /> Add status
         </button>
       </form>

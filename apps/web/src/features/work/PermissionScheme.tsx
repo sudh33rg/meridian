@@ -43,13 +43,13 @@ export function PermissionScheme({ token, projectId }: { token: string; projectI
     <section className="workflow" aria-label="Permission scheme">
       <div className="workflow-head">
         <b>Permissions</b>
-        <span className="muted small">
+        <span className="text-text-subtle text-[11px]">
           Owners and admins always have full access. These settings decide what members may do.
         </span>
       </div>
       <div className="workflow-add">
         <label>
-          <span className="muted small">Members see this project as</span>
+          <span className="text-text-subtle text-[11px]">Members see this project as</span>
           <select
             value={current.member_level}
             onChange={(e) => setDraft({ ...current, member_level: Number(e.target.value) })}
@@ -59,7 +59,7 @@ export function PermissionScheme({ token, projectId }: { token: string; projectI
           </select>
         </label>
         <label>
-          <span className="muted small">Changing issues needs</span>
+          <span className="text-text-subtle text-[11px]">Changing issues needs</span>
           <select
             value={current.edit_min}
             onChange={(e) => setDraft({ ...current, edit_min: Number(e.target.value) })}
@@ -69,7 +69,7 @@ export function PermissionScheme({ token, projectId }: { token: string; projectI
           </select>
         </label>
         <label>
-          <span className="muted small">Changing the workflow and fields needs</span>
+          <span className="text-text-subtle text-[11px]">Changing the workflow and fields needs</span>
           <select
             value={current.workflow_min}
             onChange={(e) => setDraft({ ...current, workflow_min: Number(e.target.value) })}
@@ -80,7 +80,7 @@ export function PermissionScheme({ token, projectId }: { token: string; projectI
         </label>
         {ACTION_LABELS.map(([action, label]) => (
           <label key={action}>
-            <span className="muted small">{label} needs</span>
+            <span className="text-text-subtle text-[11px]">{label} needs</span>
             <select
               aria-label={`${label} needs`}
               value={current.actions?.[action] ?? 0}
@@ -99,7 +99,11 @@ export function PermissionScheme({ token, projectId }: { token: string; projectI
           </label>
         ))}
         {draft && (
-          <button className="primary" disabled={save.isPending} onClick={() => save.mutate(draft)}>
+          <button
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] px-3.5 text-[13px] bg-accent text-on-accent shadow-[var(--shadow-sm)] hover:bg-accent-strong"
+            disabled={save.isPending}
+            onClick={() => save.mutate(draft)}
+          >
             Save permissions
           </button>
         )}

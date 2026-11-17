@@ -10,7 +10,9 @@ export function Burndown({ data }: { data: BurndownData }) {
   }
   if (days.length === 0) {
     return (
-      <p className="muted small">No burndown yet. The first point is recorded when the sprint starts.</p>
+      <p className="text-text-subtle text-[11px]">
+        No burndown yet. The first point is recorded when the sprint starts.
+      </p>
     );
   }
   const W = 320;
@@ -65,7 +67,7 @@ export function Burndown({ data }: { data: BurndownData }) {
           {shortDay(last.day)}
         </text>
       </svg>
-      <figcaption className="small muted">
+      <figcaption className="text-[11px] text-text-subtle">
         Remaining {remaining(last)} of {last.scope_points} pts · done {last.done_points} pts · scope{" "}
         {last.scope_count} issues
         {data.current.scope_points !== (days[0]?.scope_points ?? data.current.scope_points)

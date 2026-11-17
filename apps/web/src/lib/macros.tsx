@@ -158,7 +158,7 @@ function StaticMacroBlock({ macro }: { macro: Macro }) {
         style={{ margin: "12px 0", padding: "10px 14px", background: "var(--bg-subtle)", borderRadius: 6 }}
       >
         <strong style={{ fontSize: 13 }}>Table of Contents</strong>
-        <p className="muted small" style={{ margin: "4px 0 0" }}>
+        <p className="text-text-subtle text-[11px]" style={{ margin: "4px 0 0" }}>
           Auto-generated document structure
         </p>
       </nav>
@@ -186,7 +186,7 @@ function QueryMacroBlock({ token, projectId, macro }: { token: string; projectId
           )
         : api<Issue[]>(`/projects/${projectId}/issues?limit=${isChart ? 200 : limit}`, token),
   });
-  if (issuesQ.isLoading) return <p className="muted small">Loading…</p>;
+  if (issuesQ.isLoading) return <p className="text-text-subtle text-[11px]">Loading…</p>;
   if (issuesQ.isError) return <p className="error">This macro could not be loaded.</p>;
   const issues = issuesQ.data ?? [];
   if (isChart) {
@@ -203,17 +203,17 @@ function QueryMacroBlock({ token, projectId, macro }: { token: string; projectId
           <div key={key} className="macro-bar-row">
             <span>{key}</span>
             <span className="macro-bar" style={{ width: `${Math.round((n / max) * 100)}%` }} />
-            <span className="muted small">{n}</span>
+            <span className="text-text-subtle text-[11px]">{n}</span>
           </div>
         ))}
-        {!counts.size && <p className="muted small">No matching issues.</p>}
+        {!counts.size && <p className="text-text-subtle text-[11px]">No matching issues.</p>}
       </div>
     );
   }
   if (macro.name === "table") {
     return (
       <table className="macro-table">
-        <caption className="muted small">Issues matching “{query || "all"}”</caption>
+        <caption className="text-text-subtle text-[11px]">Issues matching “{query || "all"}”</caption>
         <thead>
           <tr>
             <th scope="col">Key</th>
@@ -239,10 +239,10 @@ function QueryMacroBlock({ token, projectId, macro }: { token: string; projectId
     <ul className="macro-list">
       {issues.map((i) => (
         <li key={i.id}>
-          #{i.number} {i.title} <span className="muted small">· {i.status}</span>
+          #{i.number} {i.title} <span className="text-text-subtle text-[11px]">· {i.status}</span>
         </li>
       ))}
-      {!issues.length && <li className="muted small">No matching issues.</li>}
+      {!issues.length && <li className="text-text-subtle text-[11px]">No matching issues.</li>}
     </ul>
   );
 }
@@ -272,7 +272,7 @@ export function PageBody({
         if (s.kind === "macro")
           return <MacroBlock key={n} token={token} projectId={projectId} macro={s.macro} />;
         return (
-          <p key={n} className="muted small" role="note">
+          <p key={n} className="text-text-subtle text-[11px]" role="note">
             Unknown macro shown as text: <code>{s.raw}</code>
           </p>
         );

@@ -145,30 +145,30 @@ export function RoadmapPanel() {
           actions={
             <div className="flex flex-wrap items-center gap-1.5 p-1 bg-surface-2 border border-border rounded-xl">
               <button
-                className={`small-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all min-h-[30px] ${
                   subView === "roadmap"
-                    ? "primary bg-accent text-white shadow-xs"
-                    : "secondary text-text-subtle hover:text-text-main"
+                    ? "bg-accent text-white shadow-xs"
+                    : "text-text-subtle hover:text-text-main"
                 }`}
                 onClick={() => setSubView("roadmap")}
               >
                 Project Roadmap
               </button>
               <button
-                className={`small-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all min-h-[30px] ${
                   subView === "portfolio"
-                    ? "primary bg-accent text-white shadow-xs"
-                    : "secondary text-text-subtle hover:text-text-main"
+                    ? "bg-accent text-white shadow-xs"
+                    : "text-text-subtle hover:text-text-main"
                 }`}
                 onClick={() => setSubView("portfolio")}
               >
                 Portfolio Roll-up
               </button>
               <button
-                className={`small-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all min-h-[30px] ${
                   subView === "raid"
-                    ? "primary bg-accent text-white shadow-xs"
-                    : "secondary text-text-subtle hover:text-text-main"
+                    ? "bg-accent text-white shadow-xs"
+                    : "text-text-subtle hover:text-text-main"
                 }`}
                 onClick={() => setSubView("raid")}
               >
@@ -199,7 +199,7 @@ export function RoadmapPanel() {
             </CardHeader>
             <CardContent className="p-4 sm:p-6 space-y-3">
               {(timeline.data ?? []).filter((t) => t.start || t.end).length === 0 && (
-                <p className="muted small text-xs text-text-subtle">
+                <p className="text-xs text-text-subtle">
                   Add due dates to epics, target dates to releases, and sprint dates to see them here.
                 </p>
               )}
@@ -210,12 +210,12 @@ export function RoadmapPanel() {
                     className="timeline-row flex items-center gap-3 p-2 rounded-lg hover:bg-surface-2 transition-colors text-xs"
                   >
                     <span className="timeline-name w-48 sm:w-64 shrink-0 truncate font-medium text-text-main">
-                      <span className="chip uppercase text-[10px] font-bold px-1.5 py-0.5 rounded bg-surface-3 text-text-muted border border-border mr-1.5">
+                      <span className="uppercase text-[10px] font-bold px-1.5 py-0.5 rounded bg-surface-3 text-text-muted border border-border mr-1.5 capitalize whitespace-nowrap">
                         {t.kind}
                       </span>{" "}
                       {t.name}
                       {t.progress != null && (
-                        <span className="small muted text-text-subtle"> · {t.progress}%</span>
+                        <span className="text-text-subtle text-[11px]"> · {t.progress}%</span>
                       )}
                     </span>
                     <span
@@ -246,7 +246,7 @@ export function RoadmapPanel() {
                         />
                       ) : null}
                     </span>
-                    <span className="small muted shrink-0 text-text-subtle font-mono text-[11px] w-24 text-right">
+                    <span className="shrink-0 text-text-subtle font-mono text-[11px] w-24 text-right">
                       {t.end ?? t.start ?? "no date"}
                     </span>
                   </li>
@@ -269,7 +269,7 @@ export function RoadmapPanel() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <form
-                  className="row-actions wrap flex flex-wrap gap-2"
+                  className="flex flex-wrap gap-2 items-center my-1.5 [&_input]:min-h-8 [&_select]:min-h-8"
                   onSubmit={(e) => {
                     e.preventDefault();
                     if (!msName.trim() || !msDate || !selected) return;
@@ -299,26 +299,26 @@ export function RoadmapPanel() {
                     className="px-2.5 py-1.5 bg-bg border border-border rounded-lg text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                   <button
-                    className="secondary small-btn px-3 py-1.5 bg-accent text-white rounded-lg text-xs font-medium hover:bg-accent-strong transition-colors disabled:opacity-50"
+                    className="px-3 py-1.5 bg-accent text-white rounded-lg text-xs font-medium hover:bg-accent-strong transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[30px] border border-border-strong hover:text-text-main"
                     disabled={!msName.trim() || !msDate}
                   >
                     Add
                   </button>
                 </form>
-                <ul className="plain-list divide-y divide-border/60">
+                <ul className="divide-y divide-border/60 list-none my-1 p-0 flex flex-col gap-1">
                   {(milestones.data ?? []).map((m) => (
-                    <li key={m.id} className="small flex items-center justify-between py-2 text-xs">
+                    <li key={m.id} className="flex items-center justify-between py-2 text-xs">
                       <div>
                         <b className="text-text-main font-semibold">{m.name}</b>{" "}
                         <span className="text-text-subtle font-mono">· {m.target_on}</span>{" "}
                         {m.reached_on ? (
-                          <span className="chip success text-[10px] font-bold px-1.5 py-0.5 bg-emerald-500/10 text-emerald-600 rounded">
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 bg-emerald-500/10 text-emerald-600 rounded capitalize whitespace-nowrap">
                             Reached {m.reached_on}
                           </span>
                         ) : null}
                       </div>
                       <button
-                        className="secondary small-btn px-2 py-1 bg-surface-2 hover:bg-surface-3 border border-border rounded text-[11px] font-medium"
+                        className="px-2 py-1 bg-surface-2 hover:bg-surface-3 border border-border rounded text-[11px] font-medium inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] text-text-muted hover:text-text-main"
                         onClick={() =>
                           run(() => send(`/milestones/${m.id}`, token, "PATCH", { reached: !m.reached_on }))
                         }
@@ -343,24 +343,25 @@ export function RoadmapPanel() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {critical.data?.has_cycle && (
-                  <p className="error small text-xs text-danger bg-danger/10 p-2.5 rounded-lg border border-danger/20">
+                  <p className="text-xs text-danger bg-danger/10 p-2.5 rounded-lg border border-danger/20 py-[11px] px-[13px] my-3">
                     Dependencies form a loop. Break one link to see the path.
                   </p>
                 )}
                 {critical.data && !critical.data.has_cycle && critical.data.path.length === 0 && (
-                  <p className="muted small text-xs text-text-subtle">
-                    No blocking links between open issues yet.
-                  </p>
+                  <p className="text-xs text-text-subtle">No blocking links between open issues yet.</p>
                 )}
                 {critical.data && critical.data.path.length > 0 && (
                   <>
-                    <p className="small text-xs font-semibold text-text-subtle">
+                    <p className="text-xs font-semibold text-text-subtle">
                       {critical.data.path.length} steps · {formatMinutes(critical.data.total_minutes)} of
                       remaining work
                     </p>
-                    <ol className="plain-list divide-y divide-border/60" aria-label="Critical path">
+                    <ol
+                      className="divide-y divide-border/60 list-none my-1 p-0 flex flex-col gap-1"
+                      aria-label="Critical path"
+                    >
                       {critical.data.path.map((p) => (
-                        <li key={p.issue_id} className="small py-2 text-xs flex items-center justify-between">
+                        <li key={p.issue_id} className="py-2 text-xs flex items-center justify-between">
                           <div>
                             <button
                               className="issue-number-button font-mono font-bold text-accent hover:underline mr-1.5"
@@ -370,7 +371,7 @@ export function RoadmapPanel() {
                             </button>
                             <span className="text-text-main font-medium">{p.title}</span>
                           </div>
-                          <span className="muted text-text-subtle font-mono text-[11px]">
+                          <span className="text-text-subtle font-mono text-[11px]">
                             {formatMinutes(p.minutes)}
                           </span>
                         </li>
@@ -393,7 +394,7 @@ export function RoadmapPanel() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <form
-                  className="row-actions wrap flex flex-wrap gap-2"
+                  className="flex flex-wrap gap-2 items-center my-1.5 [&_input]:min-h-8 [&_select]:min-h-8"
                   onSubmit={(e) => {
                     e.preventDefault();
                     if (!body.trim() || !selected) return;
@@ -427,18 +428,18 @@ export function RoadmapPanel() {
                     className="flex-1 min-w-[140px] px-2.5 py-1.5 bg-bg border border-border rounded-lg text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                   <button
-                    className="secondary small-btn px-3 py-1.5 bg-accent text-white rounded-lg text-xs font-medium hover:bg-accent-strong transition-colors disabled:opacity-50"
+                    className="px-3 py-1.5 bg-accent text-white rounded-lg text-xs font-medium hover:bg-accent-strong transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[30px] border border-border-strong hover:text-text-main"
                     disabled={!body.trim()}
                   >
                     Post
                   </button>
                 </form>
-                <ul className="plain-list divide-y divide-border/60">
+                <ul className="divide-y divide-border/60 list-none my-1 p-0 flex flex-col gap-1">
                   {(updates.data ?? []).slice(0, 10).map((u) => (
-                    <li key={u.id} className="small py-2 text-xs space-y-1">
+                    <li key={u.id} className="py-2 text-xs space-y-1">
                       <div className="flex items-center gap-1.5">
                         <span
-                          className={`chip text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded capitalize whitespace-nowrap ${
                             u.health === "on_track"
                               ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                               : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
@@ -448,7 +449,7 @@ export function RoadmapPanel() {
                         </span>
                         <span className="text-text-main font-medium">{u.body}</span>
                       </div>
-                      <span className="muted block text-[11px] text-text-subtle">
+                      <span className="block text-[11px] text-text-subtle">
                         — {u.author_name}, {formatDate(u.created_at)}
                       </span>
                     </li>
@@ -469,7 +470,7 @@ export function RoadmapPanel() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <form
-                  className="row-actions wrap flex flex-wrap gap-2"
+                  className="flex flex-wrap gap-2 items-center my-1.5 [&_input]:min-h-8 [&_select]:min-h-8"
                   onSubmit={(e) => {
                     e.preventDefault();
                     if (!initName.trim()) return;
@@ -499,17 +500,17 @@ export function RoadmapPanel() {
                     className="px-2.5 py-1.5 bg-bg border border-border rounded-lg text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                   <button
-                    className="secondary small-btn px-3 py-1.5 bg-accent text-white rounded-lg text-xs font-medium hover:bg-accent-strong transition-colors disabled:opacity-50"
+                    className="px-3 py-1.5 bg-accent text-white rounded-lg text-xs font-medium hover:bg-accent-strong transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[30px] border border-border-strong hover:text-text-main"
                     disabled={!initName.trim()}
                   >
                     Add
                   </button>
                 </form>
-                <ul className="plain-list divide-y divide-border/60">
+                <ul className="divide-y divide-border/60 list-none my-1 p-0 flex flex-col gap-1">
                   {(initiatives.data ?? []).map((n) => {
                     const pct = n.epics ? Math.round((n.epics_done / n.epics) * 100) : 0;
                     return (
-                      <li key={n.id} className="small py-2 text-xs space-y-1.5">
+                      <li key={n.id} className="py-2 text-xs space-y-1.5">
                         <div className="flex items-center justify-between">
                           <b className="text-text-main font-semibold">{n.name}</b>
                           <span className="text-text-subtle">
@@ -528,7 +529,7 @@ export function RoadmapPanel() {
                 </ul>
                 {epics.length > 0 && (initiatives.data ?? []).length > 0 && (
                   <form
-                    className="row-actions wrap flex flex-wrap gap-2 pt-2 border-t border-border"
+                    className="flex flex-wrap gap-2 pt-2 border-t border-border items-center my-1.5 [&_input]:min-h-8 [&_select]:min-h-8"
                     onSubmit={(e) => {
                       e.preventDefault();
                       if (!initPick || !epicPick) return;
@@ -566,7 +567,7 @@ export function RoadmapPanel() {
                       ))}
                     </select>
                     <button
-                      className="secondary small-btn px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg text-xs font-medium"
+                      className="px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg text-xs font-medium inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] text-text-muted hover:text-text-main"
                       disabled={!initPick || !epicPick}
                     >
                       Link epic
@@ -657,7 +658,7 @@ export function RoadmapPanel() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <form
-                  className="row-actions wrap flex flex-wrap gap-2"
+                  className="flex flex-wrap gap-2 items-center my-1.5 [&_input]:min-h-8 [&_select]:min-h-8"
                   onSubmit={(e) => {
                     e.preventDefault();
                     if (!baseName.trim() || !selected) return;
@@ -679,7 +680,7 @@ export function RoadmapPanel() {
                     className="flex-1 min-w-[140px] px-2.5 py-1.5 bg-bg border border-border rounded-lg text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                   <button
-                    className="secondary small-btn px-3 py-1.5 bg-accent text-white rounded-lg text-xs font-medium hover:bg-accent-strong transition-colors disabled:opacity-50"
+                    className="px-3 py-1.5 bg-accent text-white rounded-lg text-xs font-medium hover:bg-accent-strong transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[30px] border border-border-strong hover:text-text-main"
                     disabled={!baseName.trim()}
                   >
                     Save baseline
@@ -699,7 +700,7 @@ export function RoadmapPanel() {
                   ))}
                 </select>
                 {variance.data && (
-                  <p className="small text-xs text-text-subtle">
+                  <p className="text-xs text-text-subtle">
                     {variance.data.filter((v) => (v.variance_days ?? 0) > 0 && !v.done).length} open issues
                     later than baseline · {variance.data.filter((v) => v.done).length} done
                   </p>

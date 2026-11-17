@@ -158,7 +158,7 @@ export function AutomationBuilder({
           subtitle="Keep work moving automatically when issues change or on a recurring schedule."
           actions={
             <button
-              className="primary inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors shadow-sm justify-center whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)]"
               onClick={() => setCreating((v) => !v)}
               aria-expanded={creating}
             >
@@ -263,7 +263,7 @@ export function AutomationBuilder({
                     />
                     <button
                       type="button"
-                      className="secondary small-btn px-2 py-1 bg-surface hover:bg-danger/10 hover:text-danger border border-border rounded-lg text-xs"
+                      className="px-2 py-1 bg-surface hover:bg-danger/10 hover:text-danger border border-border rounded-lg text-xs inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] text-text-muted"
                       onClick={() => setConditions(conditions.filter((_, i) => i !== idx))}
                     >
                       Remove
@@ -273,7 +273,7 @@ export function AutomationBuilder({
                 {conditions.length < 10 && (
                   <button
                     type="button"
-                    className="secondary small-btn px-3 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main"
+                    className="px-3 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] hover:text-text-main"
                     onClick={() => setConditions([...conditions, emptyCondition()])}
                   >
                     Add condition
@@ -338,7 +338,7 @@ export function AutomationBuilder({
                     )}
                     <button
                       type="button"
-                      className="secondary small-btn px-2 py-1 bg-surface hover:bg-danger/10 hover:text-danger border border-border rounded-lg text-xs"
+                      className="px-2 py-1 bg-surface hover:bg-danger/10 hover:text-danger border border-border rounded-lg text-xs inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] text-text-muted"
                       onClick={() => setActions(actions.filter((_, i) => i !== idx))}
                     >
                       Remove
@@ -348,7 +348,7 @@ export function AutomationBuilder({
                 {actions.length < 5 && (
                   <button
                     type="button"
-                    className="secondary small-btn px-3 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main"
+                    className="px-3 py-1 bg-surface hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] hover:text-text-main"
                     onClick={() => setActions([...actions, emptyAction()])}
                   >
                     Add action
@@ -359,13 +359,13 @@ export function AutomationBuilder({
               <div className="automation-buttons flex items-center gap-2 pt-2 border-t border-border">
                 <button
                   type="button"
-                  className="secondary inline-flex items-center gap-1.5 px-3 py-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs sm:text-sm font-medium text-text-main transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs sm:text-sm font-medium text-text-main transition-colors justify-center whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
                   onClick={() => void runPreview()}
                 >
                   <Play size={14} /> Preview matches
                 </button>
                 <button
-                  className="primary px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 shadow-sm"
+                  className="px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 shadow-sm inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)]"
                   type="submit"
                   disabled={actions.length === 0}
                 >
@@ -375,7 +375,7 @@ export function AutomationBuilder({
 
               {preview && (
                 <p
-                  className="small text-xs text-text-subtle p-3 bg-surface-2 rounded-xl border border-border"
+                  className="text-xs text-text-subtle p-3 bg-surface-2 rounded-xl border border-border"
                   role="status"
                 >
                   {preview.matching} of the last {preview.checked} open issues match now. Nothing has changed.
@@ -390,7 +390,7 @@ export function AutomationBuilder({
 
       {/* Rules Table */}
       {rules.isLoading ? (
-        <p className="muted text-xs text-text-subtle p-6 text-center">Loading rules…</p>
+        <p className="text-xs text-text-subtle p-6 text-center">Loading rules…</p>
       ) : (rules.data ?? []).length === 0 ? (
         <Card className="p-8 text-center text-xs text-text-subtle">
           No rules yet. Create one to automate routine changes.
@@ -425,14 +425,14 @@ export function AutomationBuilder({
                           ? `Every ${r.schedule ?? "day"}`
                           : r.trigger_event.replace(/_/g, " ")}
                         {r.trigger_event === "scheduled" && r.next_run_at && (
-                          <span className="muted small text-text-subtle text-[11px] font-mono">
+                          <span className="text-text-subtle text-[11px] font-mono">
                             {" "}
                             · next {new Date(r.next_run_at).toLocaleString()}
                           </span>
                         )}
                       </td>
                       <td className="p-3">
-                        <label className="small inline-flex items-center gap-1.5 text-xs text-text-main cursor-pointer font-medium">
+                        <label className="inline-flex items-center gap-1.5 text-xs text-text-main cursor-pointer font-medium">
                           <input
                             type="checkbox"
                             checked={r.enabled}
@@ -444,14 +444,14 @@ export function AutomationBuilder({
                       </td>
                       <td className="automation-cell-actions p-3 text-right space-x-1.5">
                         <button
-                          className="secondary small-btn px-2.5 py-1 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main"
+                          className="px-2.5 py-1 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] hover:text-text-main"
                           aria-expanded={openRuns === r.id}
                           onClick={() => setOpenRuns(openRuns === r.id ? null : r.id)}
                         >
                           Run log
                         </button>
                         <button
-                          className="secondary small-btn inline-flex items-center gap-1 px-2.5 py-1 bg-surface-2 hover:bg-danger/10 hover:text-danger border border-border rounded-lg text-xs font-medium text-text-main transition-colors"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface-2 hover:bg-danger/10 hover:text-danger border border-border rounded-lg text-xs font-medium text-text-main transition-colors justify-center whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px]"
                           onClick={() => void remove(r)}
                           aria-label={`Delete rule ${r.name}`}
                         >
@@ -463,11 +463,11 @@ export function AutomationBuilder({
                       <tr className="bg-surface-2/60">
                         <td colSpan={4} className="p-4">
                           {runs.isLoading ? (
-                            <span className="muted text-xs text-text-subtle">Loading…</span>
+                            <span className="text-xs text-text-subtle">Loading…</span>
                           ) : (runs.data ?? []).length === 0 ? (
-                            <span className="muted text-xs text-text-subtle">This rule has not run yet.</span>
+                            <span className="text-xs text-text-subtle">This rule has not run yet.</span>
                           ) : (
-                            <ul className="small space-y-1 font-mono text-xs text-text-main">
+                            <ul className="space-y-1 font-mono text-xs text-text-main">
                               {(runs.data ?? []).map((run) => (
                                 <li key={run.id} className="p-2 bg-surface rounded-lg border border-border">
                                   {new Date(run.at).toLocaleString()} ·{" "}

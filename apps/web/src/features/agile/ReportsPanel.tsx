@@ -50,18 +50,15 @@ const WIDGET_KINDS = [
 
 function Bars({ rows, label }: { rows: { label: string; value: number }[]; label: string }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
-  if (rows.length === 0)
-    return <p className="muted small text-xs text-text-subtle">No data in this range.</p>;
+  if (rows.length === 0) return <p className="text-xs text-text-subtle">No data in this range.</p>;
   return (
     <ul className="bars space-y-2 py-1" aria-label={label}>
       {rows.map((r) => (
         <li key={r.label} className="flex items-center gap-2 text-xs">
-          <span className="bar-label w-24 sm:w-28 shrink-0 truncate text-text-main font-medium">
-            {r.label}
-          </span>
-          <span className="bar-track flex-1 h-2 bg-bg border border-border rounded-full overflow-hidden">
+          <span className="w-24 sm:w-28 shrink-0 truncate text-text-main font-medium text-xs">{r.label}</span>
+          <span className="flex-1 h-2 bg-bg border border-border rounded-full overflow-hidden">
             <span
-              className="bar-fill block h-full bg-accent rounded-full transition-all duration-300"
+              className="block h-full bg-accent rounded-full transition-all duration-300"
               style={{ width: `${Math.round((r.value / max) * 100)}%` }}
             />
           </span>
@@ -150,7 +147,7 @@ export function ReportsPanel() {
           subtitle="Built from status history and logged time. Ranges are inclusive, at most a year."
           actions={
             <div className="flex flex-wrap items-center gap-2">
-              <label className="small flex items-center gap-1.5 text-xs text-text-subtle">
+              <label className="flex items-center gap-1.5 text-xs text-text-subtle">
                 <span>From</span>
                 <input
                   type="date"
@@ -160,7 +157,7 @@ export function ReportsPanel() {
                   className="px-2 py-1 bg-surface border border-border rounded-lg text-xs text-text-main"
                 />
               </label>
-              <label className="small flex items-center gap-1.5 text-xs text-text-subtle">
+              <label className="flex items-center gap-1.5 text-xs text-text-subtle">
                 <span>To</span>
                 <input
                   type="date"
@@ -171,7 +168,7 @@ export function ReportsPanel() {
                 />
               </label>
               <button
-                className="secondary inline-flex items-center gap-1 px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors"
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors justify-center whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
                 onClick={() =>
                   downloadCsv(`/projects/${selected}/history.csv`, session.token, `${key}-history.csv`).catch(
                     (e) => setError(errorMessage(e)),
@@ -181,7 +178,7 @@ export function ReportsPanel() {
                 <Download size={14} /> History CSV
               </button>
               <a
-                className="secondary export-link inline-flex items-center gap-1 px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors cursor-pointer justify-center whitespace-nowrap duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main no-underline min-h-9"
                 href={`/api/projects/${selected}/export.csv`}
                 onClick={(e) => {
                   e.preventDefault();
@@ -216,14 +213,14 @@ export function ReportsPanel() {
               Team Velocity &amp; Predictability
             </CardTitle>
             <button
-              className="secondary small-btn px-3 py-1 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors"
+              className="px-3 py-1 bg-surface-2 hover:bg-surface-3 border border-border rounded-lg text-xs font-medium text-text-main transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] hover:text-text-main"
               onClick={() => setShowVelocityModal(true)}
             >
               Full Velocity Report
             </button>
           </CardHeader>
           <CardContent className="space-y-3 pt-3">
-            <p className="small text-xs sm:text-sm text-text-subtle">
+            <p className="text-xs sm:text-sm text-text-subtle">
               {velocity.data?.sprints && velocity.data.sprints.length > 0 ? (
                 <>
                   <strong className="text-text-main font-semibold">
@@ -244,7 +241,7 @@ export function ReportsPanel() {
                 <TeamVelocityChart velocity={velocity.data} metric="points" height={190} />
               </div>
             ) : (
-              <p className="muted small text-xs text-text-subtle italic">
+              <p className="text-xs text-text-subtle italic">
                 Close a sprint with story points to track team velocity and commitment delivery.
               </p>
             )}
@@ -312,7 +309,7 @@ export function ReportsPanel() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 pt-3">
-            <p className="small text-xs text-text-subtle font-medium">
+            <p className="text-xs text-text-subtle font-medium">
               {issueRange.created} created · {issueRange.resolved} resolved in this range
             </p>
             <Bars
@@ -332,7 +329,7 @@ export function ReportsPanel() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 pt-3">
-            <p className="small text-xs font-semibold text-text-main">
+            <p className="text-xs font-semibold text-text-main">
               Total: {formatMinutes(time.data?.total_minutes ?? 0)}
             </p>
             <Bars
@@ -342,10 +339,10 @@ export function ReportsPanel() {
                 value: Math.round(p.minutes / 60),
               }))}
             />
-            <p className="muted small text-[11px] text-text-subtle italic">Bars show whole hours.</p>
-            <ul className="plain-list divide-y divide-border/60 pt-1">
+            <p className="text-[11px] text-text-subtle italic">Bars show whole hours.</p>
+            <ul className="divide-y divide-border/60 pt-1 list-none my-1 p-0 flex flex-col gap-1">
               {(time.data?.by_issue ?? []).slice(0, 8).map((x) => (
-                <li key={x.issue_id} className="small py-1.5 text-xs flex items-center justify-between">
+                <li key={x.issue_id} className="py-1.5 text-xs flex items-center justify-between">
                   <div className="flex items-center gap-1.5 truncate">
                     <button
                       className="issue-number-button shrink-0 font-mono font-bold text-accent hover:underline"
@@ -375,7 +372,7 @@ export function ReportsPanel() {
         <CardContent className="space-y-4 pt-4">
           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
             <form
-              className="row-actions wrap flex items-center gap-2"
+              className="flex items-center gap-2 my-1.5 [&_input]:min-h-8 [&_select]:min-h-8 flex-wrap"
               onSubmit={async (e) => {
                 e.preventDefault();
                 if (!dashName.trim() || !selected) return;
@@ -402,7 +399,7 @@ export function ReportsPanel() {
                 className="px-3 py-1.5 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
               />
               <button
-                className="secondary small-btn inline-flex items-center gap-1 px-3 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors disabled:opacity-50 justify-center whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[30px] border border-border-strong hover:text-text-main"
                 disabled={!dashName.trim()}
               >
                 <Plus size={14} /> Create
@@ -427,7 +424,7 @@ export function ReportsPanel() {
 
           {chosen && (
             <form
-              className="row-actions wrap flex flex-wrap gap-2 p-3 bg-surface-2 rounded-xl border border-border items-center"
+              className="flex flex-wrap gap-2 p-3 bg-surface-2 rounded-xl border border-border items-center my-1.5 [&_input]:min-h-8 [&_select]:min-h-8"
               onSubmit={async (e) => {
                 e.preventDefault();
                 const title =
@@ -465,7 +462,7 @@ export function ReportsPanel() {
                 onChange={(e) => setWidgetTitle(e.target.value)}
                 className="flex-1 min-w-[140px] px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-main"
               />
-              <button className="secondary small-btn px-3 py-1.5 bg-accent text-white rounded-lg text-xs font-medium hover:bg-accent-strong transition-colors">
+              <button className="px-3 py-1.5 bg-accent text-white rounded-lg text-xs font-medium hover:bg-accent-strong transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] border border-border-strong hover:text-text-main">
                 Add widget
               </button>
             </form>
@@ -515,7 +512,7 @@ function WidgetBody({ kind, data }: { kind: string; data: unknown }) {
       median_cycle_days: number | null;
     };
     return (
-      <p className="small text-xs text-text-subtle">
+      <p className="text-xs text-text-subtle">
         {d.completed} completed · median lead{" "}
         {d.median_lead_days == null ? "–" : `${d.median_lead_days.toFixed(1)} d`} · median cycle{" "}
         {d.median_cycle_days == null ? "–" : `${d.median_cycle_days.toFixed(1)} d`}
@@ -533,7 +530,7 @@ function WidgetBody({ kind, data }: { kind: string; data: unknown }) {
     const recent = d.recent ?? [];
     return (
       <div className="space-y-2">
-        <p className="small text-xs font-medium text-text-main">
+        <p className="text-xs font-medium text-text-main">
           <strong>{d.average_done_points.toFixed(1)} pts</strong> average over {count} sprints
         </p>
         {recent.length > 0 && (
@@ -564,7 +561,7 @@ function WidgetBody({ kind, data }: { kind: string; data: unknown }) {
     );
   }
   if (kind === "flow") {
-    return <p className="small muted text-xs text-text-subtle">Flow is shown on the Reports page.</p>;
+    return <p className="text-xs text-text-subtle">Flow is shown on the Reports page.</p>;
   }
   return null;
 }

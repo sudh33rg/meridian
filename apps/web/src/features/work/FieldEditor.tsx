@@ -80,7 +80,7 @@ export function FieldEditor({ token, projectId }: { token: string; projectId: st
     <section className="workflow" aria-label="Custom fields">
       <div className="workflow-head">
         <b>Custom fields</b>
-        <span className="muted small">
+        <span className="text-text-subtle text-[11px]">
           Shown on every issue in this project. Required fields must be filled to save.
         </span>
       </div>
@@ -89,14 +89,14 @@ export function FieldEditor({ token, projectId }: { token: string; projectId: st
           <li key={f.key} className="workflow-row">
             <span>
               {f.label}
-              <span className="muted small">
+              <span className="text-text-subtle text-[11px]">
                 {" "}
                 · {FIELD_TYPE_LABEL[f.field_type]}
                 {f.field_type === "select" ? ` (${f.options.join(", ")})` : ""}
               </span>
             </span>
             <button
-              className="secondary"
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] px-3.5 text-[13px] bg-surface border border-border-strong text-text-muted hover:bg-surface-3 hover:text-text-main"
               aria-pressed={f.required}
               disabled={toggleRequired.isPending}
               onClick={() => toggleRequired.mutate(f)}
@@ -104,7 +104,7 @@ export function FieldEditor({ token, projectId }: { token: string; projectId: st
               {f.required ? "Required" : "Optional"}
             </button>
             <button
-              className="secondary"
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] px-3.5 text-[13px] bg-surface border border-border-strong text-text-muted hover:bg-surface-3 hover:text-text-main"
               aria-pressed={!!f.restricted}
               title="Restricted fields are seen and changed by project admins only"
               disabled={toggleRestricted.isPending}
@@ -113,7 +113,7 @@ export function FieldEditor({ token, projectId }: { token: string; projectId: st
               {f.restricted ? "Admins only" : "Visible to members"}
             </button>
             <button
-              className="icon-btn danger"
+              className="inline-grid place-items-center rounded-lg p-[5px] text-text-subtle transition-colors hover:bg-surface-3 hover:text-text-main text-danger-text"
               aria-label={`Delete field ${f.label}`}
               disabled={remove.isPending}
               onClick={() => remove.mutate(f.key)}
@@ -122,7 +122,9 @@ export function FieldEditor({ token, projectId }: { token: string; projectId: st
             </button>
           </li>
         ))}
-        {!fields.length && !fieldsQ.isLoading && <li className="muted small">No custom fields yet.</li>}
+        {!fields.length && !fieldsQ.isLoading && (
+          <li className="text-text-subtle text-[11px]">No custom fields yet.</li>
+        )}
       </ul>
       <form
         className="workflow-add"
@@ -165,7 +167,11 @@ export function FieldEditor({ token, projectId }: { token: string; projectId: st
           <input type="checkbox" checked={restricted} onChange={(e) => setRestricted(e.target.checked)} />{" "}
           Admins only
         </label>
-        <button className="secondary" type="submit" disabled={!label.trim() || add.isPending}>
+        <button
+          className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] px-3.5 text-[13px] bg-surface border border-border-strong text-text-muted hover:bg-surface-3 hover:text-text-main"
+          type="submit"
+          disabled={!label.trim() || add.isPending}
+        >
           <Plus size={14} /> Add field
         </button>
       </form>

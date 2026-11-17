@@ -70,15 +70,20 @@ function ScreenFields({
     );
   return (
     <fieldset className="screen-fields">
-      <legend className="muted small">Fields shown when this move is made</legend>
-      {!fields.length && <p className="muted small">Define custom fields first.</p>}
+      <legend className="text-text-subtle text-[11px]">Fields shown when this move is made</legend>
+      {!fields.length && <p className="text-text-subtle text-[11px]">Define custom fields first.</p>}
       {fields.map((f) => (
         <label key={f.key} className="filter-chip">
           <input type="checkbox" checked={shown.includes(f.key)} onChange={() => toggle(f.key)} /> {f.label}
         </label>
       ))}
       {draft && (
-        <button type="button" className="primary" disabled={save.isPending} onClick={() => save.mutate()}>
+        <button
+          type="button"
+          className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] px-3.5 text-[13px] bg-accent text-on-accent shadow-[var(--shadow-sm)] hover:bg-accent-strong"
+          disabled={save.isPending}
+          onClick={() => save.mutate()}
+        >
           Save screen
         </button>
       )}
@@ -160,7 +165,7 @@ export function PostFunctionEditor({
     <section className="workflow" aria-label="Post-functions">
       <div className="workflow-head">
         <b>Post-functions</b>
-        <span className="muted small">
+        <span className="text-text-subtle text-[11px]">
           Run in the same transaction as the status change. If one fails, the move is refused.
         </span>
       </div>
@@ -191,7 +196,7 @@ export function PostFunctionEditor({
               <li key={a.id} className="workflow-row">
                 <span>{describe(a)}</span>
                 <button
-                  className="icon-btn danger"
+                  className="inline-grid place-items-center rounded-lg p-[5px] text-text-subtle transition-colors hover:bg-surface-3 hover:text-text-main text-danger-text"
                   aria-label={`Remove post-function ${describe(a)}`}
                   disabled={remove.isPending}
                   onClick={() => remove.mutate(a.id)}
@@ -201,7 +206,7 @@ export function PostFunctionEditor({
               </li>
             ))}
             {!actions.length && !actionsQ.isLoading && (
-              <li className="muted small">No post-functions on this move.</li>
+              <li className="text-text-subtle text-[11px]">No post-functions on this move.</li>
             )}
           </ul>
           <ScreenFields token={token} projectId={projectId} from={from} to={to} fields={fields} />
@@ -253,7 +258,11 @@ export function PostFunctionEditor({
                 placeholder="Subtask title"
               />
             )}
-            <button className="secondary" type="submit" disabled={add.isPending}>
+            <button
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] px-3.5 text-[13px] bg-surface border border-border-strong text-text-muted hover:bg-surface-3 hover:text-text-main"
+              type="submit"
+              disabled={add.isPending}
+            >
               <Plus size={14} /> Add post-function
             </button>
           </form>

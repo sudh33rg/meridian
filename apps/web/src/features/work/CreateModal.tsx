@@ -265,7 +265,7 @@ export function CreateModal() {
           )}
 
           {error && (
-            <div className="error p-3 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium">
+            <div className="p-3 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium py-[11px] px-[13px] my-3">
               {error}
             </div>
           )}

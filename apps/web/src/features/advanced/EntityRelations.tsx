@@ -64,7 +64,7 @@ export function EntityRelations({
   return (
     <div className="relations-widget space-y-3">
       {error && (
-        <div className="error p-2.5 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium">
+        <div className="p-2.5 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs font-medium py-[11px] px-[13px] my-3">
           {error}
         </div>
       )}
@@ -83,7 +83,7 @@ export function EntityRelations({
           ))}
         </select>
         <button
-          className="secondary inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-50 justify-center whitespace-nowrap duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] text-text-muted hover:text-text-main"
           disabled={!chosen}
           onClick={link}
         >
@@ -109,9 +109,7 @@ export function EntityRelations({
         ))}
       </div>
       {!relations.length && (
-        <p className="subtle-note text-xs text-muted">
-          No linked items yet. Connect documentation directly to delivery.
-        </p>
+        <p className="text-xs text-muted">No linked items yet. Connect documentation directly to delivery.</p>
       )}
     </div>
   );

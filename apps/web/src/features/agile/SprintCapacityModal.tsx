@@ -80,7 +80,7 @@ export function SprintCapacityModal({
         <div className="modal-head flex items-start justify-between gap-4 pb-2 border-b border-border">
           <h3 className="text-base sm:text-lg font-bold text-text">Sprint Capacity: {sprintName}</h3>
           <button
-            className="icon-btn p-1.5 rounded-lg text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer inline-grid place-items-center"
             onClick={onClose}
             aria-label="Close"
           >
@@ -88,20 +88,20 @@ export function SprintCapacityModal({
           </button>
         </div>
 
-        {cap.isLoading && <p className="muted small text-xs text-muted">Loading capacities…</p>}
+        {cap.isLoading && <p className="text-xs text-muted">Loading capacities…</p>}
 
         {data && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3 p-3 bg-surface-2 rounded-xl border border-border">
               <div>
-                <span className="small muted text-xs text-muted font-medium block">Total Team Capacity</span>
+                <span className="text-xs text-muted font-medium block">Total Team Capacity</span>
                 <strong className="text-base sm:text-lg font-bold text-text flex items-center gap-1.5 mt-0.5">
                   <Clock size={16} className="text-accent" />
                   {data.total_capacity_hours} hrs
                 </strong>
               </div>
               <div>
-                <span className="small muted text-xs text-muted font-medium block">Assigned Scope</span>
+                <span className="text-xs text-muted font-medium block">Assigned Scope</span>
                 <strong className="text-base sm:text-lg font-bold text-text block mt-0.5">
                   {data.total_assigned_points} pts
                 </strong>
@@ -122,7 +122,7 @@ export function SprintCapacityModal({
                     <tr key={m.user_id} className="hover:bg-surface-2 transition-colors">
                       <td className="py-2 px-3">
                         <strong className="font-semibold text-text block">{m.name}</strong>
-                        <div className="small muted text-[11px] text-muted">{m.email}</div>
+                        <div className="text-[11px] text-muted">{m.email}</div>
                       </td>
                       <td className="py-2 px-3 font-medium text-text">{m.assigned_points} pts</td>
                       <td className="py-2 px-3">
@@ -155,13 +155,13 @@ export function SprintCapacityModal({
 
             <div className="flex justify-end gap-2 pt-2 border-t border-border">
               <button
-                className="secondary small-btn px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] text-text-muted hover:text-text-main"
                 onClick={onClose}
               >
                 Cancel
               </button>
               <button
-                className="primary small-btn inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-accent hover:bg-accent-strong transition-colors cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-accent hover:bg-accent-strong transition-colors cursor-pointer disabled:opacity-50 justify-center whitespace-nowrap duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[30px] shadow-[var(--shadow-sm)]"
                 onClick={saveCapacities}
                 disabled={!dirty}
               >

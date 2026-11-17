@@ -126,7 +126,7 @@ export function AuditPanel({ token, onError }: { token: string; onError: (messag
         actions={
           <button
             type="button"
-            className="secondary inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs sm:text-sm font-medium text-text-main transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs sm:text-sm font-medium text-text-main transition-colors disabled:opacity-50 justify-center whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
             onClick={exportCsv}
             disabled={exporting || !loaded}
           >
@@ -149,7 +149,7 @@ export function AuditPanel({ token, onError }: { token: string; onError: (messag
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <label className="block space-y-1">
-              <span className="muted small text-xs font-medium text-text-subtle">Action</span>
+              <span className="text-xs font-medium text-text-subtle">Action</span>
               <input
                 value={draft.action}
                 onChange={set("action")}
@@ -159,7 +159,7 @@ export function AuditPanel({ token, onError }: { token: string; onError: (messag
               />
             </label>
             <label className="block space-y-1">
-              <span className="muted small text-xs font-medium text-text-subtle">Entity type</span>
+              <span className="text-xs font-medium text-text-subtle">Entity type</span>
               <input
                 value={draft.entity_type}
                 onChange={set("entity_type")}
@@ -169,7 +169,7 @@ export function AuditPanel({ token, onError }: { token: string; onError: (messag
               />
             </label>
             <label className="block space-y-1">
-              <span className="muted small text-xs font-medium text-text-subtle">Member ID</span>
+              <span className="text-xs font-medium text-text-subtle">Member ID</span>
               <input
                 value={draft.actor_id}
                 onChange={set("actor_id")}
@@ -178,7 +178,7 @@ export function AuditPanel({ token, onError }: { token: string; onError: (messag
               />
             </label>
             <label className="block space-y-1">
-              <span className="muted small text-xs font-medium text-text-subtle">From</span>
+              <span className="text-xs font-medium text-text-subtle">From</span>
               <input
                 type="date"
                 value={draft.from}
@@ -187,7 +187,7 @@ export function AuditPanel({ token, onError }: { token: string; onError: (messag
               />
             </label>
             <label className="block space-y-1">
-              <span className="muted small text-xs font-medium text-text-subtle">To</span>
+              <span className="text-xs font-medium text-text-subtle">To</span>
               <input
                 type="date"
                 value={draft.to}
@@ -206,7 +206,7 @@ export function AuditPanel({ token, onError }: { token: string; onError: (messag
             </button>
             <button
               type="button"
-              className="secondary px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors disabled:opacity-50"
+              className="px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
               onClick={clear}
               disabled={busy}
             >
@@ -245,7 +245,7 @@ export function AuditPanel({ token, onError }: { token: string; onError: (messag
             ))}
           </div>
           {loadError && (
-            <p className="error p-4 text-xs text-danger bg-danger/10 border-t border-danger/20 font-medium">
+            <p className="p-4 text-xs text-danger bg-danger/10 border-t border-danger/20 font-medium border rounded-lg py-[11px] px-[13px] my-3">
               {loadError}
             </p>
           )}
@@ -258,7 +258,7 @@ export function AuditPanel({ token, onError }: { token: string; onError: (messag
             <div className="p-4 text-center border-t border-border">
               <button
                 type="button"
-                className="secondary px-4 py-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors"
+                className="px-4 py-2 bg-surface-2 hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] hover:text-text-main"
                 onClick={() => void run(applied, next)}
                 disabled={busy}
               >

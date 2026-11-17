@@ -82,19 +82,17 @@ export function AccessPanel() {
         <CardContent className="space-y-4 pt-2">
           <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
             <span className="text-text-subtle font-medium">Your access:</span>
-            <span className="tag px-2 py-0.5 rounded-full bg-accent/10 text-accent font-semibold text-xs border border-accent/20">
+            <span className="px-2 py-0.5 rounded-full bg-accent/10 text-accent font-semibold text-xs border border-accent/20 inline-block">
               {project.access}
             </span>
             <span className="text-text-subtle font-medium ml-2">Visibility:</span>
-            <span className="tag px-2 py-0.5 rounded-full bg-surface-2 text-text-main font-semibold text-xs border border-border">
+            <span className="px-2 py-0.5 rounded-full bg-surface-2 text-text-main font-semibold text-xs border border-border inline-block">
               {project.visibility === "private" ? "Private" : "Whole workspace"}
             </span>
           </div>
 
           {!admin && (
-            <p className="muted text-xs text-text-subtle italic">
-              Only project admins can change who has access.
-            </p>
+            <p className="text-xs text-text-subtle italic">Only project admins can change who has access.</p>
           )}
 
           {admin && (
@@ -122,7 +120,7 @@ export function AccessPanel() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-2">
-            <p className="muted text-xs sm:text-sm text-text-subtle">
+            <p className="text-xs sm:text-sm text-text-subtle">
               Workspace owners and admins always have full access.
             </p>
             <div className="overflow-x-auto border border-border rounded-xl">
@@ -139,15 +137,15 @@ export function AccessPanel() {
                     <tr key={g.subject_type + g.subject_id} className="hover:bg-surface-2 transition-colors">
                       <td className="p-3">
                         <span className="font-semibold text-text-main">{g.name || g.subject_id}</span>{" "}
-                        <span className="tag text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-surface border border-border text-text-subtle ml-1">
+                        <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-surface border border-border text-text-subtle ml-1 inline-block">
                           {g.subject_type}
                         </span>
-                        {g.email && <span className="muted text-text-subtle text-xs ml-1">({g.email})</span>}
+                        {g.email && <span className="text-text-subtle text-xs ml-1">({g.email})</span>}
                       </td>
                       <td className="p-3 capitalize text-text-main font-medium">{g.relation}</td>
                       <td className="p-3 text-right">
                         <button
-                          className="secondary px-2.5 py-1 bg-surface hover:bg-danger/10 hover:text-danger border border-border rounded-lg text-xs font-medium text-text-main transition-colors"
+                          className="px-2.5 py-1 bg-surface hover:bg-danger/10 hover:text-danger border border-border rounded-lg text-xs font-medium text-text-main transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)]"
                           onClick={() => revoke.mutate(g)}
                         >
                           Remove
@@ -157,7 +155,7 @@ export function AccessPanel() {
                   ))}
                   {!(grants.data ?? []).length && (
                     <tr>
-                      <td colSpan={3} className="p-4 text-center muted text-xs text-text-subtle">
+                      <td colSpan={3} className="p-4 text-center text-xs text-text-subtle">
                         {grants.isLoading ? "Loading…" : "No explicit grants yet."}
                       </td>
                     </tr>
@@ -166,7 +164,7 @@ export function AccessPanel() {
               </table>
             </div>
 
-            <div className="row-gap flex flex-col sm:flex-row gap-2 pt-2">
+            <div className="flex flex-col sm:flex-row gap-2 pt-2 flex-wrap items-center">
               <select
                 aria-label="Person or team"
                 value={subject}
@@ -200,7 +198,7 @@ export function AccessPanel() {
                 <option value="admin">Admin</option>
               </select>
               <button
-                className="primary px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[var(--control-h)] shadow-[var(--shadow-sm)]"
                 disabled={!subject || grant.isPending}
                 onClick={() => grant.mutate()}
               >

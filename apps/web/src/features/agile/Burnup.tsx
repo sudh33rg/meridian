@@ -33,7 +33,9 @@ export function Burnup({ data }: { data: BurnupData }) {
     });
   }
   if (days.length === 0) {
-    return <p className="muted small">No burnup data yet. Recorded when the sprint starts.</p>;
+    return (
+      <p className="text-text-subtle text-[11px]">No burnup data yet. Recorded when the sprint starts.</p>
+    );
   }
 
   const W = 320;
@@ -114,7 +116,10 @@ export function Burnup({ data }: { data: BurnupData }) {
           {shortDay(last.day)}
         </text>
       </svg>
-      <figcaption className="small muted" style={{ display: "flex", gap: "12px", marginTop: "4px" }}>
+      <figcaption
+        className="text-[11px] text-text-subtle"
+        style={{ display: "flex", gap: "12px", marginTop: "4px" }}
+      >
         <span>
           <strong style={{ color: "#3b82f6" }}>--</strong> Total Scope: {last.total_scope_points} pts
         </span>

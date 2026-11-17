@@ -96,7 +96,7 @@ export function RaidRegisterView({ projectId }: { projectId: string }) {
           <CardTitle className="flex items-center gap-2 text-base font-bold text-text-main">
             <ShieldAlert size={18} /> RAID Register
           </CardTitle>
-          <p className="muted small text-xs sm:text-sm text-text-subtle mt-1">
+          <p className="text-xs sm:text-sm text-text-subtle mt-1">
             Track Risks, Assumptions, Issues, and Dependencies.
           </p>
         </div>
@@ -114,7 +114,7 @@ export function RaidRegisterView({ projectId }: { projectId: string }) {
             <option value="dependency">Dependencies</option>
           </select>
           <button
-            className="primary small-btn inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors shadow-sm justify-center whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px]"
             onClick={() => setCreating((v) => !v)}
           >
             <Plus size={14} /> {creating ? "Cancel" : "Add RAID Item"}
@@ -126,7 +126,7 @@ export function RaidRegisterView({ projectId }: { projectId: string }) {
         {creating && (
           <form onSubmit={addItem} className="p-4 bg-surface-2 rounded-xl border border-border space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <label className="small block space-y-1 text-xs">
+              <label className="block space-y-1 text-xs">
                 <span className="font-semibold text-text-subtle">Type</span>
                 <select
                   value={newKind}
@@ -139,7 +139,7 @@ export function RaidRegisterView({ projectId }: { projectId: string }) {
                   <option value="dependency">Dependency</option>
                 </select>
               </label>
-              <label className="small block space-y-1 text-xs">
+              <label className="block space-y-1 text-xs">
                 <span className="font-semibold text-text-subtle">Severity</span>
                 <select
                   value={newSeverity}
@@ -152,7 +152,7 @@ export function RaidRegisterView({ projectId }: { projectId: string }) {
                   <option value="critical">Critical</option>
                 </select>
               </label>
-              <label className="small block space-y-1 text-xs">
+              <label className="block space-y-1 text-xs">
                 <span className="font-semibold text-text-subtle">Due Date</span>
                 <input
                   type="date"
@@ -162,7 +162,7 @@ export function RaidRegisterView({ projectId }: { projectId: string }) {
                 />
               </label>
             </div>
-            <label className="small block space-y-1 text-xs">
+            <label className="block space-y-1 text-xs">
               <span className="font-semibold text-text-subtle">Title</span>
               <input
                 type="text"
@@ -173,7 +173,7 @@ export function RaidRegisterView({ projectId }: { projectId: string }) {
                 className="w-full px-3 py-1.5 bg-surface border border-border rounded-xl text-xs sm:text-sm text-text-main focus:outline-none focus:ring-1 focus:ring-accent"
               />
             </label>
-            <label className="small block space-y-1 text-xs">
+            <label className="block space-y-1 text-xs">
               <span className="font-semibold text-text-subtle">Mitigation / Description</span>
               <textarea
                 value={newDesc}
@@ -186,14 +186,14 @@ export function RaidRegisterView({ projectId }: { projectId: string }) {
             <div className="flex justify-end gap-2 pt-1">
               <button
                 type="button"
-                className="secondary small-btn px-3 py-1.5 bg-surface hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main"
+                className="px-3 py-1.5 bg-surface hover:bg-surface-3 border border-border rounded-xl text-xs font-medium text-text-main inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[30px] hover:text-text-main"
                 onClick={() => setCreating(false)}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="primary small-btn px-4 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors disabled:opacity-50"
+                className="px-4 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-xl text-xs font-medium transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer duration-[120ms] active:translate-y-px disabled:cursor-not-allowed min-h-[30px] shadow-[var(--shadow-sm)]"
                 disabled={!newTitle.trim()}
               >
                 Save RAID Item
@@ -202,9 +202,7 @@ export function RaidRegisterView({ projectId }: { projectId: string }) {
           </form>
         )}
 
-        {raid.isLoading && (
-          <p className="muted small text-xs text-text-subtle p-6 text-center">Loading RAID items…</p>
-        )}
+        {raid.isLoading && <p className="text-xs text-text-subtle p-6 text-center">Loading RAID items…</p>}
 
         {raid.data && (
           <div className="overflow-x-auto border border-border rounded-xl">
@@ -223,21 +221,19 @@ export function RaidRegisterView({ projectId }: { projectId: string }) {
                 {items.map((i) => (
                   <tr key={i.id} className="hover:bg-surface-2 transition-colors">
                     <td className="p-3">
-                      <span className="chip small uppercase text-[10px] font-bold px-2 py-0.5 rounded-full bg-surface-3 text-text-muted border border-border">
+                      <span className="uppercase text-[10px] font-bold px-2 py-0.5 rounded-full bg-surface-3 text-text-muted border border-border capitalize whitespace-nowrap">
                         {i.kind}
                       </span>
                     </td>
                     <td className="p-3">
                       <strong className="text-text-main">{i.title}</strong>
                       {i.description && (
-                        <div className="small muted text-xs text-text-subtle mt-0.5 leading-relaxed">
-                          {i.description}
-                        </div>
+                        <div className="text-xs text-text-subtle mt-0.5 leading-relaxed">{i.description}</div>
                       )}
                     </td>
                     <td className="p-3">
                       <span
-                        className="chip small text-[10px] uppercase font-bold px-2 py-0.5 rounded-full"
+                        className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full capitalize whitespace-nowrap bg-accent-soft text-accent-text"
                         style={{
                           background: `${SEVERITY_COLORS[i.severity] ?? "#6b7280"}20`,
                           color: SEVERITY_COLORS[i.severity] ?? "#6b7280",
@@ -257,9 +253,7 @@ export function RaidRegisterView({ projectId }: { projectId: string }) {
                         <option value="closed">Closed</option>
                       </select>
                     </td>
-                    <td className="p-3 small muted font-mono text-xs text-text-subtle">
-                      {i.due_date || "—"}
-                    </td>
+                    <td className="p-3 font-mono text-xs text-text-subtle">{i.due_date || "—"}</td>
                     <td className="p-3 text-right">
                       <button
                         className="icon-ghost p-1.5 text-text-subtle hover:text-danger rounded-lg transition-colors"
@@ -274,7 +268,7 @@ export function RaidRegisterView({ projectId }: { projectId: string }) {
                 ))}
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center muted text-xs text-text-subtle">
+                    <td colSpan={6} className="p-8 text-center text-xs text-text-subtle">
                       No RAID items recorded for this filter.
                     </td>
                   </tr>

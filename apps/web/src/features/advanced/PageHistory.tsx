@@ -44,7 +44,7 @@ export function PageHistory({
   return (
     <div className="page-history relative">
       <button
-        className="secondary inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer justify-center whitespace-nowrap duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] text-text-muted hover:text-text-main"
         onClick={() => setOpen(!open)}
       >
         <History size={15} /> History
@@ -52,7 +52,7 @@ export function PageHistory({
       {open && (
         <div className="history-popover absolute right-0 top-full mt-2 w-72 max-w-[90vw] p-3 rounded-xl border border-border bg-surface shadow-xl z-30 space-y-2">
           {error && (
-            <div className="error p-2 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs">
+            <div className="p-2 rounded-lg bg-danger-soft border border-danger-border text-danger-text text-xs py-[11px] px-[13px] my-3">
               {error}
             </div>
           )}
@@ -64,7 +64,7 @@ export function PageHistory({
                   <small className="text-[11px] text-muted">{day(v.saved_at)}</small>
                 </div>
                 <button
-                  className="secondary text-xs px-2.5 py-1 rounded-md border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer"
+                  className="text-xs px-2.5 py-1 rounded-md border border-border bg-surface hover:bg-surface-2 transition-colors cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap font-[650] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] text-text-muted hover:text-text-main"
                   onClick={() => restore(count(v.version))}
                 >
                   Restore

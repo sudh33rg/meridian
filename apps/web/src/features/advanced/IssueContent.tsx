@@ -50,7 +50,10 @@ export function CommentReactions({
           <button
             key={r.key}
             type="button"
-            className={"chip-button" + (on ? " on" : "")}
+            className={
+              "text-xs bg-surface-2 border border-border text-text-main rounded-full px-2.5 py-[3px] max-w-[280px] overflow-hidden text-ellipsis whitespace-nowrap cursor-pointer" +
+              (on ? " on" : "")
+            }
             aria-pressed={on}
             aria-label={`${r.label}, ${count}`}
             title={r.label}
@@ -99,17 +102,19 @@ export function Reminders({ token, issueId }: { token: string; issueId: string }
   return (
     <section className="drawer-section" aria-label="Reminders">
       <h3>Reminders</h3>
-      {list.length === 0 && <p className="muted small">No reminders on this issue for you.</p>}
+      {list.length === 0 && (
+        <p className="text-text-subtle text-[11px]">No reminders on this issue for you.</p>
+      )}
       <ul className="workflow-list">
         {list.map((r) => (
           <li key={r.id} className="workflow-row">
             <span>
               <Bell size={13} aria-hidden="true" /> {new Date(r.remind_at).toLocaleString()}
-              {r.note && <span className="muted small"> · {r.note}</span>}
-              {r.sent_at && <span className="muted small"> · sent</span>}
+              {r.note && <span className="text-text-subtle text-[11px]"> · {r.note}</span>}
+              {r.sent_at && <span className="text-text-subtle text-[11px]"> · sent</span>}
             </span>
             <button
-              className="icon-btn danger"
+              className="inline-grid place-items-center rounded-lg p-[5px] text-text-subtle transition-colors hover:bg-surface-3 hover:text-text-main text-danger-text"
               aria-label="Remove reminder"
               disabled={remove.isPending}
               onClick={() => remove.mutate(r.id)}
@@ -139,7 +144,11 @@ export function Reminders({ token, issueId }: { token: string; issueId: string }
           onChange={(e) => setNote(e.target.value)}
           placeholder="Note (optional)"
         />
-        <button className="secondary" type="submit" disabled={!when || add.isPending}>
+        <button
+          className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] px-3.5 text-[13px] bg-surface border border-border-strong text-text-muted hover:bg-surface-3 hover:text-text-main"
+          type="submit"
+          disabled={!when || add.isPending}
+        >
           Add reminder
         </button>
       </form>

@@ -78,7 +78,7 @@ export function TransitionEditor({
     <section className="workflow" aria-label="Workflow rules">
       <div className="workflow-head">
         <b>Allowed moves</b>
-        <span className="muted small">
+        <span className="text-text-subtle text-[11px]">
           A status with no rules can move anywhere. Once it has rules, only the listed moves are allowed.
         </span>
       </div>
@@ -88,12 +88,12 @@ export function TransitionEditor({
             <span>
               {name(r.from)} → {name(r.to)}
               {r.requires_field && (
-                <span className="muted small"> · needs {fieldLabel(r.requires_field)}</span>
+                <span className="text-text-subtle text-[11px]"> · needs {fieldLabel(r.requires_field)}</span>
               )}
-              {r.requires_admin && <span className="muted small"> · admins only</span>}
+              {r.requires_admin && <span className="text-text-subtle text-[11px]"> · admins only</span>}
             </span>
             <button
-              className="icon-btn danger"
+              className="inline-grid place-items-center rounded-lg p-[5px] text-text-subtle transition-colors hover:bg-surface-3 hover:text-text-main text-danger-text"
               aria-label={`Remove move from ${name(r.from)} to ${name(r.to)}`}
               disabled={remove.isPending}
               onClick={() => remove.mutate(r)}
@@ -103,7 +103,7 @@ export function TransitionEditor({
           </li>
         ))}
         {!rules.length && !rulesQ.isLoading && (
-          <li className="muted small">No rules: every move is allowed.</li>
+          <li className="text-text-subtle text-[11px]">No rules: every move is allowed.</li>
         )}
       </ul>
       <form
@@ -143,11 +143,15 @@ export function TransitionEditor({
             </option>
           ))}
         </select>
-        <label className="muted small">
+        <label className="text-text-subtle text-[11px]">
           <input type="checkbox" checked={adminOnly} onChange={(e) => setAdminOnly(e.target.checked)} />{" "}
           Admins only
         </label>
-        <button className="secondary" type="submit" disabled={!from || !to || add.isPending}>
+        <button
+          className="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer font-[650] rounded-[var(--radius)] transition-[background-color,border-color,transform] duration-[120ms] active:translate-y-px disabled:opacity-60 disabled:cursor-not-allowed min-h-[var(--control-h)] px-3.5 text-[13px] bg-surface border border-border-strong text-text-muted hover:bg-surface-3 hover:text-text-main"
+          type="submit"
+          disabled={!from || !to || add.isPending}
+        >
           <Plus size={14} /> Add move
         </button>
       </form>
